@@ -160,3 +160,7 @@ as regras de arquitetura Linux, benchmarks, testes, licenças e segurança anter
 ## Layout mínimo 0.14.0
 - Preservar quebra de ações no dashboard, rolagem do diálogo sem stop extra de Tab e título Sobre com quebra.
 - Geometria deve usar tamanho real confirmado pelo backend; ampliação de fonte no harness não certifica toda escala/DPI ou tecnologia assistiva.
+
+## Leitor de licenças 0.15.0
+- Sobre usa seletor de documento e leitor expansível, com nome de controle estável. Não alterar Name de controle já estilizado.
+- Preservar os quatro conteúdos integrais, somente leitura, nome acessível atualizado e navegação da lista/diálogo; não escrever no clipboard em testes automáticos.

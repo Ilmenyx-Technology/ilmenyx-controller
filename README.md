@@ -7,7 +7,7 @@ política de contribuições próprias futuras: uso como ferramenta profissional
 venda do programa/acesso pago e derivação comercial do código restritos.
 Veja [mapa de licenças](LICENSING.md): a MIT original continua permitindo uso comercial das
 partes abrangidas, sem revogação de direitos anteriores. O conjunto não é anunciado como open source OSI.
-Versão local experimental 0.14.0; sem lançamento público nesta sessão.
+Versão local experimental 0.15.0; sem lançamento público nesta sessão.
 
 Ilmenyx é uma adaptação independente e não oficial do [RESET EXPLODE](https://github.com/GustavoReset/ResetExplode),
 criado por Gustavo (GustavoReset). Não possui afiliação, patrocínio ou endosso da equipe RESET.
@@ -153,3 +153,11 @@ e o título de Sobre quebra com texto ampliado.
 [Método, evidências e limites](docs/layout-minimo.md).
 279 testes aprovados; smokes Wayland nativo e X11 passaram nos tamanhos mínimos
 com texto normal e 150% no harness. Outras escalas e tecnologias assistivas pendentes.
+
+### Leitura de licenças (0.15.0)
+
+Sobre agora usa um seletor compacto dos quatro documentos e uma área maior de leitura
+somente leitura. Preserva integralmente créditos, MIT, dependências e termos próprios.
+[Fluxos de teclado, testes e limites](docs/licencas-leitura.md).
+Build sem avisos/erros, 279 testes aprovados e regressões Wayland nativo/X11 passaram.
+Área de leitura medida em cerca de 208 DIP normal e 135 DIP a 150%, no mínimo 480×360.

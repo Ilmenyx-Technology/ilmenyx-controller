@@ -572,3 +572,14 @@ Wayland nativo/X11 aprovados. Mínimos 640×480, 440×360 e 480×360 DIP, texto 
 e 150% por instrumentação no processo: controles medidos alcançáveis após rolagem.
 Fecha esse recorte local de layout, sem fechar GUI-01/GUI-02 para outros displays,
 200% de texto, leitores de tela ou entrada física. [Evidências e limites](layout-minimo.md).
+
+
+## Atualização 0.15.0 — leitura de licenças
+
+IMPLEMENTADO: seletor compacto substitui abas de Sobre, preservando integralmente
+os quatro documentos e o leitor somente leitura. No mínimo 480×360, área de leitura
+aproximada de 208 DIP normal e 135 DIP a 150%. Build sem avisos/erros, 279 testes
+aprovados e smokes Wayland nativo/X11 passaram, incluindo seleção integral, bloqueio
+de edição, rolagem e teclado. NÃO TESTADO: clipboard real, Orca/AT-SPI, entrada física,
+200%+, outras plataformas e acessibilidade completa; GUI-01/GUI-02 continuam parciais.
+[Comandos e evidências](licencas-leitura.md).

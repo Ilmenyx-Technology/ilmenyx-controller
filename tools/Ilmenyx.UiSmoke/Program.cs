@@ -170,22 +170,46 @@ public sealed class UiSmokeApp : Application
         await Until(() => desktop.Windows.OfType<AboutDialog>().Any(w => w.IsVisible));
         var about = desktop.Windows.OfType<AboutDialog>().Single(w => w.IsVisible);
         await Task.Delay(80);
-        var tabs = about.GetVisualDescendants().OfType<TabControl>().Single();
-        var first = about.GetVisualDescendants().OfType<TabItem>().First(); first.Focus();
-        Key(about, Avalonia.Input.Key.Right); await Task.Delay(60);
-        if (tabs.SelectedIndex != 1 || !ControlAutomationPeer.CreatePeerForElement(Find<TextBox>(about, "LicenseText"))!.GetName().StartsWith("MIT"))
-            throw new InvalidOperationException("About keyboard tab navigation or accessible text name failed.");
+        var selector = Find<ComboBox>(about, "LicenseDocument");
+        selector.Focus();
+        Key(about, Avalonia.Input.Key.Down); await Task.Delay(60);
+        if (selector.SelectedIndex != 1 || !ControlAutomationPeer.CreatePeerForElement(Find<TextBox>(about, "LicenseTextContent"))!.GetName().StartsWith("MIT"))
+            throw new InvalidOperationException("About keyboard document selection or accessible text name failed.");
+        Key(about, Avalonia.Input.Key.Tab); FocusIs(about, Find<TextBox>(about, "LicenseTextContent"));
+        Key(about, Avalonia.Input.Key.Tab); FocusIs(about, Find<Button>(about, "CloseAbout"));
+        Key(about, Avalonia.Input.Key.Tab); FocusIs(about, selector);
+        Key(about, Avalonia.Input.Key.F4); await Until(() => selector.IsDropDownOpen);
+        Key(about, Avalonia.Input.Key.Escape); await Until(() => !selector.IsDropDownOpen);
+        if (!about.IsVisible || selector.SelectedIndex != 1) throw new InvalidOperationException("Escape did not preserve dialog/document after closing document list.");
         Key(about, Avalonia.Input.Key.Escape); await Until(() => !about.IsVisible); FocusIs(window, aboutOpener);
         foreach (var button in window.GetVisualDescendants().OfType<Button>().Where(b => !string.IsNullOrEmpty(b.Name)))
             if (string.IsNullOrWhiteSpace(ControlAutomationPeer.CreatePeerForElement(button)?.GetName()))
                 throw new InvalidOperationException("Unnamed button automation peer: " + button.Name);
-        Console.WriteLine("PASS keyboard About: arrow changes tab, named license text, Escape closes, focus restored; dashboard buttons have automation names");
+        Console.WriteLine("PASS keyboard About: arrow selects document; Tab cycles selector/reader/close; F4 opens list; Escape closes list then dialog; named text and restored focus");
+    }
+    private static TextBox VerifyLicenseDocument(AboutDialog about, int index)
+    {
+        var (name, expected) = index switch
+        {
+            0 => ("AttributionText", ProductIdentity.Attribution + "\n\n" + File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "NOTICE.md"))),
+            1 => ("LicenseText", File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "LICENSE"))),
+            2 => ("DependenciesText", File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "THIRD-PARTY-NOTICES.md"))),
+            _ => ("OwnTermsText", File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "LICENSING.md")) + "\n\n" + File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "LICENSE-ILMENYX.md")))
+        };
+        var text = Find<TextBox>(about, "LicenseTextContent");
+        if (text.Text != expected || !text.IsReadOnly) throw new InvalidOperationException("License document changed or is editable: " + name);
+        text.Focus(); Key(about, Avalonia.Input.Key.A, KeyModifiers.Control);
+        if (text.SelectedText != expected) throw new InvalidOperationException("License text cannot be selected in full: " + name);
+        text.RaiseEvent(new TextInputEventArgs { RoutedEvent = InputElement.TextInputEvent, Text = "must-not-edit" });
+        if (text.Text != expected) throw new InvalidOperationException("Read-only license text was changed by input.");
+        Key(about, Avalonia.Input.Key.End, KeyModifiers.Control);
+        return text;
     }
     private static Dictionary<Control, double> ScaleText(Window window, double factor)
     {
         // Snapshot all effective values before assigning any: inherited fonts must not compound.
         var fonts = window.GetVisualDescendants().OfType<Control>()
-            .Where(c => c is TextBlock or TextBox or Button or TabItem)
+            .Where(c => c is TextBlock or TextBox or Button or TabItem or ComboBox)
             .ToDictionary(c => c, c => c.GetValue(Avalonia.Controls.Documents.TextElement.FontSizeProperty));
         foreach (var (control, size) in fonts) control.SetValue(Avalonia.Controls.Documents.TextElement.FontSizeProperty, size * factor);
         return fonts;
@@ -250,14 +274,20 @@ public sealed class UiSmokeApp : Application
             Click(window, "About"); await Until(() => desktop.Windows.OfType<AboutDialog>().Any(w => w.IsVisible));
             var about = desktop.Windows.OfType<AboutDialog>().Single(w => w.IsVisible);
             await MinimumSize(about);
-            var tabs = about.GetVisualDescendants().OfType<TabControl>().Single();
+            var selector = Find<ComboBox>(about, "LicenseDocument");
             ScaleText(about, factor); await Task.Delay(100);
-            foreach (var item in about.GetVisualDescendants().OfType<TabItem>().ToArray())
+            foreach (var index in Enumerable.Range(0, 4))
             {
-                item.Focus(); tabs.SelectedItem = item; await Task.Delay(60);
-                try { await Reachable(about, item); } catch (InvalidOperationException e) { errors.Add(e.Message); }
-                var text = about.GetVisualDescendants().OfType<TextBox>().Single(t => t.IsEffectivelyVisible);
+                selector.SelectedIndex = index; await Task.Delay(60);
+                try { await Reachable(about, selector); } catch (InvalidOperationException e) { errors.Add(e.Message); }
+                var text = VerifyLicenseDocument(about, index);
                 text.FontSize = 14 * factor;
+                await Task.Delay(60);
+                var readerScroll = text.GetVisualDescendants().OfType<ScrollViewer>().Single();
+                if (readerScroll.Extent.Height > readerScroll.Viewport.Height + 1)
+                    await Until(() => readerScroll.Offset.Y > 0);
+                if (text.Bounds.Height < 120) errors.Add($"License reading area too short: {text.Bounds.Height} DIP at factor {factor}");
+                Console.WriteLine($"LAYOUT license document={index} factor={factor} readingHeight={text.Bounds.Height}");
                 try { await Reachable(about, text); await Reachable(about, Find<Button>(about, "CloseAbout")); }
                 catch (InvalidOperationException e) { errors.Add(e.Message); }
             }
@@ -272,7 +302,7 @@ public sealed class UiSmokeApp : Application
         window.Width = 1060; window.Height = 780; await Task.Delay(120);
         File.WriteAllLines(Path.Combine(Program.OutputDirectory, "layout-errors.txt"), errors);
         if (errors.Count != 0) throw new InvalidOperationException(string.Join("\n", errors));
-        Console.WriteLine("PASS layout minimum sizes, text factors 1/1.5: dashboard buttons, save field/error/actions, About tabs/text/close reachable");
+        Console.WriteLine("PASS layout minimum sizes, text factors 1/1.5: dashboard buttons, save field/error/actions, About selector/text/close reachable; reading area >=120 DIP");
     }
     private static async Task ExerciseAsync(DashboardWindow window, IClassicDesktopStyleApplicationLifetime desktop)
     {
@@ -285,22 +315,22 @@ public sealed class UiSmokeApp : Application
         await Until(() => desktop.Windows.OfType<AboutDialog>().Any(w => w.IsVisible));
         var about = desktop.Windows.OfType<AboutDialog>().Single(w => w.IsVisible);
         await Task.Delay(80);
-        var attribution = Find<TextBox>(about, "AttributionText").Text!;
+        var attribution = Find<TextBox>(about, "LicenseTextContent").Text!;
         if (!attribution.Contains("Gustavo (GustavoReset)") || !attribution.Contains("não oficial") || !attribution.Contains("sem afiliação"))
             throw new InvalidOperationException("About attribution incomplete.");
-        var tabs = about.GetVisualDescendants().OfType<TabControl>().Single();
-        tabs.SelectedIndex = 1; await Task.Delay(60);
-        if (!Find<TextBox>(about, "LicenseText").Text!.Contains("Copyright (c) 2026 Gustavo (GustavoReset)"))
+        var selector = Find<ComboBox>(about, "LicenseDocument");
+        selector.SelectedIndex = 1; await Task.Delay(60);
+        if (!Find<TextBox>(about, "LicenseTextContent").Text!.Contains("Copyright (c) 2026 Gustavo (GustavoReset)"))
             throw new InvalidOperationException("MIT license missing from About.");
-        tabs.SelectedIndex = 2; await Task.Delay(60);
-        if (!Find<TextBox>(about, "DependenciesText").Text!.Contains("Avalonia.Wayland"))
+        selector.SelectedIndex = 2; await Task.Delay(60);
+        if (!Find<TextBox>(about, "LicenseTextContent").Text!.Contains("Avalonia.Wayland"))
             throw new InvalidOperationException("Third-party notices missing from About.");
-        tabs.SelectedIndex = 3; await Task.Delay(60);
-        if (!Find<TextBox>(about, "OwnTermsText").Text!.Contains("Usos permitidos, inclusive em trabalho remunerado"))
+        selector.SelectedIndex = 3; await Task.Delay(60);
+        if (!Find<TextBox>(about, "LicenseTextContent").Text!.Contains("Usos permitidos, inclusive em trabalho remunerado"))
             throw new InvalidOperationException("Own usage and commercialization terms missing from About.");
-        tabs.SelectedIndex = 0; await Task.Delay(60); Capture(about, "about.png");
+        selector.SelectedIndex = 0; await Task.Delay(60); Capture(about, "about.png");
         Click(about, "CloseAbout"); await Until(() => !about.IsVisible);
-        Console.WriteLine("PASS Ilmenyx identity, by Bismuth Technology, live About/attribution/MIT/dependency tabs and close");
+        Console.WriteLine("PASS Ilmenyx identity, by Bismuth Technology, live About/attribution/MIT/dependency documents and close");
         var implementation = window.PlatformImpl?.GetType().FullName ?? "unavailable";
         var requested = DesktopBackend.Parse(DesktopBackend.ReadSelection());
         if (requested == DisplayBackend.Wayland && !implementation.StartsWith("Avalonia.Wayland.", StringComparison.Ordinal))

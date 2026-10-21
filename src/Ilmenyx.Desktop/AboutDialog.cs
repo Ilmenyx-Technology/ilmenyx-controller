@@ -17,27 +17,46 @@ public sealed class AboutDialog : Window
         KeyboardNavigation.SetTabNavigation(this, KeyboardNavigationMode.Cycle);
         var close = new Button { Name = "CloseAbout", Content = "Fechar", IsCancel = true, HorizontalAlignment = HorizontalAlignment.Right };
         close.Click += (_, _) => Close();
-        var tabs = new TabControl
+        var documents = new[]
         {
-            ItemsSource = new[]
-            {
-                Tab("Origem", ProductIdentity.Attribution + "\n\n" + Read("NOTICE.md"), "AttributionText"),
-                Tab("MIT", Read("LICENSE"), "LicenseText"),
-                Tab("Dependências", Read("THIRD-PARTY-NOTICES.md"), "DependenciesText"),
-                Tab("Termos Ilmenyx", Read("LICENSING.md") + "\n\n" + Read("LICENSE-ILMENYX.md"), "OwnTermsText")
-            }
+            (Title: "Origem", Text: ProductIdentity.Attribution + "\n\n" + Read("NOTICE.md")),
+            (Title: "MIT", Text: Read("LICENSE")),
+            (Title: "Dependências", Text: Read("THIRD-PARTY-NOTICES.md")),
+            (Title: "Termos Ilmenyx", Text: Read("LICENSING.md") + "\n\n" + Read("LICENSE-ILMENYX.md"))
         };
-        AutomationProperties.SetName(tabs, "Licenças e créditos");
+        var selector = new ComboBox
+        {
+            Name = "LicenseDocument", ItemsSource = documents.Select(d => d.Title).ToArray(),
+            HorizontalAlignment = HorizontalAlignment.Stretch, SelectedIndex = 0
+        };
+        var label = new TextBlock { Text = "Documento", TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) };
+        AutomationProperties.SetName(selector, "Documento de licença ou crédito");
+        AutomationProperties.SetLabeledBy(selector, label);
+        var content = new TextBox
+        {
+            Name = "LicenseTextContent", IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap,
+            HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch
+        };
+        void SelectDocument()
+        {
+            if (selector.SelectedIndex < 0 || selector.SelectedIndex >= documents.Length) return;
+            var document = documents[selector.SelectedIndex];
+            content.Text = document.Text;
+            content.CaretIndex = 0;
+            content.SelectionStart = content.SelectionEnd = 0;
+            AutomationProperties.SetName(content, document.Title + " — texto para leitura e cópia");
+        }
+        selector.SelectionChanged += (_, _) => SelectDocument();
+        SelectDocument();
         var panel = new DockPanel { Margin = new Thickness(20), LastChildFill = true };
         DockPanel.SetDock(close, Dock.Bottom); panel.Children.Add(close);
         var heading = new TextBlock { Text = "Ilmenyx · by Bismuth Technology", TextWrapping = TextWrapping.Wrap, FontSize = 20, Margin = new Thickness(0, 0, 0, 12) };
-        DockPanel.SetDock(heading, Dock.Top); panel.Children.Add(heading); panel.Children.Add(tabs); Content = panel;
-    }
-    private static TabItem Tab(string title, string text, string name)
-    {
-        var content = new TextBox { Name = name, Text = text, IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap };
-        AutomationProperties.SetName(content, title + " — texto para leitura e cópia");
-        return new TabItem { Header = title, Content = content };
+        DockPanel.SetDock(heading, Dock.Top); panel.Children.Add(heading);
+        var navigation = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), Margin = new Thickness(0, 0, 0, 8) };
+        Grid.SetColumn(selector, 1); navigation.Children.Add(label); navigation.Children.Add(selector);
+        DockPanel.SetDock(navigation, Dock.Top); panel.Children.Add(navigation);
+        panel.Children.Add(content); Content = panel;
+        Opened += (_, _) => selector.Focus();
     }
     private static string Read(string file)
     {
