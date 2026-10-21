@@ -50,7 +50,7 @@ public sealed class DashboardWindow : Window
         var stack = new StackPanel { Margin = new Thickness(32), Spacing = 18 };
         stack.Children.Add(new TextBlock { Name = "ProductName", Text = ProductIdentity.Name, FontSize = 32, FontWeight = FontWeight.Bold });
         stack.Children.Add(new TextBlock { Name = "MaintainerSignature", Text = ProductIdentity.Signature });
-        stack.Children.Add(new TextBlock { Text = "Diagnóstico de hardware · Linux · 0.10.0", Foreground = Brushes.LightGray });
+        stack.Children.Add(new TextBlock { Text = "Diagnóstico de hardware · Linux · 0.11.0", Foreground = Brushes.LightGray });
         stack.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, Children = { refresh, export, exportHtml, about } });
         foreach (var (label, property) in new[] { ("PROCESSADOR", nameof(vm.Cpu)), ("MEMÓRIA", nameof(vm.Memory)), ("SISTEMA", nameof(vm.System)), ("DISPOSITIVOS DE BLOCO", nameof(vm.Disks)) })
         {

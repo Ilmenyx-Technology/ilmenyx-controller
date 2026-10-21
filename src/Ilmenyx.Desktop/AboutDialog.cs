@@ -20,7 +20,8 @@ public sealed class AboutDialog : Window
             {
                 Tab("Origem", ProductIdentity.Attribution + "\n\n" + Read("NOTICE.md"), "AttributionText"),
                 Tab("MIT", Read("LICENSE"), "LicenseText"),
-                Tab("Dependências", Read("THIRD-PARTY-NOTICES.md"), "DependenciesText")
+                Tab("Dependências", Read("THIRD-PARTY-NOTICES.md"), "DependenciesText"),
+                Tab("Termos Ilmenyx", Read("LICENSING.md") + "\n\n" + Read("LICENSE-ILMENYX.md"), "OwnTermsText")
             }
         };
         var panel = new DockPanel { Margin = new Thickness(20), LastChildFill = true };

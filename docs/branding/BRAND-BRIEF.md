@@ -2,7 +2,7 @@
 
 Marca-mãe: Bismuth Technology (grafia exata). Produto: Ilmenyx; assinatura textual opcional
 by Bismuth Technology. Descrição: Diagnóstico, monitoramento e benchmarking de hardware para
-Linux — código aberto. Funções concretas e limites no README; descrição não certifica precisão.
+Linux — código-fonte disponível, com política própria que permite uso instrumental profissional e restringe comercialização do programa/código. Funções concretas e limites no README; descrição não certifica precisão.
 
 Público proposto: usuários Linux, entusiastas, técnicos e desenvolvedores. Universo conceitual
 para explorar futuramente: minerais/cristais/gemas, elementos químicos e estrutura cristalina.

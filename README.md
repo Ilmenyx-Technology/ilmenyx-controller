@@ -2,8 +2,12 @@
 
 by **Bismuth Technology**
 
-Diagnóstico, monitoramento e benchmarking de hardware para Linux — código aberto.
-Versão local experimental 0.10.0; sem lançamento público nesta sessão.
+Diagnóstico, monitoramento e benchmarking de hardware para Linux. Código-fonte disponível;
+política de contribuições próprias futuras: uso como ferramenta profissional permitido;
+venda do programa/acesso pago e derivação comercial do código restritos.
+Veja [mapa de licenças](LICENSING.md): a MIT original continua permitindo uso comercial das
+partes abrangidas, sem revogação de direitos anteriores. O conjunto não é anunciado como open source OSI.
+Versão local experimental 0.11.0; sem lançamento público nesta sessão.
 
 Ilmenyx é uma adaptação independente e não oficial do [RESET EXPLODE](https://github.com/GustavoReset/ResetExplode),
 criado por Gustavo (GustavoReset). Não possui afiliação, patrocínio ou endosso da equipe RESET.
@@ -110,3 +114,19 @@ marca, licenças de assets e Manual de Marca: PENDENTE DE REVISÃO humana. Mater
 comprovados BLOQUEIA REDISTRIBUIÇÃO ATÉ REVISÃO. [Checklist pré-publicação](docs/legal/PRE-RELEASE-CHECKLIST.md).
 Nenhum logo RESET ou referência visual local foi incorporado. Commits locais autorizados;
 sem push, PR, organização, registro de marca, tags públicas ou releases automáticos.
+
+
+## Continuação 0.11.0 — HTML de resultados e política comercial
+
+`bench cpu --html`, `bench memory --html` e `bench sim --html` exportam resultado reduzido com
+hardware/proveniência/hashes. Sem FPS/score de desempenho; full não aceita esse formato.
+[Comandos e evidências](docs/validation-html.md). Build sem avisos/erros, 276 testes aprovados,
+CLI real e regressões Wayland/X11. Não há botão novo HTML de resultados na UI ainda.
+
+A política própria permite usar Ilmenyx como ferramenta em serviços pagos, inclusive diagnóstico
+e entrega de relatórios. Não autoriza vender o programa, cobrar acesso nem copiar/incorporar o
+código próprio para produto/serviço pago. [Termos](LICENSE-ILMENYX.md) e [mapa](LICENSING.md);
+MIT/terceiros e direitos já concedidos preservados, revisão jurídica antes de publicação.
+
+Pasta/repositório local: `/mnt/HDD/Github/Ilmenyx`; branch `feat/ilmenyx-linux`. O repositório
+principal não possui remoto: nenhuma organização ou nome de repositório GitHub foi alterado.

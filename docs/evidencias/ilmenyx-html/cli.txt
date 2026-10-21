@@ -1,0 +1,6 @@
+PASS real Linux cpu HTML stdout=file; parsed section; hash/provenance; no active resources; overwrite rejected
+PASS real Linux memory HTML stdout=file; parsed section; hash/provenance; no active resources; overwrite rejected
+PASS real Linux sim HTML stdout=file; parsed section; hash/provenance; no active resources; overwrite rejected
+PASS full HTML/mutually exclusive output rejected; no full workload executed
+PASS original MIT unchanged, own terms and scope map copied exactly to output
+Report folder /tmp/ilmenyx-result-html-6nbxd53u

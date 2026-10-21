@@ -66,3 +66,14 @@ IPv6 e formatos não previstos exige revisão adicional; não há anonimização
 completa de tráfego de dependências. PENDENTE DE REVISÃO: canal privado, retenção/anexos e logs
 históricos antes de publicação; BLOQUEADO para redistribuição de assets/termos desconhecidos.
 Checklist humano em docs/legal/PRE-RELEASE-CHECKLIST.md. Nada fecha SIM-01 ou AMD/NVIDIA reais.
+
+
+## Ilmenyx 0.11.0
+
+276 testes passaram; novo HTML de resultados reduzidos verificado por CLI, parser e fixtures,
+com hardware/proveniência/hash/status e sem score. Exportação desses resultados por botões na
+UI ainda não implementada; layout específico da nova seção no browser NÃO TESTADO. Regressões
+UI anteriores e aba de termos passaram em Wayland/X11. Revisão jurídica dos termos próprios
+(uso instrumental profissional permitido, venda/acesso/derivação pagos restritos) pendente antes
+de publicar; partes MIT/terceiros preservadas. Pasta atual /mnt/HDD/Github/Ilmenyx; ambientes
+anteriores nos logs são históricos. Windows, hardware ausente e cargas full seguem pendentes.

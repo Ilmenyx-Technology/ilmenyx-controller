@@ -5,8 +5,10 @@ identidade Bismuth Technology. Leia AGENTS.md, NOTICE.md e LICENSE. O upstream n
 conforme README local auditado; colaboração futura aqui é para o port, não publicação em nome do RESET.
 Repositório remoto da organização: [PENDENTE: decisão humana]. Nenhum envio remoto autorizado agora.
 
-Não há CLA, DCO, cessão automática ou nova condição comercial imposta. A intenção para código novo
-é MIT; confirme autoria, permissões e compatibilidade do material contribuído. Não acrescente logo,
+Não há CLA, DCO, cessão automática ou nova condição comercial imposta. A política própria permite uso instrumental em trabalho remunerado e restringe venda/acesso
+pago do programa e derivação comercial de código; leia
+LICENSING.md e confirme autoria/permissões/compatibilidade antes de contribuir. Partes MIT
+e direitos anteriormente concedidos permanecem com seus termos. Não acrescente logo,
 fonte, driver ou asset sem proveniência/licença própria. GitHub owner e marca não provam titularidade.
 
 Crie alterações pequenas e explicáveis, preserve o submódulo fixado e a metodologia dos benchmarks.

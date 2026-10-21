@@ -55,19 +55,29 @@ try
     {
         var result = await new GameSimValidationRunner().RunAsync(command.Simulation!, stop.Token);
         var report = new GameSimValidationReport("1.0", snapshot, result);
-        if (command.Output is { } simPath) await SnapshotReport.ExportAsync(report, simPath);
-        Console.WriteLine(command.Json ? SnapshotReport.Json(report) : $"GameSim reduzido (simulação sintética) · {result.Status}\nPassos: {result.CompletedSteps}/{result.Workload.Steps}\nSHA256 estado: {result.StateSha256 ?? "indisponível"}\nSem FPS ou score; não mede desempenho de um jogo real.");
+        if (command.Output is { } simPath)
+        {
+            if (command.Html) await ValidationHtmlReport.ExportAsync(report, simPath);
+            else await SnapshotReport.ExportAsync(report, simPath);
+        }
+        if (command.Html) Console.Write(ValidationHtmlReport.Render(report));
+        else Console.WriteLine(command.Json ? SnapshotReport.Json(report) : $"GameSim reduzido (simulação sintética) · {result.Status}\nPassos: {result.CompletedSteps}/{result.Workload.Steps}\nSHA256 estado: {result.StateSha256 ?? "indisponível"}\nSem FPS ou score; não mede desempenho de um jogo real.");
         return result.Status == GameSimValidationStatus.Cancelled ? 130 : result.Status == GameSimValidationStatus.TimedOut ? 124 : 0;
     }
     if (command.Operation == CliOperation.MemoryValidation)
     {
         var result = await new MemoryValidationRunner().RunAsync(command.Memory!, stop.Token);
         var report = new MemoryValidationReport("1.0", snapshot, result);
-        if (command.Output is { } memoryPath) await SnapshotReport.ExportAsync(report, memoryPath);
-        Console.WriteLine(command.Json ? SnapshotReport.Json(report) : $"Validação de memória reduzida · {result.Status}\nPassos: {result.CompletedTraversalSteps}/{result.RequestedTraversalSteps}\nSoma leitura/cópia: {result.ReadSum?.ToString() ?? "indisponível"}/{result.CopySum?.ToString() ?? "indisponível"}\nSHA256 cópia: {result.CopySha256 ?? "indisponível"}\nNão mede latência, GB/s ou score de RAM.");
+        if (command.Output is { } memoryPath)
+        {
+            if (command.Html) await ValidationHtmlReport.ExportAsync(report, memoryPath);
+            else await SnapshotReport.ExportAsync(report, memoryPath);
+        }
+        if (command.Html) Console.Write(ValidationHtmlReport.Render(report));
+        else Console.WriteLine(command.Json ? SnapshotReport.Json(report) : $"Validação de memória reduzida · {result.Status}\nPassos: {result.CompletedTraversalSteps}/{result.RequestedTraversalSteps}\nSoma leitura/cópia: {result.ReadSum?.ToString() ?? "indisponível"}/{result.CopySum?.ToString() ?? "indisponível"}\nSHA256 cópia: {result.CopySha256 ?? "indisponível"}\nNão mede latência, GB/s ou score de RAM.");
         return result.Status == MemoryValidationStatus.Cancelled ? 130 : result.Status == MemoryValidationStatus.TimedOut ? 124 : 0;
     }
-    if (command.Html)
+    if (command.Html && command.Operation == CliOperation.Info)
     {
         if (command.Output is { } htmlPath) await HardwareHtmlReport.ExportAsync(snapshot, htmlPath, stop.Token);
         Console.Write(HardwareHtmlReport.Render(snapshot, stop.Token));
@@ -82,8 +92,13 @@ try
         var result = render.Result;
         var report = new CpuBenchmarkReport("1.0", snapshot, result);
         // Preserve an explicitly cancelled result if the caller requested an output file.
-        if (command.Output is { } path) await SnapshotReport.ExportAsync(report, path);
-        Console.WriteLine(command.Json ? SnapshotReport.Json(report) :
+        if (command.Output is { } path)
+        {
+            if (command.Html) await ValidationHtmlReport.ExportAsync(report, path);
+            else await SnapshotReport.ExportAsync(report, path);
+        }
+        if (command.Html) Console.Write(ValidationHtmlReport.Render(report));
+        else Console.WriteLine(command.Json ? SnapshotReport.Json(report) :
             $"Ilmenyx CPU · {result.Workload.Id}\nEstado: {result.Status}\nThreads: {result.Threads}\n" +
             $"Passadas: {result.CompletedPasses}\nAmostras concluídas: {result.CompletedSamples}\n" +
             $"SHA256 BGRA: {result.ImageSha256}\nScore experimental: {result.ExperimentalScore?.ToString("F3") ?? "indisponível"}\n" +

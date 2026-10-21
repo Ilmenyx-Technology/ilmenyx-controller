@@ -22,6 +22,8 @@ validações reduzidas de algoritmos e runners experimentais. Carga completa e e
 pontuações não são certificadas. Identidade visual definitiva ainda não aprovada.
 
 Dependências e termos próprios: THIRD-PARTY-NOTICES.md e docs/legal/THIRD-PARTY-INVENTORY.md.
-Código novo segue intenção MIT; autoria e titularidade de contribuições dependem de revisão
-individual, sem cessão automática à identidade mantenedora. Silex Audit é o nome anterior do port.
+A política para contribuições próprias futuras permite uso como ferramenta em trabalho pago,
+mas restringe venda do programa/acesso e derivação comercial de código, conforme
+LICENSING.md e LICENSE-ILMENYX.md, sujeita à titularidade/revisão. Isso não restringe
+a MIT original nem revoga permissões anteriores. Não há cessão automática à identidade mantenedora. Silex Audit é o nome anterior do port.
 Ilmenyx e Bismuth Technology não são apresentados aqui como marcas registradas ou livres de conflito.

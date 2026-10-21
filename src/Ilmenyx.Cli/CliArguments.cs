@@ -17,9 +17,9 @@ public sealed record CliArguments(CliOperation Operation, bool Json, string? Out
           smart --device NOME --allow-device-query [--json] [--output ARQUIVO]
           bench sim-full --allow-cpu-load [--threads N] [--duration-seconds 1..10] [--timeout-seconds N] [--json] [--output ARQUIVO]
           bench sim-plan [--threads N] [--duration-seconds 1..10] [--timeout-seconds N] [--json] [--output ARQUIVO]
-          bench sim [--threads 1|2|4] [--json] [--output ARQUIVO]
-          bench memory [--threads 1|2|4] [--json] [--output ARQUIVO]
-          bench cpu [--profile validation|full] [--threads N] [--json] [--output ARQUIVO]
+          bench sim [--threads 1|2|4] [--json|--html] [--output ARQUIVO]
+          bench memory [--threads 1|2|4] [--json|--html] [--output ARQUIVO]
+          bench cpu [--profile validation|full] [--threads N] [--json|--html] [--output ARQUIVO]
                     [--min-seconds N] [--timeout-seconds N] [--allow-cpu-load]
           --help
         CPU padrão: validação 32x18, 8 spp, uma passada, sem score.
@@ -62,7 +62,7 @@ public sealed record CliArguments(CliOperation Operation, bool Json, string? Out
             if (!seen.Add(flag)) throw new ArgumentException("Argumento duplicado: " + flag);
             if (operation == CliOperation.Smart && flag == "--device") { device = Value(args, ref i); continue; }
             if (operation == CliOperation.Smart && flag == "--allow-device-query") { deviceQuery = true; continue; }
-            if (flag == "--html" && operation == CliOperation.Info) { html = true; continue; }
+            if (flag == "--html" && operation is (CliOperation.Info or CliOperation.CpuBenchmark or CliOperation.MemoryValidation or CliOperation.GameSimValidation)) { html = true; continue; }
             if (flag == "--json") { json = true; continue; }
             if (flag == "--allow-cpu-load" && operation is (CliOperation.CpuBenchmark or CliOperation.GameSimBenchmark)) { allow = true; continue; }
             if (flag == "--output" && operation != CliOperation.Capabilities) { output = Value(args, ref i); continue; }
@@ -99,6 +99,7 @@ public sealed record CliArguments(CliOperation Operation, bool Json, string? Out
                 Timeout = TimeSpan.FromSeconds(timeout ?? (profile == CpuWorkloadProfile.Full ? 120 : 10))
             };
             CpuBenchmarkRunner.Validate(options);
+            if (html && profile != CpuWorkloadProfile.Validation) throw new ArgumentException("HTML CPU é somente validação reduzida; full não suportado.");
         }
         if (operation == CliOperation.Smart && (!deviceQuery || device is null || !SmartctlQuery.ValidDeviceName(device)))
             throw new ArgumentException("SMART exige --device sda|nvme0n1 e --allow-device-query. Consulta somente leitura pode exigir permissões já existentes.");

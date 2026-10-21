@@ -8,7 +8,10 @@ permissões de repositório, não constitui por si só titularidade autoral ou p
 O aviso histórico Silex Audit contributors em LICENSE permanece inalterado. Não converter esse
 aviso em copyright da Bismuth automaticamente. Autores Git, contribuidores reais e titulares
 jurídicos podem diferir; [PENDENTE: mantenedor confirmar autoria e permissões de cada contribuição].
-Código novo segue intenção MIT, sujeita à revisão de proveniência/termos de dependências.
+A decisão posterior permite uso como ferramenta em trabalho pago e restringe venda/acesso pago
+do programa e derivação comercial de código, conforme
+LICENSING.md; a intenção MIT anterior não é mantida como política global de novas contribuições.
+Direitos MIT anteriores/terceiros permanecem intactos, sujeitos à revisão de proveniência.
 
 Não há CLA, DCO ou cessão adicionados. Futuras formalizações devem ser decididas/documentadas
 pelas pessoas responsáveis, sem alterar direitos já concedidos à base MIT. Produtos/jogos futuros

@@ -25,3 +25,11 @@ Referências institucionais consultadas em 2026-10-21:
 [busca INPI](https://servicos.busca.inpi.gov.br/marcas),
 [GitHub forks](https://docs.github.com/en/pull-requests/reference/forks).
 Consulta de guias não é pesquisa de anterioridade, registro ou parecer de disponibilidade.
+
+
+## Política comercial posterior
+
+[PENDENTE DE REVISÃO / BLOQUEIA PUBLICAÇÃO] Revisar LICENSE-ILMENYX.md e LICENSING.md, titulares
+e fronteiras próprias/MIT. Pedido esclarecido: uso como ferramenta em trabalho remunerado
+permitido; venda/acesso pago/derivação comercial de código próprio não autorizados. Não é
+open source OSI nem proibição sobre o material original MIT. Nenhuma cessão inferida.

@@ -135,3 +135,16 @@ as regras de arquitetura Linux, benchmarks, testes, licenças e segurança anter
 - Registrar IMPLEMENTADO, NÃO TESTADO, PENDENTE DE REVISÃO e BLOQUEADO com evidências reais.
 - Solução atual Ilmenyx.slnx, src/Ilmenyx.*, tests/Ilmenyx.Tests e tools/Ilmenyx.UiSmoke. Formatos silex-* e evidências anteriores permanecem históricos/compatíveis.
 - ILMENYX_DISPLAY_BACKEND é atual; SILEX_DISPLAY_BACKEND continua alias legado, com precedência do nome atual.
+
+
+## Decisão permanente posterior — monetização e diretório
+- O mantenedor proíbe qualquer monetização das contribuições próprias licenciáveis futuras, direta/indireta/profissional. Ver LICENSING.md e LICENSE-ILMENYX.md; revisão jurídica antes de publicar.
+- Preservar MIT do RESET, termos de terceiros e direitos já concedidos; não afirmar restrição sobre todo material anterior nem retroatividade.
+- Não anunciar o conjunto como open source OSI com termos não comerciais. Não presumir titularidade da marca/pessoa jurídica.
+- Workspace/repositório local atual: /mnt/HDD/Github/Ilmenyx, descrição Git Ilmenyx e branch feat/ilmenyx-linux; preservar histórico e submódulo.
+
+
+## Esclarecimento comercial mais recente (prevalece sobre a vedação ampla acima)
+- É permitido usar o Ilmenyx como ferramenta independente em serviços remunerados, diagnóstico e entrega de relatórios.
+- Não é permitido, sobre contribuições próprias abrangidas, vender o programa, cobrar acesso ou copiar/incorporar código para produto/serviço pago. Ver LICENSE-ILMENYX.md e LICENSING.md.
+- Não tratar o uso profissional instrumental como venda do software. MIT/terceiros e permissões já concedidas permanecem preservados; revisão jurídica antes de publicar.

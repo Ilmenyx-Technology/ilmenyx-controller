@@ -106,6 +106,9 @@ public sealed class UiSmokeApp : Application
         tabs.SelectedIndex = 2; await Task.Delay(60);
         if (!Find<TextBox>(about, "DependenciesText").Text!.Contains("Avalonia.Wayland"))
             throw new InvalidOperationException("Third-party notices missing from About.");
+        tabs.SelectedIndex = 3; await Task.Delay(60);
+        if (!Find<TextBox>(about, "OwnTermsText").Text!.Contains("Usos permitidos, inclusive em trabalho remunerado"))
+            throw new InvalidOperationException("Own usage and commercialization terms missing from About.");
         tabs.SelectedIndex = 0; await Task.Delay(60); Capture(about, "about.png");
         Click(about, "CloseAbout"); await Until(() => !about.IsVisible);
         Console.WriteLine("PASS Ilmenyx identity, by Bismuth Technology, live About/attribution/MIT/dependency tabs and close");

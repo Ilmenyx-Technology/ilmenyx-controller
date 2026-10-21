@@ -86,3 +86,18 @@ CLI/Wayland/X11 passaram; Sobre/avisos de compartilhamento implementados. Não �
 privacidade garantida ou empacotamento final. Marca/manual/organização/titularidade/licenças nativas
 permanecem em revisão humana; veja branding/RENAME-DECISIONS.md, ../Sem_teste.md e
 legal/PRE-RELEASE-CHECKLIST.md. Exemplos Silex de incrementos anteriores são históricos.
+
+
+## Ilmenyx 0.11.0
+
+Workspace movido para /mnt/HDD/Github/Ilmenyx, branch local feat/ilmenyx-linux e descrição Git
+Ilmenyx, sem alterar remotos/histórico/submódulo. Solução/CLI continuam Ilmenyx.slnx / ilmenyx.
+ValidationHtmlReport no Core exporta três reports reduzidos existentes, sem nova coleta/carga;
+CLI --html disponível para CPU validation, memória e GameSim. Mesma escrita atômica/escaping,
+sem alterar JSON ou metodologia. Build sem erros/avisos, 276 testes e CLI/UI de regressão passaram.
+[Detalhes e comandos](validation-html.md). UI HTML de resultados e browser específico pendentes.
+
+Termos próprios corrigidos conforme esclarecimento: usar programa como ferramenta em serviço
+remunerado é permitido; vender programa/acesso ou derivar produto/serviço pago do código próprio
+não é autorizado. LICENSE MIT e direitos anteriores/terceiros continuam preservados; política
+não é open source OSI e exige revisão jurídica antes de publicação (../LICENSING.md).
