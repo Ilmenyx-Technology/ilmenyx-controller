@@ -7,7 +7,7 @@ política de contribuições próprias futuras: uso como ferramenta profissional
 venda do programa/acesso pago e derivação comercial do código restritos.
 Veja [mapa de licenças](LICENSING.md): a MIT original continua permitindo uso comercial das
 partes abrangidas, sem revogação de direitos anteriores. O conjunto não é anunciado como open source OSI.
-Versão local experimental 0.17.0; sem lançamento público nesta sessão.
+Versão local experimental 0.18.0; sem lançamento público nesta sessão.
 
 Ilmenyx é uma adaptação independente e não oficial do [RESET EXPLODE](https://github.com/GustavoReset/ResetExplode),
 criado por Gustavo (GustavoReset). Não possui afiliação, patrocínio ou endosso da equipe RESET.
@@ -183,3 +183,10 @@ Debian 12 sem ICU bloqueou os diagnósticos padrão; CLI passou somente com modo
 invariant explicitamente usado no teste. Alpine/musl não executa este RID glibc.
 Requisitos do bundle: runtime .NET 10, glibc/ICU; GUI também requer bibliotecas como
 fontconfig. Isso não certifica VM limpa. [Resultados e roteiro](docs/validacao-container.md).
+
+### Falta de ICU na CLI (0.18.0)
+
+Diagnósticos protegidos agora retornam código 5 e mensagem explícita se ICU não for
+encontrada, antes da coleta, sem JSON parcial. Não se ativa invariant automaticamente.
+284 testes aprovados e pacote testado no CachyOS; caso negativo reproduzido em Debian
+sem ICU. [Evidências, comandos e limites](docs/icu-cli.md).

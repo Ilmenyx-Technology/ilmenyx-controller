@@ -157,3 +157,13 @@ Alpine 3.24.1 é incompatível com o bundle glibc; GUI no contêiner NÃO TESTAD
 fontconfig ausente no Debian. Preflight evita repetir aborts por ICU conhecida
 ausente. Requisitos documentados; nada altera o modo padrão do aplicativo.
 [Comandos, códigos de saída e limites](validacao-container.md).
+
+
+## Atualização 0.18.0 — guarda ICU na CLI
+
+IMPLEMENTADO e testado: pré-verificação nativa no adaptador Linux; falta de ICU
+retorna código 5 antes da coleta, com mensagem e sem JSON parcial. Não é fallback
+invariant nem certificação de versões/ABI. Build sem avisos/erros, 284 testes
+aprovados; caso negativo real em Debian e modo normal no CachyOS passaram.
+VM limpa, Debian padrão com ICU, GUI sem ICU e matriz adicional seguem NÃO TESTADOS.
+Os aborts anteriores de 0.17.0 permanecem históricos. [Detalhes e comandos](icu-cli.md).

@@ -24,6 +24,11 @@ try
             "Plano não executa carga. Runner experimental disponível por opt-in, ainda NÃO VALIDADO com carga real. Consulte Sem_teste.md (SIM-01).");
         return 0;
     }
+    if (!new LinuxRuntimeDependencies().CanUseGlobalization(LinuxRuntimeDependencies.IsInvariantModeRequested()))
+    {
+        Console.Error.WriteLine("Dependencia ICU indisponivel. Os diagnosticos nao foram iniciados. Requer ICU compativel com o runtime .NET 10; consulte docs/pacote-linux-x64.md. Codigo: 5.");
+        return 5;
+    }
     if (command.Operation == CliOperation.Smart)
     {
         var diagnostic = await new SmartctlDiagnostic(new SmartctlQuery()).CollectAsync(command.Device!, stop.Token);

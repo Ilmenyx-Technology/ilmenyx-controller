@@ -1,0 +1,1 @@
+Dependencia ICU indisponivel. Os diagnosticos nao foram iniciados. Requer ICU compativel com o runtime .NET 10; consulte docs/pacote-linux-x64.md. Codigo: 5.

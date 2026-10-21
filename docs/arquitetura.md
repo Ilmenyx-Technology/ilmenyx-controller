@@ -278,3 +278,13 @@ Wayland nativo/X11 passaram. Pacote alterado foi recusado. PKG-01 continua parci
 VM limpa, outras distros/glibc, runtime ausente, self-contained e instaladores
 NÃO TESTADOS. Revisão individual de licenças antes de redistribuir PENDENTE; material
 sem direitos conhecidos BLOQUEADO para redistribuição. [Evidências e comandos](pacote-linux-x64.md).
+
+
+## Atualização 0.18.0 — guarda ICU na CLI
+
+IMPLEMENTADO e testado: pré-verificação nativa no adaptador Linux; falta de ICU
+retorna código 5 antes da coleta, com mensagem e sem JSON parcial. Não é fallback
+invariant nem certificação de versões/ABI. Build sem avisos/erros, 284 testes
+aprovados; caso negativo real em Debian e modo normal no CachyOS passaram.
+VM limpa, Debian padrão com ICU, GUI sem ICU e matriz adicional seguem NÃO TESTADOS.
+Os aborts anteriores de 0.17.0 permanecem históricos. [Detalhes e comandos](icu-cli.md).

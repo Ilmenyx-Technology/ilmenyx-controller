@@ -179,3 +179,8 @@ as regras de arquitetura Linux, benchmarks, testes, licenças e segurança anter
 - Testes somente em imagem já local, usuário não-root, sem rede/capabilities/host devices/display, binds de entrada readonly e saída nova.
 - ICU é requisito do modo padrão; invariant explícito no teste não aprova globalização padrão. RID linux-x64 glibc não certifica Alpine/musl.
 - Evitar repetir aborts conhecidos por dependências ausentes; manter preflight e resultados negativos explícitos.
+
+## Guarda ICU na CLI 0.18.0
+- LinuxRuntimeDependencies fica no adaptador Linux; evitar APIs culturais antes da verificação.
+- Falta de ICU nas rotas protegidas retorna 5 sem coleta/JSON parcial; não habilitar invariant silenciosamente.
+- Par de bibliotecas encontrado não certifica ABI/culturas; documentar sonames e faixa testados. Teste negativo aprovado não aprova inventário sem ICU.

@@ -1,0 +1,17 @@
+[
+  {
+    "workload": "cpu",
+    "status": "completed",
+    "applicationVersion": "0.18.0"
+  },
+  {
+    "workload": "memory",
+    "status": "completed",
+    "applicationVersion": "0.18.0"
+  },
+  {
+    "workload": "sim",
+    "status": "completed",
+    "applicationVersion": "0.18.0"
+  }
+]

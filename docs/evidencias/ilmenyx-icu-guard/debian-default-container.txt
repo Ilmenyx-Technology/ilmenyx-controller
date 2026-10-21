@@ -1,0 +1,19 @@
+uid=1000(node) gid=1000(node) groups=1000(node)
+PRETTY_NAME="Debian GNU/Linux 12 (bookworm)"
+NAME="Debian GNU/Linux"
+VERSION_ID="12"
+VERSION="12 (bookworm)"
+VERSION_CODENAME=bookworm
+ID=debian
+HOME_URL="https://www.debian.org/"
+SUPPORT_URL="https://www.debian.org/support"
+BUG_REPORT_URL="https://bugs.debian.org/"
+x86_64
+case	exitCode
+runtimes	0
+sdks	0
+help	0
+info	5
+capabilities	5
+sensors	5
+apphost-dependencies	0
