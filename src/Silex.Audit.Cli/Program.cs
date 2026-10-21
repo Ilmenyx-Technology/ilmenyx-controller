@@ -21,7 +21,7 @@ try
         Console.WriteLine(command.Json ? SnapshotReport.Json(plan) :
             $"Plano GameSim completo · NÃO EXECUTADO\nEntidades: {plan.Entities} · Workers: {plan.Threads}\n" +
             $"Warmup: {plan.WarmupSeconds} s · Medição proposta: {plan.DurationSeconds} s · Timeout proposto: {plan.TimeoutSeconds} s\n" +
-            "Runner completo ainda não implementado. Sem FPS/score medidos. Consulte Sem_teste.md (SIM-01).");
+            "Plano não executa carga. Runner experimental disponível por opt-in, ainda NÃO VALIDADO com carga real. Consulte Sem_teste.md (SIM-01).");
         return 0;
     }
     if (command.Operation == CliOperation.Smart)
@@ -39,6 +39,18 @@ try
         return 0;
     }
     var snapshot = await LinuxPlatform.CreateHardwareProvider().CollectAsync(stop.Token);
+    if (command.Operation == CliOperation.GameSimBenchmark)
+    {
+        Console.Error.WriteLine("GameSim completo por opt-in: 30.000 entidades, warmup 2 s e carga de CPU. Sem proteção térmica; Ctrl+C cancela. Execução real NÃO VALIDADA.");
+        var result = await new GameSimBenchmarkRunner().RunAsync(command.SimulationBenchmark!, stop.Token);
+        var report = new GameSimBenchmarkReport("1.0", snapshot, result);
+        if (command.Output is { } fullPath) await SnapshotReport.ExportAsync(report, fullPath);
+        Console.WriteLine(command.Json ? SnapshotReport.Json(report) :
+            $"GameSim completo experimental · {result.Status}\nFrames: {result.MeasuredFrames} · Tempo: {result.MeasuredSeconds:F3} s\n" +
+            $"FPS simulação/score: {result.ExperimentalScore?.ToString("F3") ?? "indisponível"}\nLow1 (recíproco p99): {result.Low1Fps?.ToString("F3") ?? "indisponível"}\nComparação Windows NÃO VALIDADA.");
+        return result.Status switch { GameSimBenchmarkStatus.Completed => 0, GameSimBenchmarkStatus.Cancelled => 130,
+            GameSimBenchmarkStatus.TimedOut => 124, GameSimBenchmarkStatus.SampleLimitReached => 125, _ => 126 };
+    }
     if (command.Operation == CliOperation.GameSimValidation)
     {
         var result = await new GameSimValidationRunner().RunAsync(command.Simulation!, stop.Token);

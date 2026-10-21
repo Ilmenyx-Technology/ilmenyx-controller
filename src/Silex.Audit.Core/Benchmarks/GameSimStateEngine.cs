@@ -4,7 +4,7 @@ using Silex.Audit.Contracts;
 namespace Silex.Audit.Core.Benchmarks;
 
 /// <summary>Single-owner engine. A full step commits before an immutable state copy can be published.</summary>
-internal sealed class GameSimStateEngine
+internal sealed class GameSimStateEngine(int entityCount = 256)
 {
     public const int Entities = 256;
     public const float World = 1000f;
@@ -14,36 +14,44 @@ internal sealed class GameSimStateEngine
     private const float Dt = 1 / 60f;
 
     // Estado (SoA) em buffer duplo: lê de "cur", escreve em "nxt".
-    private float[] _x = new float[Entities], _y = new float[Entities], _vx = new float[Entities], _vy = new float[Entities];
-    private float[] _nx = new float[Entities], _ny = new float[Entities], _nvx = new float[Entities], _nvy = new float[Entities];
-    private readonly float[] _hp = new float[Entities];
-    private readonly float[] _dmg = new float[Entities];
-    private readonly byte[] _team = new byte[Entities];
+    private float[] _x = new float[entityCount], _y = new float[entityCount], _vx = new float[entityCount], _vy = new float[entityCount];
+    private float[] _nx = new float[entityCount], _ny = new float[entityCount], _nvx = new float[entityCount], _nvy = new float[entityCount];
+    private readonly float[] _hp = new float[entityCount];
+    private readonly float[] _dmg = new float[entityCount];
+    private readonly byte[] _team = new byte[entityCount];
     private readonly int[] _cellStart = new int[GridN * GridN + 1];
-    private readonly int[] _sorted = new int[Entities];
-    private readonly int[] _cellOf = new int[Entities];
-    private readonly float[] _drawKey = new float[Entities];
-    private readonly int[] _drawList = new int[Entities];
+    private readonly int[] _sorted = new int[entityCount];
+    private readonly int[] _cellOf = new int[entityCount];
+    private readonly float[] _drawKey = new float[entityCount];
+    private readonly int[] _drawList = new int[entityCount];
     private uint _rng;
 
     private int _frames, _visible;
-    internal void Step(int threads)
+    internal void ResetFrameCounter() => _frames = 0;
+    internal void Step(int threads) => StepMeasured(threads, TimeProvider.System);
+    internal GameSimStepTiming StepMeasured(int threads, TimeProvider clock)
     {
+        long t0 = clock.GetTimestamp();
         BuildGrid();
+        long t1 = clock.GetTimestamp();
         int chunks = threads * 4;
         Parallel.For(0, chunks, new ParallelOptions { MaxDegreeOfParallelism = threads }, chunk =>
         {
-            int per = (Entities + chunks - 1) / chunks;
-            int end = Math.Min(Entities, (chunk + 1) * per);
+            int per = (entityCount + chunks - 1) / chunks;
+            int end = Math.Min(entityCount, (chunk + 1) * per);
             for (int i = chunk * per; i < end; i++) Simulate(i);
         });
+        long t2 = clock.GetTimestamp();
         (_x, _nx) = (_nx, _x); (_y, _ny) = (_ny, _y); (_vx, _nvx) = (_nvx, _vx); (_vy, _nvy) = (_nvy, _vy);
-        GameLogic(); PrepareDraw(); _frames++;
+        GameLogic(); PrepareDraw();
+        long t3 = clock.GetTimestamp(); _frames++;
+        return new(clock.GetElapsedTime(t0, t1).TotalMilliseconds + clock.GetElapsedTime(t2, t3).TotalMilliseconds,
+            clock.GetElapsedTime(t1, t2).TotalMilliseconds);
     }
     internal GameSimState Capture()
     {
-        var entities = new GameSimEntity[Entities];
-        for (int i = 0; i < Entities; i++) entities[i] = new(i, _x[i], _y[i], _vx[i], _vy[i], _hp[i], _dmg[i], _team[i]);
+        var entities = new GameSimEntity[entityCount];
+        for (int i = 0; i < entityCount; i++) entities[i] = new(i, _x[i], _y[i], _vx[i], _vy[i], _hp[i], _dmg[i], _team[i]);
         return new(_frames, _rng, Array.AsReadOnly(entities), Array.AsReadOnly(_drawList[.._visible]), Array.AsReadOnly(_drawKey[.._visible]));
     }
     internal void Reset()
@@ -51,7 +59,7 @@ internal sealed class GameSimStateEngine
         _frames = 0; _visible = 0;
         _rng = 12345;
         Array.Clear(_dmg);
-        for (int i = 0; i < Entities; i++)
+        for (int i = 0; i < entityCount; i++)
         {
             _team[i] = (byte)(i & 1);
             // Times começam em lados opostos e avançam um contra o outro.
@@ -67,7 +75,7 @@ internal sealed class GameSimStateEngine
     private void BuildGrid()
     {
         Array.Clear(_cellStart);
-        for (int i = 0; i < Entities; i++)
+        for (int i = 0; i < entityCount; i++)
         {
             int cx = Math.Clamp((int)(_x[i] / Cell), 0, GridN - 1), cy = Math.Clamp((int)(_y[i] / Cell), 0, GridN - 1);
             int c = cy * GridN + cx;
@@ -76,7 +84,7 @@ internal sealed class GameSimStateEngine
         }
         for (int c = 0; c < GridN * GridN; c++) _cellStart[c + 1] += _cellStart[c];
         var fill = (int[])_cellStart.Clone();
-        for (int i = 0; i < Entities; i++) _sorted[fill[_cellOf[i]]++] = i;
+        for (int i = 0; i < entityCount; i++) _sorted[fill[_cellOf[i]]++] = i;
     }
 
     /// <summary>Física + separação (colisão) + IA de combate de uma unidade. Lê o estado atual, escreve só a própria.</summary>
@@ -145,7 +153,7 @@ internal sealed class GameSimStateEngine
     /// </summary>
     private void GameLogic()
     {
-        for (int i = 0; i < Entities; i++)
+        for (int i = 0; i < entityCount; i++)
         {
             _hp[i] = MathF.Min(100, _hp[i] - _dmg[i] + 0.5f * Dt);
             bool scored = _team[i] == 0 ? _x[i] > World * 0.97f : _x[i] < World * 0.03f;
@@ -162,7 +170,7 @@ internal sealed class GameSimStateEngine
     {
         float camX = World / 2 + MathF.Sin(_frames * 0.01f) * 200, camY = -200;
         int visible = 0;
-        for (int i = 0; i < Entities; i++)
+        for (int i = 0; i < entityCount; i++)
         {
             float dx = _x[i] - camX, dy = _y[i] - camY;
             if (dy <= 0 || MathF.Abs(dx) > dy * 1.2f) continue; // fora do campo de visão

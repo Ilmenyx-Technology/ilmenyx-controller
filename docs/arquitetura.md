@@ -180,3 +180,12 @@ por SILEX_DISPLAY_BACKEND. Core/Contracts continuam sem Avalonia. Padrão manté
 opt-in sem fallback. Harness confirma implementação real da janela, não apenas variáveis da sessão.
 GameSimFullPlanner só prepara metadados/limites revisáveis; não executa engine ou mede score.
 Detalhes e testes em [Wayland/preflight](wayland-validacao.md). Sem_teste.md é registro contínuo.
+
+
+## Continuação 0.9.0 — runner GameSim experimental
+
+Runner full CLI implementado com opt-in e limites, reutilizando engine matemático parametrizado;
+validação padrão/UI continua 256 entidades/16 passos. Build sem erros/avisos e 261 testes passaram,
+com relógio/engine controlados para controle/estatística. Carga real de 30.000 entidades NÃO
+EXECUTADA; Sem_teste.md SIM-01 permanece aberto. Não declarar aceite pleno de FPS/score nem
+comparabilidade Windows. [Metodologia, comandos e evidências](gamesim-completo.md).

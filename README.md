@@ -62,7 +62,7 @@ dotnet run --project src/Silex.Audit.Desktop -c Release --no-build
 `--output` exige arquivo novo e diretório existente. O botão Exportar hardware JSON usa seletor local;
 se o destino existir, escolha outro nome. Os valores JSON usam bytes inteiros; a UI mostra também GiB.
 Cada leitura tem `source`, `unit`, `status` e `reason`; indisponível tem valor `null`, não zero fictício.
-Hardware schema `1.2`, aplicação `0.8.0`, timestamp UTC e runtime registrados.
+Hardware schema `1.2`, aplicação `0.9.0`, timestamp UTC e runtime registrados.
 
 ## Estrutura e limites
 
@@ -288,3 +288,14 @@ Esse comando apenas prepara configuração. Runner completo/FPS/score ainda não
 JSON sinaliza `executionAvailable=false`, `executionStatus=not-executed`, `score=null`.
 Execução sustentada continua exigindo autorização específica. Commits locais são feitos por
 incremento; publicação no GitHub permanece sob decisão do usuário.
+
+
+## GameSim completo experimental — 0.9.0
+
+Runner completo implementado somente na CLI, com opt-in, 30.000 entidades, warmup de 2 s,
+duração/timeout limitados e teto de amostras. **Carga real ainda NÃO TESTADA; sem aceite de
+FPS/score no hardware.** Validação reduzida permanece padrão na CLI/UI e com hashes preservados.
+`bench sim-plan` continua sem carga; executionAvailable=true agora indica runner experimental
+existente. [Metodologia, testes, limites e comando manual futuro](docs/gamesim-completo.md).
+Build sem avisos/erros e 261 testes passaram, com engine/relógio controlados para a medição;
+nenhum benchmark full foi executado. Pendência de execução real em Sem_teste.md (SIM-01).

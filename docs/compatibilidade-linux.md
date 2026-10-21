@@ -21,6 +21,7 @@
 | GPU DRM/PCI | parcial | IDs reais Intel; AMD carga/VRAM cobertos por fixtures; AMD/NVIDIA reais NÃO TESTADOS |
 | SMART | parcial, opt-in CLI | sem acesso automático; consulta real NVMe do usuário (exit 0, passed=true) aceita pelo parser; sem certificação de execução privilegiada do app |
 | Algoritmos de memória | validação reduzida | CLI/UI/JSON, oracle upstream 1/2/4 workers; sem latência/GB/s/score ou buffers grandes |
+| GameSim full CLI | experimental, carga NÃO TESTADA | opt-in, warmup/duração/timeout/teto; controle/estatística testados com fixtures; SIM-01 aberto |
 | GameSim reduzido | sim | 256 entidades/16 passos, oracle 1/2/4 workers, CLI/UI/JSON; sem FPS/score |
 | Outros benchmarks | não | Fases 4–5 pendentes |
 
@@ -48,3 +49,12 @@ implementado. Outras distros/compositores, Windows, AMD/NVIDIA reais e perfis co
 no registro contínuo Sem_teste.md, conforme nova orientação do usuário. Preparação de GameSim
 completo disponível em bench sim-plan, sem carga/medição; não equivale a runner/FPS/score testado.
 [Comandos, decisões e evidências](wayland-validacao.md). Commits locais, sem publicação automática.
+
+
+## Continuação 0.9.0 — runner GameSim experimental
+
+Runner full CLI implementado com opt-in e limites, reutilizando engine matemático parametrizado;
+validação padrão/UI continua 256 entidades/16 passos. Build sem erros/avisos e 261 testes passaram,
+com relógio/engine controlados para controle/estatística. Carga real de 30.000 entidades NÃO
+EXECUTADA; Sem_teste.md SIM-01 permanece aberto. Não declarar aceite pleno de FPS/score nem
+comparabilidade Windows. [Metodologia, comandos e evidências](gamesim-completo.md).

@@ -9,7 +9,7 @@ Não marcar como concluído sem evidência. Casos implementados parcialmente sã
 |---|---|---|---|
 | WIN-01 | WPF original: build e execução | Host atual é Linux; Wine não certifica Windows | VM/máquina Windows, SDK .NET 8, `dotnet build upstream/ResetExplode/ResetExplode.csproj -c Release`; abrir app e testar diagnóstico sem carga. Preservar SHA original. |
 | WIN-02 | Silex no Windows | Backend de hardware Windows não implementado; UI atual compõe Linux | Implementar adaptador separado, depois build/testes e fluxo gráfico/CLI em Windows. Não confundir com WIN-01. |
-| SIM-01 | GameSim completo: 30.000 entidades, warmup 2 s e medição | Validação atual é 256 entidades/16 passos. Execução sustentada permanece fora da autorização anterior de desenvolvimento sem stress | Plano revisável disponível em `bench sim-plan`, testado sem carga. Implementar runner/versionamento, obter autorização explícita para carga curta; testar cancelamento/timeout, FPS/recíproco p99/score e JSON. A preparação não é execução. |
+| SIM-01 | GameSim completo: 30.000 entidades, warmup 2 s e medição | Runner completo experimental implementado em 0.9.0; testado controle/estatística com fixtures, não carga real. Execução sustentada permanece fora da autorização anterior de desenvolvimento sem stress | Plano revisável em `bench sim-plan`; runner em `bench sim-full --allow-cpu-load`. Ver docs/gamesim-completo.md. Obter autorização explícita para carga curta; testar cancelamento/timeout, FPS/recíproco p99/score e JSON. A preparação não é execução. |
 | SIM-02 | Comparação GameSim Linux/Windows | Falta SIM-01 e ambiente Windows equivalente | Mesma revisão/workload/runtime/configuração registrados em ambos; warmup por relógio pode produzir estados diferentes. Não afirmar comparabilidade antecipadamente. |
 | CPU-01 | Perfil CPU full e score experimental | Implementado com opt-in, porém carga pesada não executada | Autorização específica e máquina adequada; usar perfil full explícito documentado no README, verificar duração/timeout/cancelamento. Não colocar na suíte automática. |
 | GPU-01 | AMD real: identificação, carga e VRAM | Nenhuma GPU AMD disponível | Máquina AMD/Linux com amdgpu e fontes DRM/sysfs; conferir leituras e ausência/falha. Fixtures existentes não certificam hardware. |
@@ -43,4 +43,12 @@ com `Avalonia.X11.X11Window`. Suíte 250 testes aprovados. Evidências e limites
 matriz adicional e interação manual. Não generalizar o resultado para outros dispositivos.
 
 Preparação SIM-01 também testada: `bench sim-plan` e exportação atômica. Não fecha SIM-01:
-não há runner completo, FPS ou score medidos; o plano deixa isso explícito.
+o runner experimental existe desde 0.9.0, mas não há FPS ou score medidos em carga real; plano e docs deixam isso explícito.
+
+
+## Atualização 0.9.0
+
+261 testes passaram, incluindo controle e estatística do runner completo com engine/relógio de
+teste e entrada pública pré-cancelada sem alocar física de 30.000 entidades. Não fecha SIM-01.
+Sem execução sustentada, Windows ou comparação de desempenho. Regressões reduzidas Linux
+CLI/UI continuam documentadas em docs/gamesim-completo.md.

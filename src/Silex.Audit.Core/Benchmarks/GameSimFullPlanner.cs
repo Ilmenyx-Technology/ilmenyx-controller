@@ -17,21 +17,21 @@ public static class GameSimFullPlanner
     public static GameSimFullPlan Create(GameSimFullPlanOptions options)
     {
         Validate(options);
-        return new("1.0", "gamesim-full-preflight", "not-executed", false,
+        return new("1.0", "gamesim-full-preflight", "not-executed", true,
             "ce1d9b30518bbe75bb5e6cb792d1b1e365aaddd6", 30_000, 1000, 64, 1 / 60f, 12345,
             options.Threads, options.Threads * 4, 2, options.Duration.TotalSeconds, options.Timeout.TotalSeconds,
             200_000, null, "measuredFrames / measuredElapsedSeconds (experimental simulation FPS)",
             "1000 / sortedFrameMilliseconds[min(n-1, floor(n*0.99))]; not the mean of the slowest 1%",
             "not-validated", RuntimeInformation.FrameworkDescription, RuntimeInformation.ProcessArchitecture.ToString(),
-            ["Implementar runner completo; este plano não executa simulação ou mede FPS/score.",
+            ["Runner experimental implementado, mas execução completa real NÃO TESTADA; este plano não mede FPS/score.",
              "Validar matemática em 30.000 entidades, fórmula de FPS/p99, timeout/cancelamento e memória limitada.",
              "Executar carga curta somente com autorização explícita; restrição anterior de stress continua vigente.",
              "Comparar Windows em máquina/VM equivalente antes de alegar comparabilidade."],
             ["Warmup por relógio avança estado variável; não reiniciar mundo/RNG após aquecimento se preservar método original.",
-             "Limites aqui são contrato proposto para o runner futuro, não proteções já implementadas de execução.",
+             "Limites implementados no runner experimental; o caminho de carga real continua sem validação no host.",
              "No original, Score=AvgFps; não representa FPS de jogo real nem desempenho de GPU.",
-             "Timeout futuro será cooperativo entre Steps completos, não interrupção instantânea.",
-             "Frame times deverão ter teto explícito; se atingido, suprimir métricas e registrar limite em vez de descartar amostras silenciosamente.",
+             "Timeout é cooperativo entre Steps completos, não interrupção instantânea.",
+             "Frame times limitados a 200.000; limite atingido suprime métricas, sem descartar amostras silenciosamente.",
              "Sem monitoramento/proteção térmica, afinidade ou controle de energia implementados."]);
     }
 }

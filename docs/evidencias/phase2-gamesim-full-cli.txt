@@ -1,0 +1,6 @@
+PASS full CLI: missing opt-in, invalid duration/workers/deadline rejected before work
+PASS plan indicates experimental execution available, does not execute and has no score
+PASS reduced CLI real Linux: 1 workers; unchanged upstream hash
+PASS reduced CLI real Linux: 2 workers; unchanged upstream hash
+PASS reduced CLI real Linux: 4 workers; unchanged upstream hash
+NOT RUN: sim-full with valid opt-in; no sustained or 30,000-entity simulation was executed

@@ -110,3 +110,10 @@ Portar incrementalmente o RESET EXPLODE de WPF/.NET Windows para Linux com Avalo
 - Avalonia 12.1.4 com Wayland opt-in, via SILEX_DISPLAY_BACKEND=wayland; padrão auto preserva X11.
 - Smoke nativo exige DISPLAY removido e implementação Avalonia.Wayland.WindowImpl; regressão X11 também necessária ao alterar UI/backend.
 - bench sim-plan é somente preparação revisável, sem runner completo/FPS/score; não tratá-lo como teste de carga.
+
+
+## GameSim completo experimental 0.9.0
+- bench sim-full exige --allow-cpu-load; UI e bench sim permanecem reduzidos.
+- Não executar o runner de carga em testes automáticos; testes usam engine/relógio controlados ou pré-cancelamento sem alocar engine completo.
+- Limites: 30.000 entidades, warmup 2 s, medição 1–10 s, timeout até 15 s, 200.000 amostras.
+- Status interrompido/limite/tempo inválido não publica FPS/low1/médias/score. Registrar carga real NÃO TESTADA em Sem_teste.md até autorização/validação.

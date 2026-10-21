@@ -129,3 +129,12 @@ implementado. Outras distros/compositores, Windows, AMD/NVIDIA reais e perfis co
 no registro contínuo Sem_teste.md, conforme nova orientação do usuário. Preparação de GameSim
 completo disponível em bench sim-plan, sem carga/medição; não equivale a runner/FPS/score testado.
 [Comandos, decisões e evidências](wayland-validacao.md). Commits locais, sem publicação automática.
+
+
+## Continuação 0.9.0 — runner GameSim experimental
+
+Runner full CLI implementado com opt-in e limites, reutilizando engine matemático parametrizado;
+validação padrão/UI continua 256 entidades/16 passos. Build sem erros/avisos e 261 testes passaram,
+com relógio/engine controlados para controle/estatística. Carga real de 30.000 entidades NÃO
+EXECUTADA; Sem_teste.md SIM-01 permanece aberto. Não declarar aceite pleno de FPS/score nem
+comparabilidade Windows. [Metodologia, comandos e evidências](gamesim-completo.md).

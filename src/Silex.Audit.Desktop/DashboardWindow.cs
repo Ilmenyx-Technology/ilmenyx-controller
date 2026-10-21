@@ -47,7 +47,7 @@ public sealed class DashboardWindow : Window
         var cards = new UniformGrid { Columns = 2 };
         var stack = new StackPanel { Margin = new Thickness(32), Spacing = 18 };
         stack.Children.Add(new TextBlock { Text = "SILEX AUDIT", FontSize = 32, FontWeight = FontWeight.Bold });
-        stack.Children.Add(new TextBlock { Text = "Diagnóstico de hardware · Linux · 0.8.0", Foreground = Brushes.LightGray });
+        stack.Children.Add(new TextBlock { Text = "Diagnóstico de hardware · Linux · 0.9.0", Foreground = Brushes.LightGray });
         stack.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, Children = { refresh, export, exportHtml } });
         foreach (var (label, property) in new[] { ("PROCESSADOR", nameof(vm.Cpu)), ("MEMÓRIA", nameof(vm.Memory)), ("SISTEMA", nameof(vm.System)), ("DISPOSITIVOS DE BLOCO", nameof(vm.Disks)) })
         {

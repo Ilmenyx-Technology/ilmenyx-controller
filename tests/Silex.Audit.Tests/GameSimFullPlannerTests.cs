@@ -14,7 +14,7 @@ public class GameSimFullPlannerTests
         var plan=GameSimFullPlanner.Create(new());
         Assert.Equal(30000,plan.Entities);Assert.Equal(2,plan.WarmupSeconds);Assert.Equal(1/60f,plan.DeltaTime);
         Assert.Equal(12345u,plan.Seed);Assert.Equal(64,plan.GridSize);Assert.Equal(4,plan.Chunks);
-        Assert.False(plan.ExecutionAvailable);Assert.Equal("not-executed",plan.ExecutionStatus);Assert.Null(plan.Score);
+        Assert.True(plan.ExecutionAvailable);Assert.Equal("not-executed",plan.ExecutionStatus);Assert.Null(plan.Score);
         Assert.Equal("not-validated",plan.ScoreComparability);Assert.Contains("not the mean",plan.Low1Definition);
     }
     [Theory]
@@ -26,7 +26,7 @@ public class GameSimFullPlannerTests
     public void MaximumBoundedPlanIsAllowedWithoutExecution()
     {
         var plan=GameSimFullPlanner.Create(new(){Threads=64,Duration=TimeSpan.FromSeconds(10),Timeout=TimeSpan.FromSeconds(15)});
-        Assert.Equal(256,plan.Chunks);Assert.False(plan.ExecutionAvailable);
+        Assert.Equal(256,plan.Chunks);Assert.True(plan.ExecutionAvailable);
     }
     [Fact]
     public void CliPlanCannotBeMistakenForLoadOptIn()
@@ -47,7 +47,7 @@ public class GameSimFullPlannerTests
             var path=Path.Combine(directory,"plan.json");var plan=GameSimFullPlanner.Create(new());
             await SnapshotReport.ExportAsync(plan,path);var original=await File.ReadAllTextAsync(path);
             using var json=JsonDocument.Parse(original);
-            Assert.False(json.RootElement.GetProperty("executionAvailable").GetBoolean());
+            Assert.True(json.RootElement.GetProperty("executionAvailable").GetBoolean());
             Assert.Equal(JsonValueKind.Null,json.RootElement.GetProperty("score").ValueKind);
             await Assert.ThrowsAsync<IOException>(()=>SnapshotReport.ExportAsync(plan,path));
             Assert.Equal(original,await File.ReadAllTextAsync(path));

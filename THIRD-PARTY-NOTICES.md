@@ -99,3 +99,8 @@ repositório kekekeks/NWayland commit 2c37c6f84c45e2e0428221b24ff486187e8ae873.
 Manifests nuspec restaurados conferidos. SkiaSharp passa a 3.119.4 e HarfBuzzSharp a 8.3.1.3;
 licenças declaradas MIT. Revisar avisos nativos completos no empacotamento, sem distribuição nesta tarefa.
 Avalonia.BuildServices continua excluído dos assets/privado, com telemetria desativada.
+
+
+Runner GameSim 0.9.0: medição/warmup adaptados de GameSimBench.cs MIT GustavoReset, com
+aviso preservado no novo GameSimBenchmarkRunner.cs. Sem nova dependência; carga completa ainda
+não executada. Metodologia e diferenças versionadas em docs/gamesim-completo.md.
