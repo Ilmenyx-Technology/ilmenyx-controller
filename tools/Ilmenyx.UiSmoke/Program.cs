@@ -248,7 +248,7 @@ public sealed class UiSmokeApp : Application
     private static async Task LayoutAsync(DashboardWindow window, IClassicDesktopStyleApplicationLifetime desktop)
     {
         var errors = new List<string>();
-        foreach (var factor in new[] { 1.0, 1.5 })
+        foreach (var factor in new[] { 1.0, 1.5, 2.0 })
         {
             var fonts = ScaleText(window, factor);
             await MinimumSize(window);
@@ -302,7 +302,7 @@ public sealed class UiSmokeApp : Application
         window.Width = 1060; window.Height = 780; await Task.Delay(120);
         File.WriteAllLines(Path.Combine(Program.OutputDirectory, "layout-errors.txt"), errors);
         if (errors.Count != 0) throw new InvalidOperationException(string.Join("\n", errors));
-        Console.WriteLine("PASS layout minimum sizes, text factors 1/1.5: dashboard buttons, save field/error/actions, About selector/text/close reachable; reading area >=120 DIP");
+        Console.WriteLine("PASS layout minimum sizes, text factors 1/1.5/2: dashboard buttons, save field/error/actions, About selector/text/close reachable; reading area >=120 DIP");
     }
     private static async Task ExerciseAsync(DashboardWindow window, IClassicDesktopStyleApplicationLifetime desktop)
     {

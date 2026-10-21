@@ -19,7 +19,7 @@ public sealed class JsonSaveDialog : Window
         string directory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         if (!Directory.Exists(directory)) directory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         var destination = new TextBox { Name = "DestinationPath", Text = Path.Combine(directory, suggestedFileName), PlaceholderText = "/pasta/relatorio" + extension };
-        var label = new TextBlock { Text = "Caminho completo do arquivo", FontWeight = FontWeight.Bold };
+        var label = new TextBlock { Text = "Caminho completo do arquivo", TextWrapping = TextWrapping.Wrap, FontWeight = FontWeight.Bold };
         AutomationProperties.SetName(destination, "Caminho completo do arquivo de relatório");
         AutomationProperties.SetLabeledBy(destination, label);
         AutomationProperties.SetHelpText(destination, "Informe um caminho completo para um arquivo novo com extensão " + extension + ". Arquivos existentes serão preservados.");

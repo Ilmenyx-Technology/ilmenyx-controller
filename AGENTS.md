@@ -164,3 +164,7 @@ as regras de arquitetura Linux, benchmarks, testes, licenças e segurança anter
 ## Leitor de licenças 0.15.0
 - Sobre usa seletor de documento e leitor expansível, com nome de controle estável. Não alterar Name de controle já estilizado.
 - Preservar os quatro conteúdos integrais, somente leitura, nome acessível atualizado e navegação da lista/diálogo; não escrever no clipboard em testes automáticos.
+
+## Texto ampliado 0.16.0
+- Harness cobre 100/150/200% nos mínimos; manter quebra dos rótulos/títulos e leitor de licenças com ao menos 120 DIP nos casos testados.
+- Não reduzir fonte do documento nem relaxar os limites geométricos para ocultar cortes; ampliação no processo não certifica matriz de DPI ou leitores de tela.

@@ -48,7 +48,7 @@ public sealed class MemoryValidationPanel : Border
             Spacing = 10,
             Children =
         {
-            new TextBlock { Text = "VALIDAÇÃO DE ALGORITMOS DE MEMÓRIA", FontSize = 14, FontWeight = FontWeight.Bold },
+            new TextBlock { Text = "VALIDAÇÃO DE ALGORITMOS DE MEMÓRIA", TextWrapping = TextWrapping.Wrap, FontSize = 14, FontWeight = FontWeight.Bold },
             new TextBlock { Text = "Cadeia de ponteiros, soma e cópia · buffers de 256 KiB · uma passada · 1 worker.\nNão mede latência, GB/s, estabilidade ou saúde da RAM. Não executa GameSim ou testes de disco.", Foreground = Brushes.LightGray, TextWrapping = TextWrapping.Wrap },
             new WrapPanel { Children = { start, cancel, export, exportHtml } }, status, summary
         }

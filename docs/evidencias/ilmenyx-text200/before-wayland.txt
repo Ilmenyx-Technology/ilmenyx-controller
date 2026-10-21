@@ -1,0 +1,56 @@
+PASS keyboard save dialog: Space opens, Enter saves, Tab/Shift+Tab cycle, Escape cancels, error help/focus, automation peer name, focus restored
+PASS keyboard About: arrow selects document; Tab cycles selector/reader/close; F4 opens list; Escape closes list then dialog; named text and restored focus
+PASS Ilmenyx identity, by Bismuth Technology, live About/attribution/MIT/dependency documents and close
+ACTUAL WINDOW IMPLEMENTATION Avalonia.Wayland.WindowImpl
+DISPLAY BACKEND requested=wayland; handle=
+PASS visible AMD/NVIDIA notice: Testes não realizados em hardware real
+PASS hardware UI export and overwrite refusal
+PASS HTML UI export, same snapshot, cancel, extension validation and overwrite refusal
+PASS CPU cancel control
+EXPORTED cpu.json
+PASS CPU real render, cancelled picker and UI export
+PASS cpu HTML UI: same JSON report, cancellation, extension, overwrite refusal and real export
+EXPORTED memory.json
+PASS memory validation: no autostart, real bounded result, cancel control, cancelled dialog and JSON export
+PASS memory HTML UI: same JSON report, cancellation, extension, overwrite refusal and real export
+EXPORTED sim.json
+PASS GameSim: no autostart; cancel; 256 entities/16 steps; immutable final preview; oracle hash; cancelled dialog; JSON export
+PASS sim HTML UI: same JSON report, cancellation, extension, overwrite refusal and real export
+EXPORTED sensors.json
+PASS panel keyboard order: CPU/memory/sim JSON/HTML reachable; disabled cancellation controls skipped; reverse Tab works
+PASS sensor monitor start/stop and UI export
+LAYOUT dashboard factor=1 actual=640, 480 renderScaling=1.3
+LAYOUT save factor=1 actual=440, 360 renderScaling=1
+LAYOUT license document=0 factor=1 readingHeight=208.46153846153845
+LAYOUT license document=1 factor=1 readingHeight=208.46153846153845
+LAYOUT license document=2 factor=1 readingHeight=208.46153846153845
+LAYOUT license document=3 factor=1 readingHeight=208.46153846153845
+LAYOUT About heading origin=20, 20 bounds=440, 27.69230769230769 text=308.88000000000005x27.24
+LAYOUT about factor=1 actual=480, 360 renderScaling=1
+LAYOUT dashboard factor=1.5 actual=640, 480 renderScaling=1.3
+LAYOUT save factor=1.5 actual=440, 360 renderScaling=1
+LAYOUT license document=0 factor=1.5 readingHeight=135.3846153846154
+LAYOUT license document=1 factor=1.5 readingHeight=135.3846153846154
+LAYOUT license document=2 factor=1.5 readingHeight=135.3846153846154
+LAYOUT license document=3 factor=1.5 readingHeight=135.3846153846154
+LAYOUT About heading origin=20, 20 bounds=440, 82.3076923076923 text=294.75000000000006x81.72
+LAYOUT about factor=1.5 actual=480, 360 renderScaling=1
+LAYOUT dashboard factor=2 actual=640, 480 renderScaling=1.3
+LAYOUT save factor=2 actual=440, 360 renderScaling=1
+LAYOUT license document=0 factor=2 readingHeight=90
+LAYOUT license document=1 factor=2 readingHeight=90
+LAYOUT license document=2 factor=2 readingHeight=90
+LAYOUT license document=3 factor=2 readingHeight=90
+LAYOUT About heading origin=20, 20 bounds=440, 109.23076923076923 text=393x108.96
+LAYOUT about factor=2 actual=480, 360 renderScaling=1
+System.InvalidOperationException: Text clipped in DashboardWindow/TextBlock: layout=284.18399999999997x32.688, bounds=235.3846153846154, 33.07692307692307
+Text clipped in DashboardWindow/TextBlock: layout=591.612x38.136, bounds=523.0769230769231, 38.46153846153846
+Text clipped in DashboardWindow/TextBlock: layout=587.7200000000001x38.136, bounds=523.0769230769231, 38.46153846153846
+Text clipped in JsonSaveDialog/TextBlock: layout=419.49600000000004x38.136, bounds=392.3076923076923, 38.46153846153846
+License reading area too short: 90 DIP at factor 2
+License reading area too short: 90 DIP at factor 2
+License reading area too short: 90 DIP at factor 2
+License reading area too short: 90 DIP at factor 2
+   at UiSmokeApp.LayoutAsync(DashboardWindow window, IClassicDesktopStyleApplicationLifetime desktop) in /mnt/HDD/Github/Ilmenyx/tools/Ilmenyx.UiSmoke/Program.cs:line 304
+   at UiSmokeApp.ExerciseAsync(DashboardWindow window, IClassicDesktopStyleApplicationLifetime desktop) in /mnt/HDD/Github/Ilmenyx/tools/Ilmenyx.UiSmoke/Program.cs:line 505
+   at UiSmokeApp.<>c__DisplayClass1_0.<<OnFrameworkInitializationCompleted>b__0>d.MoveNext() in /mnt/HDD/Github/Ilmenyx/tools/Ilmenyx.UiSmoke/Program.cs:line 43

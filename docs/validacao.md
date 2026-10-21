@@ -583,3 +583,14 @@ aprovados e smokes Wayland nativo/X11 passaram, incluindo seleção integral, bl
 de edição, rolagem e teclado. NÃO TESTADO: clipboard real, Orca/AT-SPI, entrada física,
 200%+, outras plataformas e acessibilidade completa; GUI-01/GUI-02 continuam parciais.
 [Comandos e evidências](licencas-leitura.md).
+
+
+## Atualização 0.16.0 — texto a 200%
+
+IMPLEMENTADO: quebra de rótulos/títulos com cortes reproduzidos e cabeçalho Sobre
+compacto. Build sem avisos/erros, 279 testes aprovados e nove casos de layout por
+backend em Wayland nativo/X11 (100/150/200%) passaram. Leitura a 200% de cerca de
+161 DIP/159 DIP, mantendo fonte 28 e critério de 120 DIP. Fecha o recorte local
+de 200%; registros anteriores são históricos. Acima de 200%, outras matrizes de
+DPI/hardware, Orca/AT-SPI, entrada física e Windows permanecem NÃO TESTADOS.
+GUI-01/GUI-02 seguem parciais. [Método, evidências e comandos](texto-200.md).

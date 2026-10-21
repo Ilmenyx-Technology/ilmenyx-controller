@@ -54,13 +54,13 @@ public sealed class DashboardWindow : Window
         var stack = new StackPanel { Margin = new Thickness(32), Spacing = 18 };
         stack.Children.Add(new TextBlock { Name = "ProductName", Text = ProductIdentity.Name, FontSize = 32, FontWeight = FontWeight.Bold });
         stack.Children.Add(new TextBlock { Name = "MaintainerSignature", Text = ProductIdentity.Signature });
-        stack.Children.Add(new TextBlock { Text = "Diagnóstico de hardware · Linux · 0.15.0", Foreground = Brushes.LightGray });
+        stack.Children.Add(new TextBlock { Text = "Diagnóstico de hardware · Linux · 0.16.0", Foreground = Brushes.LightGray });
         stack.Children.Add(new WrapPanel { Orientation = Orientation.Horizontal, ItemSpacing = 12, LineSpacing = 8, Children = { refresh, export, exportHtml, about } });
         foreach (var (label, property) in new[] { ("PROCESSADOR", nameof(vm.Cpu)), ("MEMÓRIA", nameof(vm.Memory)), ("SISTEMA", nameof(vm.System)), ("DISPOSITIVOS DE BLOCO", nameof(vm.Disks)) })
         {
             var value = new TextBlock { TextWrapping = TextWrapping.Wrap, FontSize = 17 };
             value.Bind(TextBlock.TextProperty, new Binding(property));
-            cards.Children.Add(new Border { Margin = new Thickness(0, 0, 12, 12), Background = Brush.Parse("#24252E"), CornerRadius = new CornerRadius(12), Padding = new Thickness(20), Child = new StackPanel { Spacing = 10, Children = { new TextBlock { Text = label, Foreground = Brushes.LightGray, FontSize = 12 }, value } } });
+            cards.Children.Add(new Border { Margin = new Thickness(0, 0, 12, 12), Background = Brush.Parse("#24252E"), CornerRadius = new CornerRadius(12), Padding = new Thickness(20), Child = new StackPanel { Spacing = 10, Children = { new TextBlock { Text = label, TextWrapping = TextWrapping.Wrap, Foreground = Brushes.LightGray, FontSize = 12 }, value } } });
         }
         stack.Children.Add(cards);
         var gpuSummary = new TextBlock { Name = "GpuSummary", TextWrapping = TextWrapping.Wrap, FontSize = 15 };

@@ -50,7 +50,7 @@ public sealed class AboutDialog : Window
         SelectDocument();
         var panel = new DockPanel { Margin = new Thickness(20), LastChildFill = true };
         DockPanel.SetDock(close, Dock.Bottom); panel.Children.Add(close);
-        var heading = new TextBlock { Text = "Ilmenyx · by Bismuth Technology", TextWrapping = TextWrapping.Wrap, FontSize = 20, Margin = new Thickness(0, 0, 0, 12) };
+        var heading = new TextBlock { Text = "Ilmenyx · by Bismuth Technology", TextWrapping = TextWrapping.Wrap, FontSize = 14, Margin = new Thickness(0, 0, 0, 12) };
         DockPanel.SetDock(heading, Dock.Top); panel.Children.Add(heading);
         var navigation = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), Margin = new Thickness(0, 0, 0, 8) };
         Grid.SetColumn(selector, 1); navigation.Children.Add(label); navigation.Children.Add(selector);

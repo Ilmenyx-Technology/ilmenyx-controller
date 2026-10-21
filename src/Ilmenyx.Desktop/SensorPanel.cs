@@ -51,7 +51,7 @@ public sealed class SensorPanel : Border
             Spacing = 10,
             Children =
             {
-                new TextBlock { Text = "SENSORES · HWMON / THERMAL / ENERGIA", FontSize = 14, FontWeight = FontWeight.Bold },
+                new TextBlock { Text = "SENSORES · HWMON / THERMAL / ENERGIA", TextWrapping = TextWrapping.Wrap, FontSize = 14, FontWeight = FontWeight.Bold },
                 new TextBlock { Text = "Leituras brutas do kernel, sem inferência de saúde. Canais não identificados preservam o nome original.\nMonitor opcional: atualiza a cada 2 segundos, sem manter histórico. Tensão pode exigir calibração da placa.", TextWrapping = TextWrapping.Wrap, Foreground = Brushes.LightGray },
                 new WrapPanel { Children = { refresh, monitor, stop, export } }, status,
                 new ScrollViewer { MaxHeight = 260, Content = values }
