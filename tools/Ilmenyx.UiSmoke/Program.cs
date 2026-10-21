@@ -86,6 +86,36 @@ public sealed class UiSmokeApp : Application
         using var json = JsonDocument.Parse(File.ReadAllText(path));
         Console.WriteLine("EXPORTED " + Path.GetFileName(path));
     }
+    private static async Task HtmlResultAsync(Window owner, IClassicDesktopStyleApplicationLifetime desktop, string button, string jsonPath, string stem)
+    {
+        await Until(() => Find<Button>(owner, button).IsEnabled);
+        Click(owner, button); var dialog = await Dialog(desktop);
+        var cancelled = Path.Combine(Program.OutputDirectory, stem + "-cancelled.html");
+        Find<TextBox>(dialog, "DestinationPath").Text = cancelled; Click(dialog, "CancelSaveJson");
+        await Until(() => !dialog.IsVisible);
+        if (File.Exists(cancelled)) throw new InvalidOperationException("Cancelled validation HTML dialog wrote a file.");
+        Click(owner, button); dialog = await Dialog(desktop);
+        Find<TextBox>(dialog, "DestinationPath").Text = Path.Combine(Program.OutputDirectory, stem + "-wrong.json");
+        Click(dialog, "SaveJson");
+        if (!dialog.IsVisible || Find<TextBlock>(dialog, "DestinationError").Text != "Use a extensão .html.")
+            throw new InvalidOperationException("Validation HTML extension not enforced.");
+        var preserved = Path.Combine(Program.OutputDirectory, stem + "-preserved.html"); File.WriteAllText(preserved, "preserve-result-html");
+        Find<TextBox>(dialog, "DestinationPath").Text = preserved; Click(dialog, "SaveJson");
+        if (!dialog.IsVisible || File.ReadAllText(preserved) != "preserve-result-html")
+            throw new InvalidOperationException("Validation HTML destination overwritten.");
+        var path = Path.Combine(Program.OutputDirectory, stem + ".html");
+        Find<TextBox>(dialog, "DestinationPath").Text = path; Capture(dialog, stem + "-html-dialog.png"); Click(dialog, "SaveJson");
+        await Until(() => !dialog.IsVisible && File.Exists(path));
+        var json = File.ReadAllText(jsonPath);
+        var expected = stem switch
+        {
+            "cpu" => ValidationHtmlReport.Render(JsonSerializer.Deserialize<CpuBenchmarkReport>(json, SnapshotReport.Options)!),
+            "memory" => ValidationHtmlReport.Render(JsonSerializer.Deserialize<MemoryValidationReport>(json, SnapshotReport.Options)!),
+            _ => ValidationHtmlReport.Render(JsonSerializer.Deserialize<GameSimValidationReport>(json, SnapshotReport.Options)!)
+        };
+        if (File.ReadAllText(path) != expected) throw new InvalidOperationException("Validation HTML changed the selected report or recollected context.");
+        Console.WriteLine("PASS " + stem + " HTML UI: same JSON report, cancellation, extension, overwrite refusal and real export");
+    }
     private static async Task ExerciseAsync(DashboardWindow window, IClassicDesktopStyleApplicationLifetime desktop)
     {
         var output = Program.OutputDirectory;
@@ -154,6 +184,8 @@ public sealed class UiSmokeApp : Application
             throw new InvalidOperationException("Memory validation ran automatically.");
         if (Find<Button>(window, "ExportSim").IsEnabled || !Find<TextBlock>(window, "SimSummary").Text!.StartsWith("Nenhuma"))
             throw new InvalidOperationException("GameSim ran automatically.");
+        foreach (var button in new[] { "ExportCpuHtml", "ExportMemoryHtml", "ExportSimHtml" })
+            if (Find<Button>(window, button).IsEnabled) throw new InvalidOperationException("Validation HTML enabled before a result.");
         Click(window, "ExportHardwareHtml");
         dialog = await Dialog(desktop);
         var cancelledHtml = Path.Combine(output, "cancelled.html");
@@ -199,6 +231,7 @@ public sealed class UiSmokeApp : Application
                 throw new InvalidOperationException("Reduced CPU result invalid.");
         }
         Console.WriteLine("PASS CPU real render, cancelled picker and UI export");
+        await HtmlResultAsync(window, desktop, "ExportCpuHtml", cpuPath, "cpu");
 
         Click(window, "ValidateMemory"); Click(window, "CancelMemory");
         await Until(() => Find<Button>(window, "ValidateMemory").IsEnabled);
@@ -222,6 +255,7 @@ public sealed class UiSmokeApp : Application
                 throw new InvalidOperationException("Memory UI report invalid.");
         }
         Console.WriteLine("PASS memory validation: no autostart, real bounded result, cancel control, cancelled dialog and JSON export");
+        await HtmlResultAsync(window, desktop, "ExportMemoryHtml", memoryPath, "memory");
 
         Click(window, "ValidateSim"); Click(window, "CancelSim");
         await Until(() => Find<Button>(window, "ValidateSim").IsEnabled);
@@ -248,6 +282,7 @@ public sealed class UiSmokeApp : Application
                 throw new InvalidOperationException("GameSim UI report invalid.");
         }
         Console.WriteLine("PASS GameSim: no autostart; cancel; 256 entities/16 steps; immutable final preview; oracle hash; cancelled dialog; JSON export");
+        await HtmlResultAsync(window, desktop, "ExportSimHtml", simPath, "sim");
 
         await Until(() => Find<Button>(window, "RefreshSensors").IsEnabled);
         Click(window, "MonitorSensors");

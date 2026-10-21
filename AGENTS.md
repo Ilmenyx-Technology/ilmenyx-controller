@@ -148,3 +148,7 @@ as regras de arquitetura Linux, benchmarks, testes, licenças e segurança anter
 - É permitido usar o Ilmenyx como ferramenta independente em serviços remunerados, diagnóstico e entrega de relatórios.
 - Não é permitido, sobre contribuições próprias abrangidas, vender o programa, cobrar acesso ou copiar/incorporar código para produto/serviço pago. Ver LICENSE-ILMENYX.md e LICENSING.md.
 - Não tratar o uso profissional instrumental como venda do software. MIT/terceiros e permissões já concedidas permanecem preservados; revisão jurídica antes de publicar.
+
+## Exportação dos resultados pela UI 0.12.0
+- Botões HTML exportam o snapshot selecionado; não repetir coleta/workload ao exportar.
+- Preservar guarda de troca do resultado durante o diálogo e testes JSON/HTML em ambos os backends.

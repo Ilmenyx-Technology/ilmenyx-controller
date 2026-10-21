@@ -19,7 +19,7 @@ public sealed class CpuValidationPanel : Border, IDisposable
     private WriteableBitmap? bitmap;
     private CpuRenderOutput? displayed;
 
-    public CpuValidationPanel(CpuValidationViewModel model, Func<Task<string?>> chooseDestination, CancellationToken lifetime)
+    public CpuValidationPanel(CpuValidationViewModel model, Func<string, Task<string?>> chooseDestination, CancellationToken lifetime)
     {
         this.model = model;
         DataContext = model;
@@ -30,26 +30,31 @@ public sealed class CpuValidationPanel : Border, IDisposable
         var start = new Button { Name = "ValidateCpu", Content = "Validar CPU (reduzido)", Margin = new Thickness(0, 0, 8, 8) };
         var cancel = new Button { Name = "CancelCpu", Content = "Cancelar CPU", Margin = new Thickness(0, 0, 8, 8) };
         var export = new Button { Name = "ExportCpu", Content = "Exportar CPU JSON", Margin = new Thickness(0, 0, 8, 8) };
+        var exportHtml = new Button { Name = "ExportCpuHtml", Content = "Exportar CPU HTML", Margin = new Thickness(0, 0, 8, 8) };
         start.Bind(IsEnabledProperty, new Binding(nameof(model.CanStart)));
         cancel.Bind(IsEnabledProperty, new Binding(nameof(model.CanCancel)));
         export.Bind(IsEnabledProperty, new Binding(nameof(model.CanExport)));
+        exportHtml.Bind(IsEnabledProperty, new Binding(nameof(model.CanExport)));
         start.Click += async (_, _) => await model.StartAsync(lifetime);
         cancel.Click += (_, _) => model.Cancel();
-        export.Click += async (_, _) =>
+        export.Click += async (_, _) => await Export(false);
+        exportHtml.Click += async (_, _) => await Export(true);
+        async Task Export(bool html)
         {
             if (!model.CanExport) return;
             var selectedReport = model.Report;
             try
             {
-                string? path = await chooseDestination();
+                string? path = await chooseDestination(html ? ".html" : ".json");
                 if (path is null) return;
                 if (!ReferenceEquals(selectedReport, model.Report)) { model.SetStatus("O resultado mudou. Escolha novamente o relatório."); return; }
-                await model.ExportAsync(path, lifetime);
+                if (html) await model.ExportHtmlAsync(path, lifetime);
+                else await model.ExportAsync(path, lifetime);
             }
             catch (OperationCanceledException) { model.SetStatus("Exportação cancelada."); }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException or NotSupportedException or InvalidOperationException)
             { model.SetStatus("Seletor de arquivo indisponível: " + e.Message); }
-        };
+        }
         var status = new TextBlock { Name = "CpuStatus", TextWrapping = TextWrapping.Wrap };
         status.Bind(TextBlock.TextProperty, new Binding(nameof(model.Status)));
         var summary = new TextBlock { Name = "CpuSummary", TextWrapping = TextWrapping.Wrap, FontSize = 12 };
@@ -65,7 +70,7 @@ public sealed class CpuValidationPanel : Border, IDisposable
             {
                 new TextBlock { Text = "VALIDAÇÃO DO RENDERIZADOR CPU", FontSize = 14, FontWeight = FontWeight.Bold },
                 new TextBlock { Text = "32×18 pixels · 8 amostras/pixel · uma passada · sem score.\nA imagem é calculada ao clicar. Este modo não mede desempenho nem saúde do hardware.", TextWrapping = TextWrapping.Wrap, Foreground = Brushes.LightGray },
-                new WrapPanel { Orientation = Orientation.Horizontal, Children = { start, cancel, export } },
+                new WrapPanel { Orientation = Orientation.Horizontal, Children = { start, cancel, export, exportHtml } },
                 progress, status, preview, summary
             }
         };

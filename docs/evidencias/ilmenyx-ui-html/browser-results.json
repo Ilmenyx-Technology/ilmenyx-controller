@@ -1,0 +1,74 @@
+[
+  {
+    "width": 390,
+    "kind": "cpu",
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "### Result\n{\n  \"title\": \"Ilmenyx — Relatório de hardware\",\n  \"sections\": 1,\n  \"width\": 390,\n  \"scrollWidth\": 390,\n  \"activeNodes\": 0,\n  \"resources\": [],\n  \"text\": \"CPU — validação reduzidaResultado já calculado. Exportar este snapshot não executa carga adicional. Sem pontuação de desempenho.Schema do resultado1.0EstadoCompletedWorkloadvalidation-32x18-spp8Algoritmosilex-cpu-pathtracer/1Métodosilex-cpu-runner/1Referência upstreamce1d9b30518bbe75bb5e6cb792d1b1e365aaddd6Coleta UTC2026-10-21T05:09:23.3181709+00:00Workers1Dimensões32 × 18Amostras por pixel8Amostras concluídas4608Passadas1SHA256 imagem4a2ff589647b89851f86e20f15d093b8d61dff21f75c9fd9e5b11b8a02d8e830Scoreindisponível — validação não mede desempenhoComparabilidadeunvalidatedNão é score oficial RESET BENCH; comparação entre Linux e Windows NÃO VALIDADA.Validação reduzida, cancelamento ou timeout não produzem score.Sem sensores térmicos ou proteção por temperatura; carga completa somente com opt-in explícito.Inicialização/JIT, scheduler, afinidade, energia e throttling não são controlados.Amostras contam apenas pixels concluídos; hash de execução interrompida representa imagem parcial.\"\n}\n### Ran Playwright code\n```js\nawait page.evaluate('() => { const s=document.querySelector(\\'#validation-result\\'); s?.scrollIntoView(); return {title:document.title,sections:document.querySelectorAll(\\'#validation-result\\').length,width:innerWidth,scrollWidth:document.documentElement.scrollWidth,activeNodes:document.querySelectorAll(\\'script,iframe,img\\').length,resources:performance.getEntriesByType(\\'resource\\').map(x=>x.name),text:s?.textContent}; }');\n```"
+        }
+      ]
+    }
+  },
+  {
+    "width": 390,
+    "kind": "memory",
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "### Result\n{\n  \"title\": \"Ilmenyx — Relatório de hardware\",\n  \"sections\": 1,\n  \"width\": 390,\n  \"scrollWidth\": 390,\n  \"activeNodes\": 0,\n  \"resources\": [],\n  \"text\": \"Memória — validação de algoritmosResultado já calculado. Exportar este snapshot não executa carga adicional. Sem pontuação de desempenho.Schema do resultado1.0EstadoCompletedWorkloadsilex-memory-validation-v1Algoritmosattolo64-seed42-sum4-copy-v1Referência upstreamce1d9b30518bbe75bb5e6cb792d1b1e365aaddd6Coleta UTC2026-10-21T05:09:24.2143013+00:00Workers1Buffer (B)262144Buffers principais (B)802816Passos solicitados32768Passos concluídos32768Soma leitura32768Soma cópia32768SHA256 cadeiaa161778502328abe03b03b6c5a13304938399808c410fe351f9e9af54a53c5a1SHA256 cópia5d13d4f5eabdb8645983b02dfd86438b77115918b5d2ec8c40ba3355c8a80dc1MétricasNão mede latência, GB/s, estabilidade ou saúde; sem score.Validação pequena de algoritmos; não mede latência, GB/s, estabilidade ou saúde da RAM.Buffers de 256 KiB podem caber em caches; resultados não são comparáveis ao benchmark completo Windows.Semente 42, passos de 64 bytes; warmup reduzido para 1024, percurso 32768 e uma repetição de leitura/cópia.Workers restritos a 1/2/4 para particionamento integral e sem sobra do laço desenrolado; soma/cópia variam com a inicialização por worker.Buffers principais: 784 KiB, mais buffers de hash e overhead do runtime; não representa uso total do processo.Não há perfil completo de RAM, GameSim, teste de disco ou rede neste comando.\"\n}\n### Ran Playwright code\n```js\nawait page.evaluate('() => { const s=document.querySelector(\\'#validation-result\\'); s?.scrollIntoView(); return {title:document.title,sections:document.querySelectorAll(\\'#validation-result\\').length,width:innerWidth,scrollWidth:document.documentElement.scrollWidth,activeNodes:document.querySelectorAll(\\'script,iframe,img\\').length,resources:performance.getEntriesByType(\\'resource\\').map(x=>x.name),text:s?.textContent}; }');\n```"
+        }
+      ]
+    }
+  },
+  {
+    "width": 390,
+    "kind": "sim",
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "### Result\n{\n  \"title\": \"Ilmenyx — Relatório de hardware\",\n  \"sections\": 1,\n  \"width\": 390,\n  \"scrollWidth\": 390,\n  \"activeNodes\": 0,\n  \"resources\": [],\n  \"text\": \"GameSim — validação reduzidaResultado já calculado. Exportar este snapshot não executa carga adicional. Sem pontuação de desempenho.Schema do resultado1.0EstadoCompletedWorkloadsilex-gamesim-validation-v1Algoritmoreset-gamesim-bounded-v1Referência upstreamce1d9b30518bbe75bb5e6cb792d1b1e365aaddd6Coleta UTC2026-10-21T05:09:25.0631325+00:00Workers1Entidades256Passos solicitados16Passos concluídos16Formato do hashsilex-gamesim-state-le-v1SHA256 estado6815765e7f314653b328268725f02c597dc31bb5334670769ab3accfc772c880MétricasSimulação sintética; sem FPS, low1 ou score.Simulação sintética reduzida: 256 entidades e 16 passos, sem warmup por relógio, FPS, low1 ou score.Não representa FPS de um jogo real ou desempenho da GPU; não é comparável ao benchmark Windows completo.Matemática, RNG seed 12345, mundo 1000, grade 64x64 e dt=1/60 preservados; número de entidades e duração alterados explicitamente.Cancelamento/timeout são cooperativos entre passos completos; resultados interrompidos não publicam estado/hash final.Snapshot final copiado após física, lógica e ordenação; buffers internos mutáveis não são expostos.\"\n}\n### Ran Playwright code\n```js\nawait page.evaluate('() => { const s=document.querySelector(\\'#validation-result\\'); s?.scrollIntoView(); return {title:document.title,sections:document.querySelectorAll(\\'#validation-result\\').length,width:innerWidth,scrollWidth:document.documentElement.scrollWidth,activeNodes:document.querySelectorAll(\\'script,iframe,img\\').length,resources:performance.getEntriesByType(\\'resource\\').map(x=>x.name),text:s?.textContent}; }');\n```"
+        }
+      ]
+    }
+  },
+  {
+    "width": 1280,
+    "kind": "cpu",
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "### Result\n{\n  \"title\": \"Ilmenyx — Relatório de hardware\",\n  \"sections\": 1,\n  \"width\": 1280,\n  \"scrollWidth\": 1280,\n  \"activeNodes\": 0,\n  \"resources\": [],\n  \"text\": \"CPU — validação reduzidaResultado já calculado. Exportar este snapshot não executa carga adicional. Sem pontuação de desempenho.Schema do resultado1.0EstadoCompletedWorkloadvalidation-32x18-spp8Algoritmosilex-cpu-pathtracer/1Métodosilex-cpu-runner/1Referência upstreamce1d9b30518bbe75bb5e6cb792d1b1e365aaddd6Coleta UTC2026-10-21T05:09:23.3181709+00:00Workers1Dimensões32 × 18Amostras por pixel8Amostras concluídas4608Passadas1SHA256 imagem4a2ff589647b89851f86e20f15d093b8d61dff21f75c9fd9e5b11b8a02d8e830Scoreindisponível — validação não mede desempenhoComparabilidadeunvalidatedNão é score oficial RESET BENCH; comparação entre Linux e Windows NÃO VALIDADA.Validação reduzida, cancelamento ou timeout não produzem score.Sem sensores térmicos ou proteção por temperatura; carga completa somente com opt-in explícito.Inicialização/JIT, scheduler, afinidade, energia e throttling não são controlados.Amostras contam apenas pixels concluídos; hash de execução interrompida representa imagem parcial.\"\n}\n### Ran Playwright code\n```js\nawait page.evaluate('() => { const s=document.querySelector(\\'#validation-result\\'); s?.scrollIntoView(); return {title:document.title,sections:document.querySelectorAll(\\'#validation-result\\').length,width:innerWidth,scrollWidth:document.documentElement.scrollWidth,activeNodes:document.querySelectorAll(\\'script,iframe,img\\').length,resources:performance.getEntriesByType(\\'resource\\').map(x=>x.name),text:s?.textContent}; }');\n```"
+        }
+      ]
+    }
+  },
+  {
+    "width": 1280,
+    "kind": "memory",
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "### Result\n{\n  \"title\": \"Ilmenyx — Relatório de hardware\",\n  \"sections\": 1,\n  \"width\": 1280,\n  \"scrollWidth\": 1280,\n  \"activeNodes\": 0,\n  \"resources\": [],\n  \"text\": \"Memória — validação de algoritmosResultado já calculado. Exportar este snapshot não executa carga adicional. Sem pontuação de desempenho.Schema do resultado1.0EstadoCompletedWorkloadsilex-memory-validation-v1Algoritmosattolo64-seed42-sum4-copy-v1Referência upstreamce1d9b30518bbe75bb5e6cb792d1b1e365aaddd6Coleta UTC2026-10-21T05:09:24.2143013+00:00Workers1Buffer (B)262144Buffers principais (B)802816Passos solicitados32768Passos concluídos32768Soma leitura32768Soma cópia32768SHA256 cadeiaa161778502328abe03b03b6c5a13304938399808c410fe351f9e9af54a53c5a1SHA256 cópia5d13d4f5eabdb8645983b02dfd86438b77115918b5d2ec8c40ba3355c8a80dc1MétricasNão mede latência, GB/s, estabilidade ou saúde; sem score.Validação pequena de algoritmos; não mede latência, GB/s, estabilidade ou saúde da RAM.Buffers de 256 KiB podem caber em caches; resultados não são comparáveis ao benchmark completo Windows.Semente 42, passos de 64 bytes; warmup reduzido para 1024, percurso 32768 e uma repetição de leitura/cópia.Workers restritos a 1/2/4 para particionamento integral e sem sobra do laço desenrolado; soma/cópia variam com a inicialização por worker.Buffers principais: 784 KiB, mais buffers de hash e overhead do runtime; não representa uso total do processo.Não há perfil completo de RAM, GameSim, teste de disco ou rede neste comando.\"\n}\n### Ran Playwright code\n```js\nawait page.evaluate('() => { const s=document.querySelector(\\'#validation-result\\'); s?.scrollIntoView(); return {title:document.title,sections:document.querySelectorAll(\\'#validation-result\\').length,width:innerWidth,scrollWidth:document.documentElement.scrollWidth,activeNodes:document.querySelectorAll(\\'script,iframe,img\\').length,resources:performance.getEntriesByType(\\'resource\\').map(x=>x.name),text:s?.textContent}; }');\n```"
+        }
+      ]
+    }
+  },
+  {
+    "width": 1280,
+    "kind": "sim",
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "### Result\n{\n  \"title\": \"Ilmenyx — Relatório de hardware\",\n  \"sections\": 1,\n  \"width\": 1280,\n  \"scrollWidth\": 1280,\n  \"activeNodes\": 0,\n  \"resources\": [],\n  \"text\": \"GameSim — validação reduzidaResultado já calculado. Exportar este snapshot não executa carga adicional. Sem pontuação de desempenho.Schema do resultado1.0EstadoCompletedWorkloadsilex-gamesim-validation-v1Algoritmoreset-gamesim-bounded-v1Referência upstreamce1d9b30518bbe75bb5e6cb792d1b1e365aaddd6Coleta UTC2026-10-21T05:09:25.0631325+00:00Workers1Entidades256Passos solicitados16Passos concluídos16Formato do hashsilex-gamesim-state-le-v1SHA256 estado6815765e7f314653b328268725f02c597dc31bb5334670769ab3accfc772c880MétricasSimulação sintética; sem FPS, low1 ou score.Simulação sintética reduzida: 256 entidades e 16 passos, sem warmup por relógio, FPS, low1 ou score.Não representa FPS de um jogo real ou desempenho da GPU; não é comparável ao benchmark Windows completo.Matemática, RNG seed 12345, mundo 1000, grade 64x64 e dt=1/60 preservados; número de entidades e duração alterados explicitamente.Cancelamento/timeout são cooperativos entre passos completos; resultados interrompidos não publicam estado/hash final.Snapshot final copiado após física, lógica e ordenação; buffers internos mutáveis não são expostos.\"\n}\n### Ran Playwright code\n```js\nawait page.evaluate('() => { const s=document.querySelector(\\'#validation-result\\'); s?.scrollIntoView(); return {title:document.title,sections:document.querySelectorAll(\\'#validation-result\\').length,width:innerWidth,scrollWidth:document.documentElement.scrollWidth,activeNodes:document.querySelectorAll(\\'script,iframe,img\\').length,resources:performance.getEntriesByType(\\'resource\\').map(x=>x.name),text:s?.textContent}; }');\n```"
+        }
+      ]
+    }
+  }
+]

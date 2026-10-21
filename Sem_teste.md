@@ -77,3 +77,13 @@ UI anteriores e aba de termos passaram em Wayland/X11. Revisão jurídica dos te
 (uso instrumental profissional permitido, venda/acesso/derivação pagos restritos) pendente antes
 de publicar; partes MIT/terceiros preservadas. Pasta atual /mnt/HDD/Github/Ilmenyx; ambientes
 anteriores nos logs são históricos. Windows, hardware ausente e cargas full seguem pendentes.
+
+
+## Atualização 0.12.0 — HTML dos resultados na UI
+
+IMPLEMENTADO e testado: exportação dos snapshots CPU/RAM/GameSim pela interface,
+sem nova coleta/carga, com cancelamento e recusa de sobrescrita. 279 testes passaram;
+Wayland nativo e X11 passaram no CachyOS. Browser Chromium em 390/1280 px passou
+para os três relatórios. Isto encerra as pendências locais de botões HTML e layout
+nessas condições, sem generalizar para outras plataformas ou acessibilidade.
+Detalhes e comandos em [validation-html-ui.md](docs/validation-html-ui.md). Registros anteriores são históricos.

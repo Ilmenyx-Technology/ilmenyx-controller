@@ -542,3 +542,13 @@ Termos próprios corrigidos conforme esclarecimento: usar programa como ferramen
 remunerado é permitido; vender programa/acesso ou derivar produto/serviço pago do código próprio
 não é autorizado. LICENSE MIT e direitos anteriores/terceiros continuam preservados; política
 não é open source OSI e exige revisão jurídica antes de publicação (../LICENSING.md).
+
+
+## Atualização 0.12.0 — HTML dos resultados na UI
+
+IMPLEMENTADO e testado: exportação dos snapshots CPU/RAM/GameSim pela interface,
+sem nova coleta/carga, com cancelamento e recusa de sobrescrita. 279 testes passaram;
+Wayland nativo e X11 passaram no CachyOS. Browser Chromium em 390/1280 px passou
+para os três relatórios. Isto encerra as pendências locais de botões HTML e layout
+nessas condições, sem generalizar para outras plataformas ou acessibilidade.
+Detalhes e comandos em [validation-html-ui.md](validation-html-ui.md). Registros anteriores são históricos.

@@ -48,11 +48,18 @@ public sealed class GameSimValidationViewModel(IHardwareInfoProvider hardware, I
         // so its final cancelled status is never overwritten by a late "cancelling" message.
         stop.Cancel();
     }
-    public async Task ExportAsync(string path, CancellationToken ct = default)
+    public Task ExportAsync(string path, CancellationToken ct = default) => ExportReportAsync(path, false, ct);
+    public Task ExportHtmlAsync(string path, CancellationToken ct = default) => ExportReportAsync(path, true, ct);
+    private async Task ExportReportAsync(string path, bool html, CancellationToken ct)
     {
         if (!CanExport || Report is not { } report) return;
         IsExporting = true; NotifyAll();
-        try { await SnapshotReport.ExportAsync(report, path, ct); SetStatus("Simulação reduzida exportada para arquivo local."); }
+        try
+        {
+            if (html) await Task.Run(() => ValidationHtmlReport.ExportAsync(report, path, ct), ct);
+            else await SnapshotReport.ExportAsync(report, path, ct);
+            SetStatus("Simulação reduzida exportada para arquivo local.");
+        }
         catch (OperationCanceledException) { SetStatus("Exportação cancelada."); }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
         { SetStatus("Não foi possível exportar. Escolha um arquivo novo: " + e.Message); }

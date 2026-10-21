@@ -81,14 +81,17 @@ public sealed class CpuValidationViewModel(IHardwareInfoProvider hardware, ICpuB
         Notify(nameof(CanCancel));
     }
 
-    public async Task ExportAsync(string path, CancellationToken ct = default)
+    public Task ExportAsync(string path, CancellationToken ct = default) => ExportReportAsync(path, false, ct);
+    public Task ExportHtmlAsync(string path, CancellationToken ct = default) => ExportReportAsync(path, true, ct);
+    private async Task ExportReportAsync(string path, bool html, CancellationToken ct)
     {
         if (!CanExport || Report is not { } report) return;
         IsExporting = true;
         NotifyAll();
         try
         {
-            await SnapshotReport.ExportAsync(report, path, ct);
+            if (html) await Task.Run(() => ValidationHtmlReport.ExportAsync(report, path, ct), ct);
+            else await SnapshotReport.ExportAsync(report, path, ct);
             SetStatus("Relatório CPU exportado para arquivo local.");
         }
         catch (OperationCanceledException) { SetStatus("Exportação cancelada."); }
