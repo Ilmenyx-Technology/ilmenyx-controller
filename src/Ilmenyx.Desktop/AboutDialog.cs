@@ -1,4 +1,6 @@
 using Avalonia;
+using Avalonia.Automation;
+using Avalonia.Input;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
@@ -12,6 +14,7 @@ public sealed class AboutDialog : Window
     {
         Title = "Ilmenyx — Licenças e créditos"; Width = 740; Height = 560;
         MinWidth = 480; MinHeight = 360; WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        KeyboardNavigation.SetTabNavigation(this, KeyboardNavigationMode.Cycle);
         var close = new Button { Name = "CloseAbout", Content = "Fechar", IsCancel = true, HorizontalAlignment = HorizontalAlignment.Right };
         close.Click += (_, _) => Close();
         var tabs = new TabControl
@@ -24,16 +27,18 @@ public sealed class AboutDialog : Window
                 Tab("Termos Ilmenyx", Read("LICENSING.md") + "\n\n" + Read("LICENSE-ILMENYX.md"), "OwnTermsText")
             }
         };
+        AutomationProperties.SetName(tabs, "Licenças e créditos");
         var panel = new DockPanel { Margin = new Thickness(20), LastChildFill = true };
         DockPanel.SetDock(close, Dock.Bottom); panel.Children.Add(close);
         var heading = new TextBlock { Text = "Ilmenyx · by Bismuth Technology", FontSize = 20, Margin = new Thickness(0, 0, 0, 12) };
         DockPanel.SetDock(heading, Dock.Top); panel.Children.Add(heading); panel.Children.Add(tabs); Content = panel;
     }
-    private static TabItem Tab(string title, string text, string name) => new()
+    private static TabItem Tab(string title, string text, string name)
     {
-        Header = title,
-        Content = new TextBox { Name = name, Text = text, IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap }
-    };
+        var content = new TextBox { Name = name, Text = text, IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap };
+        AutomationProperties.SetName(content, title + " — texto para leitura e cópia");
+        return new TabItem { Header = title, Content = content };
+    }
     private static string Read(string file)
     {
         try { return File.ReadAllText(Path.Combine(AppContext.BaseDirectory, file)); }

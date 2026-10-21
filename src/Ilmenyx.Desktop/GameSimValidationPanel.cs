@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Data;
 using Avalonia.Media;
@@ -35,10 +36,16 @@ public sealed class GameSimValidationPanel : Border
             catch (OperationCanceledException) { model.SetStatus("Exportação cancelada."); }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or InvalidOperationException)
             { model.SetStatus("Não foi possível selecionar destino: " + e.Message); }
+            finally
+            {
+                var button = html ? exportHtml : export;
+                if (IsEffectivelyVisible && button.IsEffectivelyEnabled && !lifetime.IsCancellationRequested) button.Focus();
+            }
         }
         var status = new TextBlock { Name = "SimStatus", TextWrapping = TextWrapping.Wrap }; status.Bind(TextBlock.TextProperty, new Binding(nameof(model.Status)));
         var summary = new TextBlock { Name = "SimSummary", TextWrapping = TextWrapping.Wrap, FontSize = 12 }; summary.Bind(TextBlock.TextProperty, new Binding(nameof(model.Summary)));
         var preview = new GameSimPreview { Name = "SimPreview", Width = 220, Height = 220 };
+        AutomationProperties.SetName(preview, "Estado final da simulação reduzida; contagens e hash no resumo textual");
         preview.Bind(GameSimPreview.StateProperty, new Binding(nameof(model.State)));
         preview.Bind(IsVisibleProperty, new Binding(nameof(model.HasState)));
         Child = new StackPanel

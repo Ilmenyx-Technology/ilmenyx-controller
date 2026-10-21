@@ -7,7 +7,7 @@ política de contribuições próprias futuras: uso como ferramenta profissional
 venda do programa/acesso pago e derivação comercial do código restritos.
 Veja [mapa de licenças](LICENSING.md): a MIT original continua permitindo uso comercial das
 partes abrangidas, sem revogação de direitos anteriores. O conjunto não é anunciado como open source OSI.
-Versão local experimental 0.12.0; sem lançamento público nesta sessão.
+Versão local experimental 0.13.0; sem lançamento público nesta sessão.
 
 Ilmenyx é uma adaptação independente e não oficial do [RESET EXPLODE](https://github.com/GustavoReset/ResetExplode),
 criado por Gustavo (GustavoReset). Não possui afiliação, patrocínio ou endosso da equipe RESET.
@@ -138,3 +138,10 @@ O arquivo usa o mesmo resultado/contexto do JSON, sem nova coleta ou execução.
 O destino precisa ser novo; cancelamento e recusa de sobrescrita foram testados.
 Build sem avisos e 279 testes aprovados; regressões reais em Wayland nativo e X11.
 Veja [evidências e limites](docs/validation-html-ui.md).
+
+### Teclado e acessibilidade (0.13.0)
+
+Diálogos têm rótulos/instruções acessíveis e retorno do foco ao botão de origem.
+Tab/Shift+Tab, Espaço, Enter, Escape e setas foram testados por eventos internos
+em Wayland nativo e X11. Leitor de tela e entrada física NÃO TESTADOS.
+Veja [escopo, evidências e comandos](docs/acessibilidade-teclado.md).

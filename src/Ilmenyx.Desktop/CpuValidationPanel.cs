@@ -2,6 +2,7 @@ using System.Buffers.Binary;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Data;
 using Avalonia.Layout;
@@ -54,6 +55,11 @@ public sealed class CpuValidationPanel : Border, IDisposable
             catch (OperationCanceledException) { model.SetStatus("Exportação cancelada."); }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException or NotSupportedException or InvalidOperationException)
             { model.SetStatus("Seletor de arquivo indisponível: " + e.Message); }
+            finally
+            {
+                var button = html ? exportHtml : export;
+                if (IsEffectivelyVisible && button.IsEffectivelyEnabled && !lifetime.IsCancellationRequested) button.Focus();
+            }
         }
         var status = new TextBlock { Name = "CpuStatus", TextWrapping = TextWrapping.Wrap };
         status.Bind(TextBlock.TextProperty, new Binding(nameof(model.Status)));
@@ -62,6 +68,8 @@ public sealed class CpuValidationPanel : Border, IDisposable
         var progress = new ProgressBar { Minimum = 0, Maximum = CpuValidationViewModel.MaximumSamples, Height = 5 };
         progress.Bind(ProgressBar.ValueProperty, new Binding(nameof(model.CompletedSamples)));
         progress.Bind(IsVisibleProperty, new Binding(nameof(model.IsRunning)));
+        AutomationProperties.SetName(progress, "Amostras concluídas da validação CPU");
+        AutomationProperties.SetName(preview, "Imagem final da validação CPU reduzida; contagens e hash no resumo textual");
         RenderOptions.SetBitmapInterpolationMode(preview, BitmapInterpolationMode.None);
         Child = new StackPanel
         {

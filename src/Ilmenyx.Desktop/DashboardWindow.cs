@@ -25,7 +25,7 @@ public sealed class DashboardWindow : Window
         var export = new Button { Name = "ExportHardware", Content = "Exportar hardware JSON" };
         var exportHtml = new Button { Name = "ExportHardwareHtml", Content = "Exportar hardware HTML" };
         var about = new Button { Name = "About", Content = "Licenças e créditos" };
-        about.Click += async (_, _) => await new AboutDialog().ShowDialog(this);
+        about.Click += async (_, _) => { await new AboutDialog().ShowDialog(this); if (IsVisible) about.Focus(); };
         refresh.Click += async (_, _) => { refresh.IsEnabled = false; try { await vm.RefreshAsync(stop.Token); } finally { refresh.IsEnabled = true; } };
         export.Click += async (_, _) => await ExportHardwareAsync(false);
         exportHtml.Click += async (_, _) => await ExportHardwareAsync(true);
@@ -44,13 +44,17 @@ public sealed class DashboardWindow : Window
             }
             catch (OperationCanceledException) { vm.SetStatus("Exportação cancelada."); }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException or NotSupportedException or ArgumentException) { vm.SetStatus("Não foi possível exportar. Escolha um nome novo: " + e.Message); }
-            finally { export.IsEnabled = true; exportHtml.IsEnabled = true; }
+            finally
+            {
+                export.IsEnabled = true; exportHtml.IsEnabled = true;
+                if (IsVisible && !stop.IsCancellationRequested) (html ? exportHtml : export).Focus();
+            }
         }
         var cards = new UniformGrid { Columns = 2 };
         var stack = new StackPanel { Margin = new Thickness(32), Spacing = 18 };
         stack.Children.Add(new TextBlock { Name = "ProductName", Text = ProductIdentity.Name, FontSize = 32, FontWeight = FontWeight.Bold });
         stack.Children.Add(new TextBlock { Name = "MaintainerSignature", Text = ProductIdentity.Signature });
-        stack.Children.Add(new TextBlock { Text = "Diagnóstico de hardware · Linux · 0.12.0", Foreground = Brushes.LightGray });
+        stack.Children.Add(new TextBlock { Text = "Diagnóstico de hardware · Linux · 0.13.0", Foreground = Brushes.LightGray });
         stack.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, Children = { refresh, export, exportHtml, about } });
         foreach (var (label, property) in new[] { ("PROCESSADOR", nameof(vm.Cpu)), ("MEMÓRIA", nameof(vm.Memory)), ("SISTEMA", nameof(vm.System)), ("DISPOSITIVOS DE BLOCO", nameof(vm.Disks)) })
         {

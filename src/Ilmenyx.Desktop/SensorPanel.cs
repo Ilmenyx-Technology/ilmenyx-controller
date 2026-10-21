@@ -37,6 +37,10 @@ public sealed class SensorPanel : Border
             catch (OperationCanceledException) { model.SetStatus("Exportação cancelada."); }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
             { model.SetStatus("Não foi possível exportar: " + e.Message); }
+            finally
+            {
+                if (IsEffectivelyVisible && export.IsEffectivelyEnabled && !lifetime.IsCancellationRequested) export.Focus();
+            }
         };
         var status = new TextBlock { Name = "SensorStatus", TextWrapping = TextWrapping.Wrap };
         status.Bind(TextBlock.TextProperty, new Binding(nameof(model.Status)));

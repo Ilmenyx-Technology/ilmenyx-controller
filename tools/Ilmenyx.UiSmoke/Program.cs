@@ -1,6 +1,9 @@
 using System.Diagnostics;
 using System.Text.Json;
 using Avalonia;
+using Avalonia.Automation;
+using Avalonia.Automation.Peers;
+using Avalonia.Input;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Interactivity;
@@ -114,11 +117,74 @@ public sealed class UiSmokeApp : Application
             _ => ValidationHtmlReport.Render(JsonSerializer.Deserialize<GameSimValidationReport>(json, SnapshotReport.Options)!)
         };
         if (File.ReadAllText(path) != expected) throw new InvalidOperationException("Validation HTML changed the selected report or recollected context.");
+        await Until(() => Find<Button>(owner, button).IsEnabled);
+        FocusIs(owner, Find<Button>(owner, button));
         Console.WriteLine("PASS " + stem + " HTML UI: same JSON report, cancellation, extension, overwrite refusal and real export");
+    }
+    // Routed events stay within this Avalonia process; never inject desktop-wide input.
+    private static void Key(Window window, Avalonia.Input.Key key, KeyModifiers modifiers = KeyModifiers.None)
+    {
+        var target = window.FocusManager?.GetFocusedElement() as Control ?? window;
+        target.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = key, KeyModifiers = modifiers });
+        target.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyUpEvent, Key = key, KeyModifiers = modifiers });
+    }
+    private static void FocusIs(Window window, Control expected)
+    {
+        if (!ReferenceEquals(window.FocusManager?.GetFocusedElement(), expected))
+            throw new InvalidOperationException("Unexpected keyboard focus; expected " + expected.Name + ", actual " + (window.FocusManager?.GetFocusedElement() as Control)?.Name);
+    }
+    private static async Task KeyboardAsync(DashboardWindow window, IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        await Until(() => Find<TextBlock>(window, "HardwareStatus").Text?.StartsWith("Snapshot:") == true);
+        var opener = Find<Button>(window, "ExportHardware"); opener.Focus();
+        Key(window, Avalonia.Input.Key.Space);
+        var dialog = await Dialog(desktop);
+        var path = Find<TextBox>(dialog, "DestinationPath");
+        FocusIs(dialog, path);
+        var peer = ControlAutomationPeer.CreatePeerForElement(path)!;
+        if (!peer.GetName().Contains("Caminho completo") || AutomationProperties.GetLabeledBy(path) is null ||
+            !(AutomationProperties.GetHelpText(path) ?? "").Contains(".json"))
+            throw new InvalidOperationException("Destination automation label/help missing.");
+        Key(dialog, Avalonia.Input.Key.Tab); FocusIs(dialog, Find<Button>(dialog, "SaveJson"));
+        Key(dialog, Avalonia.Input.Key.Tab); FocusIs(dialog, Find<Button>(dialog, "CancelSaveJson"));
+        Key(dialog, Avalonia.Input.Key.Tab); FocusIs(dialog, path);
+        Key(dialog, Avalonia.Input.Key.Tab, KeyModifiers.Shift); FocusIs(dialog, Find<Button>(dialog, "CancelSaveJson"));
+        path.Focus(); path.Text = "relative.json"; Key(dialog, Avalonia.Input.Key.Enter);
+        FocusIs(dialog, path);
+        if (!dialog.IsVisible || !(AutomationProperties.GetHelpText(path) ?? "").Contains("caminho completo") ||
+            AutomationProperties.GetLiveSetting(Find<TextBlock>(dialog, "DestinationError")) != AutomationLiveSetting.Polite)
+            throw new InvalidOperationException("Keyboard validation error not associated with destination.");
+        Capture(dialog, "keyboard-error.png");
+        Key(dialog, Avalonia.Input.Key.Escape); await Until(() => !dialog.IsVisible);
+        FocusIs(window, opener);
+        Key(window, Avalonia.Input.Key.Space); dialog = await Dialog(desktop);
+        var exported = Path.Combine(Program.OutputDirectory, "keyboard-hardware.json");
+        Find<TextBox>(dialog, "DestinationPath").Text = exported;
+        Key(dialog, Avalonia.Input.Key.Enter);
+        await Until(() => !dialog.IsVisible && File.Exists(exported));
+        using var json = JsonDocument.Parse(File.ReadAllText(exported));
+        FocusIs(window, opener);
+        Console.WriteLine("PASS keyboard save dialog: Space opens, Enter saves, Tab/Shift+Tab cycle, Escape cancels, error help/focus, automation peer name, focus restored");
+
+        var aboutOpener = Find<Button>(window, "About"); aboutOpener.Focus(); Key(window, Avalonia.Input.Key.Space);
+        await Until(() => desktop.Windows.OfType<AboutDialog>().Any(w => w.IsVisible));
+        var about = desktop.Windows.OfType<AboutDialog>().Single(w => w.IsVisible);
+        await Task.Delay(80);
+        var tabs = about.GetVisualDescendants().OfType<TabControl>().Single();
+        var first = about.GetVisualDescendants().OfType<TabItem>().First(); first.Focus();
+        Key(about, Avalonia.Input.Key.Right); await Task.Delay(60);
+        if (tabs.SelectedIndex != 1 || !ControlAutomationPeer.CreatePeerForElement(Find<TextBox>(about, "LicenseText"))!.GetName().StartsWith("MIT"))
+            throw new InvalidOperationException("About keyboard tab navigation or accessible text name failed.");
+        Key(about, Avalonia.Input.Key.Escape); await Until(() => !about.IsVisible); FocusIs(window, aboutOpener);
+        foreach (var button in window.GetVisualDescendants().OfType<Button>().Where(b => !string.IsNullOrEmpty(b.Name)))
+            if (string.IsNullOrWhiteSpace(ControlAutomationPeer.CreatePeerForElement(button)?.GetName()))
+                throw new InvalidOperationException("Unnamed button automation peer: " + button.Name);
+        Console.WriteLine("PASS keyboard About: arrow changes tab, named license text, Escape closes, focus restored; dashboard buttons have automation names");
     }
     private static async Task ExerciseAsync(DashboardWindow window, IClassicDesktopStyleApplicationLifetime desktop)
     {
         var output = Program.OutputDirectory;
+        await KeyboardAsync(window, desktop);
         if (window.Title != ProductIdentity.Name || Find<TextBlock>(window, "ProductName").Text != "Ilmenyx" ||
             Find<TextBlock>(window, "MaintainerSignature").Text != "by Bismuth Technology")
             throw new InvalidOperationException("Ilmenyx identity missing from live window.");
@@ -154,7 +220,7 @@ public sealed class UiSmokeApp : Application
         if (DesktopBackend.Parse(DesktopBackend.ReadSelection()) == DisplayBackend.Wayland &&
             !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DISPLAY")))
             throw new InvalidOperationException("For a conclusive native smoke test, unset DISPLAY.");
-        await Until(() => Find<TextBlock>(window, "HardwareStatus").Text?.StartsWith("Snapshot:") == true);
+        await Until(() => Find<Button>(window, "ExportHardware").IsEnabled);
         var existing = Path.Combine(output, "preserved.json");
         File.WriteAllText(existing, "preserve-this-file");
         Click(window, "ExportHardware");
@@ -300,6 +366,14 @@ public sealed class UiSmokeApp : Application
             if (readings.GetArrayLength() > 0 && !Find<TextBlock>(window, "SensorValues").Text!.Contains(readings[0].GetProperty("device").GetString()!))
                 throw new InvalidOperationException("Sensor source not shown in UI.");
         }
+        Find<Button>(window, "ValidateCpu").Focus();
+        foreach (var name in new[] { "ExportCpu", "ExportCpuHtml", "ValidateMemory", "ExportMemory", "ExportMemoryHtml", "ValidateSim", "ExportSim", "ExportSimHtml" })
+        {
+            Key(window, Avalonia.Input.Key.Tab);
+            FocusIs(window, Find<Button>(window, name));
+        }
+        Key(window, Avalonia.Input.Key.Tab, KeyModifiers.Shift); FocusIs(window, Find<Button>(window, "ExportSim"));
+        Console.WriteLine("PASS panel keyboard order: CPU/memory/sim JSON/HTML reachable; disabled cancellation controls skipped; reverse Tab works");
         Find<ScrollViewer>(window, "DashboardScroll").ScrollToHome();
         await Task.Delay(80); Capture(window, "dashboard.png");
         Find<ScrollViewer>(window, "DashboardScroll").ScrollToEnd();

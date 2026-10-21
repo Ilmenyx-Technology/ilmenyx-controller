@@ -35,6 +35,11 @@ public sealed class MemoryValidationPanel : Border
             catch (OperationCanceledException) { model.SetStatus("Exportação cancelada."); }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or InvalidOperationException)
             { model.SetStatus("Não foi possível selecionar destino: " + e.Message); }
+            finally
+            {
+                var button = html ? exportHtml : export;
+                if (IsEffectivelyVisible && button.IsEffectivelyEnabled && !lifetime.IsCancellationRequested) button.Focus();
+            }
         }
         var status = new TextBlock { Name = "MemoryStatus", TextWrapping = TextWrapping.Wrap }; status.Bind(TextBlock.TextProperty, new Binding(nameof(model.Status)));
         var summary = new TextBlock { Name = "MemorySummary", TextWrapping = TextWrapping.Wrap, FontSize = 12 }; summary.Bind(TextBlock.TextProperty, new Binding(nameof(model.Summary)));

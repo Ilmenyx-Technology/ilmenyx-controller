@@ -225,3 +225,13 @@ Wayland nativo e X11 passaram no CachyOS. Browser Chromium em 390/1280 px passou
 para os três relatórios. Isto encerra as pendências locais de botões HTML e layout
 nessas condições, sem generalizar para outras plataformas ou acessibilidade.
 Detalhes e comandos em [validation-html-ui.md](validation-html-ui.md). Registros anteriores são históricos.
+
+
+## Atualização 0.13.0 — teclado e foco
+
+IMPLEMENTADO e testado no CachyOS: rótulos do caminho/licenças, ajuda de erro,
+ciclo de Tab e restauração de foco após diálogos. 279 testes aprovados; smoke
+Wayland nativo e X11 com eventos de teclado no processo passou. GUI-02 continua
+NÃO TESTADO para Orca/AT-SPI (Orca ausente), entrada física e avaliação assistiva
+completa. Não houve instalação nem certificação de acessibilidade.
+[Detalhes e limites](acessibilidade-teclado.md).

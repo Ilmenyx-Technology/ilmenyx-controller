@@ -152,3 +152,7 @@ as regras de arquitetura Linux, benchmarks, testes, licenças e segurança anter
 ## Exportação dos resultados pela UI 0.12.0
 - Botões HTML exportam o snapshot selecionado; não repetir coleta/workload ao exportar.
 - Preservar guarda de troca do resultado durante o diálogo e testes JSON/HTML em ambos os backends.
+
+## Teclado e acessibilidade 0.13.0
+- Manter retorno do foco ao botão após reabilitá-lo, ciclo local dos diálogos e rótulos do campo de destino.
+- Teste com eventos roteados valida handlers no processo; não equivale a teclado físico ou Orca/AT-SPI. Registrar separadamente.
