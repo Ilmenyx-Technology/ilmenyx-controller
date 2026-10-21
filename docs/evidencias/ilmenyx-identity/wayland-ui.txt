@@ -1,0 +1,16 @@
+PASS Ilmenyx identity, by Bismuth Technology, live About/attribution/MIT/dependency tabs and close
+ACTUAL WINDOW IMPLEMENTATION Avalonia.Wayland.WindowImpl
+DISPLAY BACKEND requested=wayland; handle=
+PASS visible AMD/NVIDIA notice: Testes não realizados em hardware real
+PASS hardware UI export and overwrite refusal
+PASS HTML UI export, same snapshot, cancel, extension validation and overwrite refusal
+PASS CPU cancel control
+EXPORTED cpu.json
+PASS CPU real render, cancelled picker and UI export
+EXPORTED memory.json
+PASS memory validation: no autostart, real bounded result, cancel control, cancelled dialog and JSON export
+EXPORTED sim.json
+PASS GameSim: no autostart; cancel; 256 entities/16 steps; immutable final preview; oracle hash; cancelled dialog; JSON export
+EXPORTED sensors.json
+PASS sensor monitor start/stop and UI export
+PASS /tmp/ilmenyx-identity-wayland/ilmenyx-ui-d9f0f3a4e3a242f982cf7ff73ca82d40

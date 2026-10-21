@@ -1,0 +1,5 @@
+PASS all pre-existing fixtures and historical evidence byte-identical: 135 files
+PASS full LICENSE and upstream SHA/worktree preserved
+PASS no old active namespace/product/CPU label; stable lowercase IDs and explicit legacy env alias retained
+PASS local links in current entry/policy/brand/legal docs resolve
+Company metadata is maintainer credit only; no new corporate copyright asserted.

@@ -1,0 +1,10 @@
+PASS local ilmenyx apphost help, attribution and no old product name
+PASS real Linux hardware.json stdout=export, identity/schema checked
+PASS real Linux hardware.html stdout=export, identity/schema checked
+PASS reduced real Linux cpu stable workload/data identifiers and null score
+PASS reduced real Linux memory stable workload/data identifiers and null score
+PASS reduced real Linux sim stable workload/data identifiers and null score
+PASS full remains blocked without opt-in; full NOT RUN
+PASS LICENSE byte-identical to pre-rename; NOTICE/third-party files copied exactly to CLI/Desktop outputs
+PASS upstream pinned ce1d9b30518bbe75bb5e6cb792d1b1e365aaddd6
+Report folder /tmp/ilmenyx-identity-cli-eio7s1i9

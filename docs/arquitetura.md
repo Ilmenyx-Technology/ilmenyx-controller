@@ -1,6 +1,6 @@
 # Arquitetura
 
-Silex Audit: implementação independente em C# com .NET 10 LTS e Avalonia 12.1.4
+Ilmenyx: adaptação independente em C# com .NET 10 LTS e Avalonia 12.1.4
 (versão estável fixada, disponível no NuGet). Sem Rust: não há medição justificando outra linguagem.
 Contracts: DTOs e IHardwareInfoProvider; Core: JSON e apresentação neutra; Platform.Linux:
 leitura limitada e parse injetável; Cli e Desktop: composition roots. Nenhum projeto Windows vazio.
@@ -11,13 +11,13 @@ Fluxo: filesystem somente leitura → adaptador Linux → snapshot versionado �
 Cada valor inclui fonte, unidade, disponibilidade e motivo. Falhas parciais não destroem o snapshot.
 /proc/meminfo kB significa 1024 bytes; sys/block/size usa setores fixos de 512 bytes,
 não multiplicar por logical_block_size. Discos são dispositivos do kernel, não volumes montados.
-Sem números de série, hostname, machine-id, UUID, IP ou caminhos de montagem no relatório.
-Cancelamento e limites de leitura/quantidade; sem ferramentas externas, shell, rede ou elevação.
-UI usa ViewModel notificável, coleta em background e exportação pelo seletor nativo de arquivo.
+Sem coleta dedicada de serial, hostname, machine-id, UUID, IP ou mountpoints; textos livres podem identificar e exigem revisão.
+Cancelamento e limites de leitura/quantidade; sem shell/elevação/rede de produto. SMART separado usa smartctl opcional por opt-in.
+UI usa ViewModel notificável, coleta em background e exportação pelo diálogo local da aplicação.
 
 ## Proveniência e clean-room
 O pedido posterior de independência prevalece sobre a sugestão de copiar código. Algoritmos CPU/RAM seguem a fonte MIT e o engine GameSim adapta métodos originais com atribuição.
-Nenhum logo, shader ou asset RESET é incorporado nos projetos Silex. Auditoria da fonte pelo mesmo implementador
+Nenhum logo, shader ou asset RESET é incorporado nos projetos Ilmenyx. Auditoria da fonte pelo mesmo implementador
 impede alegar clean-room estrito com equipes isoladas. Registrar essa limitação; uma certificação
 exigiria implementação por equipe sem acesso às fontes, a partir de especificação aprovada.
 A cópia upstream e sua MIT ficam isoladas, com histórico próprio e SHA fixado.
@@ -59,7 +59,7 @@ A prévia não usa o golden de teste como imagem. JSON reutiliza exportação at
 
 Os testes referenciam Desktop para exercitar o ViewModel sem inicializar plataforma gráfica;
 Avalonia.BuildServices tem assets excluídos também no projeto de testes. Core expõe internos apenas
-a Silex.Audit.Tests via InternalsVisibleTo para comparar pixels selecionados, sem API pública para
+a Ilmenyx.Tests via InternalsVisibleTo para comparar pixels selecionados, sem API pública para
 executar workloads arbitrários e sem dependência Core → UI.
 
 
@@ -189,3 +189,14 @@ validação padrão/UI continua 256 entidades/16 passos. Build sem erros/avisos 
 com relógio/engine controlados para controle/estatística. Carga real de 30.000 entidades NÃO
 EXECUTADA; Sem_teste.md SIM-01 permanece aberto. Não declarar aceite pleno de FPS/score nem
 comparabilidade Windows. [Metodologia, comandos e evidências](gamesim-completo.md).
+
+
+## Identidade 0.10.0
+
+Solução/namespaces Ilmenyx.*; CLI assembly/apphost ilmenyx. Company=Bismuth Technology é apenas
+crédito mantenedor, sem presunção jurídica. ProductIdentity fornece textos neutros de produto,
+origem e compartilhamento; Sobre lê LICENSE/NOTICE/THIRD-PARTY-NOTICES locais copiados pelo props
+em src (não herdado pelo WPF). ILMENYX_DISPLAY_BACKEND tem precedência, com alias legado.
+Schemas/workloads/IDs/hash não mudam pela marca. LinuxParsers limpa texto limitado e redige padrões
+óbvios, sem anonimização garantida. Sem persistência XDG ou migração fictícia. Inventário em
+branding/RENAME-INVENTORY.md, decisões em branding/RENAME-DECISIONS.md e privacidade em ../PRIVACY.md.

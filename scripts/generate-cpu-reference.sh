@@ -17,7 +17,7 @@ case "$oracle_mode" in
     reduced|original-pixels) ;;
     *) echo 'Use reduced or original-pixels.' >&2; exit 1 ;;
 esac
-reference_dir="$(mktemp -d /tmp/silex-reference.XXXXXXXX)"
+reference_dir="$(mktemp -d /tmp/ilmenyx-reference.XXXXXXXX)"
 trap 'rm -rf -- "$reference_dir"' EXIT
 cp -- "$repo_dir/tools/CpuReference/CpuReference.csproj" "$repo_dir/tools/CpuReference/Program.cs" "$reference_dir/"
 if [ "$oracle_mode" = original-pixels ]; then
@@ -28,4 +28,4 @@ else
         "$source_dir/BenchRenderer.cs" > "$reference_dir/BenchRenderer.cs"
 fi
 # Program.cs checks the four constants before any render call.
-dotnet run --project "$reference_dir/CpuReference.csproj" -c Release -- "$repo_dir/tests/Silex.Audit.Tests/Fixtures" "$oracle_mode"
+dotnet run --project "$reference_dir/CpuReference.csproj" -c Release -- "$repo_dir/tests/Ilmenyx.Tests/Fixtures" "$oracle_mode"

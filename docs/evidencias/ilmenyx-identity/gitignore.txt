@@ -1,0 +1,17 @@
+PASS ignored: src/Ilmenyx.Cli/bin/Release/net10.0/ilmenyx
+PASS ignored: tests/Ilmenyx.Tests/obj/project.assets.json
+PASS ignored: TestResults/results.trx
+PASS ignored: .env
+PASS ignored: private.key
+PASS ignored: local.dmp
+PASS ignored: RESET-CODEX-KIT-LINUX.zip
+PASS ignored: referencia visual de estilo de interface.jpg
+PASS ignored: PROMPT-CODEX.md
+PASS reviewable: AGENTS.md
+PASS reviewable: PROMPT-CODEX-ILMENYX-BISMUTH.md
+PASS reviewable: README.md
+PASS reviewable: LICENSE
+PASS reviewable: NOTICE.md
+PASS reviewable: src/Ilmenyx.Core/ProductIdentity.cs
+PASS reviewable: docs/evidencias/ilmenyx-identity/tests.txt
+PASS reviewable: .env.example

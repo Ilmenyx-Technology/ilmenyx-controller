@@ -117,3 +117,21 @@ Portar incrementalmente o RESET EXPLODE de WPF/.NET Windows para Linux com Avalo
 - Não executar o runner de carga em testes automáticos; testes usam engine/relógio controlados ou pré-cancelamento sem alocar engine completo.
 - Limites: 30.000 entidades, warmup 2 s, medição 1–10 s, timeout até 15 s, 200.000 amostras.
 - Status interrompido/limite/tempo inválido não publica FPS/low1/médias/score. Registrar carga real NÃO TESTADA em Sem_teste.md até autorização/validação.
+
+## Adendo permanente — Ilmenyx / Bismuth Technology (2026-10-21)
+
+As decisões de nome deste adendo prevalecem sobre as referências históricas a Silex acima;
+as regras de arquitetura Linux, benchmarks, testes, licenças e segurança anteriores permanecem.
+
+- Produto Linux: Ilmenyx; marca mantenedora: Bismuth Technology (grafia exata), sem sufixo Audit no nome principal.
+- Origem: RESET EXPLODE de Gustavo (GustavoReset), adaptação independente e não oficial, sem afiliação, endosso ou patrocínio.
+- Preservar LICENSE MIT integral, Copyright (c) 2026 Gustavo (GustavoReset), referência upstream e direitos de dependências/assets verificados individualmente.
+- Ilmenyx não implica marca registrada/disponível: não usar símbolo de registro, exclusividade ou alegação de liberação no INPI.
+- Organização GitHub não prova pessoa jurídica; não atribuir direitos à empresa sem definição formal.
+- Renomear somente identificadores ativos seguros do port; não substituir cegamente nomes WPF, benchmarks, histórico, créditos ou formatos.
+- Manual de Marca ainda será criado. Não inventar logo final, paleta, tipografia, CMYK, Pantone, monograma ou ícones oficiais; registrar integrações pendentes.
+- UI/metadados: Ilmenyx e quando apropriado by Bismuth Technology. Créditos RESET/licenças em README/NOTICE/Sobre, nunca omitidos.
+- Sem divulgação remota, release, publicação ou registro de marca sem aprovação; sem root, drivers, BIOS, overclock, escrita direta em discos, telemetria ou stress automático.
+- Registrar IMPLEMENTADO, NÃO TESTADO, PENDENTE DE REVISÃO e BLOQUEADO com evidências reais.
+- Solução atual Ilmenyx.slnx, src/Ilmenyx.*, tests/Ilmenyx.Tests e tools/Ilmenyx.UiSmoke. Formatos silex-* e evidências anteriores permanecem históricos/compatíveis.
+- ILMENYX_DISPLAY_BACKEND é atual; SILEX_DISPLAY_BACKEND continua alias legado, com precedência do nome atual.

@@ -6,7 +6,7 @@ if [ "$(git -C "$source_dir" rev-parse HEAD)" != ce1d9b30518bbe75bb5e6cb792d1b1e
     echo 'Pinned upstream mismatch or MemoryBench.cs modified; review required.' >&2
     exit 1
 fi
-reference_dir="$(mktemp -d /tmp/silex-memory-reference.XXXXXXXX)"
+reference_dir="$(mktemp -d /tmp/ilmenyx-memory-reference.XXXXXXXX)"
 trap 'rm -rf -- "$reference_dir"' EXIT
 cp -- "$repo_dir/tools/MemoryReference/MemoryReference.csproj" "$reference_dir/"
 python3 - "$source_dir/MemoryBench.cs" "$repo_dir/tools/MemoryReference/Program.cs" "$reference_dir/Program.cs" <<'PY'
@@ -35,4 +35,4 @@ if any(x in code for x in ['File.', 'NativeMemory', 'MeasureLoading', '20_000_00
 template=pathlib.Path(sys.argv[2]).read_text()
 pathlib.Path(sys.argv[3]).write_text(template.replace('// INJECT_RAM_METHODS',code))
 PY
-dotnet run --project "$reference_dir/MemoryReference.csproj" -c Release -- "$repo_dir/tests/Silex.Audit.Tests/Fixtures/memory-reference.json"
+dotnet run --project "$reference_dir/MemoryReference.csproj" -c Release -- "$repo_dir/tests/Ilmenyx.Tests/Fixtures/memory-reference.json"

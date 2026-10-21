@@ -58,3 +58,13 @@ validação padrão/UI continua 256 entidades/16 passos. Build sem erros/avisos 
 com relógio/engine controlados para controle/estatística. Carga real de 30.000 entidades NÃO
 EXECUTADA; Sem_teste.md SIM-01 permanece aberto. Não declarar aceite pleno de FPS/score nem
 comparabilidade Windows. [Metodologia, comandos e evidências](gamesim-completo.md).
+
+
+## Identidade Ilmenyx 0.10.0
+
+Renomeação controlada de projetos novos/CLI/UI/metadados, preservando formatos e origem MIT.
+Diretrizes permanentes acrescentadas ao AGENTS sem apagar anteriores. 272 testes e fluxos Linux
+CLI/Wayland/X11 passaram; Sobre/avisos de compartilhamento implementados. Não é liberação legal,
+privacidade garantida ou empacotamento final. Marca/manual/organização/titularidade/licenças nativas
+permanecem em revisão humana; veja branding/RENAME-DECISIONS.md, ../Sem_teste.md e
+legal/PRE-RELEASE-CHECKLIST.md. Exemplos Silex de incrementos anteriores são históricos.

@@ -1,4 +1,4 @@
-# Silex Audit — verificações pendentes
+# Ilmenyx — verificações pendentes
 
 Registro contínuo solicitado pelo usuário em 2026-10-21. Quando SDK, display, hardware e autorização
 necessários estiverem disponíveis, executar o teste e atualizar este arquivo com data, ambiente e
@@ -52,3 +52,17 @@ o runner experimental existe desde 0.9.0, mas não há FPS ou score medidos em c
 teste e entrada pública pré-cancelada sem alocar física de 30.000 entidades. Não fecha SIM-01.
 Sem execução sustentada, Windows ou comparação de desempenho. Regressões reduzidas Linux
 CLI/UI continuam documentadas em docs/gamesim-completo.md.
+
+
+## Identidade 0.10.0
+
+IMPLEMENTADO e testado no CachyOS: nomes/metadados Ilmenyx, assinatura Bismuth Technology,
+créditos/Sobre/MIT/dependências, aviso de compartilhamento e redação de padrões óbvios em fixtures.
+272 testes aprovados; regressões CLI/Wayland/X11. Nomes Silex nas etapas anteriores são históricos.
+
+NÃO TESTADO: pacote instalado/VM Windows/outros dispositivos para nova identidade; interação física,
+acessibilidade e matriz gráfica continuam nos casos existentes. Privacidade em rótulos arbitrários,
+IPv6 e formatos não previstos exige revisão adicional; não há anonimização garantida nem captura
+completa de tráfego de dependências. PENDENTE DE REVISÃO: canal privado, retenção/anexos e logs
+históricos antes de publicação; BLOQUEADO para redistribuição de assets/termos desconhecidos.
+Checklist humano em docs/legal/PRE-RELEASE-CHECKLIST.md. Nada fecha SIM-01 ou AMD/NVIDIA reais.

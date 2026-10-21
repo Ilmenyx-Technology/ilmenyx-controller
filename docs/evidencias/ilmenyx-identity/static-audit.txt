@@ -1,0 +1,10 @@
+HttpClient: no call found in inspected port C#
+WebRequest: no call found in inspected port C#
+TcpListener: no call found in inspected port C#
+UdpClient: no call found in inspected port C#
+Socket.Connect: no call found in inspected port C#
+ProcessStartInfo: src/Ilmenyx.Platform.Linux/SmartctlDiagnostic.cs
+Historical evidence matches home paths: 0 (values deliberately omitted; human review pending)
+Historical evidence matches workspace paths: 3985 (values deliberately omitted; human review pending)
+No packet-capture or complete binary audit; no legal/security guarantee.
+Root git remote names: none

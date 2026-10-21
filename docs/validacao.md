@@ -467,3 +467,63 @@ validação padrão/UI continua 256 entidades/16 passos. Build sem erros/avisos 
 com relógio/engine controlados para controle/estatística. Carga real de 30.000 entidades NÃO
 EXECUTADA; Sem_teste.md SIM-01 permanece aberto. Não declarar aceite pleno de FPS/score nem
 comparabilidade Windows. [Metodologia, comandos e evidências](gamesim-completo.md).
+
+## Ilmenyx 0.10.0 — identidade, atribuição e privacidade (2026-10-21)
+
+Base 3904a47, branch feat/silex-linux-phase1; primeiro commit desta sessão 54fe3f2 apenas ajusta
+.gitignore (kits/referência local preservados no disco, fontes/licenças/spec atual/evidências não
+ignoradas). Sem remote principal, sem criação de fork/org/URL fictícia. SHA upstream intacto.
+
+IMPLEMENTADO: Ilmenyx.* em solução/projetos/namespaces novos, CLI apphost ilmenyx, UI/título e
+assinatura by Bismuth Technology, metadados Product/Company (crédito mantenedor), Sobre com abas
+origem/MIT/dependências locais, avisos de privacidade e redação de padrões óbvios em texto limitado.
+Sem troca de schemas/IDs/workloads/golden, copyright original ou material histórico. Nenhum asset
+visual novo/final; nenhum logo RESET. Props somente em src copia LICENSE/NOTICE/terceiros para
+outputs, não afeta WPF. NOTICE distingue adaptação independente/não oficial, sem afiliação/endosso.
+
+Build solução Release e harness: zero erros/avisos. 272 testes passaram, zero falhas/ignorados.
+CLI apphost local realmente executado: ajuda/identidade/créditos; hardware JSON/HTML stdout=arquivo;
+reduzidos CPU (4608 amostras), RAM e GameSim com hashes esperados/null score. Full sem opt-in
+recusado; nenhuma carga full ou SMART real disparada nesta sessão. LICENSE/output notices verificados
+byte a byte; todas as fixtures e evidências anteriores preservadas. Busca ativa sem Silex.Audit/SILEX
+AUDIT/Silex CPU; IDs lowercase e alias SILEX_DISPLAY_BACKEND mantidos por compatibilidade explícita.
+
+UI real em Wayland nativo (DISPLAY removido, Avalonia.Wayland.WindowImpl) e X11/XWayland
+(Avalonia.X11.X11Window): identidade, Sobre/abas/fechar, aviso em diálogo, exportações/cancelamento/
+recusa overwrite, CPU/RAM/GameSim reduzidos, sensores e aviso AMD/NVIDIA passaram. Capturas de
+dashboard/Sobre/diálogo inspecionadas. Testes usam eventos no processo; não certificam interação
+manual/acessibilidade/escala/outros compositores. ILMENYX_DISPLAY_BACKEND tem precedência; alias
+legado coberto por teste unitário sem alterar ambiente global.
+
+Testes adicionais: fixtures hostname/username/serial/MAC/IP/UUID/home paths, chaves extras não
+exportadas e SMART bruto filtrado; dados legítimos e campos numéricos preservados. Não é
+anonimização garantida. Auditoria estática não encontrou cliente remoto de produto; captura de
+tráfego/bibliotecas completas NÃO TESTADA. Consulta NuGet não reportou pacotes vulneráveis nas
+fontes atuais; não certifica binários/runtime. Logs históricos contêm caminhos de workspace;
+revisão humana antes da publicação continua pendente, sem reescrita Git.
+
+Comandos executados (Bash com helper SDK local, telemetria opt-out):
+
+```bash
+. scripts/env-local-sdk.sh
+dotnet restore Ilmenyx.slnx --disable-parallel -m:1
+dotnet build Ilmenyx.slnx -c Release --no-restore -m:1 -p:UseSharedCompilation=false
+dotnet test Ilmenyx.slnx -c Release --no-build --no-restore -m:1 --logger 'trx;LogFileName=tests.trx' --results-directory docs/evidencias/ilmenyx-identity
+dotnet restore tools/Ilmenyx.UiSmoke --disable-parallel -m:1
+dotnet build tools/Ilmenyx.UiSmoke -c Release --no-restore -m:1 -p:UseSharedCompilation=false
+env -u DISPLAY ILMENYX_DISPLAY_BACKEND=wayland dotnet tools/Ilmenyx.UiSmoke/bin/Release/net10.0/Ilmenyx.UiSmoke.dll /tmp/ilmenyx-identity-wayland
+ILMENYX_DISPLAY_BACKEND=x11 dotnet tools/Ilmenyx.UiSmoke/bin/Release/net10.0/Ilmenyx.UiSmoke.dll /tmp/ilmenyx-identity-x11
+dotnet list Ilmenyx.slnx package --vulnerable --include-transitive --no-restore
+```
+
+Evidências em docs/evidencias/ilmenyx-identity/: build/tests/TRX/CLI/UI/build harness/audit NuGet,
+gitignore/integrity/static-audit e capturas. Nenhuma instalação/root/driver/BIOS/OC/disco bruto,
+telemetria nova, stress, push/PR/release ou alteração remota. Windows/full/outras distros/hardware
+seguem NÃO TESTADOS em Sem_teste.md. PENDENTE DE REVISÃO: direitos de marca/titularidade, canal
+privado/retenção, logs históricos, Manual de Marca/empacotamento. BLOQUEADO para redistribuição de
+assets/termos desconhecidos e publicação sem aprovação humana. Isso não equivale a parecer legal.
+
+Revisão final do diff: fontes/docs editados sem whitespace errors. O prompt fornecido pelo
+mantenedor foi versionado sem alterar seus bytes; contém três hard breaks Markdown intencionais
+(espaços no fim das linhas 3–5), que git diff --check aponta. Essa exceção de formatação foi
+inspecionada; não se alterou o documento de instruções para ocultá-la.

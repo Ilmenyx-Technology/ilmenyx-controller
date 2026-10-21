@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia.BuildServices" Version="11.3.2" ExcludeAssets="all" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.0.2" PrivateAssets="all" />
+    <ProjectReference Include="../../src/Ilmenyx.Core/Ilmenyx.Core.csproj" />
+    <ProjectReference Include="../../src/Ilmenyx.Platform.Linux/Ilmenyx.Platform.Linux.csproj" />
+    <ProjectReference Include="../../src/Ilmenyx.Cli/Ilmenyx.Cli.csproj" />
+    <ProjectReference Include="../../src/Ilmenyx.Desktop/Ilmenyx.Desktop.csproj" />
+    <None Update="Fixtures/**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

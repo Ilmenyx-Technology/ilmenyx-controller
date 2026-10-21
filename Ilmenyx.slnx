@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Ilmenyx.Cli/Ilmenyx.Cli.csproj" />
+    <Project Path="src/Ilmenyx.Contracts/Ilmenyx.Contracts.csproj" />
+    <Project Path="src/Ilmenyx.Core/Ilmenyx.Core.csproj" />
+    <Project Path="src/Ilmenyx.Desktop/Ilmenyx.Desktop.csproj" />
+    <Project Path="src/Ilmenyx.Platform.Linux/Ilmenyx.Platform.Linux.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Ilmenyx.Tests/Ilmenyx.Tests.csproj" />
+  </Folder>
+</Solution>

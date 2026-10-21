@@ -5,7 +5,7 @@ source_dir="$repo_dir/upstream/ResetExplode"
 if [ "$(git -C "$source_dir" rev-parse HEAD)" != ce1d9b30518bbe75bb5e6cb792d1b1e365aaddd6 ] || ! git -C "$source_dir" diff HEAD --quiet -- GameSimBench.cs; then
     echo 'Pinned upstream mismatch or GameSimBench.cs modified; review required.' >&2; exit 1
 fi
-reference_dir="$(mktemp -d /tmp/silex-gamesim-reference.XXXXXXXX)"
+reference_dir="$(mktemp -d /tmp/ilmenyx-gamesim-reference.XXXXXXXX)"
 trap 'rm -rf -- "$reference_dir"' EXIT
 cp -- "$repo_dir/tools/GameSimReference/GameSimReference.csproj" "$repo_dir/tools/GameSimReference/Program.cs" "$reference_dir/"
 python3 - "$source_dir/GameSimBench.cs" "$reference_dir/GameSimBench.cs" <<'PY'
@@ -27,4 +27,4 @@ s=s[:a]+s[b:]
 if 'Entities = 30_000' in s or ' Run(' in s or 'while (warm.' in s:raise RuntimeError('Unsafe oracle')
 pathlib.Path(sys.argv[2]).write_text(s)
 PY
-dotnet run --project "$reference_dir/GameSimReference.csproj" -c Release -- "$repo_dir/tests/Silex.Audit.Tests/Fixtures/gamesim-reference.json"
+dotnet run --project "$reference_dir/GameSimReference.csproj" -c Release -- "$repo_dir/tests/Ilmenyx.Tests/Fixtures/gamesim-reference.json"
