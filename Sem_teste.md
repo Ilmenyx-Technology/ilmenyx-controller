@@ -210,3 +210,19 @@ divergente. Casos positivos usam o pacote real; protocolo/metadados negativos us
 cópias de teste. Produto permanece 0.20.0. VM limpa e outra distro com ICU continuam
 NÃO TESTADAS; revisões humanas/jurídicas permanecem PENDENTES.
 [Comandos e evidências](docs/aceite-globalizacao.md).
+
+
+## Atualização 0.21.0 — IPv6 em texto livre
+
+IMPLEMENTADO: ocultação de IPv6 comuns antes de MAC/IPv4 no sanitizador Linux,
+sem DNS/sockets ou resolução de interfaces. Build sem avisos/erros, 337 testes
+aprovados; fixture cobre saída texto/JSON/HTML e preservação de PCI/horários/modelos.
+Casos arbitrários/ofuscados e limites de truncamento continuam PENDENTES DE REVISÃO;
+não há anonimização garantida. IPv6 em rótulos reais de outros dispositivos, VM limpa
+e matrizes adicionais seguem NÃO TESTADOS. [Evidências e limites](docs/privacidade-ipv6.md).
+
+
+Revisão auxiliar Claude Code recebida para o código anterior à correção IPv6;
+achados de delimitador/caminho/truncamento corrigidos e cobertos por testes.
+Rótulos arbitrários colados (`src:fe80::1`), alias de zona e ofuscação permanecem
+PENDENTES DE REVISÃO; não declarar anonimização. Ver docs/privacidade-ipv6.md.

@@ -1,0 +1,11 @@
+  Ilmenyx.Contracts -> /mnt/HDD/Github/Ilmenyx/src/Ilmenyx.Contracts/bin/Release/net10.0/Ilmenyx.Contracts.dll
+  Ilmenyx.Core -> /mnt/HDD/Github/Ilmenyx/src/Ilmenyx.Core/bin/Release/net10.0/Ilmenyx.Core.dll
+  Ilmenyx.Platform.Linux -> /mnt/HDD/Github/Ilmenyx/src/Ilmenyx.Platform.Linux/bin/Release/net10.0/Ilmenyx.Platform.Linux.dll
+  Ilmenyx.Cli -> /mnt/HDD/Github/Ilmenyx/src/Ilmenyx.Cli/bin/Release/net10.0/linux-x64/ilmenyx.dll
+  Ilmenyx.Cli -> /mnt/HDD/Github/Ilmenyx/.artifacts/ilmenyx-0.21.0-reviewed/Ilmenyx-linux-x64/cli/
+  Ilmenyx.Contracts -> /mnt/HDD/Github/Ilmenyx/src/Ilmenyx.Contracts/bin/Release/net10.0/Ilmenyx.Contracts.dll
+  Ilmenyx.Core -> /mnt/HDD/Github/Ilmenyx/src/Ilmenyx.Core/bin/Release/net10.0/Ilmenyx.Core.dll
+  Ilmenyx.Platform.Linux -> /mnt/HDD/Github/Ilmenyx/src/Ilmenyx.Platform.Linux/bin/Release/net10.0/Ilmenyx.Platform.Linux.dll
+  Ilmenyx.Desktop -> /mnt/HDD/Github/Ilmenyx/src/Ilmenyx.Desktop/bin/Release/net10.0/linux-x64/Ilmenyx.Desktop.dll
+  Ilmenyx.Desktop -> /mnt/HDD/Github/Ilmenyx/.artifacts/ilmenyx-0.21.0-reviewed/Ilmenyx-linux-x64/desktop/
+Pacote local: /mnt/HDD/Github/Ilmenyx/.artifacts/ilmenyx-0.21.0-reviewed/Ilmenyx-linux-x64-local.tar.gz

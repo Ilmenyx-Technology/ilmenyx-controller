@@ -1,0 +1,17 @@
+  Ilmenyx.Contracts -> /mnt/HDD/Github/Ilmenyx/src/Ilmenyx.Contracts/bin/Release/net10.0/Ilmenyx.Contracts.dll
+  Ilmenyx.Core -> /mnt/HDD/Github/Ilmenyx/src/Ilmenyx.Core/bin/Release/net10.0/Ilmenyx.Core.dll
+  Ilmenyx.Platform.Linux -> /mnt/HDD/Github/Ilmenyx/src/Ilmenyx.Platform.Linux/bin/Release/net10.0/Ilmenyx.Platform.Linux.dll
+  Ilmenyx.Desktop -> /mnt/HDD/Github/Ilmenyx/src/Ilmenyx.Desktop/bin/Release/net10.0/Ilmenyx.Desktop.dll
+/tmp/silex-dotnet/sdk/10.0.100/Microsoft.Common.CurrentVersion.targets(5080,5): error MSB3030: Could not copy the file "/mnt/HDD/Github/Ilmenyx/src/Ilmenyx.Contracts/bin/Release/net10.0/Ilmenyx.Contracts.pdb" because it was not found. [/mnt/HDD/Github/Ilmenyx/tools/Ilmenyx.UiSmoke/Ilmenyx.UiSmoke.csproj]
+/tmp/silex-dotnet/sdk/10.0.100/Microsoft.Common.CurrentVersion.targets(5080,5): error MSB3030: Could not copy the file "/mnt/HDD/Github/Ilmenyx/src/Ilmenyx.Core/bin/Release/net10.0/Ilmenyx.Core.pdb" because it was not found. [/mnt/HDD/Github/Ilmenyx/tools/Ilmenyx.UiSmoke/Ilmenyx.UiSmoke.csproj]
+/tmp/silex-dotnet/sdk/10.0.100/Microsoft.Common.CurrentVersion.targets(5080,5): error MSB3030: Could not copy the file "/mnt/HDD/Github/Ilmenyx/src/Ilmenyx.Platform.Linux/bin/Release/net10.0/Ilmenyx.Platform.Linux.pdb" because it was not found. [/mnt/HDD/Github/Ilmenyx/tools/Ilmenyx.UiSmoke/Ilmenyx.UiSmoke.csproj]
+
+Build FAILED.
+
+/tmp/silex-dotnet/sdk/10.0.100/Microsoft.Common.CurrentVersion.targets(5080,5): error MSB3030: Could not copy the file "/mnt/HDD/Github/Ilmenyx/src/Ilmenyx.Contracts/bin/Release/net10.0/Ilmenyx.Contracts.pdb" because it was not found. [/mnt/HDD/Github/Ilmenyx/tools/Ilmenyx.UiSmoke/Ilmenyx.UiSmoke.csproj]
+/tmp/silex-dotnet/sdk/10.0.100/Microsoft.Common.CurrentVersion.targets(5080,5): error MSB3030: Could not copy the file "/mnt/HDD/Github/Ilmenyx/src/Ilmenyx.Core/bin/Release/net10.0/Ilmenyx.Core.pdb" because it was not found. [/mnt/HDD/Github/Ilmenyx/tools/Ilmenyx.UiSmoke/Ilmenyx.UiSmoke.csproj]
+/tmp/silex-dotnet/sdk/10.0.100/Microsoft.Common.CurrentVersion.targets(5080,5): error MSB3030: Could not copy the file "/mnt/HDD/Github/Ilmenyx/src/Ilmenyx.Platform.Linux/bin/Release/net10.0/Ilmenyx.Platform.Linux.pdb" because it was not found. [/mnt/HDD/Github/Ilmenyx/tools/Ilmenyx.UiSmoke/Ilmenyx.UiSmoke.csproj]
+    0 Warning(s)
+    3 Error(s)
+
+Time Elapsed 00:00:03.44

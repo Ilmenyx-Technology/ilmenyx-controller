@@ -7,7 +7,7 @@ política de contribuições próprias futuras: uso como ferramenta profissional
 venda do programa/acesso pago e derivação comercial do código restritos.
 Veja [mapa de licenças](LICENSING.md): a MIT original continua permitindo uso comercial das
 partes abrangidas, sem revogação de direitos anteriores. O conjunto não é anunciado como open source OSI.
-Versão local experimental 0.20.0; sem lançamento público nesta sessão.
+Versão local experimental 0.21.0; sem lançamento público nesta sessão.
 
 Ilmenyx é uma adaptação independente e não oficial do [RESET EXPLODE](https://github.com/GustavoReset/ResetExplode),
 criado por Gustavo (GustavoReset). Não possui afiliação, patrocínio ou endosso da equipe RESET.
@@ -225,3 +225,10 @@ divergente. Casos positivos usam o pacote real; protocolo/metadados negativos us
 cópias de teste. Produto permanece 0.20.0. VM limpa e outra distro com ICU continuam
 NÃO TESTADAS; revisões humanas/jurídicas permanecem PENDENTES.
 [Comandos e evidências](docs/aceite-globalizacao.md).
+
+
+### Privacidade em rótulos — 0.21.0
+
+A limpeza de texto Linux agora oculta IPv6 comuns, inclusive escopo de interface,
+além dos padrões anteriores. Não é anonimização garantida: revise antes de
+compartilhar. [Testes, comandos e limites](docs/privacidade-ipv6.md).

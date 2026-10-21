@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "1.1",
+  "scope": "CLI package acceptance on the observed machine",
+  "state": "IMPLEMENTED_TESTED",
+  "reason": "CLI smoke passed on observed machine; GUI, clean VM and hardware matrix remain unverified.",
+  "exitCode": 0,
+  "bundleVersion": "0.21.0",
+  "observedRuntime": ".NET 10.0.0",
+  "globalizationMode": "default",
+  "defaultGlobalizationRequested": true,
+  "doctorExitCode": 0,
+  "smokeExitCode": 0,
+  "cleanVmCertified": false,
+  "guiTested": false,
+  "hardwareCertified": false
+}

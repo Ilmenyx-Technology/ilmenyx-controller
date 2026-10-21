@@ -210,3 +210,14 @@ as regras de arquitetura Linux, benchmarks, testes, licenças e segurança anter
 - Formato ausente/ambíguo bloqueia inventário; mudança do texto exige revisão do protocolo.
 - Smoke exige versão do inventário igual ao pacote e runtime informado não vazio.
 - test-machine-acceptance.sh usa pacote real nos positivos; fixtures negativas são só protocolo/metadados e cópias temporárias.
+
+
+## Privacidade IPv6 0.21.0
+- Sanitizar candidatos IPv6 inteiros antes de MAC/IPv4; validar família e retirar escopo sem resolver interfaces.
+- Preservar fixtures de PCI/horários/modelos e limites de texto. Não alegar anonimização ou cobertura de todo texto arbitrário.
+- Schema de hardware permanece 1.2; não alterar workload/score para mudanças de privacidade.
+- Usuário autorizou Claude Code como auxiliar. Separar tarefas/revisões para evitar edições concorrentes; só atribuir revisão recebida de fato.
+
+- Em truncamento, evitar publicar token com dois-pontos cortado; manter limite de 512 também após expansão dos marcadores.
+- Ocultar caminhos home antes de substituir IPv6 por marcador que contém espaço.
+- Executar build/publish sequencialmente quando compartilham bin/obj, inclusive entre auxiliares.

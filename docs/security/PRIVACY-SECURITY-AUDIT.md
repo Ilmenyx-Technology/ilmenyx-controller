@@ -48,3 +48,13 @@ reescrita ou publicação realizada. Relatórios antigos não foram “anonimiza
 [PENDENTE: mantenedor avaliar operações reais de recebimento/dados de terceiros, responsáveis,
 finalidade, canal de direitos e obrigações aplicáveis]. Referência institucional, não parecer:
 https://www.gov.br/anpd/pt-br e https://www.gov.br/inpi/pt-br/servicos/marcas/guia-basico.
+
+
+## Atualização 0.21.0 — IPv6 em texto livre
+
+IMPLEMENTADO: ocultação de IPv6 comuns antes de MAC/IPv4 no sanitizador Linux,
+sem DNS/sockets ou resolução de interfaces. Build sem avisos/erros, 337 testes
+aprovados; fixture cobre saída texto/JSON/HTML e preservação de PCI/horários/modelos.
+Casos arbitrários/ofuscados e limites de truncamento continuam PENDENTES DE REVISÃO;
+não há anonimização garantida. IPv6 em rótulos reais de outros dispositivos, VM limpa
+e matrizes adicionais seguem NÃO TESTADOS. [Evidências e limites](../privacidade-ipv6.md).

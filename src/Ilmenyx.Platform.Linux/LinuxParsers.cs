@@ -39,7 +39,20 @@ public static class LinuxParsers
     public static Reading<long?> Capacity(string text, string source) => long.TryParse(text.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var sectors) && sectors <= long.MaxValue / 512
         ? Reading<long?>.Available(sectors * 512, "B", source)
         : Reading<long?>.Missing("B", source, "Quantidade de setores inválida ou excede Int64.");
-    public static string Clean(string text) => string.Concat(ReportTextPrivacy.Redact(new string(text.Trim().Where(c => !char.IsControl(c)).Take(512).ToArray())).Take(512));
+    public static string Clean(string text)
+    {
+        var limited = new string(text.Trim().Where(c => !char.IsControl(c)).Take(513).ToArray());
+        if (limited.Length > 512)
+        {
+            limited = limited[..512];
+            int start = limited.Length;
+            while (start > 0 && !char.IsWhiteSpace(limited[start - 1])) start--;
+            // Do not publish a partial address after truncation makes its syntax
+            // invalid. Conservatively drop the final colon-bearing token.
+            if (limited.AsSpan(start).Contains(':')) limited = limited[..start] + "[texto truncado]";
+        }
+        return string.Concat(ReportTextPrivacy.Redact(limited).Take(512));
+    }
     public static string? OsName(string text)
     {
         var matches = Fields(text, '=').Where(p => p.Key == "PRETTY_NAME").ToArray();
