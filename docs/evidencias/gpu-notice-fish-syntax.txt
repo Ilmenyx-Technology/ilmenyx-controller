@@ -1,0 +1,1 @@
+fish --no-config --no-execute: exit 0; somente sintaxe, sem executar sudo/smartctl

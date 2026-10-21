@@ -1,0 +1,16 @@
+--help: exit 0 OK
+info: exit 0 OK
+capabilities: exit 0 OK
+info --json: exit 0 OK
+capabilities --json: exit 0 OK
+bench cpu --threads 1 --json: exit 0 OK
+bench cpu --threads 4 --json: exit 0 OK
+bench cpu: exit 0 OK
+bench cpu --profile full: exit 2 OK
+bench cpu --profile full --allow-cpu-load --threads 0: exit 2 OK
+bench cpu --min-seconds 1: exit 2 OK
+info --output --json: exit 2 OK
+bench cpu --profile invalid: exit 2 OK
+bench cpu --json --output /tmp/silex-cpu-export-d7z9gx19/result.json: exit 0 OK
+bench cpu --json --output /tmp/silex-cpu-export-d7z9gx19/result.json: exit 1 OK
+No full workload run. Parser refusal checked without executing full. Exports preserved existing files and left no temporaries.

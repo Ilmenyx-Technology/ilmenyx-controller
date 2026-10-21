@@ -1,0 +1,6 @@
+Versão Release iniciada com dotnet Silex.Audit.Desktop.dll na sessão DISPLAY=:0, WAYLAND_DISPLAY=wayland-1.
+Processo permaneceu ativo; stdout/stderr sem mensagens no intervalo observado.
+Captura exclusiva da janela Silex Audit via ImageMagick import: exit 0.
+Captura inspecionada: quatro cards exibindo valores reais de CPU, RAM, SO e dispositivos.
+Processo de teste encerrado ao final. Seletor interativo de exportação e clique Atualizar: NÃO TESTADOS.
+Backend Avalonia X11/XWayland; não é prova de Wayland nativo.

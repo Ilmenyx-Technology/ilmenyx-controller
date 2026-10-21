@@ -1,0 +1,194 @@
+{
+  "schemaVersion": "1.0",
+  "hardware": {
+    "schemaVersion": "1.0",
+    "applicationVersion": "0.2.0",
+    "collectedAt": "2026-10-21T00:58:27.4934462+00:00",
+    "runtime": ".NET 10.0.0",
+    "operatingSystem": {
+      "value": "CachyOS",
+      "unit": "",
+      "source": "/etc/os-release",
+      "status": "available",
+      "reason": null
+    },
+    "kernel": {
+      "value": "7.2.11-1-cachyos",
+      "unit": "",
+      "source": "/proc/sys/kernel/osrelease",
+      "status": "available",
+      "reason": null
+    },
+    "cpu": {
+      "name": {
+        "value": "11th Gen Intel(R) Core(TM) i5-1135G7 @ 2.40GHz",
+        "unit": "",
+        "source": "/proc/cpuinfo",
+        "status": "available",
+        "reason": null
+      },
+      "logicalProcessors": {
+        "value": 8,
+        "unit": "logical processors",
+        "source": "/proc/cpuinfo",
+        "status": "available",
+        "reason": null
+      }
+    },
+    "memory": {
+      "total": {
+        "value": 16421380096,
+        "unit": "B",
+        "source": "/proc/meminfo:MemTotal",
+        "status": "available",
+        "reason": null
+      },
+      "available": {
+        "value": 7005941760,
+        "unit": "B",
+        "source": "/proc/meminfo:MemAvailable",
+        "status": "available",
+        "reason": null
+      }
+    },
+    "disks": {
+      "value": [
+        {
+          "device": "nvme0n1",
+          "capacity": {
+            "value": 256060514304,
+            "unit": "B",
+            "source": "/sys/block/nvme0n1/size",
+            "status": "available",
+            "reason": null
+          }
+        },
+        {
+          "device": "sda",
+          "capacity": {
+            "value": 500107862016,
+            "unit": "B",
+            "source": "/sys/block/sda/size",
+            "status": "available",
+            "reason": null
+          }
+        },
+        {
+          "device": "zram0",
+          "capacity": {
+            "value": 16420700160,
+            "unit": "B",
+            "source": "/sys/block/zram0/size",
+            "status": "available",
+            "reason": null
+          }
+        }
+      ],
+      "unit": "devices",
+      "source": "/sys/block",
+      "status": "available",
+      "reason": null
+    },
+    "capabilities": [
+      {
+        "name": "cpu",
+        "status": "available",
+        "reason": "Identificação: /proc/cpuinfo; contagem visível, não núcleos físicos."
+      },
+      {
+        "name": "memory",
+        "status": "available",
+        "reason": "MemTotal e MemAvailable de /proc/meminfo."
+      },
+      {
+        "name": "disks",
+        "status": "available",
+        "reason": "Dispositivos de bloco do kernel; inclui virtuais; capacidade não é espaço livre."
+      },
+      {
+        "name": "json",
+        "status": "available",
+        "reason": "Snapshot local, sem upload; destino novo escolhido pelo usuário."
+      },
+      {
+        "name": "cpu-renderer-validation",
+        "status": "available",
+        "reason": "CLI bench cpu: validação reduzida sem score; carga completa exige opt-in e não foi validada."
+      },
+      {
+        "name": "benchmarks",
+        "status": "partial",
+        "reason": "Renderizador CPU experimental no Core/CLI. Comparabilidade não validada; demais benchmarks indisponíveis."
+      },
+      {
+        "name": "sensors",
+        "status": "unavailable",
+        "reason": "Não implementado na Fase 1."
+      },
+      {
+        "name": "gpu",
+        "status": "unavailable",
+        "reason": "Não implementado na Fase 1."
+      },
+      {
+        "name": "smart",
+        "status": "unavailable",
+        "reason": "Não implementado na Fase 1."
+      },
+      {
+        "name": "overlay",
+        "status": "unavailable",
+        "reason": "Não implementado na Fase 1."
+      },
+      {
+        "name": "windows-backend",
+        "status": "unavailable",
+        "reason": "Não implementado na Fase 1."
+      }
+    ],
+    "limitations": [
+      "Snapshot somente leitura; não mede desempenho ou saúde.",
+      "Dados refletem /proc e /sys visíveis; contêiner/cgroup/afinidade podem limitar recursos utilizáveis.",
+      "Sem hostname, serial, UUID, IP ou identificadores persistentes."
+    ]
+  },
+  "benchmark": {
+    "algorithmVersion": "silex-cpu-pathtracer/1",
+    "measurementVersion": "silex-cpu-runner/1",
+    "referenceCommit": "ce1d9b30518bbe75bb5e6cb792d1b1e365aaddd6",
+    "workload": {
+      "id": "validation-32x18-spp8",
+      "width": 32,
+      "height": 18,
+      "samplesPerPixel": 8,
+      "tileSize": 8,
+      "maximumDepth": 6
+    },
+    "status": "completed",
+    "startedAt": "2026-10-21T00:58:27.503329+00:00",
+    "seconds": 0.0137964,
+    "threads": 1,
+    "requestedMinimumSeconds": 0,
+    "timeoutSeconds": 10,
+    "completedPasses": 1,
+    "completedSamples": 4608,
+    "experimentalScore": null,
+    "scoreComparability": "unvalidated",
+    "imageSha256": "4a2ff589647b89851f86e20f15d093b8d61dff21f75c9fd9e5b11b8a02d8e830",
+    "environment": {
+      "operatingSystem": "CachyOS",
+      "runtime": ".NET 10.0.0",
+      "architecture": "X64",
+      "runtimeLogicalProcessors": 8,
+      "configuration": "Release",
+      "warmupPasses": 0
+    },
+    "limitations": [
+      "Não é score oficial RESET BENCH; comparação entre Linux e Windows NÃO VALIDADA.",
+      "Validação reduzida, cancelamento ou timeout não produzem score.",
+      "Sem sensores térmicos ou proteção por temperatura; carga completa somente com opt-in explícito.",
+      "Inicialização/JIT, scheduler, afinidade, energia e throttling não são controlados.",
+      "Amostras contam apenas pixels concluídos; hash de execução interrompida representa imagem parcial."
+    ]
+  }
+}

@@ -1,0 +1,1 @@
+PASS bounded original GameSim oracle: 256 entities; fixed 0/1/16 steps; 1/2/4 workers; no Run/warmup/FPS.

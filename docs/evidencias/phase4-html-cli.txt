@@ -1,0 +1,6 @@
+PASS info --html export: stdout igual ao arquivo UTF-8 sem BOM
+PASS HTMLParser: 6 tabelas; sem scripts, recursos externos, forms ou handlers
+PASS overwrite: exit 1, bytes preservados, temporarios limpos
+PASS argumentos conflitantes: exit 2
+PASS info --json: schema preservado, versao 0.5.0
+HTML real: /tmp/silex-html-cli-h12uf9nz/hardware.html

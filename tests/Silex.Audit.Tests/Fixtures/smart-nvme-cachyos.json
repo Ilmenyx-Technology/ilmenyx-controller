@@ -1,0 +1,11 @@
+{
+  "smartctl": {
+    "exit_status": 0
+  },
+  "smart_status": {
+    "passed": true,
+    "nvme": {
+      "value": 0
+    }
+  }
+}

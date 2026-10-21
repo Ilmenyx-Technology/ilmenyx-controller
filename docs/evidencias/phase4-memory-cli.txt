@@ -1,0 +1,8 @@
+PASS CLI 1 workers: original golden, stdout=arquivo, score null, sem métricas de desempenho
+PASS CLI 2 workers: original golden, stdout=arquivo, score null, sem métricas de desempenho
+PASS CLI 4 workers: original golden, stdout=arquivo, score null, sem métricas de desempenho
+PASS overwrite recusado exit 1; bytes preservados
+PASS threads 3, full e allow-cpu-load recusados exit 2
+PASS saída textual explícita, sem score
+PASS regressão HTML/JSON de hardware, versão 0.6.0
+Artefatos temporários: /tmp/silex-memory-cli-gpgim8m6

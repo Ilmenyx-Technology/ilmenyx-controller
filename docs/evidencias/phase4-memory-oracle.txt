@@ -1,0 +1,1 @@
+PASS bounded upstream RAM oracle: 1/2/4 workers, no full buffers, no disk methods, no performance metrics retained.

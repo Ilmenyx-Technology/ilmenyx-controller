@@ -1,0 +1,20 @@
+PASS sensors --json: exit 0, JSON válido
+hwmon real: partial, 13 canais, 12 disponíveis
+PASS info --json: exit 0, JSON válido
+PASS capabilities --json: exit 0, JSON válido
+PASS sensors export: stdout igual ao arquivo; overwrite recusado, exit 1; destino /tmp/silex-phase3-cli-_rr2eleo/sensors.json
+PASS sensors texto: exit 0
+Sensores hwmon · partial · 2026-10-21T01:45:12.1693713+00:00
+acpitz · temp1: 27.8 °C
+acpitz · temp2: 10 °C
+BAT1 · in0: 12.735 V
+BAT1 · power1: Indisponível: Fonte inacessível ou inválida.
+nvme · Composite: 51.85 °C
+nvme · Sensor 1: 51.85 °C
+coretemp · Package id 0: 69 °C
+coretemp · Core 0: 69 °C
+coretemp · Core 1: 67 °C
+coretemp · Core 2: 64 °C
+coretemp · Core 3: 68 °C
+hp · fan1: 0 RPM
+hp · fan2: 0 RPM

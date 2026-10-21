@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "platform": "Linux x86_64",
+  "title": "Silex Audit — Relatório de hardware",
+  "tables": 6,
+  "rows": 62,
+  "columnsConsistent": true,
+  "scripts": 0,
+  "externalElements": 0,
+  "notice": true,
+  "viewport": 1280,
+  "documentWidth": 1280
+}

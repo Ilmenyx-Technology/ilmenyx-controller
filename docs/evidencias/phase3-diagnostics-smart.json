@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "1.0",
+  "collectedAt": "2026-10-21T02:07:46.1106926+00:00",
+  "device": "nvme0n1",
+  "status": "unavailable",
+  "reason": "Consulta recusada, disco em standby, transporte incompat\u00EDvel ou erro de comando. Sem resultado de sa\u00FAde v\u00E1lido.",
+  "toolExitCode": 2,
+  "reportedPassed": {
+    "value": null,
+    "unit": "boolean",
+    "source": "smartctl --health --json /dev/nvme0n1",
+    "status": "unavailable",
+    "reason": "Consulta recusada, disco em standby, transporte incompat\u00EDvel ou erro de comando. Sem resultado de sa\u00FAde v\u00E1lido."
+  },
+  "limitations": [
+    "Consulta expl\u00EDcita somente leitura; sem habilitar SMART, self-test, escrita ou eleva\u00E7\u00E3o de privil\u00E9gios.",
+    "Resultado reportedPassed \u00E9 o relato do firmware, n\u00E3o garantia de sa\u00FAde. Serial/modelo/JSON bruto n\u00E3o s\u00E3o exportados.",
+    "SATA via ATA e NVMe somente. USB/SCSI/RAID podem estar indispon\u00EDveis; sem detec\u00E7\u00E3o autom\u00E1tica de transporte.",
+    "nocheck solicita evitar acordar discos compat\u00EDveis; n\u00E3o h\u00E1 garantia universal de detec\u00E7\u00E3o de standby por controladores."
+  ]
+}

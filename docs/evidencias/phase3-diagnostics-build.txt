@@ -1,0 +1,12 @@
+  Silex.Audit.Contracts -> /mnt/HDD/Github/Silex Audit/src/Silex.Audit.Contracts/bin/Release/net10.0/Silex.Audit.Contracts.dll
+  Silex.Audit.Core -> /mnt/HDD/Github/Silex Audit/src/Silex.Audit.Core/bin/Release/net10.0/Silex.Audit.Core.dll
+  Silex.Audit.Platform.Linux -> /mnt/HDD/Github/Silex Audit/src/Silex.Audit.Platform.Linux/bin/Release/net10.0/Silex.Audit.Platform.Linux.dll
+  Silex.Audit.Cli -> /mnt/HDD/Github/Silex Audit/src/Silex.Audit.Cli/bin/Release/net10.0/Silex.Audit.Cli.dll
+  Silex.Audit.Desktop -> /mnt/HDD/Github/Silex Audit/src/Silex.Audit.Desktop/bin/Release/net10.0/Silex.Audit.Desktop.dll
+  Silex.Audit.Tests -> /mnt/HDD/Github/Silex Audit/tests/Silex.Audit.Tests/bin/Release/net10.0/Silex.Audit.Tests.dll
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:03.38

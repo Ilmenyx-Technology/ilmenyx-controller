@@ -1,0 +1,3 @@
+[submodule "upstream/ResetExplode"]
+	path = upstream/ResetExplode
+	url = https://github.com/GustavoReset/ResetExplode.git

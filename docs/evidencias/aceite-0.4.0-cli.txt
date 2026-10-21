@@ -1,0 +1,10 @@
+PASS info --json: exit 0, JSON parseado
+PASS CPU/RAM reais e identificacao PCI Intel; carga GPU indisponivel sem valor inventado
+PASS sensors --json: exit 0, JSON parseado
+PASS fontes reais hwmon/thermal/energia; indisponiveis preservam null
+PASS capabilities --json: exit 0, JSON parseado
+PASS exportacao e recusa de sobrescrita: arquivo preservado
+PASS SMART sem opt-in recusado antes da consulta
+Permissao atual /dev/nvme0n1 os.access(R_OK)=False; nenhuma mudanca de permissao e nenhuma nova consulta SMART
+SMART sucesso real, AMD/NVIDIA reais: NAO TESTADOS; nao aprovados pelo ensaio
+Arquivos temporarios: /tmp/silex-aceite-447jill1

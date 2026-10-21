@@ -1,0 +1,80 @@
+using System.Text.Json;
+using Silex.Audit.Cli;
+using Silex.Audit.Contracts;
+using Silex.Audit.Core;
+using Silex.Audit.Core.Benchmarks;
+using Silex.Audit.Platform.Linux;
+
+CliArguments command;
+try { command = CliArguments.Parse(args); }
+catch (ArgumentException e) { Console.Error.WriteLine(e.Message + "\n" + CliArguments.Help); return 2; }
+if (command.Operation == CliOperation.Help) { Console.WriteLine(CliArguments.Help); return 0; }
+if (!OperatingSystem.IsLinux()) { Console.Error.WriteLine("Backend disponível apenas no Linux."); return 3; }
+using var stop = new CancellationTokenSource();
+Console.CancelKeyPress += (_, e) => { e.Cancel = true; stop.Cancel(); };
+try
+{
+    if (command.Operation == CliOperation.Smart)
+    {
+        var diagnostic = await new SmartctlDiagnostic(new SmartctlQuery()).CollectAsync(command.Device!, stop.Token);
+        if (command.Output is { } smartPath) await SnapshotReport.ExportAsync(diagnostic, smartPath, stop.Token);
+        Console.WriteLine(command.Json ? SnapshotReport.Json(diagnostic) : $"SMART · {diagnostic.Device} · {diagnostic.Status}\nRelato passed: {SnapshotReport.Describe(diagnostic.ReportedPassed)}\nNão representa garantia de saúde.");
+        return 0;
+    }
+    if (command.Operation == CliOperation.Sensors)
+    {
+        var readings = await LinuxPlatform.CreateSensorProvider().CollectAsync(stop.Token);
+        if (command.Output is { } sensorPath) await SnapshotReport.ExportAsync(readings, sensorPath, stop.Token);
+        Console.WriteLine(command.Json ? SnapshotReport.Json(readings) : SensorPresentation.Text(readings));
+        return 0;
+    }
+    var snapshot = await LinuxPlatform.CreateHardwareProvider().CollectAsync(stop.Token);
+    if (command.Operation == CliOperation.GameSimValidation)
+    {
+        var result = await new GameSimValidationRunner().RunAsync(command.Simulation!, stop.Token);
+        var report = new GameSimValidationReport("1.0", snapshot, result);
+        if (command.Output is { } simPath) await SnapshotReport.ExportAsync(report, simPath);
+        Console.WriteLine(command.Json ? SnapshotReport.Json(report) : $"GameSim reduzido (simulação sintética) · {result.Status}\nPassos: {result.CompletedSteps}/{result.Workload.Steps}\nSHA256 estado: {result.StateSha256 ?? "indisponível"}\nSem FPS ou score; não mede desempenho de um jogo real.");
+        return result.Status == GameSimValidationStatus.Cancelled ? 130 : result.Status == GameSimValidationStatus.TimedOut ? 124 : 0;
+    }
+    if (command.Operation == CliOperation.MemoryValidation)
+    {
+        var result = await new MemoryValidationRunner().RunAsync(command.Memory!, stop.Token);
+        var report = new MemoryValidationReport("1.0", snapshot, result);
+        if (command.Output is { } memoryPath) await SnapshotReport.ExportAsync(report, memoryPath);
+        Console.WriteLine(command.Json ? SnapshotReport.Json(report) : $"Validação de memória reduzida · {result.Status}\nPassos: {result.CompletedTraversalSteps}/{result.RequestedTraversalSteps}\nSoma leitura/cópia: {result.ReadSum?.ToString() ?? "indisponível"}/{result.CopySum?.ToString() ?? "indisponível"}\nSHA256 cópia: {result.CopySha256 ?? "indisponível"}\nNão mede latência, GB/s ou score de RAM.");
+        return result.Status == MemoryValidationStatus.Cancelled ? 130 : result.Status == MemoryValidationStatus.TimedOut ? 124 : 0;
+    }
+    if (command.Html)
+    {
+        if (command.Output is { } htmlPath) await HardwareHtmlReport.ExportAsync(snapshot, htmlPath, stop.Token);
+        Console.Write(HardwareHtmlReport.Render(snapshot, stop.Token));
+        return 0;
+    }
+    if (command.Operation == CliOperation.CpuBenchmark)
+    {
+        if (command.Benchmark!.Profile == CpuWorkloadProfile.Full)
+            Console.Error.WriteLine("Carga completa de CPU iniciada por opt-in. Sem proteção térmica implementada; Ctrl+C para cancelar.");
+        // Collection and serialization stay outside the renderer's measured interval.
+        var render = await new CpuBenchmarkRunner().RunAsync(command.Benchmark!, stop.Token);
+        var result = render.Result;
+        var report = new CpuBenchmarkReport("1.0", snapshot, result);
+        // Preserve an explicitly cancelled result if the caller requested an output file.
+        if (command.Output is { } path) await SnapshotReport.ExportAsync(report, path);
+        Console.WriteLine(command.Json ? SnapshotReport.Json(report) :
+            $"Silex CPU · {result.Workload.Id}\nEstado: {result.Status}\nThreads: {result.Threads}\n" +
+            $"Passadas: {result.CompletedPasses}\nAmostras concluídas: {result.CompletedSamples}\n" +
+            $"SHA256 BGRA: {result.ImageSha256}\nScore experimental: {result.ExperimentalScore?.ToString("F3") ?? "indisponível"}\n" +
+            "Comparação com Windows NÃO VALIDADA; validação reduzida não mede desempenho.");
+        return result.Status == CpuRunStatus.Cancelled ? 130 : result.Status == CpuRunStatus.TimedOut ? 124 : 0;
+    }
+    if (command.Output is { } output) await SnapshotReport.ExportAsync(snapshot, output, stop.Token);
+    Console.WriteLine(command.Operation == CliOperation.Capabilities
+        ? command.Json ? JsonSerializer.Serialize(snapshot.Capabilities, SnapshotReport.Options)
+            : string.Join("\n", snapshot.Capabilities.Select(c => $"{c.Name}: {c.Status} — {c.Reason}"))
+        : command.Json ? SnapshotReport.Json(snapshot) : SnapshotReport.Text(snapshot));
+    return 0;
+}
+catch (OperationCanceledException) { Console.Error.WriteLine("Coleta cancelada ou timeout de 5 segundos."); return 130; }
+catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException or AggregateException)
+{ Console.Error.WriteLine("Falha: " + e.Message); return 1; }

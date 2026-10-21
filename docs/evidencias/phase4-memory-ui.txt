@@ -1,0 +1,11 @@
+PASS visible AMD/NVIDIA notice: Testes não realizados em hardware real
+PASS hardware UI export and overwrite refusal
+PASS HTML UI export, same snapshot, cancel, extension validation and overwrite refusal
+PASS CPU cancel control
+EXPORTED cpu.json
+PASS CPU real render, cancelled picker and UI export
+EXPORTED memory.json
+PASS memory validation: no autostart, real bounded result, cancel control, cancelled dialog and JSON export
+EXPORTED sensors.json
+PASS sensor monitor start/stop and UI export
+PASS /tmp/silex-memory-ui/silex-ui-e3985b9393fa468da04671c53a60da19

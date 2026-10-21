@@ -1,0 +1,10 @@
+Silex Audit 0.1.0 · 2026-10-21T00:15:50.2143269+00:00
+SO: CachyOS
+Kernel: 7.2.11-1-cachyos
+CPU: 11th Gen Intel(R) Core(TM) i5-1135G7 @ 2.40GHz
+Processadores lógicos visíveis: 8 logical processors
+RAM total: 16421380096 B
+RAM disponível: 6787985408 B
+Discos: nvme0n1: 256060514304 B
+sda: 500107862016 B
+zram0: 16420700160 B

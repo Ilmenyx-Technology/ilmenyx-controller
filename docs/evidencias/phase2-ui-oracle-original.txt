@@ -1,0 +1,96 @@
+{
+  "upstreamCommit": "ce1d9b30518bbe75bb5e6cb792d1b1e365aaddd6",
+  "source": "upstream/ResetExplode/BenchRenderer.cs",
+  "changes": "None; invoke RenderBucket only for sixteen fixed 1x1 buckets; never Run().",
+  "width": 960,
+  "height": 540,
+  "samplesPerPixel": 1024,
+  "selectedPixels": 16,
+  "totalSamples": 16384,
+  "sha256Bgra": "a1b6d7aed6fad8729e62a09a4bf4a3111c9683f65ace706ba0ab2ccc57568622",
+  "pixels": [
+    {
+      "x": 0,
+      "y": 0,
+      "bgra": -10395295
+    },
+    {
+      "x": 959,
+      "y": 0,
+      "bgra": -10395295
+    },
+    {
+      "x": 0,
+      "y": 539,
+      "bgra": -4342339
+    },
+    {
+      "x": 959,
+      "y": 539,
+      "bgra": -3881788
+    },
+    {
+      "x": 480,
+      "y": 270,
+      "bgra": -10658467
+    },
+    {
+      "x": 320,
+      "y": 270,
+      "bgra": -6842473
+    },
+    {
+      "x": 640,
+      "y": 270,
+      "bgra": -5855578
+    },
+    {
+      "x": 480,
+      "y": 120,
+      "bgra": -7303024
+    },
+    {
+      "x": 480,
+      "y": 420,
+      "bgra": -4737097
+    },
+    {
+      "x": 160,
+      "y": 360,
+      "bgra": -6776680
+    },
+    {
+      "x": 800,
+      "y": 360,
+      "bgra": -2565928
+    },
+    {
+      "x": 320,
+      "y": 180,
+      "bgra": -8750470
+    },
+    {
+      "x": 640,
+      "y": 180,
+      "bgra": -10132123
+    },
+    {
+      "x": 479,
+      "y": 269,
+      "bgra": -10921639
+    },
+    {
+      "x": 31,
+      "y": 31,
+      "bgra": -10724260
+    },
+    {
+      "x": 928,
+      "y": 512,
+      "bgra": -2368549
+    }
+  ],
+  "runtime": ".NET 10.0.0",
+  "architecture": "X64",
+  "copyright": "Copyright (c) 2026 Gustavo (GustavoReset); upstream MIT license retained."
+}

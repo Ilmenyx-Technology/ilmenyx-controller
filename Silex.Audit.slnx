@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Silex.Audit.Cli/Silex.Audit.Cli.csproj" />
+    <Project Path="src/Silex.Audit.Contracts/Silex.Audit.Contracts.csproj" />
+    <Project Path="src/Silex.Audit.Core/Silex.Audit.Core.csproj" />
+    <Project Path="src/Silex.Audit.Desktop/Silex.Audit.Desktop.csproj" />
+    <Project Path="src/Silex.Audit.Platform.Linux/Silex.Audit.Platform.Linux.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Silex.Audit.Tests/Silex.Audit.Tests.csproj" />
+  </Folder>
+</Solution>

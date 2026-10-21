@@ -1,0 +1,758 @@
+{
+  "schemaVersion": "1.0",
+  "hardware": {
+    "schemaVersion": "1.2",
+    "applicationVersion": "0.6.0",
+    "collectedAt": "2026-10-21T03:23:56.8263673+00:00",
+    "runtime": ".NET 10.0.0",
+    "operatingSystem": {
+      "value": "CachyOS",
+      "unit": "",
+      "source": "/etc/os-release",
+      "status": "available",
+      "reason": null
+    },
+    "kernel": {
+      "value": "7.2.11-1-cachyos",
+      "unit": "",
+      "source": "/proc/sys/kernel/osrelease",
+      "status": "available",
+      "reason": null
+    },
+    "cpu": {
+      "name": {
+        "value": "11th Gen Intel(R) Core(TM) i5-1135G7 @ 2.40GHz",
+        "unit": "",
+        "source": "/proc/cpuinfo",
+        "status": "available",
+        "reason": null
+      },
+      "logicalProcessors": {
+        "value": 8,
+        "unit": "logical processors",
+        "source": "/proc/cpuinfo",
+        "status": "available",
+        "reason": null
+      }
+    },
+    "memory": {
+      "total": {
+        "value": 16421380096,
+        "unit": "B",
+        "source": "/proc/meminfo:MemTotal",
+        "status": "available",
+        "reason": null
+      },
+      "available": {
+        "value": 7728586752,
+        "unit": "B",
+        "source": "/proc/meminfo:MemAvailable",
+        "status": "available",
+        "reason": null
+      }
+    },
+    "disks": {
+      "value": [
+        {
+          "device": "nvme0n1",
+          "capacity": {
+            "value": 256060514304,
+            "unit": "B",
+            "source": "/sys/block/nvme0n1/size",
+            "status": "available",
+            "reason": null
+          }
+        },
+        {
+          "device": "sda",
+          "capacity": {
+            "value": 500107862016,
+            "unit": "B",
+            "source": "/sys/block/sda/size",
+            "status": "available",
+            "reason": null
+          }
+        },
+        {
+          "device": "zram0",
+          "capacity": {
+            "value": 16420700160,
+            "unit": "B",
+            "source": "/sys/block/zram0/size",
+            "status": "available",
+            "reason": null
+          }
+        }
+      ],
+      "unit": "devices",
+      "source": "/sys/block",
+      "status": "available",
+      "reason": null
+    },
+    "capabilities": [
+      {
+        "name": "cpu",
+        "status": "available",
+        "reason": "Identifica\u00E7\u00E3o: /proc/cpuinfo; contagem vis\u00EDvel, n\u00E3o n\u00FAcleos f\u00EDsicos."
+      },
+      {
+        "name": "memory",
+        "status": "available",
+        "reason": "MemTotal e MemAvailable de /proc/meminfo."
+      },
+      {
+        "name": "disks",
+        "status": "available",
+        "reason": "Dispositivos de bloco do kernel; inclui virtuais; capacidade n\u00E3o \u00E9 espa\u00E7o livre."
+      },
+      {
+        "name": "sensors",
+        "status": "partial",
+        "reason": "Algumas fontes est\u00E3o indispon\u00EDveis; consulte cada leitura e limita\u00E7\u00F5es."
+      },
+      {
+        "name": "smart",
+        "status": "partial",
+        "reason": "CLI smart: consulta somente leitura por disco expl\u00EDcito; exige --allow-device-query e smartctl opcional. Nenhuma coleta autom\u00E1tica."
+      },
+      {
+        "name": "gpu",
+        "status": "available",
+        "reason": "Invent\u00E1rio DRM/PCI dispon\u00EDvel; telemetria depende do driver."
+      },
+      {
+        "name": "html",
+        "status": "available",
+        "reason": "CLI info --html e UI: relat\u00F3rio offline de snapshot; sem coleta ou carga adicional."
+      },
+      {
+        "name": "json",
+        "status": "available",
+        "reason": "Snapshot local, sem upload; destino novo escolhido pelo usu\u00E1rio."
+      },
+      {
+        "name": "cpu-renderer-validation",
+        "status": "available",
+        "reason": "CLI e UI: valida\u00E7\u00E3o reduzida sem score; carga completa somente na CLI com opt-in e n\u00E3o validada."
+      },
+      {
+        "name": "memory-algorithm-validation",
+        "status": "available",
+        "reason": "CLI/UI: algoritmos em buffers pequenos, sem lat\u00EAncia, GB/s, score ou stress."
+      },
+      {
+        "name": "benchmarks",
+        "status": "partial",
+        "reason": "Renderizador CPU experimental e valida\u00E7\u00E3o reduzida de mem\u00F3ria. Scores n\u00E3o compar\u00E1veis; demais benchmarks indispon\u00EDveis."
+      },
+      {
+        "name": "overlay",
+        "status": "unavailable",
+        "reason": "N\u00E3o implementado na Fase 1."
+      },
+      {
+        "name": "windows-backend",
+        "status": "unavailable",
+        "reason": "N\u00E3o implementado na Fase 1."
+      }
+    ],
+    "limitations": [
+      "Snapshot somente leitura; n\u00E3o mede desempenho ou sa\u00FAde.",
+      "Dados refletem /proc e /sys vis\u00EDveis; cont\u00EAiner/cgroup/afinidade podem limitar recursos utiliz\u00E1veis.",
+      "Sem hostname, serial, UUID, IP ou identificadores persistentes."
+    ],
+    "sensors": {
+      "schemaVersion": "1.1",
+      "collectedAt": "2026-10-21T03:23:56.8108874+00:00",
+      "status": "partial",
+      "reason": "Algumas fontes est\u00E3o indispon\u00EDveis; consulte cada leitura e limita\u00E7\u00F5es.",
+      "readings": [
+        {
+          "device": "hwmon1",
+          "chip": "acpitz",
+          "channel": "temp1",
+          "label": "temp1",
+          "collectedAt": "2026-10-21T03:23:56.3980824+00:00",
+          "quality": "kernel-raw",
+          "reading": {
+            "value": 27.8,
+            "unit": "\u00B0C",
+            "source": "/sys/class/hwmon/hwmon1/temp1_input",
+            "status": "available",
+            "reason": null
+          }
+        },
+        {
+          "device": "hwmon1",
+          "chip": "acpitz",
+          "channel": "temp2",
+          "label": "temp2",
+          "collectedAt": "2026-10-21T03:23:56.3984923+00:00",
+          "quality": "kernel-raw",
+          "reading": {
+            "value": 10,
+            "unit": "\u00B0C",
+            "source": "/sys/class/hwmon/hwmon1/temp2_input",
+            "status": "available",
+            "reason": null
+          }
+        },
+        {
+          "device": "hwmon2",
+          "chip": "BAT1",
+          "channel": "in0",
+          "label": "in0",
+          "collectedAt": "2026-10-21T03:23:56.3990601+00:00",
+          "quality": "kernel-raw",
+          "reading": {
+            "value": 12.734,
+            "unit": "V",
+            "source": "/sys/class/hwmon/hwmon2/in0_input",
+            "status": "available",
+            "reason": null
+          }
+        },
+        {
+          "device": "hwmon2",
+          "chip": "BAT1",
+          "channel": "power1",
+          "label": "power1",
+          "collectedAt": "2026-10-21T03:23:56.3993436+00:00",
+          "quality": "kernel-raw",
+          "reading": {
+            "value": null,
+            "unit": "W",
+            "source": "/sys/class/hwmon/hwmon2/power1_input",
+            "status": "unavailable",
+            "reason": "Fonte inacess\u00EDvel ou inv\u00E1lida."
+          }
+        },
+        {
+          "device": "hwmon3",
+          "chip": "nvme",
+          "channel": "temp1",
+          "label": "Composite",
+          "collectedAt": "2026-10-21T03:23:56.4008434+00:00",
+          "quality": "kernel-raw",
+          "reading": {
+            "value": 49.85,
+            "unit": "\u00B0C",
+            "source": "/sys/class/hwmon/hwmon3/temp1_input",
+            "status": "available",
+            "reason": null
+          }
+        },
+        {
+          "device": "hwmon3",
+          "chip": "nvme",
+          "channel": "temp2",
+          "label": "Sensor 1",
+          "collectedAt": "2026-10-21T03:23:56.4024363+00:00",
+          "quality": "kernel-raw",
+          "reading": {
+            "value": 49.85,
+            "unit": "\u00B0C",
+            "source": "/sys/class/hwmon/hwmon3/temp2_input",
+            "status": "available",
+            "reason": null
+          }
+        },
+        {
+          "device": "hwmon4",
+          "chip": "coretemp",
+          "channel": "temp1",
+          "label": "Package id 0",
+          "collectedAt": "2026-10-21T03:23:56.4026691+00:00",
+          "quality": "kernel-raw",
+          "reading": {
+            "value": 63,
+            "unit": "\u00B0C",
+            "source": "/sys/class/hwmon/hwmon4/temp1_input",
+            "status": "available",
+            "reason": null
+          }
+        },
+        {
+          "device": "hwmon4",
+          "chip": "coretemp",
+          "channel": "temp2",
+          "label": "Core 0",
+          "collectedAt": "2026-10-21T03:23:56.4027868+00:00",
+          "quality": "kernel-raw",
+          "reading": {
+            "value": 63,
+            "unit": "\u00B0C",
+            "source": "/sys/class/hwmon/hwmon4/temp2_input",
+            "status": "available",
+            "reason": null
+          }
+        },
+        {
+          "device": "hwmon4",
+          "chip": "coretemp",
+          "channel": "temp3",
+          "label": "Core 1",
+          "collectedAt": "2026-10-21T03:23:56.4029395+00:00",
+          "quality": "kernel-raw",
+          "reading": {
+            "value": 61,
+            "unit": "\u00B0C",
+            "source": "/sys/class/hwmon/hwmon4/temp3_input",
+            "status": "available",
+            "reason": null
+          }
+        },
+        {
+          "device": "hwmon4",
+          "chip": "coretemp",
+          "channel": "temp4",
+          "label": "Core 2",
+          "collectedAt": "2026-10-21T03:23:56.4030574+00:00",
+          "quality": "kernel-raw",
+          "reading": {
+            "value": 56,
+            "unit": "\u00B0C",
+            "source": "/sys/class/hwmon/hwmon4/temp4_input",
+            "status": "available",
+            "reason": null
+          }
+        },
+        {
+          "device": "hwmon4",
+          "chip": "coretemp",
+          "channel": "temp5",
+          "label": "Core 3",
+          "collectedAt": "2026-10-21T03:23:56.4031609+00:00",
+          "quality": "kernel-raw",
+          "reading": {
+            "value": 53,
+            "unit": "\u00B0C",
+            "source": "/sys/class/hwmon/hwmon4/temp5_input",
+            "status": "available",
+            "reason": null
+          }
+        },
+        {
+          "device": "hwmon5",
+          "chip": "hp",
+          "channel": "fan1",
+          "label": "fan1",
+          "collectedAt": "2026-10-21T03:23:56.6058102+00:00",
+          "quality": "kernel-raw",
+          "reading": {
+            "value": 0,
+            "unit": "RPM",
+            "source": "/sys/class/hwmon/hwmon5/fan1_input",
+            "status": "available",
+            "reason": null
+          }
+        },
+        {
+          "device": "hwmon5",
+          "chip": "hp",
+          "channel": "fan2",
+          "label": "fan2",
+          "collectedAt": "2026-10-21T03:23:56.8090373+00:00",
+          "quality": "kernel-raw",
+          "reading": {
+            "value": 0,
+            "unit": "RPM",
+            "source": "/sys/class/hwmon/hwmon5/fan2_input",
+            "status": "available",
+            "reason": null
+          }
+        },
+        {
+          "device": "Thermal/thermal_zone0",
+          "chip": "acpitz",
+          "channel": "temp",
+          "label": "thermal_zone0 \u00B7 temp",
+          "collectedAt": "2026-10-21T03:23:56.4022991+00:00",
+          "quality": "kernel-raw",
+          "reading": {
+            "value": 27.8,
+            "unit": "\u00B0C",
+            "source": "/sys/class/thermal/thermal_zone0/temp",
+            "status": "available",
+            "reason": null
+          }
+        },
+        {
+          "device": "Thermal/thermal_zone1",
+          "chip": "acpitz",
+          "channel": "temp",
+          "label": "thermal_zone1 \u00B7 temp",
+          "collectedAt": "2026-10-21T03:23:56.4024273+00:00",
+          "quality": "kernel-raw",
+          "reading": {
+            "value": 10,
+            "unit": "\u00B0C",
+            "source": "/sys/class/thermal/thermal_zone1/temp",
+            "status": "available",
+            "reason": null
+          }
+        },
+        {
+          "device": "Thermal/thermal_zone2",
+          "chip": "INT3400 Thermal",
+          "channel": "temp",
+          "label": "thermal_zone2 \u00B7 temp",
+          "collectedAt": "2026-10-21T03:23:56.4024788+00:00",
+          "quality": "kernel-raw",
+          "reading": {
+            "value": 20,
+            "unit": "\u00B0C",
+            "source": "/sys/class/thermal/thermal_zone2/temp",
+            "status": "available",
+            "reason": null
+          }
+        },
+        {
+          "device": "Thermal/thermal_zone3",
+          "chip": "SEN2",
+          "channel": "temp",
+          "label": "thermal_zone3 \u00B7 temp",
+          "collectedAt": "2026-10-21T03:23:56.4025724+00:00",
+          "quality": "kernel-raw",
+          "reading": {
+            "value": 43.05,
+            "unit": "\u00B0C",
+            "source": "/sys/class/thermal/thermal_zone3/temp",
+            "status": "available",
+            "reason": null
+          }
+        },
+        {
+          "device": "Thermal/thermal_zone4",
+          "chip": "SEN3",
+          "channel": "temp",
+          "label": "thermal_zone4 \u00B7 temp",
+          "collectedAt": "2026-10-21T03:23:56.4026768+00:00",
+          "quality": "kernel-raw",
+          "reading": {
+            "value": 0.05,
+            "unit": "\u00B0C",
+            "source": "/sys/class/thermal/thermal_zone4/temp",
+            "status": "available",
+            "reason": null
+          }
+        },
+        {
+          "device": "Thermal/thermal_zone5",
+          "chip": "SEN4",
+          "channel": "temp",
+          "label": "thermal_zone5 \u00B7 temp",
+          "collectedAt": "2026-10-21T03:23:56.402743+00:00",
+          "quality": "kernel-raw",
+          "reading": {
+            "value": 0.05,
+            "unit": "\u00B0C",
+            "source": "/sys/class/thermal/thermal_zone5/temp",
+            "status": "available",
+            "reason": null
+          }
+        },
+        {
+          "device": "Thermal/thermal_zone6",
+          "chip": "TCPU",
+          "channel": "temp",
+          "label": "thermal_zone6 \u00B7 temp",
+          "collectedAt": "2026-10-21T03:23:56.4028238+00:00",
+          "quality": "kernel-raw",
+          "reading": {
+            "value": 63.05,
+            "unit": "\u00B0C",
+            "source": "/sys/class/thermal/thermal_zone6/temp",
+            "status": "available",
+            "reason": null
+          }
+        },
+        {
+          "device": "Thermal/thermal_zone7",
+          "chip": "x86_pkg_temp",
+          "channel": "temp",
+          "label": "thermal_zone7 \u00B7 temp",
+          "collectedAt": "2026-10-21T03:23:56.4029033+00:00",
+          "quality": "kernel-raw",
+          "reading": {
+            "value": 63,
+            "unit": "\u00B0C",
+            "source": "/sys/class/thermal/thermal_zone7/temp",
+            "status": "available",
+            "reason": null
+          }
+        },
+        {
+          "device": "PowerSupply/ACAD",
+          "chip": "Mains",
+          "channel": "online",
+          "label": "ACAD \u00B7 online",
+          "collectedAt": "2026-10-21T03:23:56.4041148+00:00",
+          "quality": "kernel-raw",
+          "reading": {
+            "value": 1,
+            "unit": "boolean",
+            "source": "/sys/class/power_supply/ACAD/online",
+            "status": "available",
+            "reason": null
+          }
+        },
+        {
+          "device": "PowerSupply/BAT1",
+          "chip": "Battery",
+          "channel": "capacity",
+          "label": "BAT1 \u00B7 capacity",
+          "collectedAt": "2026-10-21T03:23:56.4046845+00:00",
+          "quality": "kernel-raw",
+          "reading": {
+            "value": 100,
+            "unit": "%",
+            "source": "/sys/class/power_supply/BAT1/capacity",
+            "status": "available",
+            "reason": null
+          }
+        },
+        {
+          "device": "PowerSupply/BAT1",
+          "chip": "Battery",
+          "channel": "voltage_now",
+          "label": "BAT1 \u00B7 voltage_now",
+          "collectedAt": "2026-10-21T03:23:56.4047131+00:00",
+          "quality": "kernel-raw",
+          "reading": {
+            "value": 12.734,
+            "unit": "V",
+            "source": "/sys/class/power_supply/BAT1/voltage_now",
+            "status": "available",
+            "reason": null
+          }
+        },
+        {
+          "device": "PowerSupply/BAT1",
+          "chip": "Battery",
+          "channel": "power_now",
+          "label": "BAT1 \u00B7 power_now",
+          "collectedAt": "2026-10-21T03:23:56.4048406+00:00",
+          "quality": "kernel-raw",
+          "reading": {
+            "value": null,
+            "unit": "W",
+            "source": "/sys/class/power_supply/BAT1/power_now",
+            "status": "unavailable",
+            "reason": "Fonte inacess\u00EDvel ou inv\u00E1lida."
+          }
+        },
+        {
+          "device": "PowerSupply/BAT1",
+          "chip": "Battery",
+          "channel": "energy_now",
+          "label": "BAT1 \u00B7 energy_now",
+          "collectedAt": "2026-10-21T03:23:56.4048742+00:00",
+          "quality": "kernel-raw",
+          "reading": {
+            "value": 29.42,
+            "unit": "Wh",
+            "source": "/sys/class/power_supply/BAT1/energy_now",
+            "status": "available",
+            "reason": null
+          }
+        },
+        {
+          "device": "PowerSupply/BAT1",
+          "chip": "Battery",
+          "channel": "energy_full",
+          "label": "BAT1 \u00B7 energy_full",
+          "collectedAt": "2026-10-21T03:23:56.4048958+00:00",
+          "quality": "kernel-raw",
+          "reading": {
+            "value": 29.42,
+            "unit": "Wh",
+            "source": "/sys/class/power_supply/BAT1/energy_full",
+            "status": "available",
+            "reason": null
+          }
+        },
+        {
+          "device": "PowerSupply/BAT1",
+          "chip": "Battery",
+          "channel": "energy_full_design",
+          "label": "BAT1 \u00B7 energy_full_design",
+          "collectedAt": "2026-10-21T03:23:56.4049177+00:00",
+          "quality": "kernel-raw",
+          "reading": {
+            "value": 41.05,
+            "unit": "Wh",
+            "source": "/sys/class/power_supply/BAT1/energy_full_design",
+            "status": "available",
+            "reason": null
+          }
+        },
+        {
+          "device": "PowerSupply/BAT1",
+          "chip": "Battery",
+          "channel": "cycle_count",
+          "label": "BAT1 \u00B7 cycle_count",
+          "collectedAt": "2026-10-21T03:23:56.4050196+00:00",
+          "quality": "kernel-raw",
+          "reading": {
+            "value": 0,
+            "unit": "cycles",
+            "source": "/sys/class/power_supply/BAT1/cycle_count",
+            "status": "available",
+            "reason": null
+          }
+        }
+      ],
+      "limitations": [
+        "Leituras brutas do kernel; sem calibra\u00E7\u00E3o de placa, infer\u00EAncia de sa\u00FAde ou controle de hardware.",
+        "Sem ajuste por sensors.conf; canais de tens\u00E3o podem exigir escala espec\u00EDfica da placa.",
+        "Temperatura em \u00B0C validada apenas para coretemp, k10temp, acpitz, nvme e amdgpu; termistores exigem convers\u00E3o pr\u00F3pria.",
+        "Identificadores hwmon podem mudar ap\u00F3s hotplug/reboot; nenhuma identidade persistente \u00E9 inferida.",
+        "Fontes independentes: thermal pode duplicar hwmon; n\u00E3o somar ou deduplicar por r\u00F3tulo.",
+        "Energia/carga/pot\u00EAncia s\u00E3o dados brutos do kernel; sem c\u00E1lculo de desgaste, autonomia, sa\u00FAde ou prote\u00E7\u00E3o t\u00E9rmica.",
+        "Atributos opcionais de power_supply ausentes s\u00E3o omitidos; capacidade em % n\u00E3o \u00E9 sa\u00FAde. Sem identificadores de fabricante/modelo/serial."
+      ],
+      "powerSupplies": [
+        {
+          "device": "ACAD",
+          "type": {
+            "value": "Mains",
+            "unit": "",
+            "source": "/sys/class/power_supply/ACAD/type",
+            "status": "available",
+            "reason": null
+          },
+          "status": {
+            "value": null,
+            "unit": "",
+            "source": "/sys/class/power_supply/ACAD/status",
+            "status": "unavailable",
+            "reason": "Atributo ausente ou dispositivo removido."
+          },
+          "present": {
+            "value": null,
+            "unit": "boolean",
+            "source": "/sys/class/power_supply/ACAD/present",
+            "status": "unavailable",
+            "reason": "Atributo ausente ou dispositivo removido."
+          }
+        },
+        {
+          "device": "BAT1",
+          "type": {
+            "value": "Battery",
+            "unit": "",
+            "source": "/sys/class/power_supply/BAT1/type",
+            "status": "available",
+            "reason": null
+          },
+          "status": {
+            "value": "Full",
+            "unit": "",
+            "source": "/sys/class/power_supply/BAT1/status",
+            "status": "available",
+            "reason": null
+          },
+          "present": {
+            "value": 1,
+            "unit": "boolean",
+            "source": "/sys/class/power_supply/BAT1/present",
+            "status": "available",
+            "reason": null
+          }
+        }
+      ]
+    },
+    "gpus": {
+      "schemaVersion": "1.0",
+      "collectedAt": "2026-10-21T03:23:56.8260779+00:00",
+      "status": "available",
+      "reason": null,
+      "devices": [
+        {
+          "device": "card1",
+          "vendorId": {
+            "value": "0x8086",
+            "unit": "",
+            "source": "/sys/class/drm/card1/device/vendor",
+            "status": "available",
+            "reason": null
+          },
+          "deviceId": {
+            "value": "0x9a49",
+            "unit": "",
+            "source": "/sys/class/drm/card1/device/device",
+            "status": "available",
+            "reason": null
+          },
+          "pciClass": {
+            "value": "0x030000",
+            "unit": "",
+            "source": "/sys/class/drm/card1/device/class",
+            "status": "available",
+            "reason": null
+          },
+          "busyPercent": {
+            "value": null,
+            "unit": "%",
+            "source": "/sys/class/drm/card1/device/gpu_busy_percent",
+            "status": "unavailable",
+            "reason": "Contador n\u00E3o suportado para esse adaptador."
+          },
+          "vramTotal": {
+            "value": null,
+            "unit": "B",
+            "source": "/sys/class/drm/card1/device/mem_info_vram_total",
+            "status": "unavailable",
+            "reason": "Contador n\u00E3o suportado para esse adaptador."
+          },
+          "vramUsed": {
+            "value": null,
+            "unit": "B",
+            "source": "/sys/class/drm/card1/device/mem_info_vram_used",
+            "status": "unavailable",
+            "reason": "Contador n\u00E3o suportado para esse adaptador."
+          }
+        }
+      ],
+      "limitations": [
+        "Invent\u00E1rio DRM/PCI; sem inferir modelo comercial, desempenho, sa\u00FAde ou mem\u00F3ria compartilhada.",
+        "IDs cardN n\u00E3o s\u00E3o persistentes. Apenas placas DRM expostas; GPU sem driver DRM pode n\u00E3o aparecer.",
+        "Contadores opcionais de carga/VRAM somente para PCI AMD; aus\u00EAncia n\u00E3o vira zero. Temperaturas permanecem nas fontes hwmon/thermal.",
+        "Intel/NVIDIA e outros fabricantes: identifica\u00E7\u00E3o PCI apenas; sem NVML, busy% ou VRAM garantidos."
+      ]
+    }
+  },
+  "validation": {
+    "workloadId": "silex-memory-validation-v1",
+    "algorithmVersion": "sattolo64-seed42-sum4-copy-v1",
+    "referenceCommit": "ce1d9b30518bbe75bb5e6cb792d1b1e365aaddd6",
+    "status": "completed",
+    "startedAt": "2026-10-21T03:23:56.8285571+00:00",
+    "threads": 1,
+    "timeoutSeconds": 5,
+    "readCopyRepetitions": 1,
+    "workingSetBytes": 262144,
+    "mainBufferBytes": 802816,
+    "warmupSteps": 1024,
+    "requestedTraversalSteps": 32768,
+    "completedTraversalSteps": 32768,
+    "finalIndex": 6528,
+    "readSum": 32768,
+    "copySum": 32768,
+    "ringSha256": "a161778502328abe03b03b6c5a13304938399808c410fe351f9e9af54a53c5a1",
+    "copySha256": "5d13d4f5eabdb8645983b02dfd86438b77115918b5d2ec8c40ba3355c8a80dc1",
+    "score": null,
+    "performanceStatus": "not-measured",
+    "runtime": ".NET 10.0.0",
+    "architecture": "X64",
+    "limitations": [
+      "Valida\u00E7\u00E3o pequena de algoritmos; n\u00E3o mede lat\u00EAncia, GB/s, estabilidade ou sa\u00FAde da RAM.",
+      "Buffers de 256 KiB podem caber em caches; resultados n\u00E3o s\u00E3o compar\u00E1veis ao benchmark completo Windows.",
+      "Semente 42, passos de 64 bytes; warmup reduzido para 1024, percurso 32768 e uma repeti\u00E7\u00E3o de leitura/c\u00F3pia.",
+      "Workers restritos a 1/2/4 para particionamento integral e sem sobra do la\u00E7o desenrolado; soma/c\u00F3pia variam com a inicializa\u00E7\u00E3o por worker.",
+      "Buffers principais: 784 KiB, mais buffers de hash e overhead do runtime; n\u00E3o representa uso total do processo.",
+      "N\u00E3o h\u00E1 perfil completo de RAM, GameSim, teste de disco ou rede neste comando."
+    ]
+  }
+}

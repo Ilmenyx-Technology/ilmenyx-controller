@@ -1,0 +1,7 @@
+PASS hardware UI export and overwrite refusal
+PASS CPU cancel control
+EXPORTED cpu.json
+PASS CPU real render, cancelled picker and UI export
+EXPORTED sensors.json
+PASS sensor monitor start/stop and UI export
+PASS /tmp/silex-aceite-ui/silex-ui-831c5fcbca284d2581e12ead6ee79cff

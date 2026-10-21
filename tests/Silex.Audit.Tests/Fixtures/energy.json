@@ -1,0 +1,16 @@
+{
+  "Thermal/thermal_zone0/type": "x86_pkg_temp\n",
+  "Thermal/thermal_zone0/temp": "42500\n",
+  "PowerSupply/BAT1/type": "Battery\n",
+  "PowerSupply/BAT1/status": "Discharging\n",
+  "PowerSupply/BAT1/present": "1\n",
+  "PowerSupply/BAT1/capacity": "75\n",
+  "PowerSupply/BAT1/voltage_now": "12500000\n",
+  "PowerSupply/BAT1/current_now": "-1500000\n",
+  "PowerSupply/BAT1/power_now": "2300000\n",
+  "PowerSupply/BAT1/energy_now": "37500000\n",
+  "PowerSupply/BAT1/energy_full": "50000000\n",
+  "PowerSupply/BAT1/charge_now": "3000000\n",
+  "PowerSupply/BAT1/temp": "285\n",
+  "PowerSupply/BAT1/cycle_count": "0\n"
+}

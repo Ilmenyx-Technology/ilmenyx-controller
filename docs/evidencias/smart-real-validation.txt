@@ -1,0 +1,2 @@
+PASS production C# parser: status=available, toolExitCode=0, reportedPassed=True
+No device query, privilege elevation or health guarantee. Filtered output: /tmp/silex-smart-hEos4e-validated.json

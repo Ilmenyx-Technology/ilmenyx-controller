@@ -1,0 +1,6 @@
+{
+  "status": "PASS",
+  "viewport": 390,
+  "documentWidth": 390,
+  "tablesScrollInsideContainers": true
+}

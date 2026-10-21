@@ -1,0 +1,35 @@
+{
+  "source": "MemoryBench.cs RAM methods, MIT GustavoReset",
+  "referenceCommit": "ce1d9b30518bbe75bb5e6cb792d1b1e365aaddd6",
+  "runtime": ".NET 10.0.0",
+  "workingSetBytes": 262144,
+  "warmupSteps": 1024,
+  "traversalSteps": 32768,
+  "bandwidthRepetitions": 1,
+  "cases": [
+    {
+      "threads": 1,
+      "finalIndex": 6528,
+      "ringSha256": "a161778502328abe03b03b6c5a13304938399808c410fe351f9e9af54a53c5a1",
+      "readSum": 32768,
+      "copySum": 32768,
+      "copySha256": "5d13d4f5eabdb8645983b02dfd86438b77115918b5d2ec8c40ba3355c8a80dc1"
+    },
+    {
+      "threads": 2,
+      "finalIndex": 6528,
+      "ringSha256": "a161778502328abe03b03b6c5a13304938399808c410fe351f9e9af54a53c5a1",
+      "readSum": 49152,
+      "copySum": 49152,
+      "copySha256": "8ce3c0d693b7d2add53dca427923c2a1b3b51b727720688e1797ff5e72262abd"
+    },
+    {
+      "threads": 4,
+      "finalIndex": 6528,
+      "ringSha256": "a161778502328abe03b03b6c5a13304938399808c410fe351f9e9af54a53c5a1",
+      "readSum": 81920,
+      "copySum": 81920,
+      "copySha256": "76d67d2237e8d336d17fa6a4ae252ab6addee657a0a52327de83b4d1da9408ac"
+    }
+  ]
+}

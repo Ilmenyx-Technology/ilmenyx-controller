@@ -1,0 +1,5 @@
+Comando: dotnet list Silex.Audit.slnx package --vulnerable --include-transitive --no-restore
+Fonte: https://api.nuget.org/v3/index.json
+Exit: 0
+Nenhum pacote vulnerável reportado para os seis projetos nesta consulta.
+Não cobre runtime, sistema operacional ou auditoria integral dos binários.

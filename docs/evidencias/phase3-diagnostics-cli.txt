@@ -1,0 +1,10 @@
+PASS sensors --json, exit 0
+status partial, 29 leituras, 2 fontes de energia
+PASS info --json, exit 0
+DRM card1: vendor 0x8086 device 0x9a49; busy None; VRAM None
+PASS capabilities --json, exit 0
+PASS exportação sensores: stdout igual ao arquivo; overwrite recusado exit 1 e bytes preservados
+PASS SMART sem opt-in: recusado exit 2, antes de consultar dispositivo
+SMART leitura explícita: status unavailable, toolExitCode 2, reportedPassed None; Consulta recusada, disco em standby, transporte incompatível ou erro de comando. Sem resultado de saúde válido.
+Artefatos temporários: /tmp/silex-diagnostics-9kdzwpfw
+Usuário euid=1000; /dev/nvme0n1 modo=0o660; leitura permitida ao processo=False

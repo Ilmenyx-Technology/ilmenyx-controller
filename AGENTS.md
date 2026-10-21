@@ -1,0 +1,99 @@
+# AGENTS.md — diretrizes do fork de portabilidade Linux
+
+## Objetivo
+Portar incrementalmente o RESET EXPLODE de WPF/.NET Windows para Linux com Avalonia + .NET, preservando compatibilidade futura com Windows e a autoria/licença do projeto original.
+
+## Antes de alterações
+- Leia o README, a LICENSE, os `.csproj`, docs de portabilidade e código relacionado à tarefa.
+- Verifique `git status` e a branch; não descarte mudanças de terceiros.
+- Diferencie fatos observados, suposições, funcionalidades implementadas e funcionalidades não testadas.
+- Prefira pequenas mudanças incrementais e código original reaproveitável a recriações desnecessárias.
+
+## Arquitetura
+- `Core`/`Contracts` não podem depender de WPF, Windows Desktop, WMI, Registry, ETW, DirectX ou da Avalonia UI.
+- Separe backends por SO; não espalhe condicionais de plataforma nos algoritmos.
+- Valide inclusão implícita recursiva de arquivos do SDK-style `.csproj` da raiz antes de criar projetos em `src/` ou `tests/`.
+- Use `CancellationToken`, timeouts, validação de unidades e retornos explícitos `indisponível` quando necessário.
+- Evite código fictício, telemetria, dependências desnecessárias e serviços com privilégios altos.
+
+## Benchmarks e segurança
+- Preserve workload, sementes, algoritmo, pontuação e versão do RESET BENCH quando tecnicamente viável.
+- Não afirme que scores Linux e Windows são diretamente comparáveis sem metodologia e validação.
+- Nunca execute stress, benchmark de disco pesado, overclock, drivers ou modificações do sistema em CI.
+- Benchmark de disco usa somente arquivo temporário em caminho autorizado, com limites, verificação de espaço, cancelamento e limpeza em finally; nunca dispositivos físicos diretamente.
+- Sem `sudo` implícito, instalação automática, push, release ou alteração de dados do usuário.
+- Leitura de sensores pode estar indisponível: não invente temperatura, consumo ou saúde do disco.
+
+## Qualidade e documentação
+- Crie testes unitários com fixtures de `/proc` e `/sys`, tratamento de falhas e casos extremos.
+- Execute build/testes disponíveis e reporte resultados exatos. Se não testado, diga `NÃO TESTADO`.
+- Atualize os docs de arquitetura, compatibilidade, metodologia e validação quando mudar comportamento.
+- Preserve avisos MIT e confira licenças de terceiros/assets/drivers antes de redistribuir.
+- Mantenha o app WPF original operável. PRs ao upstream não são o fluxo atual; prepare documentação para o fork e para eventual contato com a equipe.
+
+## Silex Audit — decisões locais da Fase 1
+- Marca dos novos executáveis: Silex Audit; código independente, sem assets RESET.
+- Original preservado no submódulo upstream/ResetExplode; não alterar ou atualizar seu SHA sem revisão.
+- Solução Linux explícita Silex.Audit.slnx; não existe csproj WPF na raiz deste workspace.
+- Use .NET 10 e os comandos de README.md; telemetria de build desativada.
+- Não alegar clean-room estrito: auditor e implementador tiveram acesso ao código original.
+
+## Continuação da Fase 2
+- CpuBenchmarkRunner usa validation por padrão; testes nunca executam o perfil Full.
+- Full exige opt-in explícito; não executá-lo automaticamente, mesmo para comparar scores.
+- Golden vem do upstream reduzido, via scripts/generate-cpu-reference.sh; não regenerar para ocultar divergência.
+- Algoritmo e método de medição têm versões separadas; score Linux/Windows permanece não validado.
+
+## UI CPU e corpus original
+- UI só inicia Validation por ação explícita; não adicionar Full à inicialização nem a testes.
+- Corpus original é limitado a 16 pixels/1024 spp; o oracle nunca chama Run full.
+- Callbacks de progresso devem respeitar dispatcher, geração e descarte da janela.
+
+## Sensores e validação gráfica
+- hwmon é somente leitura; falhas são null/indisponível, zero só se informado pela fonte.
+- Não inferir calibração, saúde ou proteção térmica a partir de sensores brutos.
+- Monitor é opt-in, sem histórico; preserve limites, cancelamento e descoberta por coleta.
+- Teste gráfico opt-in usa tools/Silex.Audit.UiSmoke e eventos no processo Avalonia.
+- Não usar injeção global de teclado/mouse: há risco de atingir outras janelas.
+
+## Diagnósticos de energia/GPU/SMART
+- thermal e hwmon podem repetir fontes: não deduplicar nem somar por rótulo.
+- power_supply usa unidades próprias; temp em décimos °C, energia em µWh, carga em µAh.
+- present inválido/negado/zero bloqueia valores numéricos potencialmente antigos.
+- GPU disponível no inventário não significa contadores disponíveis; não inferir VRAM de iGPU.
+- smartctl apenas pela CLI com disco/opt-in explícitos; nunca em info, polling ou testes de hardware automáticos.
+- Não acrescentar opções SMART de escrita, self-test, sudo ou detecção automática de transporte.
+
+## Critério de aceite definido pelo usuário
+- Toda implementação deve funcionar no Linux e passar por testes antes de avançar para a tarefa seguinte.
+- Registre o ambiente, os comandos, as evidências e a decisão de aceite por funcionalidade.
+- Fixture aprova comportamento de código; não certifica suporte ao hardware não disponível.
+- Não declare aprovação completa de funcionalidade cujo caminho real de sucesso permanece NÃO TESTADO.
+- Se faltarem hardware/permissões/ambiente, registre o bloqueio e não avance silenciosamente de fase.
+- Testes passando não equivalem a aprovação humana; não atribua ao usuário aprovação que ele não deu.
+
+## Exceção de hardware autorizada pelo usuário
+- A máquina disponível não possui AMD/NVIDIA. Não bloquear o avanço por esses testes reais ausentes.
+- Manter aviso visível na interface: AMD/NVIDIA — Testes não realizados em hardware real.
+- A exceção não transforma fixtures em certificação de hardware e não dispensa testes no Linux disponível.
+
+## Relatórios HTML
+- Exportar snapshots existentes sem disparar nova coleta, SMART ou benchmarks.
+- Todo dado variável entra somente como texto escapado; sem scripts, URLs/recursos remotos ou HTML arbitrário.
+- Preservar proveniência, unidades, datas, qualidade e indisponibilidades; não atribuir saúde/score.
+- JSON e HTML compartilham escrita atômica sem overwrite, com cancelamento e limpeza de temporários.
+
+## Validação de memória 0.6.0
+- bench memory e UI são somente correção reduzida, com 256 KiB por buffer e workers 1/2/4 (UI 1).
+- Não reportar ns, GB/s, FPS ou score; não introduzir perfil completo/carga/duração automaticamente.
+- Golden independente vem dos métodos RAM upstream reduzidos via scripts/generate-memory-reference.sh.
+- Não chamar métodos de disco/MeasureLoading do upstream. Preserve atribuição MIT e guardas do oracle.
+- GameSim requer oracle de passos fixos e snapshots coerentes antes de portar workload/medição.
+
+
+## Validação GameSim 0.7.0
+- Somente 256 entidades/16 passos fixos, workers 1/2/4 (UI 1), sem warmup temporizado/FPS/score.
+- Engine adapta métodos MIT upstream com atribuição; não alegar clean-room estrito.
+- Oracle independente via scripts/generate-gamesim-reference.sh remove Run antes de compilar.
+- Estado publicado somente em cópias após Step completo; cancelamento/timeout não publica State/hash.
+- Nenhum teste pode iniciar GameSim completo, disco pesado ou simulação sustentada.

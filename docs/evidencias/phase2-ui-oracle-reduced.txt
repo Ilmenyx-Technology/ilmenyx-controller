@@ -1,0 +1,19 @@
+{
+  "upstreamCommit": "ce1d9b30518bbe75bb5e6cb792d1b1e365aaddd6",
+  "source": "upstream/ResetExplode/BenchRenderer.cs",
+  "changes": "Only Width=32, Height=18, Spp=8, BucketSize=8; all rendering code unchanged.",
+  "width": 32,
+  "height": 18,
+  "samplesPerPixel": 8,
+  "totalSamples": 4608,
+  "encoding": "BGRA32 little-endian, row-major",
+  "sha256": "4a2ff589647b89851f86e20f15d093b8d61dff21f75c9fd9e5b11b8a02d8e830",
+  "runtime": ".NET 10.0.0",
+  "architecture": "X64",
+  "operatingSystem": "CachyOS",
+  "threadsVerified": [
+    1,
+    4
+  ],
+  "copyright": "Copyright (c) 2026 Gustavo (GustavoReset); upstream MIT license retained."
+}

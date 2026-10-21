@@ -1,0 +1,7 @@
+  Determining projects to restore...
+  Restored /mnt/HDD/Github/Silex Audit/src/Silex.Audit.Contracts/Silex.Audit.Contracts.csproj (in 75 ms).
+  Restored /mnt/HDD/Github/Silex Audit/src/Silex.Audit.Desktop/Silex.Audit.Desktop.csproj (in 131 ms).
+  Restored /mnt/HDD/Github/Silex Audit/src/Silex.Audit.Platform.Linux/Silex.Audit.Platform.Linux.csproj (in 1 ms).
+  Restored /mnt/HDD/Github/Silex Audit/src/Silex.Audit.Cli/Silex.Audit.Cli.csproj (in 2 ms).
+  Restored /mnt/HDD/Github/Silex Audit/src/Silex.Audit.Core/Silex.Audit.Core.csproj (in 1 ms).
+  Restored /mnt/HDD/Github/Silex Audit/tests/Silex.Audit.Tests/Silex.Audit.Tests.csproj (in 16 ms).

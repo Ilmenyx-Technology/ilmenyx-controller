@@ -1,0 +1,6 @@
+PASS CLI real Linux: 1 workers; oracle hash 6815765e7f314653b328268725f02c597dc31bb5334670769ab3accfc772c880 and exact stdout/export match
+PASS CLI real Linux: 2 workers; oracle hash 6815765e7f314653b328268725f02c597dc31bb5334670769ab3accfc772c880 and exact stdout/export match
+PASS CLI real Linux: 4 workers; oracle hash 6815765e7f314653b328268725f02c597dc31bb5334670769ab3accfc772c880 and exact stdout/export match
+PASS overwrite refused; destination unchanged
+PASS full/duration/load/invalid workers rejected
+PASS text limitations explicit; report directory /tmp/silex-gamesim-cli-xteh65ds

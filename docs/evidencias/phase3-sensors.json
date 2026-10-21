@@ -1,0 +1,209 @@
+{
+  "schemaVersion": "1.0",
+  "collectedAt": "2026-10-21T01:41:05.5205679+00:00",
+  "status": "partial",
+  "reason": "Parte dos canais est\u00E1 indispon\u00EDvel ou o invent\u00E1rio foi limitado.",
+  "readings": [
+    {
+      "device": "hwmon1",
+      "chip": "acpitz",
+      "channel": "temp1",
+      "label": "temp1",
+      "collectedAt": "2026-10-21T01:41:05.1070526+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": 27.8,
+        "unit": "\u00B0C",
+        "source": "/sys/class/hwmon/hwmon1/temp1_input",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "hwmon1",
+      "chip": "acpitz",
+      "channel": "temp2",
+      "label": "temp2",
+      "collectedAt": "2026-10-21T01:41:05.1074609+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": 10,
+        "unit": "\u00B0C",
+        "source": "/sys/class/hwmon/hwmon1/temp2_input",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "hwmon2",
+      "chip": "BAT1",
+      "channel": "in0",
+      "label": "in0",
+      "collectedAt": "2026-10-21T01:41:05.1084392+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": 12.736,
+        "unit": "V",
+        "source": "/sys/class/hwmon/hwmon2/in0_input",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "hwmon2",
+      "chip": "BAT1",
+      "channel": "power1",
+      "label": "power1",
+      "collectedAt": "2026-10-21T01:41:05.1088711+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": null,
+        "unit": "W",
+        "source": "/sys/class/hwmon/hwmon2/power1_input",
+        "status": "unavailable",
+        "reason": "Fonte inacess\u00EDvel ou inv\u00E1lida."
+      }
+    },
+    {
+      "device": "hwmon3",
+      "chip": "nvme",
+      "channel": "temp1",
+      "label": "Composite",
+      "collectedAt": "2026-10-21T01:41:05.1108911+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": 50.85,
+        "unit": "\u00B0C",
+        "source": "/sys/class/hwmon/hwmon3/temp1_input",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "hwmon3",
+      "chip": "nvme",
+      "channel": "temp2",
+      "label": "Sensor 1",
+      "collectedAt": "2026-10-21T01:41:05.1123608+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": 50.85,
+        "unit": "\u00B0C",
+        "source": "/sys/class/hwmon/hwmon3/temp2_input",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "hwmon4",
+      "chip": "coretemp",
+      "channel": "temp1",
+      "label": "Package id 0",
+      "collectedAt": "2026-10-21T01:41:05.1130296+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": 61,
+        "unit": "\u00B0C",
+        "source": "/sys/class/hwmon/hwmon4/temp1_input",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "hwmon4",
+      "chip": "coretemp",
+      "channel": "temp2",
+      "label": "Core 0",
+      "collectedAt": "2026-10-21T01:41:05.1136555+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": 56,
+        "unit": "\u00B0C",
+        "source": "/sys/class/hwmon/hwmon4/temp2_input",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "hwmon4",
+      "chip": "coretemp",
+      "channel": "temp3",
+      "label": "Core 1",
+      "collectedAt": "2026-10-21T01:41:05.1140898+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": 61,
+        "unit": "\u00B0C",
+        "source": "/sys/class/hwmon/hwmon4/temp3_input",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "hwmon4",
+      "chip": "coretemp",
+      "channel": "temp4",
+      "label": "Core 2",
+      "collectedAt": "2026-10-21T01:41:05.1144285+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": 57,
+        "unit": "\u00B0C",
+        "source": "/sys/class/hwmon/hwmon4/temp4_input",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "hwmon4",
+      "chip": "coretemp",
+      "channel": "temp5",
+      "label": "Core 3",
+      "collectedAt": "2026-10-21T01:41:05.1147711+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": 57,
+        "unit": "\u00B0C",
+        "source": "/sys/class/hwmon/hwmon4/temp5_input",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "hwmon5",
+      "chip": "hp",
+      "channel": "fan1",
+      "label": "fan1",
+      "collectedAt": "2026-10-21T01:41:05.3176829+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": 0,
+        "unit": "RPM",
+        "source": "/sys/class/hwmon/hwmon5/fan1_input",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "hwmon5",
+      "chip": "hp",
+      "channel": "fan2",
+      "label": "fan2",
+      "collectedAt": "2026-10-21T01:41:05.5205605+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": 0,
+        "unit": "RPM",
+        "source": "/sys/class/hwmon/hwmon5/fan2_input",
+        "status": "available",
+        "reason": null
+      }
+    }
+  ],
+  "limitations": [
+    "Leituras brutas do kernel; sem calibra\u00E7\u00E3o de placa, infer\u00EAncia de sa\u00FAde ou controle de hardware.",
+    "Sem ajuste por sensors.conf; canais de tens\u00E3o podem exigir escala espec\u00EDfica da placa.",
+    "Temperatura em \u00B0C validada apenas para coretemp, k10temp, acpitz e nvme; termistores exigem convers\u00E3o pr\u00F3pria.",
+    "Identificadores hwmon podem mudar ap\u00F3s hotplug/reboot; nenhuma identidade persistente \u00E9 inferida."
+  ]
+}

@@ -1,0 +1,9 @@
+CachyOS x64, DISPLAY=:0 e WAYLAND_DISPLAY=wayland-1, Avalonia X11/XWayland.
+Janela Release 0.2.1 iniciada; sem execução automática de CPU.
+Validação reduzida iniciada na janela; prévia real observada, 4608 amostras, sem score.
+Hash exibido: 4a2ff589647b89851f86e20f15d093b8d61dff21f75c9fd9e5b11b8a02d8e830.
+Capturas exclusivas da janela antes/depois; sem gráfico de desempenho fictício.
+Automação do seletor interrompida por perda de foco; conclusão interativa NÃO VALIDADA.
+Cancelamento por clique nativo NÃO TESTADO; cancelamento/fechamento testados no ViewModel.
+Arquivo /tmp/silex-native-export-validation/cpu.json gerado pela CLI e verificado, não pelo seletor.
+Processo gráfico de teste encerrado; nenhum benchmark full executado.

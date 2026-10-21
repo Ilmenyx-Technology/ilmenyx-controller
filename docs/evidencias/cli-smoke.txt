@@ -1,0 +1,9 @@
+--help: exit 0, OK
+info: exit 0, OK
+capabilities: exit 0, OK
+info --json: exit 0, OK
+capabilities --json: exit 0, OK
+invalid: exit 2, OK
+info --output: exit 2, OK
+capabilities --output x: exit 2, OK
+export JSON local + recusa sobrescrita: OK
