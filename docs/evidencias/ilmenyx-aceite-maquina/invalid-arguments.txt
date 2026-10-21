@@ -1,0 +1,1 @@
+Uso: bash scripts/validate-linux-machine.sh /pacote/Ilmenyx-linux-x64 /saida-nova

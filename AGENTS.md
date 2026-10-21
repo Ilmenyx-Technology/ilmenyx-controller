@@ -196,3 +196,10 @@ as regras de arquitetura Linux, benchmarks, testes, licenças e segurança anter
 - Contracts contém snapshot neutro; Core escreve texto fixo sem APIs culturais. Desktop não referencia CLI.
 - Não confundir requisitos básicos CLI com aprovação gráfica; não exibir valores de env.
 - Preservar readonly, ciclo Tab/Escape/foco e supressão de resultados depois de fechar.
+
+
+## Aceite em outra máquina — ferramentas do pacote 0.20.0
+- validate-linux-machine.sh é coleta CLI em diretório novo; não certifica VM limpa/GUI/hardware pelo sucesso da CLI.
+- Verificar hashes antes de executar o pacote; doctor bloqueante e smoke com prazos, sem instalação/elevação.
+- Inventário/sensores exportados são locais e exigem revisão antes de compartilhar.
+- Harness pode repetir solicitações de resize de forma limitada, mantendo tolerância e mínimo real; preservar falhas e não alegar causa raiz sem evidência.

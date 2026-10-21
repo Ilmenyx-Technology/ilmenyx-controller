@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "1.0",
+  "scope": "CLI package acceptance on the observed machine",
+  "state": "IMPLEMENTED_TESTED",
+  "reason": "CLI smoke passed on observed machine; GUI, clean VM and hardware matrix remain unverified.",
+  "exitCode": 0,
+  "cleanVmCertified": false,
+  "guiTested": false,
+  "hardwareCertified": false
+}

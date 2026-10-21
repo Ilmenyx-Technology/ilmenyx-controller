@@ -235,13 +235,31 @@ public sealed class UiSmokeApp : Application
     }
     private static async Task MinimumSize(Window window)
     {
-        // Separate requests and await native acknowledgement: X11 ConfigureNotify is asynchronous.
-        window.Width = window.MinWidth;
-        await Until(() => Math.Abs(window.Bounds.Width - window.MinWidth) < 1);
-        window.Height = window.MinHeight;
-        await Task.Delay(120);
-        await Until(() => Math.Abs(window.Bounds.Height - window.MinHeight) < 1);
-        await Task.Delay(120);
+        // Initial native configure events can overtake a requested resize. Reissue a
+        // distinct size then the exact minimum, bounded, without relaxing geometry.
+        for (int attempt = 1; attempt <= 3; attempt++)
+        {
+            window.Width = window.MinWidth + 2;
+            window.Height = window.MinHeight + 2;
+            await Task.Delay(150);
+            window.Width = window.MinWidth;
+            await Task.Delay(150);
+            window.Height = window.MinHeight;
+            var timer = Stopwatch.StartNew();
+            while (timer.Elapsed < TimeSpan.FromSeconds(3))
+            {
+                await Task.Delay(80);
+                if (Math.Abs(window.Bounds.Width - window.MinWidth) < 1 &&
+                    Math.Abs(window.Bounds.Height - window.MinHeight) < 1)
+                {
+                    await Task.Delay(120);
+                    if (Math.Abs(window.Bounds.Width - window.MinWidth) < 1 &&
+                        Math.Abs(window.Bounds.Height - window.MinHeight) < 1) return;
+                }
+            }
+            Console.WriteLine($"RESIZE retry {attempt}: {window.GetType().Name} actual={window.Bounds.Size} required={window.MinWidth}x{window.MinHeight}");
+        }
+        throw new InvalidOperationException($"Minimum resize unconfirmed: {window.GetType().Name} actual={window.Bounds.Size} required={window.MinWidth}x{window.MinHeight}");
     }
 
     private static void TextFits(Window window, List<string> errors)

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "1.0",
+  "scope": "CLI package acceptance on the observed machine",
+  "state": "FAILED",
+  "reason": "Package integrity failed; no application command executed.",
+  "exitCode": 1,
+  "cleanVmCertified": false,
+  "guiTested": false,
+  "hardwareCertified": false
+}

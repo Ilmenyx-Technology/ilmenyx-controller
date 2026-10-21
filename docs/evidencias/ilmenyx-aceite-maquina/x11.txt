@@ -1,0 +1,52 @@
+DESKTOP ASSEMBLY DIRECTORY /tmp/ilmenyx-machine-negatives.nVgRe3/ui/desktop
+PASS keyboard save dialog: Space opens, Enter saves, Tab/Shift+Tab cycle, Escape cancels, error help/focus, automation peer name, focus restored
+PASS keyboard About: arrow selects document; Tab cycles selector/reader/close; F4 opens list; Escape closes list then dialog; named text and restored focus
+PASS requirements: idle on open; explicit real probe equals doctor; read-only; keyboard cycle/Escape/focus; close during pending probe suppresses result
+PASS Ilmenyx identity, by Bismuth Technology, live About/attribution/MIT/dependency documents and close
+ACTUAL WINDOW IMPLEMENTATION Avalonia.X11.X11Window
+DISPLAY BACKEND requested=x11; handle=XID
+PASS visible AMD/NVIDIA notice: Testes não realizados em hardware real
+PASS hardware UI export and overwrite refusal
+PASS HTML UI export, same snapshot, cancel, extension validation and overwrite refusal
+PASS CPU cancel control
+EXPORTED cpu.json
+PASS CPU real render, cancelled picker and UI export
+PASS cpu HTML UI: same JSON report, cancellation, extension, overwrite refusal and real export
+EXPORTED memory.json
+PASS memory validation: no autostart, real bounded result, cancel control, cancelled dialog and JSON export
+PASS memory HTML UI: same JSON report, cancellation, extension, overwrite refusal and real export
+EXPORTED sim.json
+PASS GameSim: no autostart; cancel; 256 entities/16 steps; immutable final preview; oracle hash; cancelled dialog; JSON export
+PASS sim HTML UI: same JSON report, cancellation, extension, overwrite refusal and real export
+EXPORTED sensors.json
+PASS panel keyboard order: CPU/memory/sim JSON/HTML reachable; disabled cancellation controls skipped; reverse Tab works
+PASS sensor monitor start/stop and UI export
+LAYOUT dashboard factor=1 actual=640.258064516129, 480 renderScaling=1.2916666666666667
+LAYOUT save factor=1 actual=440.51612903225805, 360 renderScaling=1
+LAYOUT license document=0 factor=1 readingHeight=216
+LAYOUT license document=1 factor=1 readingHeight=216
+LAYOUT license document=2 factor=1 readingHeight=216
+LAYOUT license document=3 factor=1 readingHeight=216
+LAYOUT About heading origin=20.129032258064516, 20.129032258064516 bounds=439.7419354838709, 19.35483870967742 text=216.21599999999995x19.068
+LAYOUT about factor=1 actual=480, 360 renderScaling=1
+PASS requirements minimum layout factor=1 actual=480, 360
+LAYOUT dashboard factor=1.5 actual=640.258064516129, 480 renderScaling=1.2916666666666667
+LAYOUT save factor=1.5 actual=440.51612903225805, 360 renderScaling=1
+LAYOUT license document=0 factor=1.5 readingHeight=189.6774193548387
+LAYOUT license document=1 factor=1.5 readingHeight=189.6774193548387
+LAYOUT license document=2 factor=1.5 readingHeight=189.6774193548387
+LAYOUT license document=3 factor=1.5 readingHeight=189.6774193548387
+LAYOUT About heading origin=20.129032258064516, 20.129032258064516 bounds=439.7419354838709, 28.64516129032258 text=324.32399999999996x28.602000000000004
+LAYOUT about factor=1.5 actual=480, 360 renderScaling=1
+PASS requirements minimum layout factor=1.5 actual=480, 360
+LAYOUT dashboard factor=2 actual=640.258064516129, 480 renderScaling=1.2916666666666667
+LAYOUT save factor=2 actual=440.51612903225805, 360 renderScaling=1
+LAYOUT license document=0 factor=2 readingHeight=159.48387096774192
+LAYOUT license document=1 factor=2 readingHeight=159.48387096774192
+LAYOUT license document=2 factor=2 readingHeight=159.48387096774192
+LAYOUT license document=3 factor=2 readingHeight=159.48387096774192
+LAYOUT About heading origin=20.129032258064516, 20.129032258064516 bounds=439.7419354838709, 38.70967741935484 text=432.4319999999999x38.136
+LAYOUT about factor=2 actual=480, 360 renderScaling=1
+PASS requirements minimum layout factor=2 actual=480, 360
+PASS layout minimum sizes, text factors 1/1.5/2: dashboard buttons, save field/error/actions, About selector/text/close reachable; reading area >=120 DIP
+PASS /tmp/ilmenyx-machine-negatives.nVgRe3/x11/ilmenyx-ui-fa0a55f957ee43a09894c00145b17b35

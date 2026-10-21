@@ -1,0 +1,10 @@
+{
+  "bundleVersion": "0.20.0",
+  "checkedFiles": 42,
+  "allPublishedDesktopFilesIdentical": true,
+  "onlyHarnessAdded": [
+    "Ilmenyx.UiSmoke.dll"
+  ],
+  "waylandPassed": true,
+  "x11Passed": true
+}

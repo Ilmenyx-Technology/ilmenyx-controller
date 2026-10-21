@@ -1,0 +1,2 @@
+PASS: pacote CLI nesta maquina. GUI/VM limpa/hardware adicional NAO TESTADOS.
+Os JSON locais incluem inventario/sensores reais; revise antes de compartilhar.

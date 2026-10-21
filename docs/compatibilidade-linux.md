@@ -188,3 +188,12 @@ avisos, 301 testes aprovados; regressões CLI no host e Debian sem ICU passaram.
 NÃO TESTADO: VM limpa, outras distros, Orca/AT-SPI e teclado físico. PENDENTE DE
 REVISÃO humana: usabilidade e checklist jurídico/marca; direitos desconhecidos
 BLOQUEADOS para redistribuição. [Evidências e resultado gráfico](requisitos-ui.md).
+
+
+### Roteiro de aceite em outra máquina — pacote 0.20.0
+
+IMPLEMENTADO e testado no CachyOS: integridade antes da execução, doctor com prazo,
+smoke CLI existente e resultado estruturado sem afirmar certificação de GUI/VM.
+Runtime ausente e pacote alterado recusados; destino existente preservado.
+NÃO TESTADO: VM limpa e outra distro com ICU; PKG-01 permanece parcial.
+[Comandos, evidências e pendências](aceite-maquina.md).

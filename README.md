@@ -206,3 +206,12 @@ mesma apresentação do `ilmenyx doctor`; abrir a janela não inicia a sondagem.
 Não coleta hardware, conecta ao display ou executa benchmarks. Bibliotecas
 carregáveis não certificam fontes, ABI, drivers ou funcionamento gráfico.
 [Implementação, testes e limites](docs/requisitos-ui.md).
+
+
+### Roteiro de aceite em outra máquina — pacote 0.20.0
+
+IMPLEMENTADO e testado no CachyOS: integridade antes da execução, doctor com prazo,
+smoke CLI existente e resultado estruturado sem afirmar certificação de GUI/VM.
+Runtime ausente e pacote alterado recusados; destino existente preservado.
+NÃO TESTADO: VM limpa e outra distro com ICU; PKG-01 permanece parcial.
+[Comandos, evidências e pendências](docs/aceite-maquina.md).
