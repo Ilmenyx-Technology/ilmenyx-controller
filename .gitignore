@@ -2,3 +2,33 @@
 **/obj/
 .artifacts/
 .playwright-mcp/
+
+# Local IDE state, test output and generated packages; retain reviewed docs/evidencias.
+.vs/
+.idea/
+**/TestResults/
+**/coverage/
+*.user
+*.suo
+*.nupkg
+*.snupkg
+*.AppImage
+.env
+.env.*
+!.env.example
+*.pfx
+*.p12
+*.key
+
+# Maintainer-provided local kits/reference; preserve on disk, do not ship as product assets.
+/AGENTS-RESET-EXPLODE-LINUX.md
+/PROMPT-CODEX.md
+/PROMPT-CODEX-RESET-EXPLODE-LINUX.md
+/RESET-CODEX-KIT-LINUX.zip
+/referencia visual de estilo de interface.jpg
+# Local crash dumps can contain paths and memory; never include implicitly.
+*.dmp
+/core
+/core.*
+.DS_Store
+Thumbs.db
