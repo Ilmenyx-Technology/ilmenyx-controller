@@ -177,3 +177,14 @@ avisos/erros e 296 testes aprovados. Host normal: código 0; Debian sem ICU: rel
 com código 5 sem abort; invariant explícito: código 0, sem certificação do modo padrão.
 JSON/exportação do doctor indisponíveis; opções recusadas. VM limpa, Debian com ICU
 e matrizes assistivas/de hardware seguem NÃO TESTADAS. [Evidências e limites](doctor-cli.md).
+
+
+## Atualização 0.20.0 — requisitos na interface
+
+IMPLEMENTADO: consulta explícita em Requisitos → Verificar, sem autostart; DTO em
+Contracts, apresentação independente em Core, sondagem no adaptador Linux.
+CLI e Desktop compartilham texto/limitações sem depender um do outro. Build sem
+avisos, 301 testes aprovados; regressões CLI no host e Debian sem ICU passaram.
+NÃO TESTADO: VM limpa, outras distros, Orca/AT-SPI e teclado físico. PENDENTE DE
+REVISÃO humana: usabilidade e checklist jurídico/marca; direitos desconhecidos
+BLOQUEADOS para redistribuição. [Evidências e resultado gráfico](requisitos-ui.md).

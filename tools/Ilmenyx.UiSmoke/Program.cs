@@ -250,6 +250,40 @@ public sealed class UiSmokeApp : Application
             if (text.TextLayout.Width > text.Bounds.Width + 2 || text.TextLayout.Height > text.Bounds.Height + 2)
                 errors.Add($"Text clipped in {window.GetType().Name}/{text.Name ?? "TextBlock"}: layout={text.TextLayout.Width}x{text.TextLayout.Height}, bounds={text.Bounds.Size}");
     }
+    private static async Task RequirementsAsync(DashboardWindow window, IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        var opener = Find<Button>(window, "ShowRequirements"); opener.Focus(); Key(window, Avalonia.Input.Key.Space);
+        await Until(() => desktop.Windows.OfType<RequirementsDialog>().Any(w => w.IsVisible));
+        var dialog = desktop.Windows.OfType<RequirementsDialog>().Single(w => w.IsVisible);
+        var report = Find<TextBox>(dialog, "RequirementsReport");
+        if (!report.IsReadOnly || !report.Text!.Contains("Nenhuma verificação")) throw new InvalidOperationException("Requirements must start idle and read-only.");
+        FocusIs(dialog, Find<Button>(dialog, "VerifyRequirements"));
+        Key(dialog, Avalonia.Input.Key.Space);
+        await Until(() => report.Text!.Contains("Ilmenyx doctor") && Find<Button>(dialog, "VerifyRequirements").IsEnabled);
+        using var expected = new StringWriter(System.Globalization.CultureInfo.InvariantCulture);
+        RuntimeRequirementsPresentation.Write(new Ilmenyx.Platform.Linux.LinuxRuntimeDependencies().InspectReport(
+            Ilmenyx.Platform.Linux.LinuxRuntimeDependencies.IsInvariantModeRequested(),
+            !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DISPLAY")),
+            !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WAYLAND_DISPLAY"))), expected);
+        if (report.Text != expected.ToString()) throw new InvalidOperationException("GUI/doctor report mismatch.");
+        Key(dialog, Avalonia.Input.Key.Tab); FocusIs(dialog, Find<Button>(dialog, "CloseRequirements"));
+        Key(dialog, Avalonia.Input.Key.Tab); FocusIs(dialog, report);
+        Key(dialog, Avalonia.Input.Key.Tab); FocusIs(dialog, Find<Button>(dialog, "VerifyRequirements"));
+        Key(dialog, Avalonia.Input.Key.Escape); await Until(() => !dialog.IsVisible); FocusIs(window, opener);
+
+        int calls = 0;
+        var gate = new TaskCompletionSource<RuntimeRequirements>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var pending = new RequirementsDialog(() => { Interlocked.Increment(ref calls); return gate.Task.GetAwaiter().GetResult(); });
+        var shown = pending.ShowDialog(window); await Task.Delay(80);
+        if (calls != 0) throw new InvalidOperationException("Requirements probed on open.");
+        Click(pending, "VerifyRequirements"); await Until(() => calls == 1);
+        Click(pending, "CloseRequirements"); await shown;
+        gate.SetResult(new(true, true, true, true, true, false, false, false)); await Task.Delay(80);
+        if (!Find<TextBox>(pending, "RequirementsReport").Text!.Contains("Nenhuma verificação"))
+            throw new InvalidOperationException("Closed dialog received a late result.");
+        Console.WriteLine("PASS requirements: idle on open; explicit real probe equals doctor; read-only; keyboard cycle/Escape/focus; close during pending probe suppresses result");
+    }
+
     private static async Task LayoutAsync(DashboardWindow window, IClassicDesktopStyleApplicationLifetime desktop)
     {
         var errors = new List<string>();
@@ -303,6 +337,17 @@ public sealed class UiSmokeApp : Application
             Capture(about, $"layout-about-{factor:0.0}.png");
             Key(about, Avalonia.Input.Key.Escape); await Until(() => !about.IsVisible);
             Console.WriteLine($"LAYOUT about factor={factor} actual={about.Bounds.Size} renderScaling={about.RenderScaling}");
+            Click(window, "ShowRequirements"); await Until(() => desktop.Windows.OfType<RequirementsDialog>().Any(w => w.IsVisible));
+            var requirements = desktop.Windows.OfType<RequirementsDialog>().Single(w => w.IsVisible);
+            await MinimumSize(requirements); ScaleText(requirements, factor); await Task.Delay(100);
+            Click(requirements, "VerifyRequirements");
+            await Until(() => Find<TextBox>(requirements, "RequirementsReport").Text!.Contains("Ilmenyx doctor"));
+            foreach (var name in new[] { "VerifyRequirements", "CloseRequirements", "RequirementsReport" })
+                try { await Reachable(requirements, Find<Control>(requirements, name)); } catch (InvalidOperationException e) { errors.Add(e.Message); }
+            if (Find<TextBox>(requirements, "RequirementsReport").Bounds.Height < 120) errors.Add("Requirements reader below 120 DIP.");
+            TextFits(requirements, errors); Capture(requirements, $"layout-requirements-{factor:0.0}.png");
+            Key(requirements, Avalonia.Input.Key.Escape); await Until(() => !requirements.IsVisible);
+            Console.WriteLine($"PASS requirements minimum layout factor={factor} actual={requirements.Bounds.Size}");
         }
         window.Width = 1060; window.Height = 780; await Task.Delay(120);
         File.WriteAllLines(Path.Combine(Program.OutputDirectory, "layout-errors.txt"), errors);
@@ -313,6 +358,7 @@ public sealed class UiSmokeApp : Application
     {
         var output = Program.OutputDirectory;
         await KeyboardAsync(window, desktop);
+        await RequirementsAsync(window, desktop);
         if (window.Title != ProductIdentity.Name || Find<TextBlock>(window, "ProductName").Text != "Ilmenyx" ||
             Find<TextBlock>(window, "MaintainerSignature").Text != "by Bismuth Technology")
             throw new InvalidOperationException("Ilmenyx identity missing from live window.");

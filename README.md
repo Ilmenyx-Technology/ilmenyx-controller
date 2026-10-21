@@ -7,7 +7,7 @@ política de contribuições próprias futuras: uso como ferramenta profissional
 venda do programa/acesso pago e derivação comercial do código restritos.
 Veja [mapa de licenças](LICENSING.md): a MIT original continua permitindo uso comercial das
 partes abrangidas, sem revogação de direitos anteriores. O conjunto não é anunciado como open source OSI.
-Versão local experimental 0.19.0; sem lançamento público nesta sessão.
+Versão local experimental 0.20.0; sem lançamento público nesta sessão.
 
 Ilmenyx é uma adaptação independente e não oficial do [RESET EXPLODE](https://github.com/GustavoReset/ResetExplode),
 criado por Gustavo (GustavoReset). Não possui afiliação, patrocínio ou endosso da equipe RESET.
@@ -198,3 +198,11 @@ sem inventário ou benchmarks. Funciona também para explicar a falta de ICU.
 Somente texto, sem --json/--output; 0 indica requisitos básicos CLI encontrados,
 5 indica ausência. Isso não certifica funcionamento gráfico.
 [Comandos, testes e limites](docs/doctor-cli.md).
+
+### Requisitos na interface (0.20.0)
+
+No dashboard, abra **Requisitos** e pressione **Verificar**. O relatório local usa a
+mesma apresentação do `ilmenyx doctor`; abrir a janela não inicia a sondagem.
+Não coleta hardware, conecta ao display ou executa benchmarks. Bibliotecas
+carregáveis não certificam fontes, ABI, drivers ou funcionamento gráfico.
+[Implementação, testes e limites](docs/requisitos-ui.md).

@@ -25,6 +25,8 @@ public sealed class DashboardWindow : Window
         var export = new Button { Name = "ExportHardware", Content = "Exportar hardware JSON" };
         var exportHtml = new Button { Name = "ExportHardwareHtml", Content = "Exportar hardware HTML" };
         var about = new Button { Name = "About", Content = "Licenças e créditos" };
+        var requirements = new Button { Name = "ShowRequirements", Content = "Requisitos" };
+        requirements.Click += async (_, _) => { await new RequirementsDialog().ShowDialog(this); if (IsVisible) requirements.Focus(); };
         about.Click += async (_, _) => { await new AboutDialog().ShowDialog(this); if (IsVisible) about.Focus(); };
         refresh.Click += async (_, _) => { refresh.IsEnabled = false; try { await vm.RefreshAsync(stop.Token); } finally { refresh.IsEnabled = true; } };
         export.Click += async (_, _) => await ExportHardwareAsync(false);
@@ -54,8 +56,8 @@ public sealed class DashboardWindow : Window
         var stack = new StackPanel { Margin = new Thickness(32), Spacing = 18 };
         stack.Children.Add(new TextBlock { Name = "ProductName", Text = ProductIdentity.Name, FontSize = 32, FontWeight = FontWeight.Bold });
         stack.Children.Add(new TextBlock { Name = "MaintainerSignature", Text = ProductIdentity.Signature });
-        stack.Children.Add(new TextBlock { Text = "Diagnóstico de hardware · Linux · 0.19.0", Foreground = Brushes.LightGray });
-        stack.Children.Add(new WrapPanel { Orientation = Orientation.Horizontal, ItemSpacing = 12, LineSpacing = 8, Children = { refresh, export, exportHtml, about } });
+        stack.Children.Add(new TextBlock { Text = "Diagnóstico de hardware · Linux · 0.20.0", Foreground = Brushes.LightGray });
+        stack.Children.Add(new WrapPanel { Orientation = Orientation.Horizontal, ItemSpacing = 12, LineSpacing = 8, Children = { refresh, export, exportHtml, requirements, about } });
         foreach (var (label, property) in new[] { ("PROCESSADOR", nameof(vm.Cpu)), ("MEMÓRIA", nameof(vm.Memory)), ("SISTEMA", nameof(vm.System)), ("DISPOSITIVOS DE BLOCO", nameof(vm.Disks)) })
         {
             var value = new TextBlock { TextWrapping = TextWrapping.Wrap, FontSize = 17 };

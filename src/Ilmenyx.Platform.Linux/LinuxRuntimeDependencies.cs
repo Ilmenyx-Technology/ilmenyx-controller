@@ -21,6 +21,13 @@ public sealed class LinuxRuntimeDependencies(Func<string, bool>? libraryAvailabl
         return false;
     }
 
+    public Ilmenyx.Contracts.RuntimeRequirements InspectReport(bool invariantMode, bool x11Configured, bool waylandConfigured)
+    {
+        var libraries = Inspect();
+        return new(libraries.Glibc, libraries.Icu, libraries.Fontconfig, libraries.X11, libraries.Egl,
+            invariantMode, x11Configured, waylandConfigured);
+    }
+
     public LinuxRuntimeRequirements Inspect() => new(
         available("libc.so.6"), CanUseGlobalization(false),
         available("libfontconfig.so.1"), available("libX11.so.6"), available("libEGL.so.1"));

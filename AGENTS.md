@@ -189,3 +189,10 @@ as regras de arquitetura Linux, benchmarks, testes, licenças e segurança anter
 - Doctor é textual, sem opções de exportação/carga, sem provedores de inventário e sem conexão gráfica.
 - Bibliotecas carregáveis e variáveis não vazias não provam GUI/driver/fontes/ABI. Não habilitar recursos com base apenas nisso.
 - Deve explicar ICU ausente sem APIs culturais/JSON; não ativar invariant automaticamente. Saída 0/5 reflete requisitos básicos CLI.
+
+
+## Requisitos na UI 0.20.0
+- Manter sondagem somente por Verificar; abrir aplicativo/diálogo não inicia esta consulta.
+- Contracts contém snapshot neutro; Core escreve texto fixo sem APIs culturais. Desktop não referencia CLI.
+- Não confundir requisitos básicos CLI com aprovação gráfica; não exibir valores de env.
+- Preservar readonly, ciclo Tab/Escape/foco e supressão de resultados depois de fechar.

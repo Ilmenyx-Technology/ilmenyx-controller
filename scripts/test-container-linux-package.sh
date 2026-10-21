@@ -13,11 +13,11 @@ mode=${ILMENYX_CONTAINER_INVARIANT:-0}
 guard=${ILMENYX_CONTAINER_TEST_ICU_GUARD:-0}
 [[ $guard == 0 || $guard == 1 ]] || { echo 'Teste do guard deve ser 0 ou 1.' >&2; exit 2; }
 if [[ $guard == 1 ]]; then
-  jq -e '.version == "0.18.0" or .version == "0.19.0"' "$2/package.json" >/dev/null # Never bypass preflight on older aborting builds.
+  jq -e '.version == "0.18.0" or .version == "0.19.0" or .version == "0.20.0"' "$2/package.json" >/dev/null # Never bypass preflight on older aborting builds.
 fi
 doctor=${ILMENYX_CONTAINER_TEST_DOCTOR:-0}
 [[ $doctor == 0 || $doctor == 1 ]] || { echo 'Teste doctor deve ser 0 ou 1.' >&2; exit 2; }
-if [[ $doctor == 1 ]]; then jq -e '.version == "0.19.0"' "$2/package.json" >/dev/null; fi
+if [[ $doctor == 1 ]]; then jq -e '.version == "0.19.0" or .version == "0.20.0"' "$2/package.json" >/dev/null; fi
 image=$(docker image inspect "$1" --format '{{.Id}}') # Resolve local identity, never pull.
 bundle=$(cd -- "$2" && pwd)
 runtime=$(cd -- "$3" && pwd)

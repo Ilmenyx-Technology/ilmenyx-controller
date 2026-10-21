@@ -1,0 +1,52 @@
+DESKTOP ASSEMBLY DIRECTORY /mnt/HDD/Github/Ilmenyx/tools/Ilmenyx.UiSmoke/bin/Release/net10.0
+PASS keyboard save dialog: Space opens, Enter saves, Tab/Shift+Tab cycle, Escape cancels, error help/focus, automation peer name, focus restored
+PASS keyboard About: arrow selects document; Tab cycles selector/reader/close; F4 opens list; Escape closes list then dialog; named text and restored focus
+PASS requirements: idle on open; explicit real probe equals doctor; read-only; keyboard cycle/Escape/focus; close during pending probe suppresses result
+PASS Ilmenyx identity, by Bismuth Technology, live About/attribution/MIT/dependency documents and close
+ACTUAL WINDOW IMPLEMENTATION Avalonia.Wayland.WindowImpl
+DISPLAY BACKEND requested=wayland; handle=
+PASS visible AMD/NVIDIA notice: Testes não realizados em hardware real
+PASS hardware UI export and overwrite refusal
+PASS HTML UI export, same snapshot, cancel, extension validation and overwrite refusal
+PASS CPU cancel control
+EXPORTED cpu.json
+PASS CPU real render, cancelled picker and UI export
+PASS cpu HTML UI: same JSON report, cancellation, extension, overwrite refusal and real export
+EXPORTED memory.json
+PASS memory validation: no autostart, real bounded result, cancel control, cancelled dialog and JSON export
+PASS memory HTML UI: same JSON report, cancellation, extension, overwrite refusal and real export
+EXPORTED sim.json
+PASS GameSim: no autostart; cancel; 256 entities/16 steps; immutable final preview; oracle hash; cancelled dialog; JSON export
+PASS sim HTML UI: same JSON report, cancellation, extension, overwrite refusal and real export
+EXPORTED sensors.json
+PASS panel keyboard order: CPU/memory/sim JSON/HTML reachable; disabled cancellation controls skipped; reverse Tab works
+PASS sensor monitor start/stop and UI export
+LAYOUT dashboard factor=1 actual=640, 480 renderScaling=1.3
+LAYOUT save factor=1 actual=440, 360 renderScaling=1
+LAYOUT license document=0 factor=1 readingHeight=216.9230769230769
+LAYOUT license document=1 factor=1 readingHeight=216.9230769230769
+LAYOUT license document=2 factor=1 readingHeight=216.9230769230769
+LAYOUT license document=3 factor=1 readingHeight=216.9230769230769
+LAYOUT About heading origin=20, 20 bounds=440, 19.23076923076923 text=216.21599999999995x19.068
+LAYOUT about factor=1 actual=480, 360 renderScaling=1
+PASS requirements minimum layout factor=1 actual=480, 360
+LAYOUT dashboard factor=1.5 actual=640, 480 renderScaling=1.3
+LAYOUT save factor=1.5 actual=440, 360 renderScaling=1
+LAYOUT license document=0 factor=1.5 readingHeight=188.46153846153845
+LAYOUT license document=1 factor=1.5 readingHeight=188.46153846153845
+LAYOUT license document=2 factor=1.5 readingHeight=188.46153846153845
+LAYOUT license document=3 factor=1.5 readingHeight=188.46153846153845
+LAYOUT About heading origin=20, 20 bounds=440, 29.23076923076923 text=324.32399999999996x28.602000000000004
+LAYOUT about factor=1.5 actual=480, 360 renderScaling=1
+PASS requirements minimum layout factor=1.5 actual=480, 360
+LAYOUT dashboard factor=2 actual=640, 480 renderScaling=1.3
+LAYOUT save factor=2 actual=440, 360 renderScaling=1
+LAYOUT license document=0 factor=2 readingHeight=160.76923076923077
+LAYOUT license document=1 factor=2 readingHeight=160.76923076923077
+LAYOUT license document=2 factor=2 readingHeight=160.76923076923077
+LAYOUT license document=3 factor=2 readingHeight=160.76923076923077
+LAYOUT About heading origin=20, 20 bounds=440, 38.46153846153846 text=432.4319999999999x38.136
+LAYOUT about factor=2 actual=480, 360 renderScaling=1
+PASS requirements minimum layout factor=2 actual=480, 360
+PASS layout minimum sizes, text factors 1/1.5/2: dashboard buttons, save field/error/actions, About selector/text/close reachable; reading area >=120 DIP
+PASS /tmp/ilmenyx-requisitos-wayland-repeat/ilmenyx-ui-cc78eb55625c4800abeea464db077b24
