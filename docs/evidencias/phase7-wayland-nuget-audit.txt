@@ -1,0 +1,10 @@
+
+The following sources were used:
+   https://api.nuget.org/v3/index.json
+
+The given project `Silex.Audit.Cli` has no vulnerable packages given the current sources.
+The given project `Silex.Audit.Contracts` has no vulnerable packages given the current sources.
+The given project `Silex.Audit.Core` has no vulnerable packages given the current sources.
+The given project `Silex.Audit.Desktop` has no vulnerable packages given the current sources.
+The given project `Silex.Audit.Platform.Linux` has no vulnerable packages given the current sources.
+The given project `Silex.Audit.Tests` has no vulnerable packages given the current sources.

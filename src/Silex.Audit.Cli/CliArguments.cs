@@ -4,8 +4,8 @@ using Silex.Audit.Platform.Linux;
 using Silex.Audit.Core.Benchmarks;
 namespace Silex.Audit.Cli;
 
-public enum CliOperation { Help, Info, Capabilities, CpuBenchmark, Sensors, Smart, MemoryValidation, GameSimValidation }
-public sealed record CliArguments(CliOperation Operation, bool Json, string? Output, CpuBenchmarkOptions? Benchmark, string? Device = null, bool Html = false, MemoryValidationOptions? Memory = null, GameSimValidationOptions? Simulation = null)
+public enum CliOperation { Help, Info, Capabilities, CpuBenchmark, Sensors, Smart, MemoryValidation, GameSimValidation, GameSimPlan }
+public sealed record CliArguments(CliOperation Operation, bool Json, string? Output, CpuBenchmarkOptions? Benchmark, string? Device = null, bool Html = false, MemoryValidationOptions? Memory = null, GameSimValidationOptions? Simulation = null, GameSimFullPlanOptions? SimulationPlan = null)
 {
     public const string Help = """
         Silex Audit
@@ -13,12 +13,14 @@ public sealed record CliArguments(CliOperation Operation, bool Json, string? Out
           capabilities [--json]
           sensors [--json] [--output ARQUIVO]
           smart --device NOME --allow-device-query [--json] [--output ARQUIVO]
+          bench sim-plan [--threads N] [--duration-seconds 1..10] [--timeout-seconds N] [--json] [--output ARQUIVO]
           bench sim [--threads 1|2|4] [--json] [--output ARQUIVO]
           bench memory [--threads 1|2|4] [--json] [--output ARQUIVO]
           bench cpu [--profile validation|full] [--threads N] [--json] [--output ARQUIVO]
                     [--min-seconds N] [--timeout-seconds N] [--allow-cpu-load]
           --help
         CPU padrão: validação 32x18, 8 spp, uma passada, sem score.
+        sim-plan: prepara configuração revisável; NÃO executa carga nem mede FPS/score.
         GameSim: 256 entidades, 16 passos fixos; sem FPS ou score.
         Memória: validação de algoritmos com buffers pequenos; sem latência, GB/s ou score.
         Perfil full exige --allow-cpu-load: carga alta de CPU, sem proteção térmica implementada.
@@ -35,17 +37,18 @@ public sealed record CliArguments(CliOperation Operation, bool Json, string? Out
             "smart" => CliOperation.Smart,
             "info" => CliOperation.Info,
             "capabilities" => CliOperation.Capabilities,
+            "bench" when args.Length > 1 && args[1] == "sim-plan" => CliOperation.GameSimPlan,
             "bench" when args.Length > 1 && args[1] == "sim" => CliOperation.GameSimValidation,
             "bench" when args.Length > 1 && args[1] == "memory" => CliOperation.MemoryValidation,
             "bench" when args.Length > 1 && args[1] == "cpu" => CliOperation.CpuBenchmark,
             _ => throw new ArgumentException("Comando desconhecido.")
         };
-        if (operation is CliOperation.CpuBenchmark or CliOperation.MemoryValidation or CliOperation.GameSimValidation) offset = 2;
+        if (operation is CliOperation.CpuBenchmark or CliOperation.MemoryValidation or CliOperation.GameSimValidation or CliOperation.GameSimPlan) offset = 2;
         bool json = false, html = false, allow = false;
         string? output = null, device = null;
         bool deviceQuery = false;
         var profile = CpuWorkloadProfile.Validation;
-        int threads = 1, seconds = 0;
+        int threads = 1, seconds = 0, simDuration = 3;
         int? timeout = null;
         var seen = new HashSet<string>(StringComparer.Ordinal);
         for (int i = offset; i < args.Length; i++)
@@ -58,7 +61,9 @@ public sealed record CliArguments(CliOperation Operation, bool Json, string? Out
             if (flag == "--json") { json = true; continue; }
             if (flag == "--allow-cpu-load" && operation == CliOperation.CpuBenchmark) { allow = true; continue; }
             if (flag == "--output" && operation != CliOperation.Capabilities) { output = Value(args, ref i); continue; }
-            if (flag == "--threads" && operation is (CliOperation.MemoryValidation or CliOperation.GameSimValidation)) { threads = Number(args, ref i); continue; }
+            if (flag == "--threads" && operation is (CliOperation.MemoryValidation or CliOperation.GameSimValidation or CliOperation.GameSimPlan)) { threads = Number(args, ref i); continue; }
+            if (operation == CliOperation.GameSimPlan && flag == "--duration-seconds") { simDuration = Number(args, ref i); continue; }
+            if (operation == CliOperation.GameSimPlan && flag == "--timeout-seconds") { timeout = Number(args, ref i); continue; }
             if (operation != CliOperation.CpuBenchmark) throw new ArgumentException("Argumento inválido: " + flag);
             switch (flag)
             {
@@ -104,7 +109,13 @@ public sealed record CliArguments(CliOperation Operation, bool Json, string? Out
             simulation = new() { Threads = threads };
             GameSimValidationRunner.Validate(simulation);
         }
-        return new(operation, json, output, options, device, html, memory, simulation);
+        GameSimFullPlanOptions? plan = null;
+        if (operation == CliOperation.GameSimPlan)
+        {
+            plan = new() { Threads = threads, Duration = TimeSpan.FromSeconds(simDuration), Timeout = TimeSpan.FromSeconds(timeout ?? 15) };
+            GameSimFullPlanner.Validate(plan);
+        }
+        return new(operation, json, output, options, device, html, memory, simulation, plan);
     }
 
     private static string Value(string[] args, ref int index)

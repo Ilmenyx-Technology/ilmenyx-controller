@@ -118,3 +118,14 @@ visível de testes reais não realizados, conforme exceção autorizada. GameSim
 carga, disco/rede, Windows e Wayland nativo continuam pendentes/NÃO TESTADOS. Próxima tarefa:
 especificar I/O temporário seguro antes de implementação/carga. Sem executar fases seguintes
 automaticamente. Ver [metodologia e evidências](gamesim-metodologia.md).
+
+
+## Atualização 0.8.0 — Wayland e registro de testes
+
+Wayland nativo agora validado no CachyOS/KWin: Avalonia 12.1.4 opt-in, DISPLAY removido e
+implementação real Avalonia.Wayland.WindowImpl, sem fallback X11. Regressão X11/XWayland também
+passou; 250 testes, build sem avisos/erros. Isso substitui o estado anterior de nativo não
+implementado. Outras distros/compositores, Windows, AMD/NVIDIA reais e perfis completos seguem
+no registro contínuo Sem_teste.md, conforme nova orientação do usuário. Preparação de GameSim
+completo disponível em bench sim-plan, sem carga/medição; não equivale a runner/FPS/score testado.
+[Comandos, decisões e evidências](wayland-validacao.md). Commits locais, sem publicação automática.

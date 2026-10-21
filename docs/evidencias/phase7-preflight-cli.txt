@@ -1,0 +1,7 @@
+PASS preflight CLI: original workload, proposed limits, execution unavailable, no measured score, stdout=file
+PASS preflight overwrite rejected; bytes preserved
+PASS preflight load opt-in and invalid budgets rejected
+PASS preflight text cannot be mistaken for measured result
+PASS real hardware CLI version 0.8.0
+PASS Desktop invalid backend fails before opening window, exit 2
+Report directory /tmp/silex-preflight-cli-p_iuyntd

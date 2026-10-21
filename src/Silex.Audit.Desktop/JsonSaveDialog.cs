@@ -15,7 +15,7 @@ public sealed class JsonSaveDialog : Window
         CanResize = true; WindowStartupLocation = WindowStartupLocation.CenterOwner;
         string directory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         if (!Directory.Exists(directory)) directory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        var destination = new TextBox { Name = "DestinationPath", Text = Path.Combine(directory, suggestedFileName), Watermark = "/pasta/relatorio" + extension };
+        var destination = new TextBox { Name = "DestinationPath", Text = Path.Combine(directory, suggestedFileName), PlaceholderText = "/pasta/relatorio" + extension };
         var error = new TextBlock { Name = "DestinationError", TextWrapping = TextWrapping.Wrap, Foreground = Brushes.OrangeRed };
         var save = new Button { Name = "SaveJson", Content = "Salvar", IsDefault = true };
         var cancel = new Button { Name = "CancelSaveJson", Content = "Cancelar", IsCancel = true };

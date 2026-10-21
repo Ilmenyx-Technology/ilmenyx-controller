@@ -19,8 +19,8 @@ No CachyOS/Arch, consulte a disponibilidade de `dotnet-sdk` no gerenciador da di
 O `global.json` aceita SDKs 10.0 de feature band mais recente.
 
 Interface: servidor X11 ou XWayland e bibliotecas nativas de X11/fontconfig/Skia.
-Wayland nativo não foi implementado/validado. A CLI não exige display.
-Versão Avalonia fixada: [11.3.21](https://www.nuget.org/packages/Avalonia/11.3.21).
+Wayland nativo opt-in foi validado no CachyOS/KWin; padrão continua X11/XWayland. A CLI não exige display.
+Versão Avalonia fixada: [12.1.4](https://www.nuget.org/packages/Avalonia/12.1.4), com Avalonia.Wayland.
 
 ## Compilar e testar
 
@@ -62,7 +62,7 @@ dotnet run --project src/Silex.Audit.Desktop -c Release --no-build
 `--output` exige arquivo novo e diretório existente. O botão Exportar hardware JSON usa seletor local;
 se o destino existir, escolha outro nome. Os valores JSON usam bytes inteiros; a UI mostra também GiB.
 Cada leitura tem `source`, `unit`, `status` e `reason`; indisponível tem valor `null`, não zero fictício.
-Hardware schema `1.2`, aplicação `0.7.0`, timestamp UTC e runtime registrados.
+Hardware schema `1.2`, aplicação `0.8.0`, timestamp UTC e runtime registrados.
 
 ## Estrutura e limites
 
@@ -260,3 +260,31 @@ dotnet run --project src/Silex.Audit.Desktop -c Release
 Escolha arquivo novo: exportações recusam sobrescrita. Na interface, use “Validar simulação
 (reduzida)” e “Exportar simulação JSON”. Nenhuma simulação inicia automaticamente.
 Os trechos 0.2–0.6 abaixo/acima registram entregas anteriores; o estado atual do GameSim é este.
+
+
+## Wayland nativo e testes pendentes — 0.8.0
+
+Backend nativo validado em janela real CachyOS/KWin com DISPLAY removido, além da regressão
+X11/XWayland. Build sem avisos/erros e 250 testes passaram. Para selecionar explicitamente
+(comandos `env` também funcionam no fish, com SDK no PATH):
+
+```bash
+env -u DISPLAY SILEX_DISPLAY_BACKEND=wayland dotnet run --project src/Silex.Audit.Desktop -c Release --no-build
+env SILEX_DISPLAY_BACKEND=x11 dotnet run --project src/Silex.Audit.Desktop -c Release --no-build
+```
+
+Sem variável, `auto` preserva UsePlatformDetect/X11. Wayland explícito não faz fallback silencioso.
+Validação no compositor atual não certifica outras distros/drivers. Casos pendentes ficam em
+[Sem_teste.md](Sem_teste.md), com ambiente necessário e procedimento para retestar.
+[Decisões, comandos e evidências](docs/wayland-validacao.md).
+
+Para revisar o futuro modo completo de simulação, sem executar carga:
+
+```bash
+dotnet run --project src/Silex.Audit.Cli -c Release --no-build -- bench sim-plan --threads 2 --duration-seconds 3 --timeout-seconds 8 --json
+```
+
+Esse comando apenas prepara configuração. Runner completo/FPS/score ainda não implementados;
+JSON sinaliza `executionAvailable=false`, `executionStatus=not-executed`, `score=null`.
+Execução sustentada continua exigindo autorização específica. Commits locais são feitos por
+incremento; publicação no GitHub permanece sob decisão do usuário.

@@ -97,3 +97,16 @@ Portar incrementalmente o RESET EXPLODE de WPF/.NET Windows para Linux com Avalo
 - Oracle independente via scripts/generate-gamesim-reference.sh remove Run antes de compilar.
 - Estado publicado somente em cópias após Step completo; cancelamento/timeout não publica State/hash.
 - Nenhum teste pode iniciar GameSim completo, disco pesado ou simulação sustentada.
+
+## Registro contínuo de testes
+- Por instrução do usuário: executar testes de funcionalidades sempre que houver ambiente, hardware e autorização necessários.
+- Registrar casos que não possam ser executados em Sem_teste.md, com motivo e condição para retestar em dispositivo/VM.
+- Atualizar o registro ao fechar um caso; não confundir fixtures, preparação ou build com execução real.
+
+- Nova orientação do usuário permite continuar recortes testáveis enquanto casos sem ambiente ficam registrados em Sem_teste.md; não ocultar pendências.
+- Fazer commits locais por incremento validado, preservando arquivos de apoio do usuário; sem push/PR/release automático.
+
+## Desktop 0.8.0
+- Avalonia 12.1.4 com Wayland opt-in, via SILEX_DISPLAY_BACKEND=wayland; padrão auto preserva X11.
+- Smoke nativo exige DISPLAY removido e implementação Avalonia.Wayland.WindowImpl; regressão X11 também necessária ao alterar UI/backend.
+- bench sim-plan é somente preparação revisável, sem runner completo/FPS/score; não tratá-lo como teste de carga.

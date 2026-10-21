@@ -447,3 +447,14 @@ ui.txt/json, panels.png/dashboard.png em docs/evidencias. Metodologia em gamesim
 Submódulo original permanece no SHA fixado, sem alterações. Não houve sudo, stress, alterações
 do sistema, push/PR/release. Full/FPS/low1/Windows/Wayland nativo/AMD-NVIDIA reais: NÃO TESTADOS.
 Este é aceite técnico do recorte testado; não atribui nova aprovação humana ao usuário.
+
+
+## Atualização 0.8.0 — Wayland e registro de testes
+
+Wayland nativo agora validado no CachyOS/KWin: Avalonia 12.1.4 opt-in, DISPLAY removido e
+implementação real Avalonia.Wayland.WindowImpl, sem fallback X11. Regressão X11/XWayland também
+passou; 250 testes, build sem avisos/erros. Isso substitui o estado anterior de nativo não
+implementado. Outras distros/compositores, Windows, AMD/NVIDIA reais e perfis completos seguem
+no registro contínuo Sem_teste.md, conforme nova orientação do usuário. Preparação de GameSim
+completo disponível em bench sim-plan, sem carga/medição; não equivale a runner/FPS/score testado.
+[Comandos, decisões e evidências](wayland-validacao.md). Commits locais, sem publicação automática.

@@ -7,7 +7,13 @@ namespace Silex.Audit.Desktop;
 internal static class Program
 {
     [STAThread]
-    public static void Main(string[] args) => AppBuilder.Configure<App>().UsePlatformDetect().StartWithClassicDesktopLifetime(args);
+    public static int Main(string[] args)
+    {
+        DisplayBackend backend;
+        try { backend = DesktopBackend.Parse(Environment.GetEnvironmentVariable(DesktopBackend.EnvironmentVariable)); }
+        catch (ArgumentException e) { Console.Error.WriteLine(e.Message); return 2; }
+        return DesktopBackend.Configure(AppBuilder.Configure<App>(), backend).StartWithClassicDesktopLifetime(args);
+    }
 }
 public sealed class App : Application
 {

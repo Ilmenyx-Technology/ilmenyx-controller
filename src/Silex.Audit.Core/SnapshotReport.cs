@@ -6,6 +6,8 @@ namespace Silex.Audit.Core;
 public static class SnapshotReport
 {
     public static JsonSerializerOptions Options { get; } = new() { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase, Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) } };
+    public static string Json(GameSimFullPlan plan) => JsonSerializer.Serialize(plan, Options);
+    public static Task ExportAsync(GameSimFullPlan plan, string path, CancellationToken ct = default) => ExportDocumentAsync(plan, path, ct);
     public static string Json(GameSimValidationReport report) => JsonSerializer.Serialize(report, Options);
     public static Task ExportAsync(GameSimValidationReport report, string path, CancellationToken ct = default) => ExportDocumentAsync(report, path, ct);
     public static string Json(MemoryValidationReport report) => JsonSerializer.Serialize(report, Options);

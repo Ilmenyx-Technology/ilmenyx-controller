@@ -14,6 +14,16 @@ using var stop = new CancellationTokenSource();
 Console.CancelKeyPress += (_, e) => { e.Cancel = true; stop.Cancel(); };
 try
 {
+    if (command.Operation == CliOperation.GameSimPlan)
+    {
+        var plan = GameSimFullPlanner.Create(command.SimulationPlan!);
+        if (command.Output is { } planPath) await SnapshotReport.ExportAsync(plan, planPath, stop.Token);
+        Console.WriteLine(command.Json ? SnapshotReport.Json(plan) :
+            $"Plano GameSim completo · NÃO EXECUTADO\nEntidades: {plan.Entities} · Workers: {plan.Threads}\n" +
+            $"Warmup: {plan.WarmupSeconds} s · Medição proposta: {plan.DurationSeconds} s · Timeout proposto: {plan.TimeoutSeconds} s\n" +
+            "Runner completo ainda não implementado. Sem FPS/score medidos. Consulte Sem_teste.md (SIM-01).");
+        return 0;
+    }
     if (command.Operation == CliOperation.Smart)
     {
         var diagnostic = await new SmartctlDiagnostic(new SmartctlQuery()).CollectAsync(command.Device!, stop.Token);

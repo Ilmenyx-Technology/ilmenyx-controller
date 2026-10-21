@@ -6,42 +6,46 @@ Avalonia.BuildServices excluído via ExcludeAssets=all / PrivateAssets=all; proj
 
 | Pacote | Versão | Licença declarada |
 |---|---|---|
-| Avalonia.Angle.Windows.Natives | 2.1.25547.20250602 | LICENSE (arquivo do pacote) |
+| Avalonia | 12.1.4 | MIT |
+| Avalonia.Angle.Windows.Natives | 2.1.27548.20260419 | LICENSE (arquivo do pacote) |
 | Avalonia.BuildServices | 11.3.2 | MIT |
-| Avalonia.Desktop | 11.3.21 | MIT |
-| Avalonia.FreeDesktop | 11.3.21 | MIT |
-| Avalonia.Native | 11.3.21 | MIT |
-| Avalonia.Remote.Protocol | 11.3.21 | MIT |
-| Avalonia.Skia | 11.3.21 | MIT |
-| Avalonia.Themes.Fluent | 11.3.21 | MIT |
-| Avalonia.Win32 | 11.3.21 | MIT |
-| Avalonia.X11 | 11.3.21 | MIT |
-| Avalonia | 11.3.21 | MIT |
-| HarfBuzzSharp.NativeAssets.Linux | 8.3.1.1 | MIT |
-| HarfBuzzSharp.NativeAssets.macOS | 8.3.1.1 | MIT |
-| HarfBuzzSharp.NativeAssets.WebAssembly | 8.3.1.1 | MIT |
-| HarfBuzzSharp.NativeAssets.Win32 | 8.3.1.1 | MIT |
-| HarfBuzzSharp | 8.3.1.1 | MIT |
-| MicroCom.Runtime | 0.11.0 | MIT |
+| Avalonia.Desktop | 12.1.4 | MIT |
+| Avalonia.FreeDesktop | 12.1.4 | MIT |
+| Avalonia.FreeDesktop.AtSpi | 12.1.4 | MIT |
+| Avalonia.HarfBuzz | 12.1.4 | MIT |
+| Avalonia.Native | 12.1.4 | MIT |
+| Avalonia.Remote.Protocol | 12.1.4 | MIT |
+| Avalonia.Skia | 12.1.4 | MIT |
+| Avalonia.Themes.Fluent | 12.1.4 | MIT |
+| Avalonia.Wayland | 12.1.4 | MIT |
+| Avalonia.Win32 | 12.1.4 | MIT |
+| Avalonia.X11 | 12.1.4 | MIT |
+| HarfBuzzSharp | 8.3.1.3 | MIT |
+| HarfBuzzSharp.NativeAssets.Linux | 8.3.1.3 | MIT |
+| HarfBuzzSharp.NativeAssets.macOS | 8.3.1.3 | MIT |
+| HarfBuzzSharp.NativeAssets.WebAssembly | 8.3.1.3 | MIT |
+| HarfBuzzSharp.NativeAssets.Win32 | 8.3.1.3 | MIT |
+| MicroCom.Runtime | 0.11.6 | MIT |
 | Microsoft.CodeCoverage | 17.14.1 | MIT |
 | Microsoft.NET.Test.Sdk | 17.14.1 | MIT |
 | Microsoft.TestPlatform.ObjectModel | 17.14.1 | MIT |
 | Microsoft.TestPlatform.TestHost | 17.14.1 | MIT |
 | Newtonsoft.Json | 13.0.3 | MIT |
-| SkiaSharp.NativeAssets.Linux | 2.88.9 | MIT |
-| SkiaSharp.NativeAssets.macOS | 2.88.9 | MIT |
-| SkiaSharp.NativeAssets.WebAssembly | 2.88.9 | MIT |
-| SkiaSharp.NativeAssets.Win32 | 2.88.9 | MIT |
-| SkiaSharp | 2.88.9 | MIT |
-| Tmds.DBus.Protocol | 0.21.3 | MIT |
-| xunit.abstractions | 2.0.3 | consultar pacote |
+| NWayland | 0.11.0 | MIT |
+| SkiaSharp | 3.119.4 | MIT |
+| SkiaSharp.NativeAssets.Linux | 3.119.4 | MIT |
+| SkiaSharp.NativeAssets.macOS | 3.119.4 | MIT |
+| SkiaSharp.NativeAssets.WebAssembly | 3.119.4 | MIT |
+| SkiaSharp.NativeAssets.Win32 | 3.119.4 | MIT |
+| Tmds.DBus.Protocol | 0.94.1 | MIT |
+| xunit | 2.9.3 | Apache-2.0 |
+| xunit.abstractions | 2.0.3 | consultar https://raw.githubusercontent.com/xunit/xunit/master/license.txt |
 | xunit.analyzers | 1.18.0 | Apache-2.0 |
 | xunit.assert | 2.9.3 | Apache-2.0 |
 | xunit.core | 2.9.3 | Apache-2.0 |
 | xunit.extensibility.core | 2.9.3 | Apache-2.0 |
 | xunit.extensibility.execution | 2.9.3 | Apache-2.0 |
 | xunit.runner.visualstudio | 3.0.2 | Apache-2.0 |
-| xunit | 2.9.3 | Apache-2.0 |
 
 Manifest de licença em arquivo (ANGLE) deve acompanhar eventual redistribuição;
 Skia/HarfBuzz incluem componentes nativos e avisos internos a revisar no empacotamento.
@@ -84,3 +88,14 @@ Gustavo (GustavoReset), MIT, commit ce1d9b30518bbe75bb5e6cb792d1b1e365aaddd6. Av
 no código e LICENSE. Fixture gamesim-reference.json deriva da execução reduzida do original;
 oracle em temporário não compõe distribuição. Sem assets originais, nova dependência ou
 certificação clean-room estrita. Ver docs/gamesim-metodologia.md.
+
+
+## Wayland nativo — 0.8.0
+
+Avalonia e temas atualizados para 12.1.4, necessário para o backend nativo opt-in. Novo pacote
+Avalonia.Wayland 12.1.4: MIT, copyright 2013–2026 The AvaloniaUI Project; repositório AvaloniaUI/Avalonia
+commit 2d79ba55fae1b1e71c69f93a668080c9029e6a31. Dependência NWayland 0.11.0: MIT,
+repositório kekekeks/NWayland commit 2c37c6f84c45e2e0428221b24ff486187e8ae873.
+Manifests nuspec restaurados conferidos. SkiaSharp passa a 3.119.4 e HarfBuzzSharp a 8.3.1.3;
+licenças declaradas MIT. Revisar avisos nativos completos no empacotamento, sem distribuição nesta tarefa.
+Avalonia.BuildServices continua excluído dos assets/privado, com telemetria desativada.

@@ -20,7 +20,7 @@ internal static class Program
         if (args.Length != 1 || !Path.IsPathFullyQualified(args[0])) throw new ArgumentException("Supply an absolute directory for this opt-in graphical smoke test.");
         OutputDirectory = Path.Combine(args[0], "silex-ui-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(OutputDirectory);
-        return AppBuilder.Configure<UiSmokeApp>().UsePlatformDetect().StartWithClassicDesktopLifetime(Array.Empty<string>());
+        return DesktopBackend.Configure(AppBuilder.Configure<UiSmokeApp>(), DesktopBackend.Parse(Environment.GetEnvironmentVariable(DesktopBackend.EnvironmentVariable))).StartWithClassicDesktopLifetime(Array.Empty<string>());
     }
 }
 
@@ -72,7 +72,7 @@ public sealed class UiSmokeApp : Application
     private static void Capture(Window window, string file)
     {
         using var image = new RenderTargetBitmap(new PixelSize((int)window.Bounds.Width, (int)window.Bounds.Height), new Vector(96, 96));
-        image.Render(window); image.Save(Path.Combine(Program.OutputDirectory, file));
+        image.Render(window); image.Save(Path.Combine(Program.OutputDirectory, file), PngBitmapEncoderOptions.Default);
     }
     private static async Task SaveAsync(Window owner, IClassicDesktopStyleApplicationLifetime desktop, string button, string path)
     {
@@ -87,6 +87,18 @@ public sealed class UiSmokeApp : Application
     private static async Task ExerciseAsync(DashboardWindow window, IClassicDesktopStyleApplicationLifetime desktop)
     {
         var output = Program.OutputDirectory;
+        var implementation = window.PlatformImpl?.GetType().FullName ?? "unavailable";
+        var requested = DesktopBackend.Parse(Environment.GetEnvironmentVariable(DesktopBackend.EnvironmentVariable));
+        if (requested == DisplayBackend.Wayland && !implementation.StartsWith("Avalonia.Wayland.", StringComparison.Ordinal))
+            throw new InvalidOperationException("Native Wayland was requested but another backend was selected: " + implementation);
+        if (requested == DisplayBackend.X11 && !implementation.StartsWith("Avalonia.X11.", StringComparison.Ordinal))
+            throw new InvalidOperationException("X11 was requested but another backend was selected: " + implementation);
+        Console.WriteLine("ACTUAL WINDOW IMPLEMENTATION " + implementation);
+        var handle = window.TryGetPlatformHandle();
+        Console.WriteLine("DISPLAY BACKEND requested=" + (Environment.GetEnvironmentVariable(DesktopBackend.EnvironmentVariable) ?? "auto") + "; handle=" + handle?.HandleDescriptor);
+        if (DesktopBackend.Parse(Environment.GetEnvironmentVariable(DesktopBackend.EnvironmentVariable)) == DisplayBackend.Wayland &&
+            !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DISPLAY")))
+            throw new InvalidOperationException("For a conclusive native smoke test, unset DISPLAY.");
         await Until(() => Find<TextBlock>(window, "HardwareStatus").Text?.StartsWith("Snapshot:") == true);
         var existing = Path.Combine(output, "preserved.json");
         File.WriteAllText(existing, "preserve-this-file");

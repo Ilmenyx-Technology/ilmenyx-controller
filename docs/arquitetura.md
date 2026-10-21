@@ -1,6 +1,6 @@
 # Arquitetura
 
-Silex Audit: implementação independente em C# com .NET 10 LTS e Avalonia 11.3.21
+Silex Audit: implementação independente em C# com .NET 10 LTS e Avalonia 12.1.4
 (versão estável fixada, disponível no NuGet). Sem Rust: não há medição justificando outra linguagem.
 Contracts: DTOs e IHardwareInfoProvider; Core: JSON e apresentação neutra; Platform.Linux:
 leitura limitada e parse injetável; Cli e Desktop: composition roots. Nenhum projeto Windows vazio.
@@ -171,3 +171,12 @@ passos fixos. Não depende de SO/UI. UI só recebe cópias imutáveis após fís
 nenhum buffer interno atravessa a fronteira. Prévia final top-down sem timer/medição.
 CLI e ViewModel usam o runner; JSON usa writer atômico comum. Detalhes e diferenças da fonte MIT
 em [metodologia GameSim](gamesim-metodologia.md). Não há comparação de FPS com Windows.
+
+
+## Desktop 0.8.0 e preflight
+
+DesktopBackend compõe UsePlatformDetect (Skia/fontes), depois override X11/Wayland opcional
+por SILEX_DISPLAY_BACKEND. Core/Contracts continuam sem Avalonia. Padrão mantém X11, nativo
+opt-in sem fallback. Harness confirma implementação real da janela, não apenas variáveis da sessão.
+GameSimFullPlanner só prepara metadados/limites revisáveis; não executa engine ou mede score.
+Detalhes e testes em [Wayland/preflight](wayland-validacao.md). Sem_teste.md é registro contínuo.

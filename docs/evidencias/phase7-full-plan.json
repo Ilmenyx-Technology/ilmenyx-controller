@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "gamesim-full-preflight",
+  "executionStatus": "not-executed",
+  "executionAvailable": false,
+  "referenceCommit": "ce1d9b30518bbe75bb5e6cb792d1b1e365aaddd6",
+  "entities": 30000,
+  "world": 1000,
+  "gridSize": 64,
+  "deltaTime": 0.016666668,
+  "seed": 12345,
+  "threads": 2,
+  "chunks": 8,
+  "warmupSeconds": 2,
+  "durationSeconds": 3,
+  "timeoutSeconds": 8,
+  "maximumStoredFrameTimes": 200000,
+  "score": null,
+  "scoreFormula": "measuredFrames / measuredElapsedSeconds (experimental simulation FPS)",
+  "low1Definition": "1000 / sortedFrameMilliseconds[min(n-1, floor(n*0.99))]; not the mean of the slowest 1%",
+  "scoreComparability": "not-validated",
+  "runtime": ".NET 10.0.0",
+  "architecture": "X64",
+  "requiredValidation": [
+    "Implementar runner completo; este plano n\u00E3o executa simula\u00E7\u00E3o ou mede FPS/score.",
+    "Validar matem\u00E1tica em 30.000 entidades, f\u00F3rmula de FPS/p99, timeout/cancelamento e mem\u00F3ria limitada.",
+    "Executar carga curta somente com autoriza\u00E7\u00E3o expl\u00EDcita; restri\u00E7\u00E3o anterior de stress continua vigente.",
+    "Comparar Windows em m\u00E1quina/VM equivalente antes de alegar comparabilidade."
+  ],
+  "limitations": [
+    "Warmup por rel\u00F3gio avan\u00E7a estado vari\u00E1vel; n\u00E3o reiniciar mundo/RNG ap\u00F3s aquecimento se preservar m\u00E9todo original.",
+    "Limites aqui s\u00E3o contrato proposto para o runner futuro, n\u00E3o prote\u00E7\u00F5es j\u00E1 implementadas de execu\u00E7\u00E3o.",
+    "No original, Score=AvgFps; n\u00E3o representa FPS de jogo real nem desempenho de GPU.",
+    "Timeout futuro ser\u00E1 cooperativo entre Steps completos, n\u00E3o interrup\u00E7\u00E3o instant\u00E2nea.",
+    "Frame times dever\u00E3o ter teto expl\u00EDcito; se atingido, suprimir m\u00E9tricas e registrar limite em vez de descartar amostras silenciosamente.",
+    "Sem monitoramento/prote\u00E7\u00E3o t\u00E9rmica, afinidade ou controle de energia implementados."
+  ]
+}
