@@ -34,7 +34,7 @@ public sealed class UiSmokeApp : Application
     {
         var desktop = (IClassicDesktopStyleApplicationLifetime)ApplicationLifetime!;
         desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
-        var window = new DashboardWindow();
+        var window = new DashboardWindow { Width = 640, Height = 480 };
         desktop.MainWindow = window;
         window.Opened += async (_, _) =>
         {
@@ -180,6 +180,99 @@ public sealed class UiSmokeApp : Application
             if (string.IsNullOrWhiteSpace(ControlAutomationPeer.CreatePeerForElement(button)?.GetName()))
                 throw new InvalidOperationException("Unnamed button automation peer: " + button.Name);
         Console.WriteLine("PASS keyboard About: arrow changes tab, named license text, Escape closes, focus restored; dashboard buttons have automation names");
+    }
+    private static Dictionary<Control, double> ScaleText(Window window, double factor)
+    {
+        // Snapshot all effective values before assigning any: inherited fonts must not compound.
+        var fonts = window.GetVisualDescendants().OfType<Control>()
+            .Where(c => c is TextBlock or TextBox or Button or TabItem)
+            .ToDictionary(c => c, c => c.GetValue(Avalonia.Controls.Documents.TextElement.FontSizeProperty));
+        foreach (var (control, size) in fonts) control.SetValue(Avalonia.Controls.Documents.TextElement.FontSizeProperty, size * factor);
+        return fonts;
+    }
+    private static async Task Reachable(Window window, Control control)
+    {
+        control.BringIntoView();
+        var timer = Stopwatch.StartNew();
+        Point point;
+        do
+        {
+            await Task.Delay(30);
+            point = control.TranslatePoint(default, window) ?? throw new InvalidOperationException("Detached layout control.");
+            if (point.X >= -1 && point.Y >= -1 && point.X + control.Bounds.Width <= window.Bounds.Width + 1 &&
+                point.Y + control.Bounds.Height <= window.Bounds.Height + 1 && control.Bounds.Width > 0 && control.Bounds.Height > 0) return;
+        } while (timer.Elapsed < TimeSpan.FromSeconds(2));
+        throw new InvalidOperationException($"Clipped control {control.Name ?? control.GetType().Name}: {point}, {control.Bounds.Size}; window {window.Bounds.Size}");
+    }
+    private static async Task MinimumSize(Window window)
+    {
+        // Separate requests and await native acknowledgement: X11 ConfigureNotify is asynchronous.
+        window.Width = window.MinWidth;
+        await Until(() => Math.Abs(window.Bounds.Width - window.MinWidth) < 1);
+        window.Height = window.MinHeight;
+        await Task.Delay(120);
+        await Until(() => Math.Abs(window.Bounds.Height - window.MinHeight) < 1);
+        await Task.Delay(120);
+    }
+
+    private static void TextFits(Window window, List<string> errors)
+    {
+        foreach (var text in window.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible && t.Bounds.Width > 0))
+            if (text.TextLayout.Width > text.Bounds.Width + 2 || text.TextLayout.Height > text.Bounds.Height + 2)
+                errors.Add($"Text clipped in {window.GetType().Name}/{text.Name ?? "TextBlock"}: layout={text.TextLayout.Width}x{text.TextLayout.Height}, bounds={text.Bounds.Size}");
+    }
+    private static async Task LayoutAsync(DashboardWindow window, IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        var errors = new List<string>();
+        foreach (var factor in new[] { 1.0, 1.5 })
+        {
+            var fonts = ScaleText(window, factor);
+            await MinimumSize(window);
+            foreach (var button in window.GetVisualDescendants().OfType<Button>().Where(b => !string.IsNullOrEmpty(b.Name) && !b.Name.StartsWith("PART_", StringComparison.Ordinal) && b.IsEffectivelyVisible))
+                try { await Reachable(window, button); } catch (InvalidOperationException e) { errors.Add(e.Message); }
+            TextFits(window, errors);
+            Find<ScrollViewer>(window, "DashboardScroll").ScrollToHome(); await Task.Delay(60);
+            Capture(window, $"layout-dashboard-{factor:0.0}.png");
+            foreach (var (control, size) in fonts) control.SetValue(Avalonia.Controls.Documents.TextElement.FontSizeProperty, size);
+            Console.WriteLine($"LAYOUT dashboard factor={factor} actual={window.Bounds.Size} renderScaling={window.RenderScaling}");
+
+            Click(window, "ExportHardware"); var dialog = await Dialog(desktop);
+            await MinimumSize(dialog);
+            ScaleText(dialog, factor); await Task.Delay(180);
+            Find<TextBox>(dialog, "DestinationPath").Text = "relative.json"; Key(dialog, Avalonia.Input.Key.Enter);
+            foreach (var name in new[] { "DestinationPath", "DestinationError", "SaveJson", "CancelSaveJson" })
+                try { await Reachable(dialog, Find<Control>(dialog, name)); } catch (InvalidOperationException e) { errors.Add(e.Message); }
+            TextFits(dialog, errors);
+            Capture(dialog, $"layout-save-{factor:0.0}.png");
+            Key(dialog, Avalonia.Input.Key.Escape); await Until(() => !dialog.IsVisible);
+            Console.WriteLine($"LAYOUT save factor={factor} actual={dialog.Bounds.Size} renderScaling={dialog.RenderScaling}");
+
+            Click(window, "About"); await Until(() => desktop.Windows.OfType<AboutDialog>().Any(w => w.IsVisible));
+            var about = desktop.Windows.OfType<AboutDialog>().Single(w => w.IsVisible);
+            await MinimumSize(about);
+            var tabs = about.GetVisualDescendants().OfType<TabControl>().Single();
+            ScaleText(about, factor); await Task.Delay(100);
+            foreach (var item in about.GetVisualDescendants().OfType<TabItem>().ToArray())
+            {
+                item.Focus(); tabs.SelectedItem = item; await Task.Delay(60);
+                try { await Reachable(about, item); } catch (InvalidOperationException e) { errors.Add(e.Message); }
+                var text = about.GetVisualDescendants().OfType<TextBox>().Single(t => t.IsEffectivelyVisible);
+                text.FontSize = 14 * factor;
+                try { await Reachable(about, text); await Reachable(about, Find<Button>(about, "CloseAbout")); }
+                catch (InvalidOperationException e) { errors.Add(e.Message); }
+            }
+            var heading = about.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Text == "Ilmenyx · by Bismuth Technology");
+            try { await Reachable(about, heading); } catch (InvalidOperationException e) { errors.Add(e.Message); }
+            Console.WriteLine($"LAYOUT About heading origin={heading.TranslatePoint(default, about)} bounds={heading.Bounds.Size} text={heading.TextLayout.Width}x{heading.TextLayout.Height}");
+            TextFits(about, errors);
+            Capture(about, $"layout-about-{factor:0.0}.png");
+            Key(about, Avalonia.Input.Key.Escape); await Until(() => !about.IsVisible);
+            Console.WriteLine($"LAYOUT about factor={factor} actual={about.Bounds.Size} renderScaling={about.RenderScaling}");
+        }
+        window.Width = 1060; window.Height = 780; await Task.Delay(120);
+        File.WriteAllLines(Path.Combine(Program.OutputDirectory, "layout-errors.txt"), errors);
+        if (errors.Count != 0) throw new InvalidOperationException(string.Join("\n", errors));
+        Console.WriteLine("PASS layout minimum sizes, text factors 1/1.5: dashboard buttons, save field/error/actions, About tabs/text/close reachable");
     }
     private static async Task ExerciseAsync(DashboardWindow window, IClassicDesktopStyleApplicationLifetime desktop)
     {
@@ -379,5 +472,6 @@ public sealed class UiSmokeApp : Application
         Find<ScrollViewer>(window, "DashboardScroll").ScrollToEnd();
         await Task.Delay(80); Capture(window, "validation-panels.png");
         Console.WriteLine("PASS sensor monitor start/stop and UI export");
+        await LayoutAsync(window, desktop);
     }
 }

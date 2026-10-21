@@ -7,7 +7,7 @@ política de contribuições próprias futuras: uso como ferramenta profissional
 venda do programa/acesso pago e derivação comercial do código restritos.
 Veja [mapa de licenças](LICENSING.md): a MIT original continua permitindo uso comercial das
 partes abrangidas, sem revogação de direitos anteriores. O conjunto não é anunciado como open source OSI.
-Versão local experimental 0.13.0; sem lançamento público nesta sessão.
+Versão local experimental 0.14.0; sem lançamento público nesta sessão.
 
 Ilmenyx é uma adaptação independente e não oficial do [RESET EXPLODE](https://github.com/GustavoReset/ResetExplode),
 criado por Gustavo (GustavoReset). Não possui afiliação, patrocínio ou endosso da equipe RESET.
@@ -145,3 +145,11 @@ Diálogos têm rótulos/instruções acessíveis e retorno do foco ao botão de 
 Tab/Shift+Tab, Espaço, Enter, Escape e setas foram testados por eventos internos
 em Wayland nativo e X11. Leitor de tela e entrada física NÃO TESTADOS.
 Veja [escopo, evidências e comandos](docs/acessibilidade-teclado.md).
+
+### Layout mínimo (0.14.0)
+
+As ações do dashboard quebram em linhas; o diálogo de exportação permite rolagem
+e o título de Sobre quebra com texto ampliado.
+[Método, evidências e limites](docs/layout-minimo.md).
+279 testes aprovados; smokes Wayland nativo e X11 passaram nos tamanhos mínimos
+com texto normal e 150% no harness. Outras escalas e tecnologias assistivas pendentes.

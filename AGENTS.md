@@ -156,3 +156,7 @@ as regras de arquitetura Linux, benchmarks, testes, licenças e segurança anter
 ## Teclado e acessibilidade 0.13.0
 - Manter retorno do foco ao botão após reabilitá-lo, ciclo local dos diálogos e rótulos do campo de destino.
 - Teste com eventos roteados valida handlers no processo; não equivale a teclado físico ou Orca/AT-SPI. Registrar separadamente.
+
+## Layout mínimo 0.14.0
+- Preservar quebra de ações no dashboard, rolagem do diálogo sem stop extra de Tab e título Sobre com quebra.
+- Geometria deve usar tamanho real confirmado pelo backend; ampliação de fonte no harness não certifica toda escala/DPI ou tecnologia assistiva.

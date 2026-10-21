@@ -30,7 +30,7 @@ public sealed class AboutDialog : Window
         AutomationProperties.SetName(tabs, "Licenças e créditos");
         var panel = new DockPanel { Margin = new Thickness(20), LastChildFill = true };
         DockPanel.SetDock(close, Dock.Bottom); panel.Children.Add(close);
-        var heading = new TextBlock { Text = "Ilmenyx · by Bismuth Technology", FontSize = 20, Margin = new Thickness(0, 0, 0, 12) };
+        var heading = new TextBlock { Text = "Ilmenyx · by Bismuth Technology", TextWrapping = TextWrapping.Wrap, FontSize = 20, Margin = new Thickness(0, 0, 0, 12) };
         DockPanel.SetDock(heading, Dock.Top); panel.Children.Add(heading); panel.Children.Add(tabs); Content = panel;
     }
     private static TabItem Tab(string title, string text, string name)

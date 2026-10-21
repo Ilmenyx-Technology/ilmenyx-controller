@@ -49,7 +49,7 @@ public sealed class JsonSaveDialog : Window
             }
         };
         cancel.Click += (_, _) => Close(null);
-        Content = new StackPanel
+        var content = new StackPanel
         {
             Margin = new Thickness(24),
             Spacing = 12,
@@ -60,6 +60,12 @@ public sealed class JsonSaveDialog : Window
                 label, destination, error,
                 new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, Children = { save, cancel } }
             }
+        };
+        Content = new ScrollViewer
+        {
+            Name = "SaveDialogScroll", Content = content, IsTabStop = false,
+            HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
+            VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto
         };
         Opened += (_, _) => { destination.Focus(); destination.SelectAll(); };
     }

@@ -97,3 +97,13 @@ Wayland nativo e X11 com eventos de teclado no processo passou. GUI-02 continua
 NÃO TESTADO para Orca/AT-SPI (Orca ausente), entrada física e avaliação assistiva
 completa. Não houve instalação nem certificação de acessibilidade.
 [Detalhes e limites](docs/acessibilidade-teclado.md).
+
+
+## Atualização 0.14.0 — layout mínimo e texto ampliado
+
+IMPLEMENTADO: ações do dashboard quebram em linhas, exportação com rolagem vertical
+e título Sobre com quebra. Build sem avisos/erros, 279 testes aprovados e smokes
+Wayland nativo/X11 aprovados. Mínimos 640×480, 440×360 e 480×360 DIP, texto normal
+e 150% por instrumentação no processo: controles medidos alcançáveis após rolagem.
+Fecha esse recorte local de layout, sem fechar GUI-01/GUI-02 para outros displays,
+200% de texto, leitores de tela ou entrada física. [Evidências e limites](docs/layout-minimo.md).

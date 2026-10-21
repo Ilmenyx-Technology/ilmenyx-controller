@@ -1,0 +1,31 @@
+PASS keyboard save dialog: Space opens, Enter saves, Tab/Shift+Tab cycle, Escape cancels, error help/focus, automation peer name, focus restored
+PASS keyboard About: arrow changes tab, named license text, Escape closes, focus restored; dashboard buttons have automation names
+PASS Ilmenyx identity, by Bismuth Technology, live About/attribution/MIT/dependency tabs and close
+ACTUAL WINDOW IMPLEMENTATION Avalonia.X11.X11Window
+DISPLAY BACKEND requested=x11; handle=XID
+PASS visible AMD/NVIDIA notice: Testes não realizados em hardware real
+PASS hardware UI export and overwrite refusal
+PASS HTML UI export, same snapshot, cancel, extension validation and overwrite refusal
+PASS CPU cancel control
+EXPORTED cpu.json
+PASS CPU real render, cancelled picker and UI export
+PASS cpu HTML UI: same JSON report, cancellation, extension, overwrite refusal and real export
+EXPORTED memory.json
+PASS memory validation: no autostart, real bounded result, cancel control, cancelled dialog and JSON export
+PASS memory HTML UI: same JSON report, cancellation, extension, overwrite refusal and real export
+EXPORTED sim.json
+PASS GameSim: no autostart; cancel; 256 entities/16 steps; immutable final preview; oracle hash; cancelled dialog; JSON export
+PASS sim HTML UI: same JSON report, cancellation, extension, overwrite refusal and real export
+EXPORTED sensors.json
+PASS panel keyboard order: CPU/memory/sim JSON/HTML reachable; disabled cancellation controls skipped; reverse Tab works
+PASS sensor monitor start/stop and UI export
+LAYOUT dashboard factor=1 actual=640.258064516129, 480 renderScaling=1.2916666666666667
+LAYOUT save factor=1 actual=440.51612903225805, 360 renderScaling=1
+LAYOUT About heading origin=20.129032258064516, 20.129032258064516 bounds=439.7419354838709, 27.870967741935484 text=308.88000000000005x27.24
+LAYOUT about factor=1 actual=480, 360 renderScaling=1
+LAYOUT dashboard factor=1.5 actual=640.258064516129, 480 renderScaling=1.2916666666666667
+LAYOUT save factor=1.5 actual=440.51612903225805, 360 renderScaling=1
+LAYOUT About heading origin=20.129032258064516, 20.129032258064516 bounds=439.7419354838709, 82.06451612903226 text=294.75000000000006x81.72
+LAYOUT about factor=1.5 actual=480, 360 renderScaling=1
+PASS layout minimum sizes, text factors 1/1.5: dashboard buttons, save field/error/actions, About tabs/text/close reachable
+PASS /tmp/ilmenyx-layout-x11/ilmenyx-ui-c24c68c8ebaf4e9381aa6615b417a6da
