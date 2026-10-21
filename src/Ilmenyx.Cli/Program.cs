@@ -10,6 +10,11 @@ try { command = CliArguments.Parse(args); }
 catch (ArgumentException e) { Console.Error.WriteLine(e.Message + "\n" + CliArguments.Help); return 2; }
 if (command.Operation == CliOperation.Help) { Console.WriteLine(CliArguments.Help); return 0; }
 if (!OperatingSystem.IsLinux()) { Console.Error.WriteLine("Backend disponível apenas no Linux."); return 3; }
+if (command.Operation == CliOperation.Doctor)
+    return DoctorCommand.Run(new LinuxRuntimeDependencies(), Console.Out,
+        LinuxRuntimeDependencies.IsInvariantModeRequested(),
+        !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DISPLAY")),
+        !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WAYLAND_DISPLAY")));
 using var stop = new CancellationTokenSource();
 Console.CancelKeyPress += (_, e) => { e.Cancel = true; stop.Cancel(); };
 try

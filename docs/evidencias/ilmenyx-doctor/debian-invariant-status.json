@@ -1,0 +1,34 @@
+[
+  {
+    "case": "runtimes",
+    "exitCode": 0
+  },
+  {
+    "case": "sdks",
+    "exitCode": 0
+  },
+  {
+    "case": "help",
+    "exitCode": 0
+  },
+  {
+    "case": "doctor",
+    "exitCode": 0
+  },
+  {
+    "case": "info",
+    "exitCode": 0
+  },
+  {
+    "case": "capabilities",
+    "exitCode": 0
+  },
+  {
+    "case": "sensors",
+    "exitCode": 0
+  },
+  {
+    "case": "apphost-dependencies",
+    "exitCode": 0
+  }
+]

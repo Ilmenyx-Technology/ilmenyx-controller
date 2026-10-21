@@ -4,13 +4,14 @@ using Ilmenyx.Platform.Linux;
 using Ilmenyx.Core.Benchmarks;
 namespace Ilmenyx.Cli;
 
-public enum CliOperation { Help, Info, Capabilities, CpuBenchmark, Sensors, Smart, MemoryValidation, GameSimValidation, GameSimPlan, GameSimBenchmark }
+public enum CliOperation { Help, Info, Capabilities, CpuBenchmark, Sensors, Smart, MemoryValidation, GameSimValidation, GameSimPlan, GameSimBenchmark, Doctor }
 public sealed record CliArguments(CliOperation Operation, bool Json, string? Output, CpuBenchmarkOptions? Benchmark, string? Device = null, bool Html = false, MemoryValidationOptions? Memory = null, GameSimValidationOptions? Simulation = null, GameSimFullPlanOptions? SimulationPlan = null, GameSimBenchmarkOptions? SimulationBenchmark = null)
 {
     public const string Help = """
         Ilmenyx · by Bismuth Technology
         Adaptação independente e não oficial de RESET EXPLODE, de Gustavo (GustavoReset), MIT.
         Sem afiliação, patrocínio ou endosso da equipe RESET.
+          doctor
           info [--json|--html] [--output ARQUIVO]
           capabilities [--json]
           sensors [--json] [--output ARQUIVO]
@@ -22,6 +23,7 @@ public sealed record CliArguments(CliOperation Operation, bool Json, string? Out
           bench cpu [--profile validation|full] [--threads N] [--json|--html] [--output ARQUIVO]
                     [--min-seconds N] [--timeout-seconds N] [--allow-cpu-load]
           --help
+        doctor: requisitos locais, texto somente, sem inventario ou benchmarks.
         CPU padrão: validação 32x18, 8 spp, uma passada, sem score.
         sim-plan: prepara configuração revisável; NÃO executa carga nem mede FPS/score.
         GameSim: 256 entidades, 16 passos fixos; sem FPS ou score.
@@ -34,6 +36,11 @@ public sealed record CliArguments(CliOperation Operation, bool Json, string? Out
     public static CliArguments Parse(string[] args)
     {
         if (args.Length == 0 || args is ["--help"]) return new(CliOperation.Help, false, null, null);
+        if (args[0] == "doctor")
+        {
+            if (args.Length != 1) throw new ArgumentException("doctor aceita apenas saida textual, sem opcoes, exportacao ou carga.");
+            return new(CliOperation.Doctor, false, null, null);
+        }
         int offset = 1;
         var operation = args[0] switch
         {

@@ -184,3 +184,8 @@ as regras de arquitetura Linux, benchmarks, testes, licenças e segurança anter
 - LinuxRuntimeDependencies fica no adaptador Linux; evitar APIs culturais antes da verificação.
 - Falta de ICU nas rotas protegidas retorna 5 sem coleta/JSON parcial; não habilitar invariant silenciosamente.
 - Par de bibliotecas encontrado não certifica ABI/culturas; documentar sonames e faixa testados. Teste negativo aprovado não aprova inventário sem ICU.
+
+## Doctor CLI 0.19.0
+- Doctor é textual, sem opções de exportação/carga, sem provedores de inventário e sem conexão gráfica.
+- Bibliotecas carregáveis e variáveis não vazias não provam GUI/driver/fontes/ABI. Não habilitar recursos com base apenas nisso.
+- Deve explicar ICU ausente sem APIs culturais/JSON; não ativar invariant automaticamente. Saída 0/5 reflete requisitos básicos CLI.

@@ -13,8 +13,11 @@ mode=${ILMENYX_CONTAINER_INVARIANT:-0}
 guard=${ILMENYX_CONTAINER_TEST_ICU_GUARD:-0}
 [[ $guard == 0 || $guard == 1 ]] || { echo 'Teste do guard deve ser 0 ou 1.' >&2; exit 2; }
 if [[ $guard == 1 ]]; then
-  jq -e '.version == "0.18.0"' "$2/package.json" >/dev/null # Never bypass preflight on older aborting builds.
+  jq -e '.version == "0.18.0" or .version == "0.19.0"' "$2/package.json" >/dev/null # Never bypass preflight on older aborting builds.
 fi
+doctor=${ILMENYX_CONTAINER_TEST_DOCTOR:-0}
+[[ $doctor == 0 || $doctor == 1 ]] || { echo 'Teste doctor deve ser 0 ou 1.' >&2; exit 2; }
+if [[ $doctor == 1 ]]; then jq -e '.version == "0.19.0"' "$2/package.json" >/dev/null; fi
 image=$(docker image inspect "$1" --format '{{.Id}}') # Resolve local identity, never pull.
 bundle=$(cd -- "$2" && pwd)
 runtime=$(cd -- "$3" && pwd)
@@ -34,6 +37,7 @@ docker run --pull=never --rm -i --network=none --read-only \
   --mount "type=bind,source=$bundle,target=/app,readonly" \
   --mount "type=bind,source=$runtime,target=/dotnet,readonly" \
   --mount "type=bind,source=$output/results,target=/results" \
+  --env ILMENYX_TEST_DOCTOR="$doctor" \
   --env ILMENYX_TEST_ICU_GUARD="$guard" \
   --env DOTNET_SYSTEM_GLOBALIZATION_INVARIANT="$mode" \
   --env DOTNET_ROOT=/dotnet --env DOTNET_CLI_HOME=/tmp --env DOTNET_CLI_TELEMETRY_OPTOUT=1 \
@@ -53,6 +57,7 @@ run_case() {
 run_case runtimes /dotnet/dotnet --list-runtimes
 run_case sdks /dotnet/dotnet --list-sdks
 run_case help /app/cli/ilmenyx --help
+if test "$ILMENYX_TEST_DOCTOR" = 1; then run_case doctor /app/cli/ilmenyx doctor; fi
 # Do not repeat FailFast/abort in an image already known to lack ICU.
 if test "$ILMENYX_TEST_ICU_GUARD" = 1 || test "$DOTNET_SYSTEM_GLOBALIZATION_INVARIANT" = 1 ||
    { test -x /sbin/ldconfig && /sbin/ldconfig -p 2>/dev/null | grep 'libicuuc\.so' > /results/icu.txt; }; then
@@ -80,6 +85,11 @@ if [[ $guard == 1 && $mode == 0 ]] && jq -e 'map(select(.case == "info" or .case
     rg -q 'Dependencia ICU indisponivel' "$output/results/$operation.stderr"
   done
   [[ ! -e $output/results/info.json ]]
+  if [[ $doctor == 1 ]]; then
+    jq -e 'map(select(.case == "doctor")) | length == 1 and all(.exitCode == 5)' "$output/status.json" >/dev/null
+    rg -Fq 'ICU (uc/i18n): nao encontrada/carregavel.' "$output/results/doctor.stdout"
+    rg -Fq 'GUI nao testada por este comando.' "$output/results/doctor.stdout"
+  fi
   printf 'PASS guard ICU: codigo 5, mensagem explicita, sem JSON parcial ou abort.\n'; exit 0
 fi
 if jq -e 'map(select(.exitCode == 125)) | length > 0' "$output/status.json" >/dev/null; then

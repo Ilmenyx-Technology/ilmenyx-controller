@@ -7,7 +7,7 @@ política de contribuições próprias futuras: uso como ferramenta profissional
 venda do programa/acesso pago e derivação comercial do código restritos.
 Veja [mapa de licenças](LICENSING.md): a MIT original continua permitindo uso comercial das
 partes abrangidas, sem revogação de direitos anteriores. O conjunto não é anunciado como open source OSI.
-Versão local experimental 0.18.0; sem lançamento público nesta sessão.
+Versão local experimental 0.19.0; sem lançamento público nesta sessão.
 
 Ilmenyx é uma adaptação independente e não oficial do [RESET EXPLODE](https://github.com/GustavoReset/ResetExplode),
 criado por Gustavo (GustavoReset). Não possui afiliação, patrocínio ou endosso da equipe RESET.
@@ -190,3 +190,11 @@ Diagnósticos protegidos agora retornam código 5 e mensagem explícita se ICU n
 encontrada, antes da coleta, sem JSON parcial. Não se ativa invariant automaticamente.
 284 testes aprovados e pacote testado no CachyOS; caso negativo reproduzido em Debian
 sem ICU. [Evidências, comandos e limites](docs/icu-cli.md).
+
+### Diagnóstico de requisitos (0.19.0)
+
+`ilmenyx doctor` informa bibliotecas nativas e presença das variáveis de display,
+sem inventário ou benchmarks. Funciona também para explicar a falta de ICU.
+Somente texto, sem --json/--output; 0 indica requisitos básicos CLI encontrados,
+5 indica ausência. Isso não certifica funcionamento gráfico.
+[Comandos, testes e limites](docs/doctor-cli.md).

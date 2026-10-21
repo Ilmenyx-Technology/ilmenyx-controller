@@ -1,0 +1,1 @@
+PASS guard ICU: codigo 5, mensagem explicita, sem JSON parcial ou abort.

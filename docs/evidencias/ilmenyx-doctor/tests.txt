@@ -1,0 +1,9 @@
+Test run for /mnt/HDD/Github/Ilmenyx/tests/Ilmenyx.Tests/bin/Release/net10.0/Ilmenyx.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.1 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+WARNING: Overwriting results file: /mnt/HDD/Github/Ilmenyx/docs/evidencias/ilmenyx-doctor/tests.trx
+Results File: /mnt/HDD/Github/Ilmenyx/docs/evidencias/ilmenyx-doctor/tests.trx
+
+Passed!  - Failed:     0, Passed:   296, Skipped:     0, Total:   296, Duration: 5 s - Ilmenyx.Tests.dll (net10.0)

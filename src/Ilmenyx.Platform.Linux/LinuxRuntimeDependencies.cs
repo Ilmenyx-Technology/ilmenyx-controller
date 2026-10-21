@@ -21,6 +21,10 @@ public sealed class LinuxRuntimeDependencies(Func<string, bool>? libraryAvailabl
         return false;
     }
 
+    public LinuxRuntimeRequirements Inspect() => new(
+        available("libc.so.6"), CanUseGlobalization(false),
+        available("libfontconfig.so.1"), available("libX11.so.6"), available("libEGL.so.1"));
+
     private bool Pair(string suffix) => available("libicuuc.so" + suffix) && available("libicui18n.so" + suffix);
 
     public static bool IsInvariantModeRequested()
@@ -44,3 +48,5 @@ public sealed class LinuxRuntimeDependencies(Func<string, bool>? libraryAvailabl
         { return false; }
     }
 }
+
+public sealed record LinuxRuntimeRequirements(bool Glibc, bool Icu, bool Fontconfig, bool X11, bool Egl);

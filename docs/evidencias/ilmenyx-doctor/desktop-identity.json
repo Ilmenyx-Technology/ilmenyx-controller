@@ -1,0 +1,5 @@
+{
+  "filesCompared": 42,
+  "identical": true,
+  "reason": "final CLI enum appended to preserve existing numeric values; published desktop payload unchanged"
+}

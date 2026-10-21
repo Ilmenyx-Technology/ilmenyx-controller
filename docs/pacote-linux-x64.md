@@ -163,3 +163,13 @@ invariant nem certificação de versões/ABI. Build sem avisos/erros, 284 testes
 aprovados; caso negativo real em Debian e modo normal no CachyOS passaram.
 VM limpa, Debian padrão com ICU, GUI sem ICU e matriz adicional seguem NÃO TESTADOS.
 Os aborts anteriores de 0.17.0 permanecem históricos. [Detalhes e comandos](icu-cli.md).
+
+
+## Atualização 0.19.0 — doctor CLI
+
+IMPLEMENTADO e testado: `doctor` textual, bibliotecas carregáveis e variáveis de
+display não vazias/ausentes, sem provedores de inventário ou workloads. Build sem
+avisos/erros e 296 testes aprovados. Host normal: código 0; Debian sem ICU: relatório
+com código 5 sem abort; invariant explícito: código 0, sem certificação do modo padrão.
+JSON/exportação do doctor indisponíveis; opções recusadas. VM limpa, Debian com ICU
+e matrizes assistivas/de hardware seguem NÃO TESTADAS. [Evidências e limites](doctor-cli.md).
