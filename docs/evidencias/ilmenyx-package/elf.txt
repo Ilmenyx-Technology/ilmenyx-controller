@@ -1,0 +1,2 @@
+/tmp/ilmenyx-package.YLWcPl/extracted/Ilmenyx-linux-x64/cli/ilmenyx:             ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 3.2.0, BuildID[sha1]=6a499c38ea223fd4a6256645555dcee6ee907966, stripped
+/tmp/ilmenyx-package.YLWcPl/extracted/Ilmenyx-linux-x64/desktop/Ilmenyx.Desktop: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 3.2.0, BuildID[sha1]=6a499c38ea223fd4a6256645555dcee6ee907966, stripped

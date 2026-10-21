@@ -7,7 +7,7 @@ política de contribuições próprias futuras: uso como ferramenta profissional
 venda do programa/acesso pago e derivação comercial do código restritos.
 Veja [mapa de licenças](LICENSING.md): a MIT original continua permitindo uso comercial das
 partes abrangidas, sem revogação de direitos anteriores. O conjunto não é anunciado como open source OSI.
-Versão local experimental 0.16.0; sem lançamento público nesta sessão.
+Versão local experimental 0.17.0; sem lançamento público nesta sessão.
 
 Ilmenyx é uma adaptação independente e não oficial do [RESET EXPLODE](https://github.com/GustavoReset/ResetExplode),
 criado por Gustavo (GustavoReset). Não possui afiliação, patrocínio ou endosso da equipe RESET.
@@ -168,3 +168,11 @@ Rótulos/títulos corrigidos para quebra de linha e cabeçalho Sobre compacto.
 [Matriz de texto 100%, 150% e 200%, comandos e limites](docs/texto-200.md).
 Build sem avisos/erros, 279 testes aprovados e nove casos de layout por backend
 passaram em Wayland nativo/X11. Leitores de tela e outras matrizes continuam pendentes.
+
+### Pacote local linux-x64 (0.17.0)
+
+Bundle CLI/desktop dependente do runtime .NET 10, com hashes e avisos locais.
+Scripts de geração e validação não instalam nem publicam; destino deve ser novo.
+[Comandos, dependências, evidências e pendências](docs/pacote-linux-x64.md).
+279 testes aprovados; CLI extraída e regressões dos assemblies empacotados passaram
+em Wayland nativo/X11. Instalação em máquina limpa e revisão de distribuição pendentes.

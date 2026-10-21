@@ -135,3 +135,14 @@ backend em Wayland nativo/X11 (100/150/200%) passaram. Leitura a 200% de cerca d
 de 200%; registros anteriores são históricos. Acima de 200%, outras matrizes de
 DPI/hardware, Orca/AT-SPI, entrada física e Windows permanecem NÃO TESTADOS.
 GUI-01/GUI-02 seguem parciais. [Método, evidências e comandos](texto-200.md).
+
+
+## Atualização 0.17.0 — pacote local linux-x64
+
+IMPLEMENTADO: bundle CLI/desktop framework-dependent, inventário de avisos e hashes;
+gerador/validador sem instalação/restore implícito/publicação. Build sem avisos/erros,
+279 testes aprovados, integridade/CLI/ELF/ldd e smoke dos assemblies extraídos em
+Wayland nativo/X11 passaram. Pacote alterado foi recusado. PKG-01 continua parcial:
+VM limpa, outras distros/glibc, runtime ausente, self-contained e instaladores
+NÃO TESTADOS. Revisão individual de licenças antes de redistribuir PENDENTE; material
+sem direitos conhecidos BLOQUEADO para redistribuição. [Evidências e comandos](pacote-linux-x64.md).

@@ -1,0 +1,35 @@
+[
+  {
+    "case": [],
+    "exitCode": 2,
+    "stderr": "Uso: bash scripts/package-linux-x64.sh /caminho/absoluto/destino-novo"
+  },
+  {
+    "case": [
+      "relative"
+    ],
+    "exitCode": 2,
+    "stderr": "Uso: bash scripts/package-linux-x64.sh /caminho/absoluto/destino-novo"
+  },
+  {
+    "case": [
+      "/tmp/ilmenyx-package.YLWcPl/bundle"
+    ],
+    "exitCode": 1,
+    "stderr": "mkdir: cannot create directory \u2018/tmp/ilmenyx-package.YLWcPl/bundle\u2019: File exists"
+  },
+  {
+    "case": "packaged desktop apphost wayland",
+    "aliveForSeconds": 4,
+    "stop": "SIGTERM to own process",
+    "exitCode": -15,
+    "scope": "startup only; interactions tested separately by packaged-assembly smoke"
+  },
+  {
+    "case": "packaged desktop apphost x11",
+    "aliveForSeconds": 4,
+    "stop": "SIGTERM to own process",
+    "exitCode": -15,
+    "scope": "startup only; interactions tested separately by packaged-assembly smoke"
+  }
+]

@@ -1,0 +1,144 @@
+# Pacote local linux-x64 — Ilmenyx 0.17.0
+
+Base: 6c01555, branch feat/ilmenyx-linux. Inspecionados scripts, projetos e metadados,
+Directory.Build.props, entradas CLI/desktop, harness, avisos de terceiros, README,
+licença e instruções aplicáveis. Upstream e termos preservados.
+
+## IMPLEMENTADO
+
+scripts/package-linux-x64.sh gera um bundle local de revisão, separado em cli/ e
+desktop/, e um tar.gz. Destino absoluto deve ser novo: não instala, sobrescreve,
+restaura ou baixa dependências, nem usa privilégios. Requer SDK .NET 10, Bash, jq,
+rg, tar, sha256sum e utilitários usuais. Restauração por RID é etapa explícita.
+Não faz single-file, trimming ou inclusão de símbolos de depuração.
+
+Modo framework-dependent, RID linux-x64: NÃO inclui runtime/SDK; precisa de
+Microsoft.NETCore.App 10.0 e bibliotecas nativas do SO. Não há runtime autocontido
+no cache disponível. O teste usou o runtime 10.0.0 do SDK isolado da sessão;
+nenhuma instalação automática. Não certifica qualquer versão de distro/glibc.
+
+Copiados LICENSE, NOTICE, LICENSING, LICENSE-ILMENYX e THIRD-PARTY-NOTICES na raiz
+e junto de cada executável. dependencies.tsv inventaria 19 pacotes runtime
+resolvidos pelos deps.json. licenses/ preserva manifests nuspec e arquivos
+LICENSE/NOTICE/COPYING/THIRD-PARTY disponíveis na raiz de cada pacote do cache,
+incluindo avisos nativos Skia/HarfBuzz. Não inclui ícones de pacotes, WPF, drivers,
+smartctl, testes ou harness. Avalonia.Win32.dll é dependência gerenciada do pacote
+multiplataforma, não uma distribuição do executável WPF Windows original.
+
+Inventário não prova atendimento integral às obrigações de redistribuição:
+pacotes sem texto completo/copyright e avisos nativos exigem revisão individual.
+PENDENTE DE REVISÃO antes de distribuição; material com direitos desconhecidos
+continua BLOQUEADO para redistribuição. Bundle é somente revisão local.
+
+package.json registra versão, RID, dependência de runtime, SHA base e estado da
+árvore. Neste teste sourceWorkingTree=dirty porque o incremento ainda não estava
+commitado ao gerar o pacote; não se afirma que o SHA base sozinho reproduza o
+conteúdo novo. SHA256SUMS cobre arquivos do bundle exceto o próprio manifesto;
+hash separado cobre o tar.gz. Hashes não são assinatura ou certificação de origem.
+Timestamps do tar não foram normalizados; não se promete archive reproduzível.
+
+## Comandos para reproduzir
+
+Com SDK .NET 10 e cache da sessão disponível (ajuste o helper ao seu ambiente):
+
+```bash
+cd /mnt/HDD/Github/Ilmenyx
+. scripts/env-local-sdk.sh
+mkdir -p .artifacts/offline-feed
+# Offline; falha explicitamente se faltar pacote no cache.
+dotnet restore Ilmenyx.slnx -r linux-x64 -p:SelfContained=false -p:EnableRuntimePackDownload=false --source "$PWD/.artifacts/offline-feed" --disable-parallel -m:1
+# Escolha destino que ainda não existe; não reutilize uma execução anterior.
+bash scripts/package-linux-x64.sh "$PWD/.artifacts/ilmenyx-local-017"
+mkdir "$PWD/.artifacts/ilmenyx-extraido-017"
+tar -xzf .artifacts/ilmenyx-local-017/Ilmenyx-linux-x64-local.tar.gz -C .artifacts/ilmenyx-extraido-017
+bash scripts/test-linux-package.sh "$PWD/.artifacts/ilmenyx-extraido-017/Ilmenyx-linux-x64" "$PWD/.artifacts/ilmenyx-teste-017"
+```
+
+Em outro ambiente pode-se restaurar das fontes NuGet configuradas, removendo
+--source offline, com rede e dependências explicitamente disponíveis. O script de
+empacotamento sempre usa --no-restore. Restore inicial sem desabilitar download de
+runtime falhou no cache vazio; flags acima foram verificadas para este bundle.
+
+Executar o pacote extraído (com runtime acessível ao apphost; DOTNET_ROOT é
+necessário quando instalado de forma isolada):
+
+```bash
+export DOTNET_ROOT=/tmp/silex-dotnet # somente esta sessão; ajuste para seu runtime
+.artifacts/ilmenyx-extraido-017/Ilmenyx-linux-x64/cli/ilmenyx --help
+.artifacts/ilmenyx-extraido-017/Ilmenyx-linux-x64/cli/ilmenyx info --json
+ILMENYX_DISPLAY_BACKEND=x11 .artifacts/ilmenyx-extraido-017/Ilmenyx-linux-x64/desktop/Ilmenyx.Desktop
+env -u DISPLAY ILMENYX_DISPLAY_BACKEND=wayland .artifacts/ilmenyx-extraido-017/Ilmenyx-linux-x64/desktop/Ilmenyx.Desktop
+```
+
+## Testes e evidências
+
+scripts/test-linux-package.sh valida integridade, metadados, igualdade das licenças,
+executáveis, CLI help/info/capabilities/sensors, JSON exportado igual ao stdout,
+recusa de overwrite e dependências de apphosts/.so via ldd. Não inicia workloads
+nem SMART. Falhas preservam saídas em diretório de teste novo. Argumentos inválidos
+e destino existente foram recusados pelo empacotador sem alterar o archive.
+
+O desktop apphost real foi iniciado separadamente em Wayland/X11, permaneceu ativo
+por 4 s e foi encerrado por SIGTERM somente no processo criado pelo teste. Isso
+valida startup, não interação. package-checks.json separa esse escopo dos testes UI.
+
+Para testar interações com bibliotecas publicadas, foi copiado o desktop extraído
+para um diretório separado e acrescentado SOMENTE Ilmenyx.UiSmoke.dll de teste.
+O bundle original continua intacto. dotnet exec usa runtimeconfig/deps do desktop
+publicado. ILMENYX_EXPECT_DESKTOP_DIR valida Assembly.Location para impedir
+carregamento acidental de DLL de desenvolvimento; o log registra esse diretório.
+O harness nunca entra no tar.gz. Exemplo após build do harness:
+
+```bash
+dotnet build tools/Ilmenyx.UiSmoke -c Release --no-restore -m:1 -p:UseSharedCompilation=false
+mkdir .artifacts/ilmenyx-ui-teste-017
+cp -a .artifacts/ilmenyx-extraido-017/Ilmenyx-linux-x64/desktop .artifacts/ilmenyx-ui-teste-017/desktop
+cp tools/Ilmenyx.UiSmoke/bin/Release/net10.0/Ilmenyx.UiSmoke.dll .artifacts/ilmenyx-ui-teste-017/desktop/
+# Executar a partir da raiz; APP_TEST_DIR é somente uma variável deste comando.
+APP_TEST_DIR="$PWD/.artifacts/ilmenyx-ui-teste-017/desktop"
+env -u DISPLAY ILMENYX_DISPLAY_BACKEND=wayland ILMENYX_EXPECT_DESKTOP_DIR="$APP_TEST_DIR" dotnet exec --runtimeconfig "$APP_TEST_DIR/Ilmenyx.Desktop.runtimeconfig.json" --depsfile "$APP_TEST_DIR/Ilmenyx.Desktop.deps.json" "$APP_TEST_DIR/Ilmenyx.UiSmoke.dll" "$PWD/.artifacts/smoke-package-wayland"
+ILMENYX_DISPLAY_BACKEND=x11 ILMENYX_EXPECT_DESKTOP_DIR="$APP_TEST_DIR" dotnet exec --runtimeconfig "$APP_TEST_DIR/Ilmenyx.Desktop.runtimeconfig.json" --depsfile "$APP_TEST_DIR/Ilmenyx.Desktop.deps.json" "$APP_TEST_DIR/Ilmenyx.UiSmoke.dll" "$PWD/.artifacts/smoke-package-x11"
+```
+
+Build/testes da solução seguem comandos do README. Evidências em
+[evidencias/ilmenyx-package](evidencias/ilmenyx-package): publish/restore/build/testes,
+TRX, integridade, notices, hashes, ELF, dependências nativas, startup e regressões UI.
+JSON de hardware/sensores fica somente em temporários locais, não foi commitado.
+
+## Resultados finais
+
+IMPLEMENTADO e VERIFICADO POR TESTE no CachyOS x64, kernel 7.2.11-1-cachyos,
+SDK 10.0.100, Avalonia 12.1.4. Build Release da solução/harness sem erros/avisos,
+279 testes aprovados, zero falhas/ignorados. Scripts passaram bash -n. Restore
+framework-dependent offline e publish por RID passaram; bundle tar.gz cerca de
+9,3 MiB. 19 pacotes runtime inventariados, sem runtime .NET/testes/WPF/drivers.
+
+CLI extraída passou help/info/capabilities/sensors, JSON consistente, notices
+idênticos e overwrite recusado. Arquivos/ELF e bibliotecas nativas examinados;
+ldd não reportou dependência ausente no host. Cópia adulterada de NOTICE.md foi
+recusada por hashes. Hash de archive permaneceu igual após tentativas inválidas.
+Apphosts desktop reais permaneceram ativos nos dois backends no teste de startup.
+
+Regressão gráfica com assemblies da cópia extraída passou em Wayland nativo
+(DISPLAY removido, Avalonia.Wayland.WindowImpl) e X11 (Avalonia.X11.X11Window),
+com código 0 e nove layouts por backend até 200%. Origem/MIT/dependências/termos
+integrais, teclado, sensores, CPU/RAM/GameSim reduzidos e exportações passaram.
+Assembly.Location foi conferido contra o diretório extraído de teste.
+
+Archive de revisão preservado, ignorado pelo Git:
+.artifacts/ilmenyx-0.17.0-local/Ilmenyx-linux-x64-local.tar.gz, acompanhado do hash.
+Não é release, não foi instalado ou enviado a terceiros. Proveniência dirty e
+SHA256SUMS nas evidências correspondem ao pacote testado antes do commit.
+
+## Pendências
+
+NÃO TESTADO: instalação em VM/máquina limpa, outras distros/glibc/arquiteturas,
+runtime ausente em máquina limpa, pacote autocontido, .deb/.rpm/AppImage, integração
+.desktop/menu, atualização/desinstalação, assinatura e pipeline de distribuição.
+Build local e ldd no CachyOS não certificam essas condições. Bibliotecas carregadas
+via dlopen podem exigir mais dependências que ldd não enumera; GUI real foi testada
+somente na sessão presente. Matriz assistiva e de hardware continua em Sem_teste.md.
+
+Sem publicação, push, PR, release, stress, instalação, sudo ou configuração de sistema.
+Próxima tarefa: validar este bundle em VM Linux limpa quando disponível e fechar a
+lista de dependências nativas/licenças antes de escolher formato de distribuição.

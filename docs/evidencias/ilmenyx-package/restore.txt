@@ -1,0 +1,7 @@
+  Determining projects to restore...
+  Restored /mnt/HDD/Github/Ilmenyx/src/Ilmenyx.Core/Ilmenyx.Core.csproj (in 118 ms).
+  Restored /mnt/HDD/Github/Ilmenyx/tests/Ilmenyx.Tests/Ilmenyx.Tests.csproj (in 76 ms).
+  Restored /mnt/HDD/Github/Ilmenyx/src/Ilmenyx.Platform.Linux/Ilmenyx.Platform.Linux.csproj (in 5 ms).
+  Restored /mnt/HDD/Github/Ilmenyx/src/Ilmenyx.Desktop/Ilmenyx.Desktop.csproj (in 10 ms).
+  Restored /mnt/HDD/Github/Ilmenyx/src/Ilmenyx.Cli/Ilmenyx.Cli.csproj (in 2 ms).
+  Restored /mnt/HDD/Github/Ilmenyx/src/Ilmenyx.Contracts/Ilmenyx.Contracts.csproj (in 2 ms).

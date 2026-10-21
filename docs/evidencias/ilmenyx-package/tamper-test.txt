@@ -1,0 +1,2 @@
+sha256sum: WARNING: 1 computed checksum did NOT match
+PASS alteracao no pacote recusada pela verificacao de integridade

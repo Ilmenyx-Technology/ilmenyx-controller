@@ -168,3 +168,8 @@ as regras de arquitetura Linux, benchmarks, testes, licenças e segurança anter
 ## Texto ampliado 0.16.0
 - Harness cobre 100/150/200% nos mínimos; manter quebra dos rótulos/títulos e leitor de licenças com ao menos 120 DIP nos casos testados.
 - Não reduzir fonte do documento nem relaxar os limites geométricos para ocultar cortes; ampliação no processo não certifica matriz de DPI ou leitores de tela.
+
+## Pacote local linux-x64 0.17.0
+- Empacotador usa restore explícito, destino novo e framework-dependent; não incluir SDK/runtime/testes/driver silenciosamente.
+- Hashes/inventário não liberam redistribuição. Smoke deve conferir Assembly.Location do desktop extraído; startup do apphost é separado de interação.
+- Preservar artefatos em .artifacts ignorado e registrar VM/distro limpa NÃO TESTADA até execução real.

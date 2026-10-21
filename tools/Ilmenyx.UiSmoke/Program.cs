@@ -21,6 +21,11 @@ internal static class Program
     public static int Main(string[] args)
     {
         if (args.Length != 1 || !Path.IsPathFullyQualified(args[0])) throw new ArgumentException("Supply an absolute directory for this opt-in graphical smoke test.");
+        var assemblyDirectory = Path.GetDirectoryName(typeof(DashboardWindow).Assembly.Location)!;
+        Console.WriteLine("DESKTOP ASSEMBLY DIRECTORY " + assemblyDirectory);
+        if (Environment.GetEnvironmentVariable("ILMENYX_EXPECT_DESKTOP_DIR") is { } expected &&
+            Path.GetFullPath(expected) != assemblyDirectory)
+            throw new InvalidOperationException("Smoke did not load the expected packaged desktop assembly.");
         OutputDirectory = Path.Combine(args[0], "ilmenyx-ui-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(OutputDirectory);
         return DesktopBackend.Configure(AppBuilder.Configure<UiSmokeApp>(), DesktopBackend.Parse(DesktopBackend.ReadSelection())).StartWithClassicDesktopLifetime(Array.Empty<string>());

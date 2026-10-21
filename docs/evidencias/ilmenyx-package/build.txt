@@ -1,0 +1,12 @@
+  Ilmenyx.Contracts -> /mnt/HDD/Github/Ilmenyx/src/Ilmenyx.Contracts/bin/Release/net10.0/Ilmenyx.Contracts.dll
+  Ilmenyx.Core -> /mnt/HDD/Github/Ilmenyx/src/Ilmenyx.Core/bin/Release/net10.0/Ilmenyx.Core.dll
+  Ilmenyx.Platform.Linux -> /mnt/HDD/Github/Ilmenyx/src/Ilmenyx.Platform.Linux/bin/Release/net10.0/Ilmenyx.Platform.Linux.dll
+  Ilmenyx.Cli -> /mnt/HDD/Github/Ilmenyx/src/Ilmenyx.Cli/bin/Release/net10.0/ilmenyx.dll
+  Ilmenyx.Desktop -> /mnt/HDD/Github/Ilmenyx/src/Ilmenyx.Desktop/bin/Release/net10.0/Ilmenyx.Desktop.dll
+  Ilmenyx.Tests -> /mnt/HDD/Github/Ilmenyx/tests/Ilmenyx.Tests/bin/Release/net10.0/Ilmenyx.Tests.dll
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:17.24
