@@ -1,0 +1,1 @@
+Coleta concluida: /tmp/ilmenyx-container.rfu4Lf/debian (ver status.tsv; container nao equivale a VM limpa).

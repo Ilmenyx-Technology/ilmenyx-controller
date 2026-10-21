@@ -1,0 +1,30 @@
+[
+  {
+    "case": "runtimes",
+    "exitCode": 127
+  },
+  {
+    "case": "sdks",
+    "exitCode": 127
+  },
+  {
+    "case": "help",
+    "exitCode": 127
+  },
+  {
+    "case": "info",
+    "exitCode": 125
+  },
+  {
+    "case": "capabilities",
+    "exitCode": 125
+  },
+  {
+    "case": "sensors",
+    "exitCode": 125
+  },
+  {
+    "case": "apphost-dependencies",
+    "exitCode": 127
+  }
+]

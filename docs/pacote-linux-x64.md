@@ -142,3 +142,14 @@ somente na sessão presente. Matriz assistiva e de hardware continua em Sem_test
 Sem publicação, push, PR, release, stress, instalação, sudo ou configuração de sistema.
 Próxima tarefa: validar este bundle em VM Linux limpa quando disponível e fechar a
 lista de dependências nativas/licenças antes de escolher formato de distribuição.
+
+
+## Complemento de ambiente isolado — pacote 0.17.0
+
+Sem QEMU/imagem guest pronta; VM limpa continua NÃO TESTADA (PKG-01 parcial).
+Contêineres locais, sem root/rede/instalação: Debian 12 sem ICU bloqueou o modo
+padrão; diagnósticos CLI passaram somente no teste invariant explícito, sem SDK.
+Alpine 3.24.1 é incompatível com o bundle glibc; GUI no contêiner NÃO TESTADA e
+fontconfig ausente no Debian. Preflight evita repetir aborts por ICU conhecida
+ausente. Requisitos documentados; nada altera o modo padrão do aplicativo.
+[Comandos, códigos de saída e limites](validacao-container.md).

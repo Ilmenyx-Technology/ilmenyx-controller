@@ -1,0 +1,16 @@
+uid=1000(supabase) gid=1000(supabase) groups=1000(supabase)
+NAME="Alpine Linux"
+ID=alpine
+VERSION_ID=3.24.1
+PRETTY_NAME="Alpine Linux v3.24"
+HOME_URL="https://alpinelinux.org/"
+BUG_REPORT_URL="https://gitlab.alpinelinux.org/alpine/aports/-/issues"
+x86_64
+case	exitCode
+runtimes	127
+sdks	127
+help	127
+info	127
+capabilities	127
+sensors	127
+apphost-dependencies	127

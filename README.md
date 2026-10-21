@@ -176,3 +176,10 @@ Scripts de geração e validação não instalam nem publicam; destino deve ser 
 [Comandos, dependências, evidências e pendências](docs/pacote-linux-x64.md).
 279 testes aprovados; CLI extraída e regressões dos assemblies empacotados passaram
 em Wayland nativo/X11. Instalação em máquina limpa e revisão de distribuição pendentes.
+
+### Validação complementar em contêiner (pacote 0.17.0)
+
+Debian 12 sem ICU bloqueou os diagnósticos padrão; CLI passou somente com modo
+invariant explicitamente usado no teste. Alpine/musl não executa este RID glibc.
+Requisitos do bundle: runtime .NET 10, glibc/ICU; GUI também requer bibliotecas como
+fontconfig. Isso não certifica VM limpa. [Resultados e roteiro](docs/validacao-container.md).

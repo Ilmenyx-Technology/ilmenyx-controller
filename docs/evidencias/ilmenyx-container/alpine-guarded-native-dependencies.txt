@@ -1,0 +1,61 @@
+
+/app/desktop/libHarfBuzzSharp.so
+	/lib/ld-musl-x86_64.so.1 (0x7f959515a000)
+	libpthread.so.0 => /lib/ld-musl-x86_64.so.1 (0x7f959515a000)
+	libm.so.6 => /lib/ld-musl-x86_64.so.1 (0x7f959515a000)
+	libc.so.6 => /lib/ld-musl-x86_64.so.1 (0x7f959515a000)
+Error loading shared library ld-linux-x86-64.so.2: No such file or directory (needed by /app/desktop/libHarfBuzzSharp.so)
+
+/app/desktop/libSkiaSharp.so
+	/lib/ld-musl-x86_64.so.1 (0x7f67fe3ce000)
+	libpthread.so.0 => /lib/ld-musl-x86_64.so.1 (0x7f67fe3ce000)
+Error loading shared library libfontconfig.so.1: No such file or directory (needed by /app/desktop/libSkiaSharp.so)
+	libdl.so.2 => /lib/ld-musl-x86_64.so.1 (0x7f67fe3ce000)
+	libm.so.6 => /lib/ld-musl-x86_64.so.1 (0x7f67fe3ce000)
+	libc.so.6 => /lib/ld-musl-x86_64.so.1 (0x7f67fe3ce000)
+Error loading shared library ld-linux-x86-64.so.2: No such file or directory (needed by /app/desktop/libSkiaSharp.so)
+Error relocating /app/desktop/libSkiaSharp.so: FcFontSetDestroy: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcPatternAddString: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcInitLoadConfigAndFonts: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcPatternFilter: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcPatternGetLangSet: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcConfigCreate: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcCharSetDestroy: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcPatternGetCharSet: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcPatternGetBool: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcDefaultSubstitute: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcPatternAddCharSet: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcPatternRemove: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcPatternGetInteger: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcCharSetHasChar: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcCharSetAddChar: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcConfigGetFonts: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcCharSetCreate: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcGetVersion: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcPatternAddWeak: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcConfigDestroy: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcPatternGetString: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcPatternCreate: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: __strftime_l: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcFontSetAdd: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcPatternReference: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcPatternEqual: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcFontSetCreate: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcConfigSubstitute: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcPatternAddLangSet: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcObjectSetBuild: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcLangSetHasLang: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcPatternAddInteger: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcObjectSetDestroy: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcStrCmpIgnoreCase: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcPatternGet: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcPatternDestroy: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcFontRenderPrepare: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcPatternDuplicate: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcFontMatch: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcPatternGetMatrix: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcLangSetDestroy: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcConfigGetSysRoot: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcLangSetAdd: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcLangSetCreate: symbol not found
+Error relocating /app/desktop/libSkiaSharp.so: FcFontSetMatch: symbol not found

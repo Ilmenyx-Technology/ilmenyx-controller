@@ -140,3 +140,14 @@ Wayland nativo/X11 passaram. Pacote alterado foi recusado. PKG-01 continua parci
 VM limpa, outras distros/glibc, runtime ausente, self-contained e instaladores
 NÃO TESTADOS. Revisão individual de licenças antes de redistribuir PENDENTE; material
 sem direitos conhecidos BLOQUEADO para redistribuição. [Evidências e comandos](docs/pacote-linux-x64.md).
+
+
+## Complemento de ambiente isolado — pacote 0.17.0
+
+Sem QEMU/imagem guest pronta; VM limpa continua NÃO TESTADA (PKG-01 parcial).
+Contêineres locais, sem root/rede/instalação: Debian 12 sem ICU bloqueou o modo
+padrão; diagnósticos CLI passaram somente no teste invariant explícito, sem SDK.
+Alpine 3.24.1 é incompatível com o bundle glibc; GUI no contêiner NÃO TESTADA e
+fontconfig ausente no Debian. Preflight evita repetir aborts por ICU conhecida
+ausente. Requisitos documentados; nada altera o modo padrão do aplicativo.
+[Comandos, códigos de saída e limites](docs/validacao-container.md).

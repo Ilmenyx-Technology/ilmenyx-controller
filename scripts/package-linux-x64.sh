@@ -53,7 +53,9 @@ jq -n --arg version "$version" --arg revision "$revision" --arg state "$state" \
 cat > "$bundle/LEIA-ME.txt" <<'TEXT'
 Ilmenyx — by Bismuth Technology. Pacote local experimental, sem publicacao.
 Adaptacao independente e nao oficial do RESET EXPLODE, Gustavo (GustavoReset).
-Requer runtime .NET 10 Linux x64 e bibliotecas nativas graficas do sistema.
+Requer runtime .NET 10 Linux x64, glibc e ICU no modo padrao.
+UI requer bibliotecas graficas do SO, incluindo fontconfig; validar via ldd e GUI.
+O RID linux-x64 deste bundle nao suporta Alpine/musl.
 CLI: ./cli/ilmenyx --help ; ./cli/ilmenyx info --json
 UI X11: ILMENYX_DISPLAY_BACKEND=x11 ./desktop/Ilmenyx.Desktop
 UI Wayland: env -u DISPLAY ILMENYX_DISPLAY_BACKEND=wayland ./desktop/Ilmenyx.Desktop

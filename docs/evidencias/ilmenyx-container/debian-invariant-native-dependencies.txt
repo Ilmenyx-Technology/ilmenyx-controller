@@ -1,0 +1,16 @@
+
+/app/desktop/libHarfBuzzSharp.so
+	linux-vdso.so.1 (0x00007fb577e2d000)
+	libpthread.so.0 => /lib/x86_64-linux-gnu/libpthread.so.0 (0x00007fb577e1e000)
+	libm.so.6 => /lib/x86_64-linux-gnu/libm.so.6 (0x00007fb577d3e000)
+	libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007fb57781e000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007fb577e2f000)
+
+/app/desktop/libSkiaSharp.so
+	linux-vdso.so.1 (0x00007f3674a4e000)
+	libpthread.so.0 => /lib/x86_64-linux-gnu/libpthread.so.0 (0x00007f3674a3f000)
+	libfontconfig.so.1 => not found
+	libdl.so.2 => /lib/x86_64-linux-gnu/libdl.so.2 (0x00007f3674a3a000)
+	libm.so.6 => /lib/x86_64-linux-gnu/libm.so.6 (0x00007f367495a000)
+	libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007f3673e1e000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007f3674a50000)

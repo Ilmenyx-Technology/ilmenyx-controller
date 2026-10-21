@@ -1,0 +1,1 @@
+BLOQUEADO: dependencia ICU nao detectada; diagnosticos nao iniciados.

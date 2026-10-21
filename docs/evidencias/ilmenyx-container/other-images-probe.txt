@@ -1,0 +1,23 @@
+NAME="Alpine Linux"
+ID=alpine
+VERSION_ID=3.20.0_alpha20231219
+PRETTY_NAME="Alpine Linux edge"
+HOME_URL="https://alpinelinux.org/"
+BUG_REPORT_URL="https://gitlab.alpinelinux.org/alpine/aports/-/issues"
+Illegal option -p
+PRETTY_NAME="Debian GNU/Linux 12 (bookworm)"
+NAME="Debian GNU/Linux"
+VERSION_ID="12"
+VERSION="12 (bookworm)"
+VERSION_CODENAME=bookworm
+ID=debian
+HOME_URL="https://www.debian.org/"
+SUPPORT_URL="https://www.debian.org/support"
+BUG_REPORT_URL="https://bugs.debian.org/"
+NAME="Alpine Linux"
+ID=alpine
+VERSION_ID=3.23.6
+PRETTY_NAME="Alpine Linux v3.23"
+HOME_URL="https://alpinelinux.org/"
+BUG_REPORT_URL="https://gitlab.alpinelinux.org/alpine/aports/-/issues"
+Illegal option -p

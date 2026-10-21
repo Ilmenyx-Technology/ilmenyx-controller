@@ -173,3 +173,9 @@ as regras de arquitetura Linux, benchmarks, testes, licenças e segurança anter
 - Empacotador usa restore explícito, destino novo e framework-dependent; não incluir SDK/runtime/testes/driver silenciosamente.
 - Hashes/inventário não liberam redistribuição. Smoke deve conferir Assembly.Location do desktop extraído; startup do apphost é separado de interação.
 - Preservar artefatos em .artifacts ignorado e registrar VM/distro limpa NÃO TESTADA até execução real.
+
+## Validação isolada do pacote 0.17.0
+- Contêiner não equivale a VM limpa; registrar imagens/digests, modo de globalização e kernel compartilhado.
+- Testes somente em imagem já local, usuário não-root, sem rede/capabilities/host devices/display, binds de entrada readonly e saída nova.
+- ICU é requisito do modo padrão; invariant explícito no teste não aprova globalização padrão. RID linux-x64 glibc não certifica Alpine/musl.
+- Evitar repetir aborts conhecidos por dependências ausentes; manter preflight e resultados negativos explícitos.

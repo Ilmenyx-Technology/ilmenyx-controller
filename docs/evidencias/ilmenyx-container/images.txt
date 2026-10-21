@@ -1,0 +1,18 @@
+[
+  {
+    "Id": "sha256:145325b7e39f8ef4931d6e8cfd3f6f4d655de09d72a2ccc96d9513542c2202bd",
+    "RepoDigests": [
+      "public.ecr.aws/supabase/postgres-meta@sha256:145325b7e39f8ef4931d6e8cfd3f6f4d655de09d72a2ccc96d9513542c2202bd"
+    ],
+    "Os": "linux",
+    "Architecture": "amd64"
+  },
+  {
+    "Id": "sha256:1736a63078f5922b198c4cbe50f80ab9a2d3b54fe8b7b6cfb2e9dc5dbbc12c6b",
+    "RepoDigests": [
+      "public.ecr.aws/supabase/gotrue@sha256:1736a63078f5922b198c4cbe50f80ab9a2d3b54fe8b7b6cfb2e9dc5dbbc12c6b"
+    ],
+    "Os": "linux",
+    "Architecture": "amd64"
+  }
+]

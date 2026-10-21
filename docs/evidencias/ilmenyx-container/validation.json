@@ -1,0 +1,10 @@
+{
+  "bundleVersion": "0.17.0",
+  "defaultDebian": "blocked-missing-icu",
+  "debianInvariantOnly": "passed-info-capabilities-sensors-json",
+  "sdkCount": 0,
+  "alpine": "incompatible-glibc-rid",
+  "cleanVm": "not-tested-no-qemu-or-guest-image",
+  "desktopInContainers": "not-tested-no-display-no-fontconfig",
+  "hardwareJsonCommitted": false
+}
