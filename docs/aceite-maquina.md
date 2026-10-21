@@ -117,3 +117,12 @@ Todos os arquivos do desktop copiado foram comparados por SHA256 ao bundle;
 somente Ilmenyx.UiSmoke.dll foi acrescentado. Capturas dos novos mínimos a 200%
 e listas vazias de erros estão nas evidências. Não é teste de teclado físico,
 leitor de tela, outra distro ou VM limpa. Nenhum código do produto foi alterado.
+
+
+## Complemento: resultado estruturado 1.1
+
+O roteiro agora registra modo de globalização, versão do pacote, runtime informado
+pela CLI e códigos de saída separados. Formato de doctor desconhecido/ambíguo
+bloqueia coleta; versão do inventário divergente dos metadados reprova o smoke.
+Invariant permanece um teste distinto, com aviso e flag padrão falsa.
+[Regras, testes reproduzíveis e evidências](aceite-globalizacao.md).

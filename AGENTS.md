@@ -203,3 +203,10 @@ as regras de arquitetura Linux, benchmarks, testes, licenças e segurança anter
 - Verificar hashes antes de executar o pacote; doctor bloqueante e smoke com prazos, sem instalação/elevação.
 - Inventário/sensores exportados são locais e exigem revisão antes de compartilhar.
 - Harness pode repetir solicitações de resize de forma limitada, mantendo tolerância e mínimo real; preservar falhas e não alegar causa raiz sem evidência.
+
+
+## Resultado do aceite CLI 1.1
+- Registrar modo informado pelo doctor, não inferir só do shell. Invariant não aprova globalização padrão.
+- Formato ausente/ambíguo bloqueia inventário; mudança do texto exige revisão do protocolo.
+- Smoke exige versão do inventário igual ao pacote e runtime informado não vazio.
+- test-machine-acceptance.sh usa pacote real nos positivos; fixtures negativas são só protocolo/metadados e cópias temporárias.

@@ -1,0 +1,1 @@
+BLOQUEADO: requisitos CLI nao confirmados; ver result.json e doctor.stderr.

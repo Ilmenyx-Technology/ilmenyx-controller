@@ -215,3 +215,13 @@ smoke CLI existente e resultado estruturado sem afirmar certificação de GUI/VM
 Runtime ausente e pacote alterado recusados; destino existente preservado.
 NÃO TESTADO: VM limpa e outra distro com ICU; PKG-01 permanece parcial.
 [Comandos, evidências e pendências](docs/aceite-maquina.md).
+
+
+### Aceite CLI — distinção de globalização
+
+IMPLEMENTADO e testado: resultado do roteiro schema 1.1 distingue padrão/invariant,
+registra runtime/versão/códigos e recusa formato desconhecido/ambíguo ou versão
+divergente. Casos positivos usam o pacote real; protocolo/metadados negativos usam
+cópias de teste. Produto permanece 0.20.0. VM limpa e outra distro com ICU continuam
+NÃO TESTADAS; revisões humanas/jurídicas permanecem PENDENTES.
+[Comandos e evidências](docs/aceite-globalizacao.md).

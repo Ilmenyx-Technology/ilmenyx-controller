@@ -200,3 +200,13 @@ Nova solicitação limitada preserva exigência de geometria e passou na repeti�
 causa raiz permanece PENDENTE DE REVISÃO. Logs originais preservados; não atribuir
 aprovação irrestrita a toda combinação de escala/compositor com esse resultado.
 Ver docs/aceite-maquina.md e evidências ilmenyx-aceite-maquina.
+
+
+### Aceite CLI — distinção de globalização
+
+IMPLEMENTADO e testado: resultado do roteiro schema 1.1 distingue padrão/invariant,
+registra runtime/versão/códigos e recusa formato desconhecido/ambíguo ou versão
+divergente. Casos positivos usam o pacote real; protocolo/metadados negativos usam
+cópias de teste. Produto permanece 0.20.0. VM limpa e outra distro com ICU continuam
+NÃO TESTADAS; revisões humanas/jurídicas permanecem PENDENTES.
+[Comandos e evidências](docs/aceite-globalizacao.md).

@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "1.1",
+  "scope": "CLI package acceptance on the observed machine",
+  "state": "BLOCKED",
+  "reason": "Unrecognized or ambiguous doctor globalization report; no inventory attempted.",
+  "exitCode": 3,
+  "bundleVersion": "0.20.0",
+  "observedRuntime": "unknown",
+  "globalizationMode": "unknown",
+  "defaultGlobalizationRequested": false,
+  "doctorExitCode": 0,
+  "smokeExitCode": null,
+  "cleanVmCertified": false,
+  "guiTested": false,
+  "hardwareCertified": false
+}

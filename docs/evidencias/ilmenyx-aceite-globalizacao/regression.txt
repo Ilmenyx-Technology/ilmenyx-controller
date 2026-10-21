@@ -1,0 +1,8 @@
+PASS: pacote CLI nesta maquina. GUI/VM limpa/hardware adicional NAO TESTADOS.
+Os JSON locais incluem inventario/sensores reais; revise antes de compartilhar.
+PASS: pacote CLI nesta maquina. GUI/VM limpa/hardware adicional NAO TESTADOS.
+Os JSON locais incluem inventario/sensores reais; revise antes de compartilhar.
+INVARIANT explicito: este resultado nao valida globalizacao padrao com ICU.
+BLOQUEADO: modo de globalizacao nao identificado no doctor.
+BLOQUEADO: modo de globalizacao nao identificado no doctor.
+PASS: default/invariant reais; doctor desconhecido/ambiguo bloqueia antes da coleta; versao divergente falha com CLI real.
