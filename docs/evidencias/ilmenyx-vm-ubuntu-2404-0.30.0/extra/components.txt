@@ -1,0 +1,7 @@
+Programas integrados (sistema tem prioridade; o pacote é o reserva):
+  mangohud     pacote (/home/ilm/.local/share/ilmenyx/components/bin/mangohud)  — overlay de FPS (MangoHud)
+  gamemoderun  embutido no app (/home/ilm/.local/share/ilmenyx/components/bin/gamemoderun)  — modo jogo
+  openrgb      pacote (/home/ilm/.local/share/ilmenyx/components/bin/openrgb)  — iluminação RGB (OpenRGB)
+  flatpak      AUSENTE (componente do sistema; não embutível)
+Pasta de componentes do pacote: /home/ilm/pkg030/Ilmenyx-linux-x64/components
+OpenRGB: servidor iniciado em 127.0.0.1:6798 (/home/ilm/.local/share/ilmenyx/components/bin/openrgb), protocolo 3, 0 dispositivo(s) com LEDs. Encerrando.

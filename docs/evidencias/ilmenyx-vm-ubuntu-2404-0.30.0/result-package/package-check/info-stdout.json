@@ -1,0 +1,622 @@
+{
+  "schemaVersion": "1.3",
+  "applicationVersion": "0.30.0",
+  "collectedAt": "2026-10-22T12:51:30.5293028+00:00",
+  "runtime": ".NET 10.0.0",
+  "operatingSystem": {
+    "value": "Ubuntu 24.04.5 LTS",
+    "unit": "",
+    "source": "/etc/os-release",
+    "status": "available",
+    "reason": null
+  },
+  "kernel": {
+    "value": "6.8.0-147-generic",
+    "unit": "",
+    "source": "/proc/sys/kernel/osrelease",
+    "status": "available",
+    "reason": null
+  },
+  "cpu": {
+    "name": {
+      "value": "11th Gen Intel(R) Core(TM) i5-1135G7 @ 2.40GHz",
+      "unit": "",
+      "source": "/proc/cpuinfo",
+      "status": "available",
+      "reason": null
+    },
+    "logicalProcessors": {
+      "value": 4,
+      "unit": "logical processors",
+      "source": "/proc/cpuinfo",
+      "status": "available",
+      "reason": null
+    }
+  },
+  "memory": {
+    "total": {
+      "value": 4105355264,
+      "unit": "B",
+      "source": "/proc/meminfo:MemTotal",
+      "status": "available",
+      "reason": null
+    },
+    "available": {
+      "value": 3669766144,
+      "unit": "B",
+      "source": "/proc/meminfo:MemAvailable",
+      "status": "available",
+      "reason": null
+    }
+  },
+  "disks": {
+    "value": [
+      {
+        "device": "fd0",
+        "capacity": {
+          "value": 4096,
+          "unit": "B",
+          "source": "/sys/block/fd0/size",
+          "status": "available",
+          "reason": null
+        },
+        "kind": {
+          "value": "Disquete/dispositivo legado",
+          "unit": "",
+          "source": "/sys/block/fd0/queue/rotational",
+          "status": "available",
+          "reason": null
+        },
+        "bus": {
+          "value": null,
+          "unit": "",
+          "source": "/sys/block/fd0",
+          "status": "unavailable",
+          "reason": "Transporte n\u00E3o identificado pelo caminho do dispositivo."
+        }
+      },
+      {
+        "device": "loop0",
+        "capacity": {
+          "value": 0,
+          "unit": "B",
+          "source": "/sys/block/loop0/size",
+          "status": "available",
+          "reason": null
+        },
+        "kind": {
+          "value": "Rotacional (HDD) \u2014 disco virtual: indica\u00E7\u00E3o do kernel pode n\u00E3o refletir a m\u00EDdia f\u00EDsica",
+          "unit": "",
+          "source": "/sys/block/loop0/queue/rotational",
+          "status": "available",
+          "reason": null
+        },
+        "bus": {
+          "value": "Virtual/software",
+          "unit": "",
+          "source": "/sys/block/loop0",
+          "status": "available",
+          "reason": null
+        }
+      },
+      {
+        "device": "loop1",
+        "capacity": {
+          "value": 0,
+          "unit": "B",
+          "source": "/sys/block/loop1/size",
+          "status": "available",
+          "reason": null
+        },
+        "kind": {
+          "value": "Rotacional (HDD) \u2014 disco virtual: indica\u00E7\u00E3o do kernel pode n\u00E3o refletir a m\u00EDdia f\u00EDsica",
+          "unit": "",
+          "source": "/sys/block/loop1/queue/rotational",
+          "status": "available",
+          "reason": null
+        },
+        "bus": {
+          "value": "Virtual/software",
+          "unit": "",
+          "source": "/sys/block/loop1",
+          "status": "available",
+          "reason": null
+        }
+      },
+      {
+        "device": "loop2",
+        "capacity": {
+          "value": 0,
+          "unit": "B",
+          "source": "/sys/block/loop2/size",
+          "status": "available",
+          "reason": null
+        },
+        "kind": {
+          "value": "Rotacional (HDD) \u2014 disco virtual: indica\u00E7\u00E3o do kernel pode n\u00E3o refletir a m\u00EDdia f\u00EDsica",
+          "unit": "",
+          "source": "/sys/block/loop2/queue/rotational",
+          "status": "available",
+          "reason": null
+        },
+        "bus": {
+          "value": "Virtual/software",
+          "unit": "",
+          "source": "/sys/block/loop2",
+          "status": "available",
+          "reason": null
+        }
+      },
+      {
+        "device": "loop3",
+        "capacity": {
+          "value": 0,
+          "unit": "B",
+          "source": "/sys/block/loop3/size",
+          "status": "available",
+          "reason": null
+        },
+        "kind": {
+          "value": "Rotacional (HDD) \u2014 disco virtual: indica\u00E7\u00E3o do kernel pode n\u00E3o refletir a m\u00EDdia f\u00EDsica",
+          "unit": "",
+          "source": "/sys/block/loop3/queue/rotational",
+          "status": "available",
+          "reason": null
+        },
+        "bus": {
+          "value": "Virtual/software",
+          "unit": "",
+          "source": "/sys/block/loop3",
+          "status": "available",
+          "reason": null
+        }
+      },
+      {
+        "device": "loop4",
+        "capacity": {
+          "value": 0,
+          "unit": "B",
+          "source": "/sys/block/loop4/size",
+          "status": "available",
+          "reason": null
+        },
+        "kind": {
+          "value": "Rotacional (HDD) \u2014 disco virtual: indica\u00E7\u00E3o do kernel pode n\u00E3o refletir a m\u00EDdia f\u00EDsica",
+          "unit": "",
+          "source": "/sys/block/loop4/queue/rotational",
+          "status": "available",
+          "reason": null
+        },
+        "bus": {
+          "value": "Virtual/software",
+          "unit": "",
+          "source": "/sys/block/loop4",
+          "status": "available",
+          "reason": null
+        }
+      },
+      {
+        "device": "loop5",
+        "capacity": {
+          "value": 0,
+          "unit": "B",
+          "source": "/sys/block/loop5/size",
+          "status": "available",
+          "reason": null
+        },
+        "kind": {
+          "value": "Rotacional (HDD) \u2014 disco virtual: indica\u00E7\u00E3o do kernel pode n\u00E3o refletir a m\u00EDdia f\u00EDsica",
+          "unit": "",
+          "source": "/sys/block/loop5/queue/rotational",
+          "status": "available",
+          "reason": null
+        },
+        "bus": {
+          "value": "Virtual/software",
+          "unit": "",
+          "source": "/sys/block/loop5",
+          "status": "available",
+          "reason": null
+        }
+      },
+      {
+        "device": "loop6",
+        "capacity": {
+          "value": 0,
+          "unit": "B",
+          "source": "/sys/block/loop6/size",
+          "status": "available",
+          "reason": null
+        },
+        "kind": {
+          "value": "Rotacional (HDD) \u2014 disco virtual: indica\u00E7\u00E3o do kernel pode n\u00E3o refletir a m\u00EDdia f\u00EDsica",
+          "unit": "",
+          "source": "/sys/block/loop6/queue/rotational",
+          "status": "available",
+          "reason": null
+        },
+        "bus": {
+          "value": "Virtual/software",
+          "unit": "",
+          "source": "/sys/block/loop6",
+          "status": "available",
+          "reason": null
+        }
+      },
+      {
+        "device": "loop7",
+        "capacity": {
+          "value": 0,
+          "unit": "B",
+          "source": "/sys/block/loop7/size",
+          "status": "available",
+          "reason": null
+        },
+        "kind": {
+          "value": "Rotacional (HDD) \u2014 disco virtual: indica\u00E7\u00E3o do kernel pode n\u00E3o refletir a m\u00EDdia f\u00EDsica",
+          "unit": "",
+          "source": "/sys/block/loop7/queue/rotational",
+          "status": "available",
+          "reason": null
+        },
+        "bus": {
+          "value": "Virtual/software",
+          "unit": "",
+          "source": "/sys/block/loop7",
+          "status": "available",
+          "reason": null
+        }
+      },
+      {
+        "device": "sr0",
+        "capacity": {
+          "value": 1073741312,
+          "unit": "B",
+          "source": "/sys/block/sr0/size",
+          "status": "available",
+          "reason": null
+        },
+        "kind": {
+          "value": "Unidade \u00F3ptica",
+          "unit": "",
+          "source": "/sys/block/sr0/queue/rotational",
+          "status": "available",
+          "reason": null
+        },
+        "bus": {
+          "value": "SATA/ATA",
+          "unit": "",
+          "source": "/sys/block/sr0",
+          "status": "available",
+          "reason": null
+        }
+      },
+      {
+        "device": "vda",
+        "capacity": {
+          "value": 12884901888,
+          "unit": "B",
+          "source": "/sys/block/vda/size",
+          "status": "available",
+          "reason": null
+        },
+        "kind": {
+          "value": "Rotacional (HDD) \u2014 disco virtual: indica\u00E7\u00E3o do kernel pode n\u00E3o refletir a m\u00EDdia f\u00EDsica",
+          "unit": "",
+          "source": "/sys/block/vda/queue/rotational",
+          "status": "available",
+          "reason": null
+        },
+        "bus": {
+          "value": "VirtIO",
+          "unit": "",
+          "source": "/sys/block/vda",
+          "status": "available",
+          "reason": null
+        }
+      },
+      {
+        "device": "vdb",
+        "capacity": {
+          "value": 374784,
+          "unit": "B",
+          "source": "/sys/block/vdb/size",
+          "status": "available",
+          "reason": null
+        },
+        "kind": {
+          "value": "Rotacional (HDD) \u2014 disco virtual: indica\u00E7\u00E3o do kernel pode n\u00E3o refletir a m\u00EDdia f\u00EDsica",
+          "unit": "",
+          "source": "/sys/block/vdb/queue/rotational",
+          "status": "available",
+          "reason": null
+        },
+        "bus": {
+          "value": "VirtIO",
+          "unit": "",
+          "source": "/sys/block/vdb",
+          "status": "available",
+          "reason": null
+        }
+      }
+    ],
+    "unit": "devices",
+    "source": "/sys/block",
+    "status": "available",
+    "reason": null
+  },
+  "capabilities": [
+    {
+      "name": "cpu",
+      "status": "available",
+      "reason": "Identifica\u00E7\u00E3o: /proc/cpuinfo; contagem vis\u00EDvel, n\u00E3o n\u00FAcleos f\u00EDsicos."
+    },
+    {
+      "name": "memory",
+      "status": "available",
+      "reason": "MemTotal e MemAvailable de /proc/meminfo."
+    },
+    {
+      "name": "disks",
+      "status": "available",
+      "reason": "Dispositivos de bloco do kernel; inclui virtuais; capacidade n\u00E3o \u00E9 espa\u00E7o livre."
+    },
+    {
+      "name": "sensors",
+      "status": "partial",
+      "reason": "Algumas fontes est\u00E3o indispon\u00EDveis; consulte cada leitura e limita\u00E7\u00F5es."
+    },
+    {
+      "name": "smart",
+      "status": "partial",
+      "reason": "CLI smart: consulta somente leitura por disco expl\u00EDcito; exige --allow-device-query e smartctl opcional. Nenhuma coleta autom\u00E1tica."
+    },
+    {
+      "name": "gpu",
+      "status": "unavailable",
+      "reason": "Identifica\u00E7\u00E3o DRM/PCI ausente ou parcial."
+    },
+    {
+      "name": "html",
+      "status": "available",
+      "reason": "CLI info --html e UI: relat\u00F3rio offline de snapshot; sem coleta ou carga adicional."
+    },
+    {
+      "name": "json",
+      "status": "available",
+      "reason": "Snapshot local, sem upload; destino novo escolhido pelo usu\u00E1rio."
+    },
+    {
+      "name": "cpu-renderer-validation",
+      "status": "available",
+      "reason": "CLI e UI: valida\u00E7\u00E3o reduzida sem score; carga completa somente na CLI com opt-in e n\u00E3o validada."
+    },
+    {
+      "name": "memory-algorithm-validation",
+      "status": "available",
+      "reason": "CLI/UI: algoritmos em buffers pequenos, sem lat\u00EAncia, GB/s, score ou stress."
+    },
+    {
+      "name": "gamesim-validation",
+      "status": "available",
+      "reason": "CLI/UI: simula\u00E7\u00E3o sint\u00E9tica reduzida por passos fixos, sem FPS, score ou perfil completo."
+    },
+    {
+      "name": "benchmarks",
+      "status": "partial",
+      "reason": "Renderizador CPU experimental, valida\u00E7\u00F5es reduzidas de mem\u00F3ria e GameSim. Scores n\u00E3o compar\u00E1veis; demais benchmarks indispon\u00EDveis."
+    },
+    {
+      "name": "overlay",
+      "status": "unavailable",
+      "reason": "N\u00E3o implementado na Fase 1."
+    },
+    {
+      "name": "windows-backend",
+      "status": "unavailable",
+      "reason": "N\u00E3o implementado na Fase 1."
+    }
+  ],
+  "limitations": [
+    "Snapshot somente leitura; n\u00E3o mede desempenho ou sa\u00FAde.",
+    "Dados refletem /proc e /sys vis\u00EDveis; cont\u00EAiner/cgroup/afinidade podem limitar recursos utiliz\u00E1veis.",
+    "Sem coleta dedicada de hostname, serial, UUID, IP ou machine-id; r\u00F3tulos livres podem conter identificadores. Revise antes de compartilhar."
+  ],
+  "sensors": {
+    "schemaVersion": "1.1",
+    "collectedAt": "2026-10-22T12:51:30.5270145+00:00",
+    "status": "partial",
+    "reason": "Algumas fontes est\u00E3o indispon\u00EDveis; consulte cada leitura e limita\u00E7\u00F5es.",
+    "readings": [
+      {
+        "device": "gpu:0000:00:02.0",
+        "chip": "GPU 1234:1111",
+        "channel": "load",
+        "label": "Uso da GPU",
+        "collectedAt": "2026-10-22T12:51:30.526073+00:00",
+        "quality": "driver",
+        "reading": {
+          "value": null,
+          "unit": "%",
+          "source": "sysfs (drm)",
+          "status": "unavailable",
+          "reason": "Contador n\u00E3o exposto por este driver/GPU."
+        }
+      },
+      {
+        "device": "gpu:0000:00:02.0",
+        "chip": "GPU 1234:1111",
+        "channel": "temp1",
+        "label": "Temperatura do n\u00FAcleo",
+        "collectedAt": "2026-10-22T12:51:30.526073+00:00",
+        "quality": "driver",
+        "reading": {
+          "value": null,
+          "unit": "\u00B0C",
+          "source": "sysfs (drm)",
+          "status": "unavailable",
+          "reason": "Contador n\u00E3o exposto por este driver/GPU."
+        }
+      },
+      {
+        "device": "gpu:0000:00:02.0",
+        "chip": "GPU 1234:1111",
+        "channel": "temp2",
+        "label": "Temperatura hotspot",
+        "collectedAt": "2026-10-22T12:51:30.526073+00:00",
+        "quality": "driver",
+        "reading": {
+          "value": null,
+          "unit": "\u00B0C",
+          "source": "sysfs (drm)",
+          "status": "unavailable",
+          "reason": "Contador n\u00E3o exposto por este driver/GPU."
+        }
+      },
+      {
+        "device": "gpu:0000:00:02.0",
+        "chip": "GPU 1234:1111",
+        "channel": "temp3",
+        "label": "Temperatura da mem\u00F3ria",
+        "collectedAt": "2026-10-22T12:51:30.526073+00:00",
+        "quality": "driver",
+        "reading": {
+          "value": null,
+          "unit": "\u00B0C",
+          "source": "sysfs (drm)",
+          "status": "unavailable",
+          "reason": "Contador n\u00E3o exposto por este driver/GPU."
+        }
+      },
+      {
+        "device": "gpu:0000:00:02.0",
+        "chip": "GPU 1234:1111",
+        "channel": "freq1",
+        "label": "Clock do n\u00FAcleo",
+        "collectedAt": "2026-10-22T12:51:30.526073+00:00",
+        "quality": "driver",
+        "reading": {
+          "value": null,
+          "unit": "MHz",
+          "source": "sysfs (drm)",
+          "status": "unavailable",
+          "reason": "Contador n\u00E3o exposto por este driver/GPU."
+        }
+      },
+      {
+        "device": "gpu:0000:00:02.0",
+        "chip": "GPU 1234:1111",
+        "channel": "freq2",
+        "label": "Clock da mem\u00F3ria",
+        "collectedAt": "2026-10-22T12:51:30.526073+00:00",
+        "quality": "driver",
+        "reading": {
+          "value": null,
+          "unit": "MHz",
+          "source": "sysfs (drm)",
+          "status": "unavailable",
+          "reason": "Contador n\u00E3o exposto por este driver/GPU."
+        }
+      },
+      {
+        "device": "gpu:0000:00:02.0",
+        "chip": "GPU 1234:1111",
+        "channel": "power1",
+        "label": "Consumo",
+        "collectedAt": "2026-10-22T12:51:30.526073+00:00",
+        "quality": "driver",
+        "reading": {
+          "value": null,
+          "unit": "W",
+          "source": "sysfs (drm)",
+          "status": "unavailable",
+          "reason": "Contador n\u00E3o exposto por este driver/GPU."
+        }
+      },
+      {
+        "device": "gpu:0000:00:02.0",
+        "chip": "GPU 1234:1111",
+        "channel": "fan1",
+        "label": "Ventoinha",
+        "collectedAt": "2026-10-22T12:51:30.526073+00:00",
+        "quality": "driver",
+        "reading": {
+          "value": null,
+          "unit": "RPM",
+          "source": "sysfs (drm)",
+          "status": "unavailable",
+          "reason": "Contador n\u00E3o exposto por este driver/GPU."
+        }
+      },
+      {
+        "device": "gpu:0000:00:02.0",
+        "chip": "GPU 1234:1111",
+        "channel": "fan_pct",
+        "label": "Ventoinha (%)",
+        "collectedAt": "2026-10-22T12:51:30.526073+00:00",
+        "quality": "driver",
+        "reading": {
+          "value": null,
+          "unit": "%",
+          "source": "sysfs (drm)",
+          "status": "unavailable",
+          "reason": "Contador n\u00E3o exposto por este driver/GPU."
+        }
+      },
+      {
+        "device": "gpu:0000:00:02.0",
+        "chip": "GPU 1234:1111",
+        "channel": "vram_used",
+        "label": "VRAM usada",
+        "collectedAt": "2026-10-22T12:51:30.526073+00:00",
+        "quality": "driver",
+        "reading": {
+          "value": null,
+          "unit": "MiB",
+          "source": "sysfs (drm)",
+          "status": "unavailable",
+          "reason": "Contador n\u00E3o exposto por este driver/GPU."
+        }
+      },
+      {
+        "device": "gpu:0000:00:02.0",
+        "chip": "GPU 1234:1111",
+        "channel": "vram_total",
+        "label": "VRAM total",
+        "collectedAt": "2026-10-22T12:51:30.526073+00:00",
+        "quality": "driver",
+        "reading": {
+          "value": null,
+          "unit": "MiB",
+          "source": "sysfs (drm)",
+          "status": "unavailable",
+          "reason": "Contador n\u00E3o exposto por este driver/GPU."
+        }
+      }
+    ],
+    "limitations": [
+      "Leituras brutas do kernel; sem calibra\u00E7\u00E3o de placa, infer\u00EAncia de sa\u00FAde ou controle de hardware.",
+      "Sem ajuste por sensors.conf; canais de tens\u00E3o podem exigir escala espec\u00EDfica da placa.",
+      "Temperatura em \u00B0C validada apenas para coretemp, k10temp, acpitz, nvme e amdgpu; termistores exigem convers\u00E3o pr\u00F3pria.",
+      "Identificadores hwmon podem mudar ap\u00F3s hotplug/reboot; nenhuma identidade persistente \u00E9 inferida.",
+      "Fontes independentes: thermal pode duplicar hwmon; n\u00E3o somar ou deduplicar por r\u00F3tulo.",
+      "Energia/carga/pot\u00EAncia s\u00E3o dados brutos do kernel; sem c\u00E1lculo de desgaste, autonomia, sa\u00FAde ou prote\u00E7\u00E3o t\u00E9rmica.",
+      "Atributos opcionais de power_supply ausentes s\u00E3o omitidos; capacidade em % n\u00E3o \u00E9 sa\u00FAde. Sem identificadores de fabricante/modelo/serial.",
+      "GPU: leituras do driver (sysfs ou nvidia-smi); contadores ausentes ficam indispon\u00EDveis, nunca zero."
+    ],
+    "powerSupplies": []
+  },
+  "gpus": {
+    "schemaVersion": "1.0",
+    "collectedAt": "2026-10-22T12:51:30.5291068+00:00",
+    "status": "unavailable",
+    "reason": "Identifica\u00E7\u00E3o DRM/PCI ausente ou parcial.",
+    "devices": [],
+    "limitations": [
+      "Invent\u00E1rio DRM/PCI; sem inferir modelo comercial, desempenho, sa\u00FAde ou mem\u00F3ria compartilhada.",
+      "IDs cardN n\u00E3o s\u00E3o persistentes. Apenas placas DRM expostas; GPU sem driver DRM pode n\u00E3o aparecer.",
+      "Contadores opcionais de carga/VRAM somente para PCI AMD; aus\u00EAncia n\u00E3o vira zero. Temperaturas permanecem nas fontes hwmon/thermal.",
+      "Intel/NVIDIA e outros fabricantes: identifica\u00E7\u00E3o PCI apenas; sem NVML, busy% ou VRAM garantidos."
+    ]
+  }
+}

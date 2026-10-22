@@ -35,9 +35,11 @@ cmp -- "$output/info.json" "$output/preserved.json"
 while IFS= read -r -d '' native; do
   ldd "$native" >> "$output/native-dependencies.txt"
 done < <(rg --files -0 "$bundle" | sort -z | while IFS= read -r -d '' file; do
-  case "$file" in *.so|*/ilmenyx|*/Ilmenyx.Desktop) printf '%s\0' "$file";; esac
+  case "$file" in */components/*) ;; *.so|*/ilmenyx|*/Ilmenyx.Desktop) printf '%s\0' "$file";; esac
 done)
 if rg 'not found' "$output/native-dependencies.txt"; then exit 1; fi
+# Integrated programs (MangoHud, OpenRGB) need ordinary desktop libraries (libxkbcommon, libEGL…): reported, not a failure of the CLI/UI package.
+for native in "$bundle"/components/mangohud/lib64/*.so; do [[ ! -f $native ]] || ldd "$native"; done > "$output/components-dependencies.txt" 2>&1 || true
 if rg --files "$bundle" | rg -i 'xunit|testhost|UiSmoke|\.pdb$|\.exe$|/Drivers/'; then
   echo 'Artefato inesperado no pacote' >&2; exit 1
 fi

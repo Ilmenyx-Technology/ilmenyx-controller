@@ -28,14 +28,15 @@ public sealed class OpenRgbServer : IAsyncDisposable
         foreach (var a in new[] { "--server", "--server-host", "127.0.0.1", "--server-port", port.ToString(System.Globalization.CultureInfo.InvariantCulture), "--noautoconnect", "--config", ConfigFolder() }) start.ArgumentList.Add(a);
         var p = new Process { StartInfo = start };
         if (!p.Start()) throw new IOException("Não foi possível iniciar o OpenRGB.");
-        _ = DrainAsync(p.StandardOutput); _ = DrainAsync(p.StandardError);   // keep the pipes from filling; content is not kept
+        var errors = new System.Text.StringBuilder();
+        _ = DrainAsync(p.StandardOutput, null); _ = DrainAsync(p.StandardError, errors);   // keep the pipes from filling; only a short error tail is kept
         var server = new OpenRgbServer(p, port, program);
         try
         {
             using var limit = CancellationTokenSource.CreateLinkedTokenSource(ct); limit.CancelAfter(readyTimeout);
             while (true)
             {
-                if (p.HasExited) throw new IOException($"O OpenRGB encerrou ao iniciar (código {p.ExitCode}).");
+                if (p.HasExited) { await Task.Delay(100, CancellationToken.None); throw new IOException($"O OpenRGB encerrou ao iniciar (código {p.ExitCode}). {Tail(errors)}".TrimEnd()); }
                 using var tcp = new TcpClient();
                 try { await tcp.ConnectAsync(IPAddress.Loopback, port, limit.Token); return server; }
                 catch (SocketException) { await Task.Delay(300, limit.Token); }
@@ -45,10 +46,17 @@ public sealed class OpenRgbServer : IAsyncDisposable
         catch { await server.DisposeAsync(); throw; }
     }
 
-    private static async Task DrainAsync(StreamReader reader)
+    private static string Tail(System.Text.StringBuilder errors)
+    {
+        string text; lock (errors) text = errors.ToString();
+        var line = text.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).LastOrDefault(l => l.Contains("shared librar", StringComparison.Ordinal)) ?? text.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).LastOrDefault();
+        return line is null ? "" : line.Length > 200 ? line[..200] : line;
+    }
+
+    private static async Task DrainAsync(StreamReader reader, System.Text.StringBuilder? keep)
     {
         var buffer = new char[1024];
-        try { while (await reader.ReadAsync(buffer.AsMemory()) != 0) { } } catch (Exception e) when (e is IOException or ObjectDisposedException or InvalidOperationException) { }
+        try { while (true) { int n = await reader.ReadAsync(buffer.AsMemory()); if (n == 0) break; if (keep is not null) lock (keep) { if (keep.Length < 8192) keep.Append(buffer, 0, n); } } } catch (Exception e) when (e is IOException or ObjectDisposedException or InvalidOperationException) { }
     }
 
     public bool IsRunning => process is { HasExited: false };
