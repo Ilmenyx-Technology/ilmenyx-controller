@@ -362,3 +362,8 @@ NÃO TESTADO (por regra): carga real de CPU/RAM, comportamento sob pouca RAM/OOM
 
 Fase 2 — Rede: página no layout do original (TESTAR, progresso, cartão RUIM/ATENÇÃO/ESTÁVEL/SEM REDE) + gráfico de tráfego ao vivo; fluxo, limiares e textos portados; 655 testes e smoke com sonda falsa.
 NÃO TESTADO (por regra): ping/download/upload reais, ICMP sem privilégio (depende de ping_group_range ou do binário ping), Wi-Fi vs cabo reais, rede atrás de proxy/captive portal.
+
+Fase 3 — Otimiza: página no layout do original (RAM + OTIMIZA, programas para fechar, ajustes para jogos, RESTAURAR ORIGINAIS); 667 testes (SIGTERM e gsettings injetados) e smoke com processos de fixture e serviços falsos.
+Bug real achado por teste: caminhos entre aspas com espaço no Exec (.desktop) quebravam o nome do executável (corrigido).
+NÃO TESTADO: fechamento real de aplicativos, perfil de energia e mouse reais pela UI, KDE (mouse), Flatpak/Snap (nomes de processo), drop_caches (por regra só comando).
+Não portado por não existir no Linux: limpeza de standby list/working set do Windows, Game DVR, HAGS, otimização de janelas DX.

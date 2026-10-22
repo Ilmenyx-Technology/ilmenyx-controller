@@ -121,6 +121,8 @@ public sealed class IlmenyxSettings
 {
     public Dictionary<string, GameProfile> GameProfiles { get; set; } = [];
     public List<CustomGame> CustomGames { get; set; } = [];
+    /// <summary>Original values of user-level tweaks before the first change ("&lt;absent&gt;" = unknown), so "Restaurar originais" can undo them.</summary>
+    public Dictionary<string, string?> TweakBackup { get; set; } = [];
 
     public static IlmenyxSettings Load(string path)
     {

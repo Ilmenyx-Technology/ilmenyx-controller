@@ -390,7 +390,7 @@ public sealed class UiSmokeApp : Application
         if (Find<Button>(shell, "DashMetricPower").IsEnabled) throw new InvalidOperationException("Unavailable power metric must stay disabled.");
         Click(shell, "GoMemory"); await Until(() => shell.CurrentPage == "system");
         var expected = new (string Key, string Control)[] { ("dash", "OverviewChart"), ("system", "SysRefresh"), ("sensors", "RefreshSensors"), ("gpu", "GpuValidationNotice"), ("disks", "BtnDiskRefresh"),
-            ("energy", "BtnEnergyRefresh"), ("net", "BtnNetTest"), ("procs", "ProcessRows"), ("launcher", "BtnScanGames"), ("stress", "BtnStress"), ("bottleneck", "BtnBnSession"), ("validate", "ValidateCpu"), ("makerports", "BtnMakerPortScan"), ("makerdrv", "BtnMakerDrvScan"), ("startup", "BtnStartupScan"), ("driver", "BtnDrvScan"), ("tools", "About") };
+            ("energy", "BtnEnergyRefresh"), ("net", "BtnNetTest"), ("procs", "ProcessRows"), ("launcher", "BtnScanGames"), ("stress", "BtnStress"), ("optimize", "BtnOptimize"), ("bottleneck", "BtnBnSession"), ("validate", "ValidateCpu"), ("makerports", "BtnMakerPortScan"), ("makerdrv", "BtnMakerDrvScan"), ("startup", "BtnStartupScan"), ("driver", "BtnDrvScan"), ("tools", "About") };
         foreach (var (key, control) in expected)
         {
             var nav = Find<Button>(shell, "Nav" + key);
@@ -482,6 +482,7 @@ public sealed class UiSmokeApp : Application
         if (OperatingSystem.IsLinux()) await LauncherAsync(shell, desktop);
         await StressAsync(shell, desktop);
         await NetworkAsync(shell, desktop);
+        if (OperatingSystem.IsLinux()) await OptimizeAsync(shell, desktop);
         Click(shell, "SortMemory"); await Until(() => Find<Button>(shell, "SortMemory").Content!.ToString()!.Contains('▼'));
         Click(shell, "ToggleMonitor");
         await Until(() => Find<Button>(shell, "ToggleMonitor").Content!.ToString() == "Retomar monitor" && Find<TextBlock>(shell, "SideMonitor").Text == "monitor parado");
@@ -656,6 +657,41 @@ public sealed class UiSmokeApp : Application
         Find<Button>(shell, "Navnet").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await Until(() => shell.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnNetTest" && b.Content?.ToString() == "TESTAR"));
         Console.WriteLine("PASS network page: confirmation lists endpoints, declined test uses no network, fake probe yields the verdict card; real probe never clicked");
+    }
+    [System.Runtime.Versioning.SupportedOSPlatform("linux")]
+    private static async Task OptimizeAsync(ShellWindow shell, IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        // Fixture processes and fake services: no real process is signalled and the real power profile is never touched.
+        string root = Path.Combine(Program.OutputDirectory, "optimize-fixture"), proc = Path.Combine(root, "proc");
+        Directory.CreateDirectory(Path.Combine(proc, "self")); File.WriteAllText(Path.Combine(proc, "self", "status"), "Uid:\t1000\t1\t1\t1\nGid:\t1000\t1\t1\t1\nGroups:\t1000\n");
+        void P(string pid, string comm) { string d = Path.Combine(proc, pid); Directory.CreateDirectory(d); File.WriteAllText(Path.Combine(d, "comm"), comm + "\n"); File.WriteAllText(Path.Combine(d, "status"), "Uid:\t1000\t1\t1\t1\n"); File.WriteAllText(Path.Combine(d, "statm"), "5000 2000 0 0 0 0 0\n"); File.WriteAllText(Path.Combine(d, "cmdline"), comm + "\0"); }
+        P("201", "baloo_file"); P("202", "myeditor"); P("203", "systemd");
+        var signalled = new List<int>(); string power = "balanced"; var sets = new List<string>();
+        var optimizer = new Ilmenyx.Platform.Linux.LinuxOptimizer(proc, Path.Combine(root, "sys"), root, (_, _) => Task.FromResult((0, "'adaptive'")), (pids, _) => { signalled.AddRange(pids); foreach (var pid in pids) Directory.Delete(Path.Combine(proc, pid.ToString()), true); return Task.CompletedTask; });
+        var services = new OptimizeServices(_ => Task.FromResult<string?>(power), (id, _) => { power = id; sets.Add(id); return Task.FromResult(true); });
+        using var usage = new UsageViewModel(new FakeUsage()); await usage.SampleOnceAsync(CancellationToken.None);
+        string settingsPath = Path.Combine(root, "cfg/settings.json"); Window? host = null;
+        // The desktop-app map is injected through ~/.local/share/applications of the fixture home.
+        string apps = Path.Combine(root, ".local/share/applications"); Directory.CreateDirectory(apps); File.WriteAllText(Path.Combine(apps, "e.desktop"), "[Desktop Entry]\nType=Application\nName=My Editor\nExec=/usr/bin/myeditor %F\n");
+        var page = new OptimizePage(optimizer, services, usage, settingsPath, () => host, CancellationToken.None);
+        host = new Window { Width = 1200, Height = 900, Content = new ScrollViewer { Content = page } }; host.Show();
+        await Until(() => page.Apps.Count == 2 && host.GetVisualDescendants().OfType<CheckBox>().Any(c => c.Name == "Tweak_power"));
+        if (Find<CheckBox>(host, "OptApp_baloo_file").IsChecked != true || Find<CheckBox>(host, "OptApp_myeditor").IsChecked == true) throw new InvalidOperationException("Suggested helper must be pre-selected; ordinary apps must not.");
+        if (Find<CheckBox>(host, "Tweak_max_map_count").IsEnabled) throw new InvalidOperationException("Root-only tweaks must be read-only.");
+        var tp = Find<CheckBox>(host, "Tweak_power"); tp.IsChecked = true; tp.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => power == "performance" && page.Settings.TweakBackup.GetValueOrDefault("power") == "balanced");
+        Click(host, "BtnOptimize"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        var no = desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible); Click(no, "ConfirmNo"); await Until(() => !no.IsVisible);
+        if (signalled.Count != 0) throw new InvalidOperationException("Declined confirmation still signalled processes.");
+        Click(host, "BtnOptimize"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        Click(desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible), "ConfirmYes");
+        await Until(() => Find<TextBlock>(host, "OptResult").Text!.Contains("Fechados: baloo_file") && signalled.SequenceEqual([201]));
+        Click(host, "BtnTweaksRestore"); await Until(() => power == "balanced" && page.Settings.TweakBackup.Count == 0);
+        host.Close();
+        Find<Button>(shell, "Navoptimize").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => shell.GetVisualDescendants().OfType<StackPanel>().Any(p => p.Name == "OptTweaks" && p.Children.Count >= 4));
+        await Task.Delay(300); Capture(shell, "shell-optimize.png");
+        Console.WriteLine("PASS optimize page: only own desktop apps and suggested helpers listed, SIGTERM only after confirmation, reversible power profile with backup/restore, root-only tweaks read-only with commands; real page read-only");
     }
     private static async Task ExerciseAsync(DashboardWindow window, IClassicDesktopStyleApplicationLifetime desktop)
     {
