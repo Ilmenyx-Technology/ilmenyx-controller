@@ -19,3 +19,11 @@ ILMENYX_DISPLAY_BACKEND=wayland. UiSmoke: 25 PASS, sem FAIL, janela `Avalonia.Wa
 (`ui-smoke-wayland-weston.txt`). Limites: Weston headless não é GNOME/KDE, sem dispositivos de entrada
 reais, renderização por software; não certifica compositores de produção, portais, DPI/escala fracionária
 nem Orca.
+
+## Adendo: Wayland nativo contra GNOME Shell 50.6 headless
+
+Fedora 44, `gnome-shell --headless --wayland --no-x11 --virtual-monitor 1600x1200` dentro de `dbus-run-session`
+(mutter real, renderização por software, sem GDM/login nem portais completos), DISPLAY removido. UiSmoke: 25 PASS,
+sem FAIL, janela `Avalonia.Wayland.WindowImpl` (`ui-smoke-wayland-gnome-shell.txt`). Avisos do shell sobre GDM,
+geolocalização e câmera são do ambiente headless. Limites: sem sessão de usuário real, sem dispositivos de
+entrada físicos, GPU ou escala fracionária, sem Orca/AT-SPI; não certifica a experiência no desktop GNOME.

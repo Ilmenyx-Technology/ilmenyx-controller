@@ -300,3 +300,7 @@ nos requisitos de instalação por distro (ver docs/pacote-linux-x64.md).
 Wayland nativo fora do host (parcial): Fedora 44 VM + Weston 15 headless, UiSmoke 25 PASS com
 Avalonia.Wayland.WindowImpl (docs/evidencias/ilmenyx-vm-fedora-0.25.0). Continuam NÃO TESTADOS: GNOME/KDE reais,
 GPU/aceleração, escala fracionária, múltiplos monitores, entrada física, Orca.
+
+Wayland nativo no GNOME (parcial): Fedora 44 + GNOME Shell 50.6 headless (mutter), UiSmoke 25 PASS com
+Avalonia.Wayland.WindowImpl. NÃO TESTADOS: sessão GNOME real/login, KDE Plasma, GPU, escala fracionária,
+múltiplos monitores, entrada física, Orca.
