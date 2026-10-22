@@ -228,3 +228,10 @@ as regras de arquitetura Linux, benchmarks, testes, licenças e segurança anter
 - Preservar Channel/Quality/timestamps/fontes/unidades e não mostrar Value antigo se Status indisponível.
 - Todo dado variável somente em texto escapado; reutilizar ReportFile para escrita e cancelamento.
 - UI sensores continua JSON até incremento próprio com guardas de troca de snapshot/monitor.
+
+
+## Sensores HTML UI 0.23.0
+- UI oferece JSON/HTML; ExportAsync do viewmodel captura seleção antes do picker e bloqueia reentrada.
+- Monitor segue independente; recusar gravação se snapshot mudou ou há refresh ao voltar do diálogo.
+- Token de exportação ligado ao descarte; não escrever nem notificar após retorno de picker descartado.
+- Preservar extensão, foco, arquivo novo e testes de monitor real/seleção nos dois backends.

@@ -119,6 +119,7 @@ public sealed class UiSmokeApp : Application
         {
             "cpu" => ValidationHtmlReport.Render(JsonSerializer.Deserialize<CpuBenchmarkReport>(json, SnapshotReport.Options)!),
             "memory" => ValidationHtmlReport.Render(JsonSerializer.Deserialize<MemoryValidationReport>(json, SnapshotReport.Options)!),
+            "sensors" => SensorHtmlReport.Render(JsonSerializer.Deserialize<SensorSnapshot>(json, SnapshotReport.Options)!),
             _ => ValidationHtmlReport.Render(JsonSerializer.Deserialize<GameSimValidationReport>(json, SnapshotReport.Options)!)
         };
         if (File.ReadAllText(path) != expected) throw new InvalidOperationException("Validation HTML changed the selected report or recollected context.");
@@ -546,6 +547,17 @@ public sealed class UiSmokeApp : Application
         Click(window, "MonitorSensors");
         await Until(() => Find<Button>(window, "StopSensors").IsEnabled);
         await Task.Delay(2200); // Two real read-only samples, not a load test.
+        await Until(() => Find<Button>(window, "ExportSensorsHtml").IsEnabled);
+        Find<Button>(window, "ExportSensorsHtml").Focus(); Key(window, Avalonia.Input.Key.Space);
+        var changingSensors = await Dialog(desktop);
+        string beforeSample = Find<TextBlock>(window, "SensorValues").Text!;
+        var staleSensorsPath = Path.Combine(output, "sensors-stale.html");
+        Find<TextBox>(changingSensors, "DestinationPath").Text = staleSensorsPath;
+        await Until(() => Find<TextBlock>(window, "SensorValues").Text != beforeSample);
+        Click(changingSensors, "SaveJson");
+        await Until(() => !changingSensors.IsVisible && Find<TextBlock>(window, "SensorStatus").Text!.Contains("mudou"));
+        if (File.Exists(staleSensorsPath)) throw new InvalidOperationException("Changed sensor snapshot was exported after the dialog.");
+        Console.WriteLine("PASS sensors HTML: real polling changes snapshot during dialog; stale selection refused without file");
         Click(window, "StopSensors");
         await Until(() => !Find<Button>(window, "StopSensors").IsEnabled && Find<Button>(window, "RefreshSensors").IsEnabled);
         var sensorsPath = Path.Combine(output, "sensors.json");
@@ -558,6 +570,12 @@ public sealed class UiSmokeApp : Application
             if (readings.GetArrayLength() > 0 && !Find<TextBlock>(window, "SensorValues").Text!.Contains(readings[0].GetProperty("device").GetString()!))
                 throw new InvalidOperationException("Sensor source not shown in UI.");
         }
+        await HtmlResultAsync(window, desktop, "ExportSensorsHtml", sensorsPath, "sensors");
+        Find<Button>(window, "RefreshSensors").Focus();
+        foreach (var sensorButton in new[] { "MonitorSensors", "ExportSensors", "ExportSensorsHtml" })
+        { Key(window, Avalonia.Input.Key.Tab); FocusIs(window, Find<Button>(window, sensorButton)); }
+        Key(window, Avalonia.Input.Key.Tab, KeyModifiers.Shift); FocusIs(window, Find<Button>(window, "ExportSensors"));
+        Console.WriteLine("PASS sensor keyboard order: JSON/HTML reachable, disabled stop skipped, reverse Tab works");
         Find<Button>(window, "ValidateCpu").Focus();
         foreach (var name in new[] { "ExportCpu", "ExportCpuHtml", "ValidateMemory", "ExportMemory", "ExportMemoryHtml", "ValidateSim", "ExportSim", "ExportSimHtml" })
         {

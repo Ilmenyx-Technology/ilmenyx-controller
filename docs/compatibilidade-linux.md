@@ -227,3 +227,15 @@ aprovados; coleta real/arquivo/stdout e browser desktop/estreito passaram.
 Interface HTML de sensores PENDENTE DE IMPLEMENTAÇÃO; impressão, outros browsers,
 VM limpa/bateria/outras placas NÃO TESTADOS. Checklist jurídico/humano PENDENTE.
 [Comandos, colaboração Claude e evidências](sensores-html.md).
+
+
+## Atualização 0.23.0 — HTML de sensores na interface
+
+Substitui a pendência anterior do botão HTML: IMPLEMENTADO e testado em Wayland
+nativo/X11. Comando compartilhado JSON/HTML impede reentrada, recusa seleção que
+mudou durante o diálogo e suprime escrita/notificações após descarte. Exporta o
+snapshot selecionado sem coletar novamente; monitor permanece independente.
+Build sem avisos/erros, 392 testes aprovados; monitor real, exportação/cancelamento,
+extensão/overwrite, teclado roteado e mínimos até 200% passaram. Interação física,
+Orca, VM limpa e revisão humana seguem PENDENTES/NÃO TESTADOS.
+[Colaboração Claude, comandos e evidências](sensores-html-ui.md).

@@ -9,13 +9,15 @@ public sealed class SensorMonitorViewModel(ISensorProvider provider) : INotifyPr
     private CancellationTokenSource? pollingStop;
     private Task? pollingTask;
     private bool disposed;
+    private readonly CancellationTokenSource exportStop = new();
     public event PropertyChangedEventHandler? PropertyChanged;
     public SensorSnapshot? Snapshot { get; private set; }
     public bool IsRefreshing { get; private set; }
     public bool IsPolling { get; private set; }
+    public bool IsExporting { get; private set; }
     public bool CanRefresh => !disposed && !IsRefreshing;
     public bool CanPoll => !disposed && !IsPolling;
-    public bool CanExport => !disposed && Snapshot is not null && !IsRefreshing;
+    public bool CanExport => !disposed && Snapshot is not null && !IsRefreshing && !IsExporting;
     public string Status { get; private set; } = "Aguardando leitura de sensores Linux.";
     public string Text => Snapshot is { } snapshot ? SensorPresentation.Text(snapshot) : "Sem snapshot de sensores.";
 
@@ -63,11 +65,38 @@ public sealed class SensorMonitorViewModel(ISensorProvider provider) : INotifyPr
         pollingStop?.Cancel();
         if (pollingTask is { } task) await task;
     }
+    public async Task ExportAsync(bool html, Func<string, Task<string?>> chooseDestination, CancellationToken ct = default)
+    {
+        if (!CanExport || Snapshot is not { } selected) return;
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, exportStop.Token);
+        var token = linked.Token;
+        IsExporting = true;
+        NotifyAll();
+        try
+        {
+            token.ThrowIfCancellationRequested();
+            var path = await chooseDestination(html ? ".html" : ".json");
+            token.ThrowIfCancellationRequested();
+            if (path is null) { SetStatus("Exportação cancelada."); return; }
+            if (!ReferenceEquals(selected, Snapshot) || IsRefreshing)
+            {
+                SetStatus("O snapshot mudou. Pare o monitor e selecione novamente para exportar.");
+                return;
+            }
+            if (html) await Task.Run(() => SensorHtmlReport.ExportAsync(selected, path, token), token);
+            else await Task.Run(() => SnapshotReport.ExportAsync(selected, path, token), token);
+            SetStatus("Snapshot de sensores exportado para arquivo local.");
+        }
+        catch (OperationCanceledException) { SetStatus("Exportação cancelada."); }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        { SetStatus("Não foi possível exportar: " + e.Message); }
+        finally { IsExporting = false; NotifyAll(); }
+    }
     public void SetStatus(string status) { if (!disposed) { Status = status; Notify(nameof(Status)); } }
-    public void Dispose() { if (disposed) return; disposed = true; pollingStop?.Cancel(); }
+    public void Dispose() { if (disposed) return; disposed = true; pollingStop?.Cancel(); exportStop.Cancel(); exportStop.Dispose(); }
     private void Notify(string property) { if (!disposed) PropertyChanged?.Invoke(this, new(property)); }
     private void NotifyAll()
     {
-        foreach (string property in new[] { nameof(Snapshot), nameof(Text), nameof(Status), nameof(IsRefreshing), nameof(IsPolling), nameof(CanRefresh), nameof(CanPoll), nameof(CanExport) }) Notify(property);
+        foreach (string property in new[] { nameof(Snapshot), nameof(Text), nameof(Status), nameof(IsRefreshing), nameof(IsPolling), nameof(CanRefresh), nameof(CanPoll), nameof(CanExport), nameof(IsExporting) }) Notify(property);
     }
 }

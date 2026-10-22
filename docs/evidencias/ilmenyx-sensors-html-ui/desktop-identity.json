@@ -1,0 +1,10 @@
+{
+  "version": "0.23.0",
+  "checkedFiles": 42,
+  "allPublishedDesktopFilesIdentical": true,
+  "onlyHarnessAdded": [
+    "Ilmenyx.UiSmoke.dll"
+  ],
+  "packageWaylandPassed": true,
+  "packageX11Passed": true
+}
