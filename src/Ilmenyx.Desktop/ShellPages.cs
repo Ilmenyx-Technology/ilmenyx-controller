@@ -7,6 +7,7 @@ using Avalonia.Data;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Ilmenyx.Core;
+using Ilmenyx.Gpu.Vulkan;
 using Ilmenyx.Platform.Linux;
 
 namespace Ilmenyx.Desktop;
@@ -38,7 +39,7 @@ public sealed partial class ShellWindow
                 () => (usage.Last?.CpuModel ?? "", new LinuxGpuCollector().Collect(PciIds.Load()).FirstOrDefault().Raw?.Name ?? ""), stop.Token) { Margin = new Thickness(0, 4, 8, 12) };
         }, null);
         pages["bottleneck"] = ("Detector de gargalo", () => Scroll("BottleneckScroll", new BottleneckPage(usage, stop.Token, OperatingSystem.IsLinux() ? () => MangoHudLogReader.Read(MangoHudLogReader.DefaultFolder(), DateTimeOffset.UtcNow) : null) { Margin = new Thickness(0, 4, 8, 12) }), null);
-        pages["stress"] = ("Stress test", () => Scroll("StressScroll", stressPage = new StressPage(new StressTester(), usage, () => this, () => usage.Last is { MemoryTotal: > 0, MemoryUsed: { } u } l ? l.MemoryTotal!.Value - u : 0, stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
+        pages["stress"] = ("Stress test", () => Scroll("StressScroll", stressPage = new StressPage(new StressTester(), usage, () => this, () => usage.Last is { MemoryTotal: > 0, MemoryUsed: { } u } l ? l.MemoryTotal!.Value - u : 0, stop.Token, OperatingSystem.IsLinux() ? new VulkanGpuStress() : null, OperatingSystem.IsLinux() ? GpuTemperatureCache() : null) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["bench"] = ("Benchmark", () => Scroll("BenchScroll", new BenchPage(OperatingSystem.IsLinux() ? BenchServices.Real() : throw new PlatformNotSupportedException(), usage, () => this, IlmenyxSettings.DefaultPath(), stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["overlay"] = ("Overlay", () => Scroll("OverlayScroll", new OverlayPage(OperatingSystem.IsLinux() ? RealOverlayServices() : throw new PlatformNotSupportedException(), usage, IlmenyxSettings.DefaultPath(), stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["lighting"] = ("Integração", () => Scroll("LightingScroll", new LightingPage(RealLightingServices(), usage, () => this, stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
@@ -61,6 +62,32 @@ public sealed partial class ShellWindow
         string version = typeof(ShellWindow).Assembly.GetName().Version?.ToString(3) ?? "";
         return LinuxReportGatherer.GatherAsync(version, null, hardware.Snapshot?.Gpus, sensors.Snapshot?.Readings ?? [], smart, networkPage?.LastResult,
             IlmenyxSettings.Load(IlmenyxSettings.DefaultPath()).BenchRuns, ct);
+    }
+
+    /// <summary>GPU temperature for the stress guard: latest read-only telemetry, refreshed in the background at most every 2 s.</summary>
+    [System.Runtime.Versioning.SupportedOSPlatform("linux")]
+    private Func<double?> GpuTemperatureCache()
+    {
+        double? last = null; DateTime at = DateTime.MinValue; bool busy = false; GpuRaw? raw = null; bool resolved = false;
+        return () =>
+        {
+            if (!busy && DateTime.Now - at > TimeSpan.FromSeconds(2))
+            {
+                busy = true;
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var collector = new LinuxGpuCollector();
+                        if (!resolved) { raw = collector.Collect(PciIds.Load()).FirstOrDefault().Raw; resolved = true; }
+                        last = raw is null ? null : (await collector.TelemetryAsync(raw, stop.Token)).TempC;
+                    }
+                    catch (Exception e) when (e is IOException or TimeoutException or OperationCanceledException) { last = null; }
+                    finally { at = DateTime.Now; busy = false; }
+                });
+            }
+            return last;
+        };
     }
 
     private LightingServices RealLightingServices() => new(OpenRgbClient.ConnectAsync, () => null,

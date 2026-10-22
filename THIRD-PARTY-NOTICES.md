@@ -37,6 +37,7 @@ Avalonia.BuildServices excluído via ExcludeAssets=all / PrivateAssets=all; proj
 | SkiaSharp.NativeAssets.macOS | 3.119.4 | MIT |
 | SkiaSharp.NativeAssets.WebAssembly | 3.119.4 | MIT |
 | SkiaSharp.NativeAssets.Win32 | 3.119.4 | MIT |
+| Silk.NET.Vulkan (e Silk.NET.Core, Silk.NET.Maths, Silk.NET.Vulkan.Extensions…) | 2.23.0 | MIT |
 | Tmds.DBus.Protocol | 0.94.1 | MIT |
 | xunit | 2.9.3 | Apache-2.0 |
 | xunit.abstractions | 2.0.3 | consultar https://raw.githubusercontent.com/xunit/xunit/master/license.txt |

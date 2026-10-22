@@ -272,3 +272,11 @@ as regras de arquitetura Linux, benchmarks, testes, licenças e segurança anter
 - Por decisão do usuário (2026-10-22) o pacote embute runtime .NET e ICU app-local; isso substitui a regra de 0.17.0 de não incluir runtime. SDK, testes e drivers continuam fora.
 - ICU embutido só com -p:IlmenyxBundleIcu=true e restore explícito; não ativar Invariant para contornar. Programas externos opcionais (GameMode, MangoHud, Flatpak, smartctl) não são embutidos: detectar e informar.
 - Avisos do runtime (MIT) e do ICU (Unicode) acompanham em licenses/; sem liberação jurídica de redistribuição.
+
+
+## GPU em Vulkan (módulo Ilmenyx.Gpu.Vulkan)
+- Implementação independente em Silk.NET (MIT); não copia os shaders D3D do original. Shaders GLSL em Shaders/, SPIR-V gerado por scripts/build-gpu-shaders.sh e embutido.
+- Carga de GPU só com clique + confirmação (UI) ou --allow-gpu-load (CLI), com duração máxima, cancelamento, corte por temperatura quando houver sensor (CPU se a GPU divide o chip), timeout de fence (5 s) e liberação do dispositivo em finally.
+- Testes nunca criam dispositivo nem renderizam; o teste real é opt-in (ILMENYX_RUN_GPU_TESTS=1) e um "passou" sem a variável não prova nada sobre GPU.
+- Sem janela/swapchain: render offscreen. Ray tracing só com VK_KHR_ray_tracing_pipeline; sem o hardware, registrar BLOQUEADO.
+- Scores de GPU são experimentais e não comparáveis ao Windows.

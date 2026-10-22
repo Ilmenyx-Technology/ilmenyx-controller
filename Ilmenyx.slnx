@@ -5,6 +5,7 @@
     <Project Path="src/Ilmenyx.Core/Ilmenyx.Core.csproj" />
     <Project Path="src/Ilmenyx.Desktop/Ilmenyx.Desktop.csproj" />
     <Project Path="src/Ilmenyx.Platform.Linux/Ilmenyx.Platform.Linux.csproj" />
+    <Project Path="src/Ilmenyx.Gpu.Vulkan/Ilmenyx.Gpu.Vulkan.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Ilmenyx.Tests/Ilmenyx.Tests.csproj" />

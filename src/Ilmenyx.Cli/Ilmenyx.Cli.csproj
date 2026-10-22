@@ -13,6 +13,7 @@
     <ProjectReference Include="../Ilmenyx.Contracts/Ilmenyx.Contracts.csproj" />
     <ProjectReference Include="../Ilmenyx.Core/Ilmenyx.Core.csproj" />
     <ProjectReference Include="../Ilmenyx.Platform.Linux/Ilmenyx.Platform.Linux.csproj" />
+    <ProjectReference Include="../Ilmenyx.Gpu.Vulkan/Ilmenyx.Gpu.Vulkan.csproj" />
   </ItemGroup>
   <!-- Pacote autocontido (scripts/package-linux-x64.sh): runtime e ICU acompanham o app. -->
   <PropertyGroup Condition="'$(IlmenyxBundleIcu)' == 'true'">

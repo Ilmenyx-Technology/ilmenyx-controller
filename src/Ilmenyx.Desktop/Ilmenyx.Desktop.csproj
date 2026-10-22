@@ -11,6 +11,7 @@
     <ProjectReference Include="../Ilmenyx.Contracts/Ilmenyx.Contracts.csproj" />
     <ProjectReference Include="../Ilmenyx.Core/Ilmenyx.Core.csproj" />
     <ProjectReference Include="../Ilmenyx.Platform.Linux/Ilmenyx.Platform.Linux.csproj" />
+    <ProjectReference Include="../Ilmenyx.Gpu.Vulkan/Ilmenyx.Gpu.Vulkan.csproj" />
     <PackageReference Include="Avalonia.BuildServices" Version="11.3.2" ExcludeAssets="all" PrivateAssets="all" />
     <PackageReference Include="Avalonia.Wayland" Version="12.1.4" />
     <PackageReference Include="Avalonia.Desktop" Version="12.1.4" />

@@ -637,9 +637,42 @@ public sealed class UiSmokeApp : Application
         var warn = desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible); if (!Find<TextBlock>(warn, "ConfirmText").Text!.Contains("NÃO funcionará")) throw new InvalidOperationException("No-sensor warning missing.");
         Click(warn, "ConfirmNo"); await Until(() => !warn.IsVisible); if (engine.Starts != before) throw new InvalidOperationException("Cancelled warning still started the load.");
         host.Close();
+        await StressGpuAsync(desktop);
         Find<Button>(shell, "Navstress").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await Until(() => shell.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnStress" && b.Content?.ToString() == "INICIAR"));
-        Console.WriteLine("PASS stress page: invalid limits refused, declined confirmation keeps the load off, CPU temperature abort, timed completion, no-sensor warning; GPU stress disabled; no real load generated");
+        Console.WriteLine("PASS stress page: invalid limits refused, declined confirmation keeps the load off, CPU temperature abort, timed completion, no-sensor warning; GPU box disabled without an engine, GPU path covered by StressGpuAsync; no real load generated");
+    }
+    private sealed class FakeGpuStress : Ilmenyx.Core.IGpuStressEngine
+    {
+        public string? UnavailableReason { get; set; } public string AdapterName => "Fake GPU"; public bool SharesCpuThermals { get; set; } public bool Running { get; private set; } public double Fps => 60; private string? error; public string? Error { get => error; set { error = value; if (value is not null) Running = false; } }
+        public int Starts, Stops; public double? Temp = 50;
+        public void Start() { Running = true; Starts++; } public void Stop() { Running = false; Stops++; }
+    }
+    private static async Task StressGpuAsync(IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        // A fake GPU engine: the real Vulkan burn is never started by the smoke test.
+        var cpuEngine = new FakeStress(); var gpu = new FakeGpuStress { UnavailableReason = "Nenhum adaptador Vulkan encontrado." }; var provider = new FakeUsage(); using var usage = new UsageViewModel(provider); await usage.SampleOnceAsync(CancellationToken.None);
+        Window? host = null; var page = new StressPage(cpuEngine, usage, () => host, () => 8L << 30, CancellationToken.None, gpu, () => gpu.Temp);
+        host = new Window { Width = 1100, Height = 800, Content = new ScrollViewer { Content = page } }; host.Show();
+        await Until(() => host.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnStress"));
+        if (Find<CheckBox>(host, "ChkGpu").IsEnabled) throw new InvalidOperationException("Unavailable GPU engine must keep the box disabled.");
+        host.Close();
+        gpu.UnavailableReason = null; page = new StressPage(cpuEngine, usage, () => host, () => 8L << 30, CancellationToken.None, gpu, () => gpu.Temp);
+        host = new Window { Width = 1100, Height = 800, Content = new ScrollViewer { Content = page } }; host.Show();
+        await Until(() => host.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnStress") && Find<CheckBox>(host, "ChkGpu").IsEnabled);
+        Find<CheckBox>(host, "ChkCpu").IsChecked = false; Find<CheckBox>(host, "ChkGpu").IsChecked = true; Find<TextBox>(host, "TxtDuration").Text = "10";
+        Click(host, "BtnStress"); var dialog = await ConfirmAsync(desktop);
+        if (!Find<TextBlock>(dialog, "ConfirmText").Text!.Contains("Fake GPU") || !Find<TextBlock>(dialog, "ConfirmText").Text!.Contains("e da GPU: 85")) throw new InvalidOperationException("GPU confirmation must name the adapter and the limits.");
+        Click(dialog, "ConfirmNo"); await Until(() => !dialog.IsVisible); if (gpu.Starts != 0) throw new InvalidOperationException("Declined confirmation started the GPU load.");
+        Click(host, "BtnStress"); Click(await ConfirmAsync(desktop), "ConfirmYes");
+        await Until(() => gpu.Running && page.IsRunning && cpuEngine.Starts == 0);
+        gpu.Temp = 90; page.Tick();
+        await Until(() => !gpu.Running && page.StatusText == "Abortado" && gpu.Stops == 1);
+        if (!host.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text?.Contains("ABORTADO: GPU a 90") == true)) throw new InvalidOperationException("GPU temperature abort must be logged.");
+        gpu.Temp = 50; Click(host, "BtnStress"); Click(await ConfirmAsync(desktop), "ConfirmYes"); await Until(() => gpu.Running);
+        gpu.Error = "DEVICE_LOST"; page.Tick(); await Until(() => page.StatusText == "Abortado" && host.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text?.Contains("falha na GPU (DEVICE_LOST)") == true));
+        host.Close();
+        Console.WriteLine("PASS stress GPU: box enabled only with a usable engine, confirmation names the adapter and limits, GPU temperature and engine-failure aborts stop the load (fake engine; no Vulkan work)");
     }
     private sealed class FakeNetProbe : Ilmenyx.Core.INetworkProbe
     {
