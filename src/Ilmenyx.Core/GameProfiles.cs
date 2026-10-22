@@ -117,6 +117,12 @@ public static class GameLaunchOptions
 }
 
 /// <summary>User settings (game profiles, manual games, later overlay and benchmark history) in one JSON file, written atomically.</summary>
+/// <summary>One finished benchmark kept in the local history; <see cref="Score"/> is experimental and not comparable with Windows.</summary>
+public sealed record BenchRunEntry(DateTimeOffset At, string Kind, string Summary, double? Score)
+{
+    public const int MaxEntries = 50;
+}
+
 public sealed class IlmenyxSettings
 {
     public Dictionary<string, GameProfile> GameProfiles { get; set; } = [];
@@ -125,6 +131,14 @@ public sealed class IlmenyxSettings
     public Dictionary<string, string?> TweakBackup { get; set; } = [];
     /// <summary>HowManyFPS API key. Stored in this user-only (0600) file; never exported or logged.</summary>
     public string? HowManyFpsKey { get; set; }
+    /// <summary>Local benchmark history (newest first, at most <see cref="BenchRunEntry.MaxEntries"/>). Never sent anywhere.</summary>
+    public List<BenchRunEntry> BenchRuns { get; set; } = [];
+
+    public void AddBenchRun(BenchRunEntry entry)
+    {
+        BenchRuns.Insert(0, entry);
+        if (BenchRuns.Count > BenchRunEntry.MaxEntries) BenchRuns.RemoveRange(BenchRunEntry.MaxEntries, BenchRuns.Count - BenchRunEntry.MaxEntries);
+    }
 
     public static IlmenyxSettings Load(string path)
     {

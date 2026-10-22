@@ -10,7 +10,7 @@ namespace Ilmenyx.Core.Benchmarks;
 public sealed class CpuRenderOutput
 {
     private readonly int[] pixels;
-    internal CpuRenderOutput(CpuBenchmarkResult result, int[] pixels) { Result = result; this.pixels = pixels; }
+    public CpuRenderOutput(CpuBenchmarkResult result, int[] pixels) { Result = result; this.pixels = pixels; }
     public CpuBenchmarkResult Result { get; }
     public int[] CopyPixels() => (int[])pixels.Clone();
 }

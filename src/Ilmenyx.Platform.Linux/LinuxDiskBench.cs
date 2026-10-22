@@ -11,7 +11,6 @@ namespace Ilmenyx.Platform.Linux;
 /// with O_DIRECT so the page cache is bypassed. Uses only one new 0600 file inside a new 0700 subfolder of the chosen
 /// directory, never a device; both are removed in finally. Heavy by design: only ever started by an explicit click.
 /// </summary>
-[System.Runtime.Versioning.SupportedOSPlatform("linux")]
 public static class LinuxDiskBench
 {
     private const int Block = 1 << 20, Small = 4096;
@@ -49,6 +48,7 @@ public static class LinuxDiskBench
             ? $"Esta pasta está em {type} (memória): o teste mediria a RAM, não um disco. Escolha uma pasta em disco real."
             : null;
 
+    [System.Runtime.Versioning.SupportedOSPlatform("linux")]
     public static Task<DiskBenchResult> RunAsync(DiskBenchOptions options, CancellationToken ct, IProgress<(string Phase, double Fraction)>? progress = null)
     {
         string? why;
@@ -66,6 +66,7 @@ public static class LinuxDiskBench
     private static DiskBenchResult Unavailable(DiskBenchOptions o, string reason) =>
         new(BenchRunStatus.Unavailable, o.Directory, o.FileMegabytes, null, null, null, null, null, null, null, reason);
 
+    [System.Runtime.Versioning.SupportedOSPlatform("linux")]
     private static unsafe DiskBenchResult Run(DiskBenchOptions options, CancellationToken external, IProgress<(string, double)>? progress)
     {
         long fileBytes = (long)options.FileMegabytes << 20;
