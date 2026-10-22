@@ -473,7 +473,7 @@ public sealed class UiSmokeApp : Application
         await Until(() => File.Exists(Path.Combine(output, "hardware.json")));
         using (var json = JsonDocument.Parse(File.ReadAllText(Path.Combine(output, "hardware.json"))))
         {
-            if (json.RootElement.GetProperty("schemaVersion").GetString() != "1.2") throw new InvalidOperationException("Hardware schema incorrect.");
+            if (json.RootElement.GetProperty("schemaVersion").GetString() != "1.3") throw new InvalidOperationException("Hardware schema incorrect.");
             var gpus = json.RootElement.GetProperty("gpus").GetProperty("devices");
             if (gpus.GetArrayLength() > 0 && !Find<TextBlock>(window, "GpuSummary").Text!.Contains(gpus[0].GetProperty("device").GetString()!))
                 throw new InvalidOperationException("GPU identification not presented in dashboard.");
