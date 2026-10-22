@@ -44,6 +44,26 @@ Nenhuma coleta fabrica temperatura/saúde/VRAM. Capacidade de disco não é espa
 Carga completa não roda ao abrir o app ou na suíte. Sem instalação, drivers, root ou telemetria de
 produto automáticos. Dependências gráficas podem usar IPC local; restore/audit NuGet acessam rede.
 
+## O que não foi portado (contribuições são bem-vindas)
+Tudo o que o RESET EXPLODE faz foi portado ou substituído por um equivalente Linux, exceto o que está abaixo. Se você quiser implementar algum destes itens, a contribuição é bem-vinda: veja `docs/portagem-completa.md` (matriz com o original), `Sem_teste.md` (o que falta validar e como) e `AGENTS.md` (regras de segurança). Respeite a licença (`LICENSING.md`).
+
+| Item do original | Situação no Linux | Motivo |
+|---|---|---|
+| Benchmark de GPU com ray tracing (GpuRtBench) | **Não portado** (BLOQUEADO) | Exige `VK_KHR_ray_tracing_pipeline`, que a GPU de desenvolvimento (Intel Iris Xe) não tem. Escrever e não conseguir rodar nem uma vez seria código não verificado. Precisa de alguém com GPU AMD RX 6000+ ou NVIDIA RTX |
+| Teste de GPU AMD/NVIDIA em hardware real | Código portado, **não testado** | O ambiente de desenvolvimento só tem GPU Intel integrada |
+| SDK da Corsair (iCUE) e Razer Synapse | Substituídos pelo OpenRGB | Esses SDKs são do Windows e proprietários; o OpenRGB cobre os mesmos dispositivos. Controle de LEDs real **não testado** (sem hardware RGB) |
+| Otimizações do Windows (Game DVR, HAGS, janela do Windows, WindowsTweaks) | Não se aplicam | Não existem no Linux; o Otimiza traz equivalentes (perfil de energia, governador, `vm.max_map_count`, etc.) |
+| Limpeza de dispositivos USB fantasmas (UsbCleaner) | Não se aplica | É uma limpeza do registro do Windows |
+| Prioridade elevada de processo e otimizações de tela cheia | Não se aplicam sem root | O Linux exige privilégio para subir prioridade; o GameMode do sistema cobre isso. O GameMode embutido só ajusta `ionice`/`renice` do usuário |
+| FPS por ETW (FrameMonitor) | Substituído pelo MangoHud | ETW é do Windows; o FPS vem do log do MangoHud. FPS num jogo real **não testado**; MangoHud embutido só para 64 bits |
+| WinRAR no catálogo de apps | Sem equivalente | Programa proprietário do Windows; o catálogo Flatpak usa alternativas |
+| Flatpak embutido no pacote | Não embutível | É um serviço do sistema (precisa de root, polkit e bubblewrap); o app mostra o comando da sua distro |
+| Módulos de RAM, SMART e ajustes NVIDIA (NVML) | Parcial | Exigem root; o app mostra o comando ou aceita a saída importada, sem `sudo` implícito |
+| Overlay sobre jogos em Wayland | Parcial | Janela sempre-no-topo depende do compositor; o overlay do MangoHud funciona dentro do jogo |
+| Pacotes para Arch/openSUSE/Alpine/ARM64 e instaladores | Não feito | O pacote atual é um `tar.gz` linux-x64 (glibc) validado em Ubuntu, Debian e Fedora |
+
+Os pontos "não testado" têm o motivo e a condição de reteste em `Sem_teste.md`.
+
 ## Compilar e testar
 
 Requer SDK .NET 10 no PATH e bibliotecas gráficas X11/EGL/fontconfig/Skia conforme backend.
