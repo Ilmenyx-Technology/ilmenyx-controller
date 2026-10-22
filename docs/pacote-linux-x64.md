@@ -251,3 +251,5 @@ Validação do 0.30.0 nas VMs (evidências em `docs/evidencias/ilmenyx-vm-*-0.30
 
 ## Validar GPU AMD/NVIDIA numa máquina emprestada (sem custo)
 `scripts/validate-gpu-remote.sh /pacote/Ilmenyx-linux-x64 /saida-nova [--allow-gpu-load]`: a fase 1 só lê (GPUs, sensores, extensões Vulkan de ray tracing); a fase 2 (cargas de 8 s com `bench gpu-burn`/`gpu-scene`/`gpu-snapshot`) só roda com a flag e com o dono da máquina de acordo. Sem root, sem instalação, sem rede. Os relatórios voltam para `Sem_teste.md` como evidência (GPU-04..08).
+
+Arch Linux e openSUSE Tumbleweed (VMs mínimas, 2026-10-22): `validate-linux-machine.sh` IMPLEMENTED_TESTED e janela viva por 14 s nas duas. Na Arch, sem `libvulkan` instalada, `bench gpu-list` abortava com exceção não tratada e a janela caía; corrigido para mostrar "biblioteca Vulkan não encontrada" (rc=1 no CLI). Pré-requisitos instalados nas VMs antes do teste: jq, ripgrep, xvfb, libxkbcommon, fontconfig (e diffutils no openSUSE). O OpenRGB embutido não iniciou nelas por falta de libharfbuzz (mensagem correta no app). openSUSE tem llvmpipe (Vulkan por CPU) e a Arch não tinha loader.

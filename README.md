@@ -60,7 +60,7 @@ Tudo o que o RESET EXPLODE faz foi portado ou substituído por um equivalente Li
 | Flatpak embutido no pacote | Não embutível | É um serviço do sistema (precisa de root, polkit e bubblewrap); o app mostra o comando da sua distro |
 | Módulos de RAM, SMART e ajustes NVIDIA (NVML) | Parcial | Exigem root; o app mostra o comando ou aceita a saída importada, sem `sudo` implícito |
 | Overlay sobre jogos em Wayland | Parcial | Janela sempre-no-topo depende do compositor; o overlay do MangoHud funciona dentro do jogo |
-| Pacotes para Arch/openSUSE/Alpine/ARM64 e instaladores | Não feito | O pacote atual é um `tar.gz` linux-x64 (glibc) validado em Ubuntu, Debian e Fedora |
+| Pacotes nativos (PKGBUILD/deb/rpm), Alpine/musl, ARM64 e instaladores | Não feito | O pacote atual é um `tar.gz` linux-x64 (glibc) validado em VM em Ubuntu, Debian, Fedora, Arch e openSUSE |
 
 Os pontos "não testado" têm o motivo e a condição de reteste em `Sem_teste.md`.
 
