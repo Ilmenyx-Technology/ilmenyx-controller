@@ -259,3 +259,16 @@ relatório NVMe histórico real aceito e erros/timeout/browser validados.
 SMART-01 permanece NÃO TESTADO para consulta ao vivo com sucesso sem elevação;
 VM/SATA/encodings/tecnologias assistivas e integração UI continuam pendentes.
 [Colaboração, comandos e evidências](docs/smart-import.md).
+
+
+## Atualização 0.25.0 — SMART importado na interface
+
+IMPLEMENTADO: painel "SMART · importação offline" na Avalonia. O usuário informa disco
+e caminho completo de um JSON smartctl existente; ReadFileAsync aceita só arquivo regular
+(sem link simbólico, /dev, /proc, /sys; abertura limitada a 3 s; máx. 256 KiB em disco e
+64 Ki caracteres lidos). Exporta JSON/HTML do relatório selecionado, sem smartctl, sem
+consulta ao disco. Build sem avisos, 468 testes aprovados; smoke X11 e Wayland nativo
+passaram (recusa por nome divergente, importação, exportação JSON/HTML).
+NÃO TESTADO: FIFO/arquivo em FS de rede (abertura bloqueante só é limitada por timeout; a
+thread pode permanecer até o kernel liberar), teclado físico/Orca, VM limpa, SMART-01 ao vivo.
+Importação continua sendo relatório histórico, sem prova de origem ou saúde atual.

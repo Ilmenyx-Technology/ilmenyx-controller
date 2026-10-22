@@ -576,6 +576,28 @@ public sealed class UiSmokeApp : Application
         { Key(window, Avalonia.Input.Key.Tab); FocusIs(window, Find<Button>(window, sensorButton)); }
         Key(window, Avalonia.Input.Key.Tab, KeyModifiers.Shift); FocusIs(window, Find<Button>(window, "ExportSensors"));
         Console.WriteLine("PASS sensor keyboard order: JSON/HTML reachable, disabled stop skipped, reverse Tab works");
+        var smartInput = Path.Combine(output, "smart-input.json");
+        File.WriteAllText(smartInput, "{\"smartctl\":{\"exit_status\":0},\"device\":{\"name\":\"/dev/sda\"},\"smart_status\":{\"passed\":true}}");
+        if (Find<Button>(window, "ExportSmartImport").IsEnabled) throw new InvalidOperationException("SMART export enabled before import.");
+        Find<TextBox>(window, "SmartImportDevice").Text = "sdb"; Find<TextBox>(window, "SmartImportPath").Text = smartInput;
+        Click(window, "ImportSmart");
+        await Until(() => Find<TextBlock>(window, "SmartImportStatus").Text!.Contains("recusada"));
+        if (Find<Button>(window, "ExportSmartImport").IsEnabled) throw new InvalidOperationException("Refused SMART import enabled export.");
+        Find<TextBox>(window, "SmartImportDevice").Text = "sda";
+        Click(window, "ImportSmart");
+        await Until(() => Find<Button>(window, "ExportSmartImport").IsEnabled);
+        if (!Find<TextBlock>(window, "SmartImportValues").Text!.Contains("sda")) throw new InvalidOperationException("Imported SMART device not shown.");
+        var smartJson = Path.Combine(output, "smart-import.json");
+        await SaveAsync(window, desktop, "ExportSmartImport", smartJson);
+        using (var json = JsonDocument.Parse(File.ReadAllText(smartJson)))
+            if (json.RootElement.GetProperty("reportKind").GetString() != "smart-import") throw new InvalidOperationException("SMART import JSON invalid.");
+        var smartHtml = Path.Combine(output, "smart-import.html");
+        Click(window, "ExportSmartImportHtml");
+        var smartDialog = await Dialog(desktop);
+        Find<TextBox>(smartDialog, "DestinationPath").Text = smartHtml; Click(smartDialog, "SaveJson");
+        await Until(() => !smartDialog.IsVisible && File.Exists(smartHtml));
+        if (File.ReadAllText(smartHtml).Contains("<script", StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("SMART import HTML has script.");
+        Console.WriteLine("PASS SMART import UI: no autostart; mismatch refused; explicit file import; JSON/HTML export");
         Find<Button>(window, "ValidateCpu").Focus();
         foreach (var name in new[] { "ExportCpu", "ExportCpuHtml", "ValidateMemory", "ExportMemory", "ExportMemoryHtml", "ValidateSim", "ExportSim", "ExportSimHtml" })
         {

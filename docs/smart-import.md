@@ -101,3 +101,14 @@ na interface. Não certifica anonimização: revise a saída antes de compartilh
 PENDENTE DE REVISÃO: interação humana, integração futura offline à Avalonia e
 checklist jurídico/marca/redistribuição. Direitos desconhecidos continuam BLOQUEADOS
 para redistribuição. WPF, MIT, créditos, histórico e SHA upstream preservados.
+
+
+## Interface (0.25.0)
+
+O painel do dashboard importa um arquivo escolhido pelo usuário (disco + caminho completo,
+por campos de texto rotulados). Nada é lido ao abrir o aplicativo. `ReadFileAsync` recusa
+caminho relativo, /dev, /proc, /sys, link simbólico, arquivo ausente/vazio/não regular
+(sem Seek) ou acima de 256 KiB, e reaproveita `ReadAsync`/`Parse` (64 Ki caracteres, 3 s).
+Falha preserva o relatório anterior. A exportação JSON/HTML usa o relatório capturado antes
+do diálogo; importar/exportar simultaneamente é bloqueado e descarte da janela suprime a
+escrita. Limites: FIFOs só são contidas pelo timeout; sem seletor nativo de arquivo.

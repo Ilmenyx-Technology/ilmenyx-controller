@@ -16,6 +16,7 @@ public sealed class DashboardWindow : Window
     private readonly SensorMonitorViewModel sensors = new(LinuxPlatform.CreateSensorProvider());
     private readonly MemoryValidationViewModel memory = new(LinuxPlatform.CreateHardwareProvider(), new MemoryValidationRunner());
     private readonly GameSimValidationViewModel simulation = new(LinuxPlatform.CreateHardwareProvider(), new GameSimValidationRunner());
+    private readonly SmartImportViewModel smartImport = new(SmartctlReportImport.ReadFileAsync);
     private readonly CancellationTokenSource stop = new();
     public DashboardWindow()
     {
@@ -56,7 +57,7 @@ public sealed class DashboardWindow : Window
         var stack = new StackPanel { Margin = new Thickness(32), Spacing = 18 };
         stack.Children.Add(new TextBlock { Name = "ProductName", Text = ProductIdentity.Name, FontSize = 32, FontWeight = FontWeight.Bold });
         stack.Children.Add(new TextBlock { Name = "MaintainerSignature", Text = ProductIdentity.Signature });
-        stack.Children.Add(new TextBlock { Text = "Diagnóstico de hardware · Linux · 0.24.0", Foreground = Brushes.LightGray });
+        stack.Children.Add(new TextBlock { Text = "Diagnóstico de hardware · Linux · 0.25.0", Foreground = Brushes.LightGray });
         stack.Children.Add(new WrapPanel { Orientation = Orientation.Horizontal, ItemSpacing = 12, LineSpacing = 8, Children = { refresh, export, exportHtml, requirements, about } });
         foreach (var (label, property) in new[] { ("PROCESSADOR", nameof(vm.Cpu)), ("MEMÓRIA", nameof(vm.Memory)), ("SISTEMA", nameof(vm.System)), ("DISPOSITIVOS DE BLOCO", nameof(vm.Disks)) })
         {
@@ -94,10 +95,12 @@ public sealed class DashboardWindow : Window
                 }
             }
         });
-        stack.Children.Add(new TextBlock { Text = "Fontes: /proc/cpuinfo, /proc/meminfo, /etc/os-release, /sys/block.\nSensores Linux e validação CPU reduzida disponíveis abaixo. GPU: inventário DRM/PCI; SMART: somente CLI por opt-in.\nCapacidade de dispositivo não representa espaço livre. Dados não indicam saúde.", TextWrapping = TextWrapping.Wrap, Foreground = Brushes.LightGray });
+        stack.Children.Add(new TextBlock { Text = "Fontes: /proc/cpuinfo, /proc/meminfo, /etc/os-release, /sys/block.\nSensores Linux e validação CPU reduzida disponíveis abaixo. GPU: inventário DRM/PCI; SMART: consulta somente CLI por opt-in; importação offline de arquivo abaixo.\nCapacidade de dispositivo não representa espaço livre. Dados não indicam saúde.", TextWrapping = TextWrapping.Wrap, Foreground = Brushes.LightGray });
         var status = new TextBlock { Name = "HardwareStatus", TextWrapping = TextWrapping.Wrap }; status.Bind(TextBlock.TextProperty, new Binding(nameof(vm.Status))); stack.Children.Add(status);
         stack.Children.Add(new SensorPanel(sensors,
             extension => JsonSaveDialog.ChooseAsync(this, $"ilmenyx-sensors-{DateTime.Now:yyyyMMdd-HHmmss}{extension}", extension), stop.Token));
+        stack.Children.Add(new SmartImportPanel(smartImport,
+            extension => JsonSaveDialog.ChooseAsync(this, $"ilmenyx-smart-import-{DateTime.Now:yyyyMMdd-HHmmss}{extension}", extension), stop.Token));
         var cpuPanel = new CpuValidationPanel(cpu,
             extension => JsonSaveDialog.ChooseAsync(this, $"ilmenyx-cpu-{DateTime.Now:yyyyMMdd-HHmmss}{extension}", extension), stop.Token);
         stack.Children.Add(cpuPanel);
@@ -111,6 +114,6 @@ public sealed class DashboardWindow : Window
             if (OperatingSystem.IsLinux()) { await vm.RefreshAsync(stop.Token); await sensors.RefreshAsync(stop.Token); }
             else vm.SetStatus("Backend disponível apenas no Linux.");
         };
-        Closed += (_, _) => { stop.Cancel(); sensors.Dispose(); cpu.Dispose(); memory.Dispose(); simulation.Dispose(); cpuPanel.Dispose(); };
+        Closed += (_, _) => { stop.Cancel(); sensors.Dispose(); smartImport.Dispose(); cpu.Dispose(); memory.Dispose(); simulation.Dispose(); cpuPanel.Dispose(); };
     }
 }

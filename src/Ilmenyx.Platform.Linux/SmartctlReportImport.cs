@@ -28,6 +28,35 @@ public static class SmartctlReportImport
         { throw new TimeoutException("Timeout de 3 segundos aguardando relatório SMART na entrada padrão."); }
     }
 
+    /// <summary>Reads one user-chosen regular file (explicit opt-in). Rejects links, device/proc/sys paths and non-seekable files.</summary>
+    public static async Task<SmartImportReport> ReadFileAsync(string device, string path, CancellationToken ct = default)
+    {
+        if (!SmartctlQuery.ValidDeviceName(device)) throw new ArgumentException("Nome de disco inválido.");
+        if (string.IsNullOrWhiteSpace(path) || !Path.IsPathFullyQualified(path)) throw new ArgumentException("Informe o caminho completo do relatório.");
+        string full = Path.GetFullPath(path);
+        foreach (string prefix in new[] { "/dev/", "/proc/", "/sys/" })
+            if (full.StartsWith(prefix, StringComparison.Ordinal)) throw new ArgumentException("Caminho de sistema não é aceito como relatório SMART.");
+        ct.ThrowIfCancellationRequested();
+        try
+        {
+            var reader = await Task.Run(() => Open(full), ct).WaitAsync(TimeSpan.FromSeconds(3), ct);
+            using (reader) return await ReadAsync(device, reader, ct);
+        }
+        catch (TimeoutException) { throw new TimeoutException("Timeout de 3 segundos abrindo o relatório SMART."); }
+    }
+    private static StreamReader Open(string full)
+    {
+        var info = new FileInfo(full);
+        if (info.LinkTarget is not null || !info.Exists) throw new ArgumentException("O relatório deve ser um arquivo regular existente, sem link simbólico.");
+        var stream = new FileStream(full, FileMode.Open, FileAccess.Read, FileShare.Read);
+        try
+        {
+            if (!stream.CanSeek || stream.Length is 0 or > 262144) throw new IOException("Relatório SMART vazio, não regular ou acima do limite.");
+            return new StreamReader(stream, System.Text.Encoding.UTF8, false);
+        }
+        catch { stream.Dispose(); throw; }
+    }
+
     public static SmartImportReport Parse(string device, string json)
     {
         if (!SmartctlQuery.ValidDeviceName(device)) throw new ArgumentException("Nome de disco inválido.");

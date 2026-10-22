@@ -243,3 +243,9 @@ as regras de arquitetura Linux, benchmarks, testes, licenças e segurança anter
 - Wrapper smart-import distingue análise atual de data original não confirmada; não apresentar importação como saúde atual.
 - Raw/serial/model/mensagens/horário bruto ficam fora da saída. Core só recebe DTO filtrado e texto escapado.
 - Timeout limita a espera; não prometer interrupção de leitor não cooperativo ou do kernel.
+
+
+## SMART importado na UI 0.25.0
+- Importação só por ação explícita do usuário, com arquivo regular e disco declarado; sem smartctl/sysfs/dispositivo.
+- Preservar recusa de links, /dev, /proc, /sys, limites de tamanho/tempo e bloqueio de reentrada durante exportação.
+- Exportar o relatório selecionado, nunca reimportar ao exportar; relatório histórico não indica saúde atual.
