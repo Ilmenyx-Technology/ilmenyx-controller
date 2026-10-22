@@ -1,1 +1,0 @@
-PASS pacote: hashes, licencas identicas, CLI factual, JSON, sensores, overwrite recusado, dependencias nativas resolvidas

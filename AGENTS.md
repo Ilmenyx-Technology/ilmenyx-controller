@@ -258,3 +258,11 @@ as regras de arquitetura Linux, benchmarks, testes, licenças e segurança anter
 
 - smartctl ao vivo passa a usar --health --attributes (somente leitura); métricas SMART são valores brutos sem veredito/limiar; ler só campos listados em docs/smart-import.md, nunca serial/modelo.
 - DiskInfo.Kind/Bus são classificações best-effort do sysfs; transporte desconhecido fica indisponível.
+
+## Portagem completa do original (decisão do usuário, 2026-10-22)
+- Meta: portar todas as funções do RESET EXPLODE para Linux, com apenas as adaptações necessárias; ver docs/portagem-completa.md (matriz e ordem).
+- Isto autoriza, substituindo restrições anteriores sobre essas funções: vereditos de saúde (disco/bateria) com heurística adaptada do original, jogos/launcher,
+  overlay, Otimiza, Inicialização, Apps, Driver (inventário), OC (verificador), Maker, iluminação, stress e benchmarks completos, teste de rede.
+- Salvaguardas mantidas: nada de carga, stress, benchmark pesado, rede ou alteração do sistema em testes automáticos, na abertura ou sem clique explícito
+  com confirmação; limites, timeout, cancelamento e limpeza obrigatórios; alterações reversíveis com backup; sem sudo implícito (root = comando exibido);
+  sem telemetria; serviços externos só por ação explícita; disco só em arquivo temporário autorizado; sem assets/marca do original; atribuição MIT.

@@ -1,1 +1,0 @@
-Linux 6.12.113+deb13-cloud-amd64 x86_64
