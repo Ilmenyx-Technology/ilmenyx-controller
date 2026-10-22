@@ -359,3 +359,6 @@ Não portado por não existir no Linux: prioridade de processo elevada (exige pr
 Fase 2 — Stress CPU/RAM: página no layout do original (componentes, limites, INICIAR/PARAR, leituras, gráfico, registro), motor no Core, guarda de abortamento pura e planejamento de RAM com reserva de 1 GiB.
 647 testes sem gerar carga; smoke com motor falso (limites inválidos, confirmação recusada, aborto por temperatura, término por tempo, aviso sem sensor).
 NÃO TESTADO (por regra): carga real de CPU/RAM, comportamento sob pouca RAM/OOM, sensor de temperatura em AMD (k10temp), stress de GPU (não portado).
+
+Fase 2 — Rede: página no layout do original (TESTAR, progresso, cartão RUIM/ATENÇÃO/ESTÁVEL/SEM REDE) + gráfico de tráfego ao vivo; fluxo, limiares e textos portados; 655 testes e smoke com sonda falsa.
+NÃO TESTADO (por regra): ping/download/upload reais, ICMP sem privilégio (depende de ping_group_range ou do binário ping), Wi-Fi vs cabo reais, rede atrás de proxy/captive portal.

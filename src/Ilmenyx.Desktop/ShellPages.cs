@@ -162,13 +162,7 @@ public sealed partial class ShellWindow
 
     private Control EnergyPage() => Scroll("EnergyScroll", new Ilmenyx.Desktop.EnergyPage(sensors, stop.Token) { Margin = new Thickness(0, 4, 8, 12) });
 
-    private Control NetPage()
-    {
-        var chart = new UsageChart { Name = "NetChart", Height = 210 };
-        var line = Wrapped("NetLine", usage.NetLine, 16); var sub = Wrapped("NetSub", usage.NetSub, 12, Palette.Muted);
-        usage.Updated += () => { chart.SetValues(usage.NetSeries, null, 300); line.Text = usage.NetLine; sub.Text = usage.NetSub; };
-        return Scroll("NetScroll", new StackPanel { Spacing = 12, Children = { CardBox(new StackPanel { Spacing = 10, Children = { Label("REDE · ÚLTIMOS 5 MIN (SOMA DAS INTERFACES ATIVAS)"), chart, line, sub }, }) } });
-    }
+    private Control NetPage() => Scroll("NetScroll", new NetworkPage(new SystemNetworkProbe(), usage, () => this, stop.Token) { Margin = new Thickness(0, 4, 8, 12) });
 
     private Control ValidatePage()
     {
