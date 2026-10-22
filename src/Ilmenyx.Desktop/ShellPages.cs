@@ -142,12 +142,7 @@ public sealed partial class ShellWindow
 
     private Control SystemPage() => new SystemInfoPage(hardware, Destination("hardware"), stop.Token) { Margin = new Thickness(0, 4, 0, 0) };
 
-    private Control GpuPage()
-    {
-        var summary = new TextBlock { Name = "GpuSummary", TextWrapping = TextWrapping.Wrap, FontSize = 15, DataContext = hardware }; summary.Bind(TextBlock.TextProperty, new Binding(nameof(hardware.Gpus)));
-        var notice = new Border { HorizontalAlignment = HorizontalAlignment.Left, Background = Brush.Parse("#3A3020"), CornerRadius = new CornerRadius(6), Padding = new Thickness(10, 6), Child = new TextBlock { Name = "GpuValidationNotice", Text = ValidationNotices.AmdNvidia, Foreground = Palette.Warn, TextWrapping = TextWrapping.Wrap, FontSize = 13 } };
-        return Scroll("GpuScroll", new StackPanel { Spacing = 12, Children = { CardBox(new StackPanel { Spacing = 12, Children = { Label("GPU · INVENTÁRIO DRM/PCI"), summary, notice, Wrapped("GpuNote", "Contadores de uso e VRAM não são lidos; GPU disponível no inventário não implica telemetria. VRAM de iGPU não é inferida.", 12, Palette.Faint) } }) } });
-    }
+    private Control GpuPage() => new GpuInfoPage(stop.Token) { Margin = new Thickness(0, 4, 0, 0) };
 
     private Control DisksPage() => Scroll("DisksScroll", new DiskHealthPage(smartImport, Destination("smart-import"), stop.Token) { Margin = new Thickness(0, 4, 8, 12) });
 

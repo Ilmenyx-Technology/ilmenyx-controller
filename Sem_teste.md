@@ -334,3 +334,7 @@ SENSOR-01 (bateria física) passa a PARCIAL: uma bateria, em tomada.
 Fase 1 — Drivers: página no layout do original (GPU instalada/mais recente, placa-mãe + suporte, firmware fwupd, backup do inventário, lista de drivers).
 561 testes; smoke X11 do CachyOS com dados reais (Iris Xe/i915, HP, 18 itens fwupd). Bug real corrigido: GPU com nouveau herdava a versão do módulo proprietário.
 NÃO TESTADO: NVIDIA proprietária real (versão e consulta de rede), AMD, instalação (por desenho não executada), abertura de páginas no navegador (xdg-open), fwupd com atualização disponível, outras distros.
+
+Fase 1 — GPU: página no layout do original (chips, cartão de destaque, 8 seções estilo GPU-Z, sensores ao vivo), banco de especificações portado, coletor sysfs + nvidia-smi.
+573 testes; smoke X11 no host real (Intel Iris Xe: clock ao vivo via i915; chip/arquitetura "—" pois a GPU não está no banco, como no original para GPUs não listadas).
+NÃO TESTADO: qualquer NVIDIA ou AMD real (aviso permanece visível por autorização), nvidia-smi com campos de versões novas/antigas do driver, contadores de carga de iGPU Intel (exigem privilégios), múltiplas GPUs.

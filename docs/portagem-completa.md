@@ -17,7 +17,7 @@ URL/credencial visíveis. Escrita em disco só em arquivo temporário autorizado
 | Visão geral (Dash) | gráfico, desempenho, tabela de componentes | monitor /proc+hwmon; GPU/consumo dependem de GPU/RAPL | 0 | PARCIAL (sem GPU/consumo/score) |
 | Sistema (SystemInfoCollector) | placa-mãe, BIOS, CPU, RAM, SO | /sys/class/dmi/id, /proc, /sys; módulos de RAM via importação offline do `dmidecode` (exige root) | 1 | IMPLEMENTADO (RAM por importação; sem serial) |
 | Sensores (SensorMonitor/LibreHardwareMonitor) | temperaturas, ventoinhas, tensões, potência | hwmon, thermal, power_supply, nvidia-smi/NVML, amdgpu sysfs | 0 | PARCIAL (sem GPU vendor) |
-| GPU (GpuInfoCollector, GpuSpecDb, Nvml, Dxgi) | ficha estilo GPU-Z | DRM sysfs, PCI ids, NVML (libnvidia-ml), amdgpu, Vulkan (vulkaninfo) | 1 | PARCIAL (inventário DRM) |
+| GPU (GpuInfoCollector, GpuSpecDb, Nvml, Dxgi) | ficha estilo GPU-Z | sysfs PCI/amdgpu/i915 + nvidia-smi CSV (sem P/Invoke); banco de especificações portado como dados | 1 | IMPLEMENTADO (AMD/NVIDIA só por fixtures; iGPU Intel real) |
 | Discos (DiskHealth, DriveMap) | veredito de saúde, unidades e ocupação | smartctl/hwmon/sysfs + statfs/mounts; vereditos com limiares do original | 1 | IMPLEMENTADO (SMART só por clique/importação; sem privilégio o veredito fica SEM DADOS) |
 | Energia (BatteryInfo) | bateria, plano de energia, consumo | power_supply, power-profiles-daemon (powerprofilesctl) | 1 | IMPLEMENTADO (testado em bateria real do host; desktop sem bateria só por fixture) |
 | Rede (NetworkTest) | latência, jitter, perda, DNS, velocidade, bufferbloat | ping/ICMP, DNS, HTTP; endpoints visíveis, só por clique | 2 | PENDENTE |
