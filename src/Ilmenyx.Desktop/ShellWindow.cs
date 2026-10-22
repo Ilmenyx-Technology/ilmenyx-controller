@@ -30,6 +30,7 @@ public sealed partial class ShellWindow : Window
     private StressPage? stressPage;
     private DashboardWindow? classic;
     private readonly string settingsPath;
+    private DeviceToastService? toasts;
     private readonly IlmenyxSettings appSettings;
 
     public string CurrentPage { get; private set; } = "";
@@ -71,12 +72,13 @@ public sealed partial class ShellWindow : Window
         {
             if (!OperatingSystem.IsLinux()) { hardware.SetStatus("Backend disponível apenas no Linux."); return; }
             usage.Start(stop.Token);
+            toasts = new DeviceToastService(() => LinuxDeviceWatcher.Read()) { Enabled = appSettings.DeviceToasts }; toasts.Start();
             await hardware.RefreshAsync(stop.Token);
             await sensors.RefreshAsync(stop.Token);
         };
         Closed += async (_, _) =>
         {
-            stop.Cancel(); await usage.StopAsync(); usage.Dispose(); sensors.Dispose(); smartImport.Dispose();
+            stop.Cancel(); toasts?.Dispose(); await usage.StopAsync(); usage.Dispose(); sensors.Dispose(); smartImport.Dispose();
             cpu.Dispose(); memory.Dispose(); simulation.Dispose(); cpuPanel?.Dispose(); stressPage?.Stop("Parado: janela fechada");
         };
     }

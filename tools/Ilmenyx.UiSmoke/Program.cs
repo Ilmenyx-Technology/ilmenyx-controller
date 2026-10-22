@@ -494,6 +494,7 @@ public sealed class UiSmokeApp : Application
         if (OperatingSystem.IsLinux()) await OverlayAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await LightingAsync(shell, desktop);
         await ThemeAsync(shell);
+        await ToastAsync(shell);
         Click(shell, "SortMemory"); await Until(() => Find<Button>(shell, "SortMemory").Content!.ToString()!.Contains('▼'));
         Click(shell, "ToggleMonitor");
         await Until(() => Find<Button>(shell, "ToggleMonitor").Content!.ToString() == "Retomar monitor" && Find<TextBlock>(shell, "SideMonitor").Text == "monitor parado");
@@ -902,6 +903,25 @@ public sealed class UiSmokeApp : Application
         foreach (var key in new[] { "stress", "oc", "disks" }) { Find<Button>(shell, "Nav" + key).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); await Task.Delay(500); Capture(shell, $"shell-light-{key}.png"); }
         Click(shell, "ToggleTheme"); await Until(() => !Palette.IsLight && Find<Button>(shell, "ToggleTheme").Content!.ToString() == "Tema claro");
         Console.WriteLine("PASS theme: light/dark toggle recolours the live window, choice persisted to the settings file (fixture directory), default is dark");
+    }
+    private static async Task ToastAsync(ShellWindow shell)
+    {
+        // A fake snapshot source: no device is touched; the first read is only a baseline.
+        var snap = new Ilmenyx.Core.DeviceSnapshot([new("1-1", "Teclado")], []);
+        using var service = new DeviceToastService(() => snap);
+        await service.PollAsync(); await Task.Delay(100);
+        if (service.Shown != 0) throw new InvalidOperationException("The baseline read must not toast.");
+        snap = new Ilmenyx.Core.DeviceSnapshot([new("1-1", "Teclado"), new("1-4", "Pendrive X")], [new("/run/media/u/X", "X (/run/media/u/X)")]);
+        await service.PollAsync(); await Until(() => service.Window is { IsVisible: true });
+        await Until(() => service.Shown == 2);
+        var toast = service.Window!;
+        if (toast.TitleText.Length == 0 || toast.BodyText.Length == 0) throw new InvalidOperationException("Toast must show title and body.");
+        service.Enabled = false; snap = new Ilmenyx.Core.DeviceSnapshot([], []); await service.PollAsync(); await Task.Delay(200);
+        if (service.Shown != 2) throw new InvalidOperationException("Disabled toasts must not show.");
+        toast.Close();
+        Find<Button>(shell, "Navtools").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => shell.GetVisualDescendants().OfType<CheckBox>().Any(c => c.Name == "DeviceToastsToggle" && c.IsChecked == true));
+        Console.WriteLine("PASS toasts: baseline read is silent, connect/remove notices appear bottom-right and queue, disabling stops them, toggle persisted (fake device source)");
     }
     private sealed class FakeHttp : HttpMessageHandler
     {

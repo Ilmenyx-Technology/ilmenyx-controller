@@ -229,10 +229,16 @@ public sealed partial class ShellWindow
         requirements.Click += async (_, _) => { await new RequirementsDialog().ShowDialog(this); if (IsVisible) requirements.Focus(); };
         about.Click += async (_, _) => { await new AboutDialog().ShowDialog(this); if (IsVisible) about.Focus(); };
         classicButton.Click += (_, _) => OpenClassicDiagnostics();
+        var toastToggle = new CheckBox { Name = "DeviceToastsToggle", Content = "Avisar quando um pendrive/unidade ou dispositivo USB for conectado ou removido", IsChecked = appSettings.DeviceToasts };
+        toastToggle.IsCheckedChanged += (_, _) =>
+        {
+            appSettings.DeviceToasts = toastToggle.IsChecked == true; if (toasts is not null) toasts.Enabled = appSettings.DeviceToasts;
+            try { appSettings.Save(settingsPath); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+        };
         return Scroll("ToolsScroll", new StackPanel
         {
             Spacing = 12,
-            Children = { CardBox(new StackPanel { Spacing = 12, Children = { Label("FERRAMENTAS"), new WrapPanel { ItemSpacing = 10, LineSpacing = 8, Children = { requirements, about, classicButton } },
+            Children = { CardBox(new StackPanel { Spacing = 12, Children = { Label("FERRAMENTAS"), new WrapPanel { ItemSpacing = 10, LineSpacing = 8, Children = { requirements, about, classicButton } }, toastToggle,
                 Wrapped("ToolsNote", ProductIdentity.Attribution, 12, Palette.Faint) } }) }
         });
     }
