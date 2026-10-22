@@ -12,7 +12,7 @@ public sealed class SensorPanel : Border
     public SensorPanel(SensorMonitorViewModel model, Func<string, Task<string?>> chooseDestination, CancellationToken lifetime)
     {
         DataContext = model;
-        Background = Brush.Parse("#24252E"); CornerRadius = new CornerRadius(12); Padding = new Thickness(20); Margin = new Thickness(0, 0, 12, 0);
+        Background = Brush.Parse("#2A2531"); CornerRadius = new CornerRadius(12); Padding = new Thickness(20); Margin = new Thickness(0, 0, 12, 0);
         var refresh = new Button { Name = "RefreshSensors", Content = "Atualizar sensores", Margin = new Thickness(0, 0, 8, 8) };
         var monitor = new Button { Name = "MonitorSensors", Content = "Monitorar (2 s)", Margin = new Thickness(0, 0, 8, 8) };
         var stop = new Button { Name = "StopSensors", Content = "Parar monitor", Margin = new Thickness(0, 0, 8, 8) };

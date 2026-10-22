@@ -8,20 +8,22 @@ namespace Ilmenyx.Desktop;
 /// <summary>Fixed-window area chart (in-memory only, never persisted). Null samples leave gaps at zero height.</summary>
 public sealed class UsageChart : Control
 {
-    public const int Window = 60;
+    public const int Window = 60; // default visible points (1 s each)
     private static readonly IBrush Back = Brush.Parse("#1B1721"), Fill = new SolidColorBrush(Color.Parse("#B07CD6"), 0.55);
     private static readonly IPen Grid = new Pen(Brush.Parse("#4A4454"), 1), Line = new Pen(Brush.Parse("#D9A8FF"), 1.4);
     private double[] values = [];
     private double max = 1;
+    public int Points { get; private set; } = Window;
     public double LastMax => max;
     public int Count => values.Length;
-    public UsageChart() { MinHeight = 90; MinWidth = 160; Focusable = false; }
+    public UsageChart() { MinHeight = 90; MinWidth = 120; Focusable = false; }
 
     /// <param name="series">Oldest first; at most <see cref="Window"/> newest values are kept.</param>
     /// <param name="ceiling">Fixed upper bound (e.g. 100 for percent) or null for auto-scale.</param>
-    public void SetValues(IReadOnlyList<double> series, double? ceiling)
+    public void SetValues(IReadOnlyList<double> series, double? ceiling, int points = Window)
     {
-        values = series.Count > Window ? series.Skip(series.Count - Window).ToArray() : series.ToArray();
+        Points = Math.Max(2, points);
+        values = series.Count > Points ? series.Skip(series.Count - Points).ToArray() : series.ToArray();
         max = ceiling ?? Math.Max(1, values.Length == 0 ? 1 : values.Max() * 1.15);
         InvalidateVisual();
     }
@@ -33,7 +35,7 @@ public sealed class UsageChart : Control
         for (int i = 1; i < 6; i++) context.DrawLine(Grid, new Point(rect.Width * i / 6, 0), new Point(rect.Width * i / 6, rect.Height));
         for (int i = 1; i < 4; i++) context.DrawLine(Grid, new Point(0, rect.Height * i / 4), new Point(rect.Width, rect.Height * i / 4));
         if (values.Length < 2 || rect.Width < 2 || rect.Height < 2) return;
-        double step = rect.Width / (Window - 1), left = rect.Width - step * (values.Length - 1);
+        double step = rect.Width / (Points - 1), left = rect.Width - step * (values.Length - 1);
         Point P(int i) => new(left + step * i, rect.Height - Math.Clamp(values[i] / max, 0, 1) * (rect.Height - 2) - 1);
         var area = new StreamGeometry();
         using (var g = area.Open())

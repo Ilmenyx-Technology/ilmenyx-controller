@@ -9,7 +9,7 @@ public sealed class MemoryValidationPanel : Border
 {
     public MemoryValidationPanel(MemoryValidationViewModel model, Func<string, Task<string?>> chooseDestination, CancellationToken lifetime)
     {
-        DataContext = model; Background = Brush.Parse("#24252E"); CornerRadius = new CornerRadius(12);
+        DataContext = model; Background = Brush.Parse("#2A2531"); CornerRadius = new CornerRadius(12);
         Padding = new Thickness(20); Margin = new Thickness(0, 0, 12, 0);
         var start = new Button { Name = "ValidateMemory", Content = "Validar memória (reduzido)", Margin = new Thickness(0, 0, 8, 8) };
         var cancel = new Button { Name = "CancelMemory", Content = "Cancelar memória", Margin = new Thickness(0, 0, 8, 8) };

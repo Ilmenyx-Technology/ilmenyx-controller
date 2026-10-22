@@ -252,5 +252,6 @@ as regras de arquitetura Linux, benchmarks, testes, licenças e segurança anter
 
 ## Monitor ao vivo 0.26.0
 - Janela inicial Monitor amostra a cada 1 s ao abrir, por decisão explícita do usuário (2026-10-22); botão Pausar/Retomar obrigatório.
-- Histórico só em memória (60 pontos); nunca gravar/exportar amostras ou nomes de processo. Somente leitura de /proc e hwmon.
+- Histórico só em memória (até 900 pontos); nunca gravar/exportar amostras ou nomes de processo. Somente leitura de /proc e hwmon.
 - Preservar aviso AMD/NVIDIA na janela e o acesso a Diagnósticos e Licenças/créditos; não inferir saúde dos gráficos.
+- Layout da janela principal segue a estrutura do RESET EXPLODE (autorizado pelo usuário em 2026-10-22); cores da imagem de referência são provisórias. Não copiar assets/logo/textos de marca do original.

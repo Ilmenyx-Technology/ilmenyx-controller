@@ -309,6 +309,6 @@ Auditoria de paridade DiskHealth/BatteryInfo (2026-10-22): documento docs/audito
 leitura de código apenas, sem execução comparativa (WIN-01 segue NÃO TESTADO). Implementações sugeridas A/B/C aguardam decisão.
 
 ## Atualização 0.26.0 — Monitor ao vivo
-IMPLEMENTADO: janela Monitor (processos, CPU/memória/disco/rede, GPU inventário). 481 testes e smoke X11/Wayland no
+IMPLEMENTADO: janela principal estilo RESET EXPLODE (lateral, Visão geral, 10 páginas) com monitor ao vivo. 481 testes e smoke X11/Wayland no
 CachyOS. NÃO TESTADO: AMD k10temp, múltiplos discos/interfaces, /proc restrito, execução prolongada, Orca, outras distros
 (smoke nas VMs não repetido). Ver docs/monitor.md.

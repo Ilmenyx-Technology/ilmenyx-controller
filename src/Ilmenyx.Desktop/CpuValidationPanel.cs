@@ -24,7 +24,7 @@ public sealed class CpuValidationPanel : Border, IDisposable
     {
         this.model = model;
         DataContext = model;
-        Background = Brush.Parse("#24252E");
+        Background = Brush.Parse("#2A2531");
         CornerRadius = new CornerRadius(12);
         Padding = new Thickness(20);
         Margin = new Thickness(0, 0, 12, 0);

@@ -375,32 +375,47 @@ public sealed class UiSmokeApp : Application
     }
     private static async Task MonitorAsync(IClassicDesktopStyleApplicationLifetime desktop)
     {
-        var monitor = new MonitorWindow { Width = 1180, Height = 780 };
-        monitor.Show();
-        await Until(() => monitor.IsVisible && Find<TextBlock>(monitor, "CpuLine").Text!.Contains('%') && !Find<TextBlock>(monitor, "CpuLine").Text!.StartsWith("Aguardando"));
-        await Until(() => monitor.GetVisualDescendants().OfType<UsageChart>().All(c => c.Count >= 3) && Find<StackPanel>(monitor, "ProcessRows").Children.Count > 0);
-        if (monitor.GetVisualDescendants().OfType<UsageChart>().Count() != 4) throw new InvalidOperationException("Monitor must show CPU, memory, disk and network charts.");
-        if (Find<TextBlock>(monitor, "ProductName").Text != "Ilmenyx" || Find<TextBlock>(monitor, "MaintainerSignature").Text != "by Bismuth Technology")
-            throw new InvalidOperationException("Identity missing from monitor window.");
-        await Until(() => Find<TextBlock>(monitor, "MonitorGpuSummary").Text != "Lendo inventário DRM…");
-        if (Find<TextBlock>(monitor, "GpuValidationNotice").Text != ValidationNotices.AmdNvidia) throw new InvalidOperationException("AMD/NVIDIA notice missing from monitor.");
-        await Task.Delay(1200); Capture(monitor, "monitor.png");
-        int rows = Find<StackPanel>(monitor, "ProcessRows").Children.Count;
-        Click(monitor, "SortMemory"); await Until(() => Find<Button>(monitor, "SortMemory").Content!.ToString()!.Contains('▼'));
-        Click(monitor, "ToggleMonitor");
-        await Until(() => Find<Button>(monitor, "ToggleMonitor").Content!.ToString() == "Retomar" && Find<TextBlock>(monitor, "MonitorStatus").Text!.Contains("pausado"));
-        var frozen = Find<TextBlock>(monitor, "CpuLine").Text; await Task.Delay(1500);
-        if (Find<TextBlock>(monitor, "CpuLine").Text != frozen) throw new InvalidOperationException("Paused monitor kept sampling.");
-        Click(monitor, "ToggleMonitor");
-        await Until(() => Find<Button>(monitor, "ToggleMonitor").Content!.ToString() == "Pausar");
-        Click(monitor, "OpenDiagnostics");
+        var shell = new ShellWindow { Width = 1280, Height = 820 };
+        shell.Show();
+        await Until(() => shell.IsVisible && shell.GetVisualDescendants().OfType<UsageChart>().Any(c => c.Name == "OverviewChart" && c.Count >= 3));
+        if (Find<TextBlock>(shell, "ProductName").Text != "Ilmenyx" || Find<TextBlock>(shell, "MaintainerSignature").Text != "by Bismuth Technology")
+            throw new InvalidOperationException("Identity missing from shell window.");
+        if (Find<TextBlock>(shell, "OverviewGpuNotice").Text != ValidationNotices.AmdNvidia) throw new InvalidOperationException("AMD/NVIDIA notice missing from overview.");
+        if (!Find<TextBlock>(shell, "OverviewValue").Text!.Contains('%')) throw new InvalidOperationException("Overview CPU load not shown.");
+        if (Find<TextBlock>(shell, "SideVersion").Text!.Length < 4) throw new InvalidOperationException("Sidebar version missing.");
+        await Task.Delay(3500); Capture(shell, "shell-overview.png");
+        var chips = shell.GetVisualDescendants().OfType<Button>().Where(b => b.Content?.ToString() is "Temperatura" or "15 MIN").ToList();
+        foreach (var chip in chips) chip.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => Find<TextBlock>(shell, "OverviewValue").Text!.Contains("°C") || Find<TextBlock>(shell, "OverviewValue").Text == "—");
+        if (Find<Button>(shell, "DashMetricPower").IsEnabled) throw new InvalidOperationException("Unavailable power metric must stay disabled.");
+        Click(shell, "GoMemory"); await Until(() => shell.CurrentPage == "system");
+        var expected = new (string Key, string Control)[] { ("dash", "OverviewChart"), ("system", "SysRefresh"), ("sensors", "RefreshSensors"), ("gpu", "GpuValidationNotice"), ("disks", "ImportSmart"),
+            ("energy", "EnergyText"), ("net", "NetChart"), ("procs", "ProcessRows"), ("validate", "ValidateCpu"), ("tools", "About") };
+        foreach (var (key, control) in expected)
+        {
+            var nav = Find<Button>(shell, "Nav" + key);
+            nav.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            await Until(() => shell.CurrentPage == key && shell.GetVisualDescendants().Any(c => c is Control { Name: var n, IsVisible: true } && n == control));
+            if (Find<TextBlock>(shell, "TitlePage").Text!.Length == 0) throw new InvalidOperationException("Page title missing for " + key);
+            if (key == "procs") { await Until(() => Find<StackPanel>(shell, "ProcessRows").Children.Count > 0); Capture(shell, "shell-processes.png"); }
+            if (key == "gpu" && Find<TextBlock>(shell, "GpuValidationNotice").Text != ValidationNotices.AmdNvidia) throw new InvalidOperationException("AMD/NVIDIA notice missing from GPU page.");
+            if (key == "net") await Until(() => Find<UsageChart>(shell, "NetChart").Count >= 2);
+        }
+        Click(shell, "SortMemory"); await Until(() => Find<Button>(shell, "SortMemory").Content!.ToString()!.Contains('▼'));
+        Click(shell, "ToggleMonitor");
+        await Until(() => Find<Button>(shell, "ToggleMonitor").Content!.ToString() == "Retomar monitor" && Find<TextBlock>(shell, "SideMonitor").Text == "monitor parado");
+        var frozen = Find<TextBlock>(shell, "OverviewValue").Text; await Task.Delay(1500);
+        if (Find<TextBlock>(shell, "OverviewValue").Text != frozen) throw new InvalidOperationException("Paused monitor kept sampling.");
+        Click(shell, "ToggleMonitor");
+        await Until(() => Find<Button>(shell, "ToggleMonitor").Content!.ToString() == "Pausar monitor");
+        Click(shell, "OpenClassic");
         await Until(() => desktop.Windows.OfType<DashboardWindow>().Count(w => w.IsVisible) == 2);
         desktop.Windows.OfType<DashboardWindow>().Single(w => w.IsVisible && w != desktop.MainWindow).Close();
-        Click(monitor, "MonitorAbout");
+        Click(shell, "About");
         await Until(() => desktop.Windows.OfType<AboutDialog>().Any(w => w.IsVisible));
         desktop.Windows.OfType<AboutDialog>().Single(w => w.IsVisible).Close();
-        Console.WriteLine($"PASS monitor: live CPU/memory/disk/network charts, {rows} process rows, GPU notice, sort, pause/resume without sampling, diagnostics and About reachable");
-        monitor.Close();
+        Console.WriteLine("PASS shell: grouped sidebar, 10 pages reachable, overview chart/chips/components, live process table, GPU notice, pause/resume without sampling, classic diagnostics and About");
+        shell.Close();
     }
     private static async Task ExerciseAsync(DashboardWindow window, IClassicDesktopStyleApplicationLifetime desktop)
     {

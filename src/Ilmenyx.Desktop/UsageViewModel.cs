@@ -7,12 +7,13 @@ namespace Ilmenyx.Desktop;
 
 public sealed record ProcessRow(string Name, string Cpu, string Memory);
 
-/// <summary>Live monitor model. Samples stay in a 60-point in-memory window for the charts: no persistence, no export.</summary>
+/// <summary>Live monitor model. Samples stay in a bounded in-memory window (15 min at 1 s) for the charts: no persistence, no export.</summary>
 public sealed class UsageViewModel(IUsageProvider provider, TimeSpan? interval = null) : INotifyPropertyChanged, IDisposable
 {
+    public const int MaxHistory = 900;
     private readonly TimeSpan period = interval ?? TimeSpan.FromSeconds(1);
     private readonly CancellationTokenSource stop = new();
-    private readonly List<double> cpu = [], memory = [], disk = [], net = [];
+    private readonly List<double> cpu = [], memory = [], disk = [], net = [], temp = [];
     private CancellationTokenSource? run;
     private Task? loop;
     private bool disposed;
@@ -22,7 +23,7 @@ public sealed class UsageViewModel(IUsageProvider provider, TimeSpan? interval =
     public bool IsRunning { get; private set; }
     public bool SortByMemory { get; private set; }
     public IReadOnlyList<double> CpuSeries => cpu; public IReadOnlyList<double> MemorySeries => memory;
-    public IReadOnlyList<double> DiskSeries => disk; public IReadOnlyList<double> NetSeries => net;
+    public IReadOnlyList<double> TempSeries => temp; public IReadOnlyList<double> DiskSeries => disk; public IReadOnlyList<double> NetSeries => net;
     public IReadOnlyList<ProcessRow> Rows { get; private set; } = [];
     public string CpuLine { get; private set; } = "Aguardando amostras…";
     public string CpuModel { get; private set; } = "";
@@ -80,13 +81,13 @@ public sealed class UsageViewModel(IUsageProvider provider, TimeSpan? interval =
     private static void Push(List<double> list, double? value)
     {
         list.Add(value ?? 0);
-        if (list.Count > UsageChart.Window) list.RemoveAt(0);
+        if (list.Count > MaxHistory) list.RemoveAt(0);
     }
 
     private void Apply(UsageSample s)
     {
         Last = s;
-        Push(cpu, s.CpuPercent);
+        Push(cpu, s.CpuPercent); Push(temp, s.CpuTempC);
         Push(memory, s.MemoryTotal is > 0 && s.MemoryUsed is { } u ? 100.0 * u / s.MemoryTotal.Value : null);
         Push(disk, s.DiskReadBps is { } r && s.DiskWriteBps is { } w ? r + w : null);
         Push(net, s.NetRxBps is { } rx && s.NetTxBps is { } tx ? rx + tx : null);

@@ -258,8 +258,9 @@ saída filtrada e data da análise distinta da coleta original não confirmada.
 
 ### Monitor ao vivo — 0.26.0
 
-A janela inicial agora é um monitor de sistema: tabela de processos e gráficos de CPU, memória, disco e rede em tempo real
-(somente leitura de /proc e hwmon, histórico só em memória), com o painel de diagnósticos em "Diagnósticos de hardware".
+A janela inicial segue a estrutura do RESET EXPLODE: lateral por grupos, Visão geral com gráfico ao vivo, tabela de componentes e
+páginas Sistema, Sensores, GPU, Discos (SMART offline), Energia, Rede, Processos e Validações reduzidas (somente leitura de /proc e
+hwmon, histórico só em memória). O painel antigo continua em "Painel clássico de diagnósticos".
 [Dados, limites e o que falta](docs/monitor.md). Aplicações agrupadas e GPU por processo ainda não existem.
 
 ### SMART importado na interface — 0.25.0

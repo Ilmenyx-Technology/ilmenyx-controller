@@ -21,7 +21,7 @@ public sealed class DashboardWindow : Window
     public DashboardWindow()
     {
         Title = ProductIdentity.Name; Width = 1060; Height = 780; MinWidth = 640; MinHeight = 480;
-        Background = Brush.Parse("#111315"); DataContext = vm;
+        Background = Brush.Parse("#17131C"); DataContext = vm;
         var refresh = new Button { Name = "RefreshHardware", Content = "Atualizar" };
         var export = new Button { Name = "ExportHardware", Content = "Exportar hardware JSON" };
         var exportHtml = new Button { Name = "ExportHardwareHtml", Content = "Exportar hardware HTML" };
@@ -63,7 +63,7 @@ public sealed class DashboardWindow : Window
         {
             var value = new TextBlock { TextWrapping = TextWrapping.Wrap, FontSize = 17 };
             value.Bind(TextBlock.TextProperty, new Binding(property));
-            cards.Children.Add(new Border { Margin = new Thickness(0, 0, 12, 12), Background = Brush.Parse("#24252E"), CornerRadius = new CornerRadius(12), Padding = new Thickness(20), Child = new StackPanel { Spacing = 10, Children = { new TextBlock { Text = label, TextWrapping = TextWrapping.Wrap, Foreground = Brushes.LightGray, FontSize = 12 }, value } } });
+            cards.Children.Add(new Border { Margin = new Thickness(0, 0, 12, 12), Background = Brush.Parse("#2A2531"), CornerRadius = new CornerRadius(12), Padding = new Thickness(20), Child = new StackPanel { Spacing = 10, Children = { new TextBlock { Text = label, TextWrapping = TextWrapping.Wrap, Foreground = Brushes.LightGray, FontSize = 12 }, value } } });
         }
         stack.Children.Add(cards);
         var gpuSummary = new TextBlock { Name = "GpuSummary", TextWrapping = TextWrapping.Wrap, FontSize = 15 };
@@ -71,7 +71,7 @@ public sealed class DashboardWindow : Window
         stack.Children.Add(new Border
         {
             Margin = new Thickness(0, 0, 12, 0),
-            Background = Brush.Parse("#24252E"),
+            Background = Brush.Parse("#2A2531"),
             CornerRadius = new CornerRadius(12),
             Padding = new Thickness(20),
             Child = new StackPanel

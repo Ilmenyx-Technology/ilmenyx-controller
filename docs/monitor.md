@@ -1,7 +1,15 @@
-# Monitor ao vivo — Ilmenyx 0.26.0
+# Interface principal e monitor ao vivo — Ilmenyx 0.26.0
 
-IMPLEMENTADO: janela inicial **Monitor** (referência visual: monitor de sistema com tabela de processos à esquerda e
-cartões com gráficos à direita). O painel de diagnósticos anterior continua no botão "Diagnósticos de hardware".
+IMPLEMENTADO: janela inicial no estilo estrutural do RESET EXPLODE original (decisão do usuário, 2026-10-22: layout, botões,
+abas e posição da marca podem seguir o original; a imagem de referência vale só para cores/aspecto): barra lateral arredondada
+com grupos recolhíveis (Visão geral; DIAGNÓSTICO: Sistema, Sensores, GPU, Discos, Energia, Rede, Processos; DESEMPENHO:
+Validações reduzidas; FERRAMENTAS: Requisitos e sobre), cabeçalho com marca + página atual, rodapé da lateral com CPU ao vivo e
+versão, e **Visão geral** com gráfico grande (chips 1/5/15 MIN e Temperatura/Carga; Consumo desativado), cartão de validações e
+tabela COMPONENTE · TEMPERATURA · CARGA · CLOCK · CONSUMO/USO · VER. Páginas reutilizam os painéis já testados (sensores, SMART
+offline, validações CPU/memória/GameSim). O painel clássico segue em "Painel clássico de diagnósticos" e coberto pelo smoke.
+Nenhum asset, logo ou texto de marca do original foi copiado; a marca é só texto (logo/identidade aguardam o Manual de Marca).
+Não portado do original (Windows-específico ou fora do escopo seguro): RESET JOGOS, Stress, OC, Otimiza, Inicialização, Apps,
+Driver, Integração, Maker, Overlay, alternância tema claro/escuro, botões de janela próprios.
 
 ## Dados e fontes (somente leitura)
 CPU % (/proc/stat), frequência média (/proc/cpuinfo "cpu MHz"), temperatura (hwmon coretemp/k10temp/zenpower,
@@ -16,7 +24,7 @@ de comando, ambiente ou E/S de outros usuários.
 - Atualização de 1 s **inicia ao abrir a janela** por decisão explícita do usuário (2026-10-22); botão Pausar/Retomar.
   Isto substitui a regra anterior de monitor opt-in somente para esta janela; o monitor de sensores do dashboard
   continua opt-in.
-- Histórico apenas em memória: 60 pontos para os gráficos, nunca gravado nem exportado. Nomes de processo não saem
+- Histórico apenas em memória: até 900 pontos (15 min a 1 s) para os gráficos, nunca gravado nem exportado. Nomes de processo não saem
   da janela (sem exportação).
 - Disco e rede somam os dispositivos/interfaces válidos; a interface exibida é a de maior contador acumulado.
 - GPU: só inventário DRM/PCI e o aviso "AMD/NVIDIA — Testes não realizados em hardware real"; sem contadores de uso/VRAM.
@@ -25,6 +33,6 @@ de comando, ambiente ou E/S de outros usuários.
 
 ## Evidências
 `UsageViewModelTests`/`LinuxUsageProviderTests` (fixtures de /proc e /sys) e cenário `monitor` do UiSmoke (X11 e Wayland):
-gráficos, processos, ordenação, pausa sem amostragem, diagnósticos e Sobre. Captura em `docs/evidencias/ilmenyx-monitor-0.26.0/`.
+gráficos, processos, ordenação, pausa sem amostragem, diagnósticos e Sobre. Capturas em `docs/evidencias/ilmenyx-shell-0.26.0/`.
 NÃO TESTADO: múltiplos discos/interfaces reais, CPUs AMD (k10temp), contêineres com /proc restrito, escala fracionária,
 operação prolongada/vazamento de memória, Orca.

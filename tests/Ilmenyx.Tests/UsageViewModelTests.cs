@@ -41,9 +41,9 @@ public sealed class UsageViewModelTests
     public async Task SeriesAreBoundedToTheChartWindow()
     {
         using var vm = new UsageViewModel(new FakeProvider());
-        for (int i = 0; i < UsageChart.Window + 25; i++) await vm.SampleOnceAsync(CancellationToken.None);
-        Assert.Equal(UsageChart.Window, vm.CpuSeries.Count);
-        Assert.Equal(UsageChart.Window, vm.NetSeries.Count);
+        for (int i = 0; i < UsageViewModel.MaxHistory + 25; i++) await vm.SampleOnceAsync(CancellationToken.None);
+        Assert.Equal(UsageViewModel.MaxHistory, vm.CpuSeries.Count);
+        Assert.Equal(UsageViewModel.MaxHistory, vm.NetSeries.Count);
     }
 
     [Fact]
