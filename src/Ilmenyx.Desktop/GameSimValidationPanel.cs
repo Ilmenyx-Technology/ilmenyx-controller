@@ -53,7 +53,7 @@ public sealed class GameSimValidationPanel : Border
             Spacing = 10,
             Children =
         {
-            new TextBlock { Text = "VALIDAÇÃO REDUZIDA · GAMESIM", FontSize = 14, FontWeight = FontWeight.Bold },
+            new TextBlock { Text = "VALIDAÇÃO REDUZIDA · GAMESIM", TextWrapping = TextWrapping.Wrap, FontSize = 14, FontWeight = FontWeight.Bold },
             new TextBlock { Text = "256 entidades · 16 passos fixos · 1 worker · sem aquecimento por tempo.\nSimulação sintética de física/IA. Não mede FPS de jogos, desempenho da GPU ou score.", Foreground = Brushes.LightGray, TextWrapping = TextWrapping.Wrap },
             new WrapPanel { Children = { start, cancel, export, exportHtml } }, preview, status, summary
         }

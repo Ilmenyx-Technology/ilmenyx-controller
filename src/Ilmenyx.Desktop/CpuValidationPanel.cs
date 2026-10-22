@@ -76,7 +76,7 @@ public sealed class CpuValidationPanel : Border, IDisposable
             Spacing = 10,
             Children =
             {
-                new TextBlock { Text = "VALIDAÇÃO DO RENDERIZADOR CPU", FontSize = 14, FontWeight = FontWeight.Bold },
+                new TextBlock { Text = "VALIDAÇÃO DO RENDERIZADOR CPU", TextWrapping = TextWrapping.Wrap, FontSize = 14, FontWeight = FontWeight.Bold },
                 new TextBlock { Text = "32×18 pixels · 8 amostras/pixel · uma passada · sem score.\nA imagem é calculada ao clicar. Este modo não mede desempenho nem saúde do hardware.", TextWrapping = TextWrapping.Wrap, Foreground = Brushes.LightGray },
                 new WrapPanel { Orientation = Orientation.Horizontal, Children = { start, cancel, export, exportHtml } },
                 progress, status, preview, summary

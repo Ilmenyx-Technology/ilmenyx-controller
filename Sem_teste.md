@@ -283,3 +283,7 @@ NÃO TESTADOS/PENDENTES DE REVISÃO.
 Pacote 0.25.0 em VM Ubuntu 24.04 (QEMU/KVM, imagem cloud verificada): validate-linux-machine PASS,
 smart-import CLI OK, desktop abre sob Xvfb. Evidências em docs/evidencias/ilmenyx-vm-ubuntu-2404-0.25.0.
 Continuam NÃO TESTADOS: sessão gráfica real/Wayland/interação na VM, GNOME Boxes, outras distros, Orca.
+
+DISTRO-01 (Ubuntu 24.04, parcial): build, 468 testes e UiSmoke X11 (Xvfb) aprovados na VM.
+Achado e corrigido: títulos sem quebra cortavam a 200 % com DejaVu. Seguem NÃO TESTADOS:
+Wayland/compositor real no Ubuntu, Debian, interação humana/Orca, outras fontes/escalas.

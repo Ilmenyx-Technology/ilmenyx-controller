@@ -55,7 +55,7 @@ public sealed class JsonSaveDialog : Window
             Spacing = 12,
             Children =
             {
-                new TextBlock { Text = "Destino do relatório", FontSize = 18, FontWeight = FontWeight.Bold },
+                new TextBlock { Text = "Destino do relatório", TextWrapping = TextWrapping.Wrap, FontSize = 18, FontWeight = FontWeight.Bold },
                 new TextBlock { Text = "Informe o caminho completo para um arquivo novo. Arquivos existentes serão preservados. " + Ilmenyx.Core.ProductIdentity.SharingNotice, TextWrapping = TextWrapping.Wrap },
                 label, destination, error,
                 new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, Children = { save, cancel } }

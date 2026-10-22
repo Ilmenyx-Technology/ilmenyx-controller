@@ -17,3 +17,13 @@ Resultados:
 NÃO TESTADO: GPU/GL real, Wayland, interação com a janela (importação SMART, exportação), Orca,
 SMART com disco real, outras distros, ARM, musl. Xvfb não prova renderização em sessão real.
 Nenhuma certificação de VM limpa de produção: a VM recebeu ferramentas de teste e Xvfb.
+
+## Build, testes e smoke X11 dentro da VM (adendo)
+
+Código-fonte (git archive HEAD) compilado na VM com o SDK 10.0.100 e cache NuGet copiados
+do host (restore offline). 0 avisos/erros, 468 testes aprovados. UiSmoke X11 sob Xvfb
+(`Avalonia.X11.X11Window`, fontes DejaVu): todos os cenários passaram, exceto layout mínimo
+a 200 % de texto, que acusou corte nos títulos dos painéis CPU e GameSim e do diálogo de
+salvar (sem quebra de linha; no host a fonte mais estreita escondia). Corrigido com
+TextWrapping.Wrap; repetido na VM (PASS) e no host em X11 e Wayland nativo (PASS).
+O harness agora imprime o texto cortado. Xvfb e uma fonte não certificam outras fontes/DPI.
