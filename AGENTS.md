@@ -280,3 +280,10 @@ as regras de arquitetura Linux, benchmarks, testes, licenças e segurança anter
 - Testes nunca criam dispositivo nem renderizam; o teste real é opt-in (ILMENYX_RUN_GPU_TESTS=1) e um "passou" sem a variável não prova nada sobre GPU.
 - Sem janela/swapchain: render offscreen. Ray tracing só com VK_KHR_ray_tracing_pipeline; sem o hardware, registrar BLOQUEADO.
 - Scores de GPU são experimentais e não comparáveis ao Windows.
+
+
+## Componentes integrados (0.30.0)
+- Por decisão do usuário (2026-10-22) o usuário não deve instalar peças extras: MangoHud (MIT) e OpenRGB (GPL-2.0, programa separado) acompanham o pacote em `components/` (scripts/fetch-components.sh, versões e SHA-256 fixados); GameMode tem reserva embutida no app (ionice/renice do próprio usuário).
+- Programa do sistema tem prioridade (`BoundedProcess.Find`); o embutido é reserva. Wrappers são gerados na pasta de dados do Ilmenyx, nunca em locais do sistema, sem root.
+- O servidor OpenRGB só inicia por clique (ou `ilmenyx components --check-openrgb`), em 127.0.0.1, e é encerrado ao sair. Regras udev/grupo i2c exigem root: comando exibido, nunca executado.
+- Flatpak não é embutível (serviço do sistema): o app mostra o comando da distribuição.

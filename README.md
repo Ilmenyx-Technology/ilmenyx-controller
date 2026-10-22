@@ -7,7 +7,7 @@ política de contribuições próprias futuras: uso como ferramenta profissional
 venda do programa/acesso pago e derivação comercial do código restritos.
 Veja [mapa de licenças](LICENSING.md): a MIT original continua permitindo uso comercial das
 partes abrangidas, sem revogação de direitos anteriores. O conjunto não é anunciado como open source OSI.
-Versão local experimental 0.29.0; sem lançamento público (push, release e divulgação dependem de aprovação do mantenedor).
+Versão local experimental 0.30.0; sem lançamento público (push, release e divulgação dependem de aprovação do mantenedor).
 
 Ilmenyx é uma adaptação independente e não oficial do [RESET EXPLODE](https://github.com/GustavoReset/ResetExplode),
 criado por Gustavo (GustavoReset). Não possui afiliação, patrocínio ou endosso da equipe RESET.
@@ -20,7 +20,7 @@ Ilmenyx e Bismuth Technology são nomes informados pelo mantenedor; não se afir
 exclusividade ou disponibilidade jurídica. Manual de Marca ainda não aprovado: texto/UI atuais
 são provisórios, sem logo, paleta ou tipografia oficial definida.
 
-## O que existe (0.29.0)
+## O que existe (0.30.0)
 
 O aplicativo desktop (Avalonia 12 + .NET 10) tem barra lateral com as páginas abaixo; a CLI (`ilmenyx`) cobre inventário,
 sensores, SMART importado e os benchmarks com opt-in explícito. Tema escuro/claro, avisos de dispositivo e relatórios HTML/JSON locais.
@@ -31,10 +31,10 @@ sensores, SMART importado e os benchmarks com opt-in explícito. Tema escuro/cla
 | Jogos | Jogos (Steam/Lutris/Heroic/manual, GameMode, MangoHud, PRIME), Estimativa de FPS, Gargalo | IMPLEMENTADO; jogo real, Heroic e API HowManyFPS NÃO TESTADOS |
 | Desempenho | Benchmark (CPU render, memória, GameSim, GPU em Vulkan, disco O_DIRECT), OC (verificador CPU/RAM/GPU, erros do kernel, comandos NVIDIA, guia da BIOS), Overlay (janela + MangoHud), Stress (CPU/RAM/GPU) | IMPLEMENTADO; carga só por clique + confirmação, com limites e corte por temperatura |
 | Maker | Portas seriais, drivers seriais (CH340/CP210x/FTDI…) | IMPLEMENTADO; sem placa real NÃO TESTADO |
-| Ferramentas | Otimiza (fechar apps próprios, ajustes reversíveis), Integração (RGB via OpenRGB), Inicialização, Instalar apps (Flatpak, escopo do usuário), Drivers, Relatório, Requisitos e sobre | IMPLEMENTADO; sem sudo implícito: o que exige root vira comando para você copiar |
+| Ferramentas | Otimiza (fechar apps próprios, ajustes reversíveis), Integração (RGB via OpenRGB, que acompanha o pacote), Inicialização, Instalar apps (Flatpak, escopo do usuário), Drivers, Relatório, Requisitos e sobre | IMPLEMENTADO; sem sudo implícito: o que exige root vira comando para você copiar |
 
 - **Pacote autocontido**: runtime .NET e ICU vão no pacote (`scripts/package-linux-x64.sh`); ver `docs/pacote-linux-x64.md`.
-  Bibliotecas do sistema (glibc, fontconfig, X11/Wayland, EGL, loader Vulkan) e integrações opcionais (GameMode, MangoHud, Flatpak, smartctl, OpenRGB) são do sistema.
+  Bibliotecas do sistema (glibc, fontconfig, X11/Wayland, EGL, loader Vulkan) e Flatpak/smartctl são do sistema. MangoHud e OpenRGB acompanham o pacote (components/) e o GameMode tem reserva embutida; se o sistema já tiver esses programas, os do sistema têm prioridade (`ilmenyx components` mostra a origem).
 - **Matriz do port** em `docs/portagem-completa.md`; **tudo que não foi testado, com o motivo e a condição de reteste, em `Sem_teste.md`**.
 - Windows-only e não aplicável: tweaks de registro, Game DVR, HAGS, SDKs Corsair/Razer Synapse, "números COM presos". Ray tracing de GPU: BLOQUEADO sem hardware.
 - Scores (CPU, GameSim, GPU, disco) são experimentais e **não comparáveis ao Windows**.

@@ -241,3 +241,8 @@ padrão. Instale o pacote da tabela e rode `ilmenyx doctor`.
 assim, o que não prova renderização em sessão real. Fedora rodou com SELinux em Enforcing sem ajustes.
 Nomes de pacote foram os usados nos testes; versões e nomes futuros podem mudar.
 NÃO TESTADO: Wayland em compositor real, GPU, Arch/openSUSE/Alpine (musl), ARM64, runtime empacotado pela distro.
+
+
+## Componentes integrados (0.30.0)
+O pacote traz `components/` com MangoHud 0.8.4 (bibliotecas 64 bits, MIT) e OpenRGB 1.1 (AppImage, GPL-2.0, programa separado), baixados por `scripts/fetch-components.sh` com SHA-256 fixado (feito na montagem do pacote, nunca pelo app). O Ilmenyx gera wrappers na própria pasta de dados (`$XDG_DATA_HOME/ilmenyx/components/`): `mangohud` (LD_PRELOAD do shim + manifesto de camada Vulkan com caminho absoluto), `openrgb` (AppImage com extração automática, sem FUSE) e `gamemoderun` (reserva embutida: ionice/renice do usuário). Programa do sistema tem prioridade. `ilmenyx components [--check-openrgb]` mostra a origem de cada um e, só com a opção, inicia o servidor em 127.0.0.1 por alguns segundos.
+Flatpak não é embutível; a página Apps mostra o comando da distribuição. Itens não verificados: CMP-01..04 em `Sem_teste.md`.
