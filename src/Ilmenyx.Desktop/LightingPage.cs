@@ -12,7 +12,7 @@ using Ilmenyx.Core;
 
 namespace Ilmenyx.Desktop;
 
-public sealed record LightingServices(Func<string, int, CancellationToken, Task<OpenRgbClient>> Connect, Func<double?> GpuTemp, Func<string, CancellationToken, Task> OpenUrl, Func<bool> OpenRgbInstalled);
+public sealed record LightingServices(Func<string, int, CancellationToken, Task<OpenRgbClient>> Connect, Func<double?> GpuTemp, Func<string, CancellationToken, Task> OpenUrl, Func<bool> OpenRgbInstalled, Func<int, CancellationToken, Task<IAsyncDisposable>>? StartServer = null);
 
 /// <summary>
 /// RGB lighting through the local OpenRGB SDK server (Corsair, Razer, MSI, ASUS, Gigabyte… are supported by OpenRGB itself; the vendor SDKs of the
@@ -30,6 +30,7 @@ public sealed class LightingPage : StackPanel
     private readonly Stopwatch clock = Stopwatch.StartNew();
     private readonly TextBox port = new() { Name = "LightPort", Text = OpenRgbClient.DefaultPort.ToString(CultureInfo.InvariantCulture), Width = 90 };
     private readonly Button connect = new() { Name = "BtnLightConnect", Content = "CONECTAR AO OPENRGB" };
+    private readonly Button startServer = new() { Name = "BtnLightServer", Content = "INICIAR SERVIDOR OPENRGB" };
     private readonly Button openSite = new() { Name = "BtnOrgbOpen", Content = "SITE DO OPENRGB" };
     private readonly Button run = UiKit.Primary("BtnLightRun", "ATIVAR CONTROLE", 22, 11);
     private readonly TextBlock status = new() { Name = "LightStatus", TextWrapping = TextWrapping.Wrap, Foreground = Palette.Muted };
@@ -43,6 +44,7 @@ public sealed class LightingPage : StackPanel
     private readonly Queue<string> log = new();
     private readonly Dictionary<string, ((byte, byte, byte)[] Colors, long At)> last = [];
     private OpenRgbClient? client;
+    private IAsyncDisposable? server;
     private List<DeviceRow> rows = [];
     private List<DeviceRow> controlled = [];
     private string effect = "static";
@@ -61,8 +63,8 @@ public sealed class LightingPage : StackPanel
         connect.Click += async (_, _) => await ConnectAsync();
         openSite.Click += async (_, _) => { try { await services.OpenUrl("https://openrgb.org/", lifetime); Log("Site do OpenRGB aberto no navegador."); } catch (Exception e) when (e is IOException or TimeoutException or FileNotFoundException or ArgumentException) { Log("Não foi possível abrir o navegador: " + e.Message); } };
         Children.Add(UiKit.Card(new StackPanel { Spacing = 8, Children = { UiKit.Label("OPENRGB"),
-            new TextBlock { TextWrapping = TextWrapping.Wrap, Text = "O OpenRGB controla as luzes de placas-mãe, memórias, ventoinhas, teclados e mouses de várias marcas (incluindo Corsair e Razer). Instale-o pela sua distribuição, abra e ative Server → Start Server (ou rode `openrgb --server`). O Ilmenyx só se conecta a esta máquina (127.0.0.1)." },
-            new WrapPanel { Children = { Field("PORTA", port), new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Bottom, Children = { connect, openSite } } } }, status } }));
+            new TextBlock { TextWrapping = TextWrapping.Wrap, Text = "O OpenRGB controla as luzes de placas-mãe, memórias, ventoinhas, teclados e mouses de várias marcas (incluindo Corsair e Razer). O OpenRGB acompanha o Ilmenyx: INICIAR SERVIDOR sobe o servidor SDK embutido (ou o do sistema, se existir) só em 127.0.0.1 e o fecha ao sair. Se o seu OpenRGB já está com o servidor ativo, basta CONECTAR." },
+            new WrapPanel { Children = { Field("PORTA", port), new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Bottom, Children = { startServer, connect, openSite } } } }, status } }));
         Children.Add(UiKit.Card(new StackPanel { Spacing = 6, Children = { UiKit.Label("DISPOSITIVOS"), list } }));
         var fx = new UiKit.ChipGroup<string>("LightFxPanel", [("ESTÁTICO", "static"), ("RESPIRAR", "breath"), ("ARCO-ÍRIS", "rainbow"), ("TEMP. CPU", "cpu"), ("TEMP. GPU", "gpu"), ("CARGA CPU", "load"), ("APAGAR", "off")], "static", v => { effect = v; smooth = double.NaN; last.Clear(); });
         foreach (var s in new[] { r, g, b, bright, speed }) s.PropertyChanged += (_, e) => { if (e.Property == RangeBase.ValueProperty) { RefreshPreview(); last.Clear(); } };
@@ -74,6 +76,8 @@ public sealed class LightingPage : StackPanel
             sw.Click += (_, _) => { r.Value = cr; g.Value = cg; b.Value = cb; };
             swatches.Children.Add(sw);
         }
+        startServer.IsVisible = services.StartServer is not null;
+        startServer.Click += async (_, _) => await StartServerAsync();
         run.Click += async (_, _) => { if (running) await StopAsync(true); else await StartAsync(); };
         Children.Add(UiKit.Card(new StackPanel { Spacing = 8, Children = { UiKit.Label("EFEITO"), fx.Panel,
             new WrapPanel { Children = { Field("VERMELHO", r), Field("VERDE", g), Field("AZUL", b), Field("BRILHO %", bright), Field("VELOCIDADE", speed), Field("COR", preview) } }, swatches,
@@ -94,6 +98,33 @@ public sealed class LightingPage : StackPanel
     {
         log.Enqueue($"{DateTime.Now:HH:mm:ss}  {line}"); while (log.Count > 80) log.Dequeue();
         diag.Text = string.Join("\n", log);
+    }
+
+    public async Task StartServerAsync()
+    {
+        if (busy || running || services.StartServer is null) return;
+        if (server is not null) { await StopServerAsync(); return; }
+        if (!int.TryParse(port.Text, NumberStyles.None, CultureInfo.InvariantCulture, out int p)) { status.Text = "Porta inválida."; return; }
+        busy = true; startServer.IsEnabled = false;
+        try
+        {
+            status.Text = "Iniciando o servidor OpenRGB (a primeira vez extrai o pacote embutido; pode levar alguns segundos)…";
+            server = await services.StartServer(p, lifetime);
+            startServer.Content = "PARAR SERVIDOR OPENRGB";
+            Log($"Servidor OpenRGB iniciado em 127.0.0.1:{p}.");
+        }
+        catch (Exception e) when (e is IOException or TimeoutException or FileNotFoundException or ArgumentException or System.ComponentModel.Win32Exception) { status.Text = e.Message; Log(e.Message); return; }
+        catch (OperationCanceledException) { status.Text = "Início cancelado."; return; }
+        finally { busy = false; startServer.IsEnabled = true; }
+        await ConnectAsync();
+    }
+
+    private async Task StopServerAsync()
+    {
+        if (running) await StopAsync(true);
+        if (client is not null) { await client.DisposeAsync(); client = null; rows = []; BuildList(); }
+        if (server is { } s) { server = null; await s.DisposeAsync(); }
+        startServer.Content = "INICIAR SERVIDOR OPENRGB"; status.Text = "Servidor OpenRGB encerrado."; Log(status.Text);
     }
 
     public async Task ConnectAsync()
@@ -168,6 +199,7 @@ public sealed class LightingPage : StackPanel
     {
         try { await StopAsync(true); } catch (Exception e) when (e is IOException or ObjectDisposedException or InvalidOperationException) { }
         if (client is not null) { try { await client.DisposeAsync(); } catch (IOException) { } client = null; }
+        if (server is { } s) { server = null; await s.DisposeAsync(); }
     }
 
     private double? LiveValue()

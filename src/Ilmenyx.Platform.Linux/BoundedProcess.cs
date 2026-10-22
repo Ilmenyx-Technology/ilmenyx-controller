@@ -8,7 +8,15 @@ namespace Ilmenyx.Platform.Linux;
 public static class BoundedProcess
 {
     private static readonly string[] Directories = ["/usr/bin", "/usr/sbin", "/bin", "/sbin", "/usr/local/bin"];
-    public static string? Find(string name) => name.Contains('/') ? null : Directories.Select(d => Path.Combine(d, name)).FirstOrDefault(File.Exists);
+    public static string? FindSystem(string name) => name.Contains('/') ? null : Directories.Select(d => Path.Combine(d, name)).FirstOrDefault(File.Exists);
+
+    /// <summary>System program first; for the integrated tools (mangohud, gamemoderun, openrgb) the copy that ships in the package is the fallback.</summary>
+    public static string? Find(string name)
+    {
+        if (name.Contains('/')) return null;
+        if (BundledComponents.PreferBundled && BundledComponents.Resolve(name) is { } preferred) return preferred;
+        return FindSystem(name) ?? BundledComponents.Resolve(name);
+    }
 
     public static async Task<(int ExitCode, string Output)> RunAsync(string program, IReadOnlyList<string> arguments, TimeSpan timeout, int maxCharacters = 65536, CancellationToken ct = default)
     {

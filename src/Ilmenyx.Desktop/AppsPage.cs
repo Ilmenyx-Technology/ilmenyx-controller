@@ -25,6 +25,12 @@ public sealed class AppsPage : StackPanel
     private bool busy, stopRequested; private double fraction;
     public IReadOnlyList<InstallableApp> Apps => apps;
 
+    private static (string Id, string IdLike) Distro()
+    {
+        try { var text = File.ReadAllText("/etc/os-release"); string F(string k) => text.Split('\n').Where(l => l.StartsWith(k + "=", StringComparison.Ordinal)).Select(l => l[(k.Length + 1)..].Trim().Trim('"')).FirstOrDefault() ?? ""; return (F("ID"), F("ID_LIKE")); }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return ("", ""); }
+    }
+
     public AppsPage(LinuxAppInstaller installer, bool flatpakAvailable, Func<Window?> owner, CancellationToken lifetime)
     {
         this.installer = installer; this.flatpakAvailable = flatpakAvailable; this.owner = owner; this.lifetime = lifetime; Spacing = 4;
@@ -48,7 +54,7 @@ public sealed class AppsPage : StackPanel
     public async Task RefreshAsync()
     {
         if (busy) return;
-        if (!flatpakAvailable) { install.IsEnabled = false; status.Text = "O flatpak não foi encontrado. Instale-o pelo gerenciador de pacotes da sua distribuição (sudo pacman -S flatpak, sudo apt install flatpak ou sudo dnf install flatpak), reabra o aplicativo e volte a esta página."; Rebuild(); return; }
+        if (!flatpakAvailable) { install.IsEnabled = false; status.Text = "O flatpak não foi encontrado. O Flatpak é um componente do sistema (precisa de root e de serviços próprios), por isso não vai dentro do Ilmenyx. Rode no terminal: " + LinuxAppInstaller.FlatpakInstallHint(Distro().Id, Distro().IdLike) + " — depois reabra o aplicativo e volte a esta página."; Rebuild(); return; }
         await installer.RefreshInstalledAsync(apps, lifetime);
         foreach (var a in apps) a.Selected = a.PreSelect && !a.Installed;
         bool hasFlathub = await installer.HasFlathubAsync(lifetime);

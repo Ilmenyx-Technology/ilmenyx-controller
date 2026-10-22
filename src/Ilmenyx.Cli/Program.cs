@@ -12,6 +12,13 @@ if (HeavyBenchCommand.Handles(args))
     Console.CancelKeyPress += (_, e) => { e.Cancel = true; heavyStop.Cancel(); };
     return await HeavyBenchCommand.RunAsync(args, heavyStop.Token);
 }
+if (ComponentsCommand.Handles(args))
+{
+    if (!OperatingSystem.IsLinux()) { Console.Error.WriteLine("Backend disponível apenas no Linux."); return 3; }
+    using var componentsStop = new CancellationTokenSource();
+    Console.CancelKeyPress += (_, e) => { e.Cancel = true; componentsStop.Cancel(); };
+    return await ComponentsCommand.RunAsync(args, Console.Out, componentsStop.Token);
+}
 CliArguments command;
 try { command = CliArguments.Parse(args); }
 catch (ArgumentException e) { Console.Error.WriteLine(e.Message + "\n" + CliArguments.Help); return 2; }

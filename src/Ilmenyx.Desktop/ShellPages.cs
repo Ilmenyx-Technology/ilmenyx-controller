@@ -91,7 +91,8 @@ public sealed partial class ShellWindow
     }
 
     private LightingServices RealLightingServices() => new(OpenRgbClient.ConnectAsync, () => null,
-        (url, ct) => OperatingSystem.IsLinux() ? DriverTools.OpenUrlAsync(url, ct) : Task.CompletedTask, () => OperatingSystem.IsLinux() && BoundedProcess.Find("openrgb") is not null);
+        (url, ct) => OperatingSystem.IsLinux() ? DriverTools.OpenUrlAsync(url, ct) : Task.CompletedTask, () => OperatingSystem.IsLinux() && BoundedProcess.Find("openrgb") is not null,
+        OperatingSystem.IsLinux() && BoundedProcess.Find("openrgb") is not null ? async (port, ct) => await OpenRgbServer.StartAsync(port, TimeSpan.FromSeconds(60), ct) : null);
 
     [System.Runtime.Versioning.SupportedOSPlatform("linux")]
     private OverlayServices RealOverlayServices()

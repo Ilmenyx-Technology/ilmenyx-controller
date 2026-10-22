@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# New Ilmenyx additions: see LICENSING.md; third-party components retain their terms.
+# Developer/packaging step (not run by the app, tests or CI): downloads the pinned upstream builds that travel inside the package.
+# Every download is verified against a pinned SHA-256 before use. Nothing is installed or elevated.
+set -euo pipefail
+if [[ $# != 1 || $1 != /* ]]; then echo 'Uso: bash scripts/fetch-components.sh /caminho/absoluto/cache' >&2; exit 2; fi
+for command in curl sha256sum tar; do command -v "$command" >/dev/null; done
+cache=$1
+mkdir -p -- "$cache"
+MANGOHUD_VERSION=0.8.4
+MANGOHUD_URL=https://github.com/flightlessmango/MangoHud/releases/download/v0.8.4/MangoHud-0.8.4.r0.g992103e.tar.gz
+MANGOHUD_SHA256=aa0b2a009552f5e7c50baabf361267a79ea5e5c0fea440786f3b202d51f57753
+MANGOHUD_LICENSE_URL=https://raw.githubusercontent.com/flightlessmango/MangoHud/v0.8.4/LICENSE
+OPENRGB_VERSION=1.1
+OPENRGB_URL=https://codeberg.org/OpenRGB/OpenRGB/releases/download/release_1.1/OpenRGB_1.1_x86_64_8e16de2.AppImage
+OPENRGB_SHA256=d556c2273b0ef863dbee7ffdb438304b382add5d685c93c60758b42de3b0268d
+OPENRGB_LICENSE_URL=https://codeberg.org/OpenRGB/OpenRGB/raw/tag/release_1.1/LICENSE
+fetch() { # url sha256 file
+  if [[ -f $3 ]] && echo "$2  $3" | sha256sum --check --status; then return 0; fi
+  curl -fsSL --max-time 600 -o "$3.part" "$1"
+  echo "$2  $3.part" | sha256sum --check --status || { rm -f -- "$3.part"; echo "SHA-256 divergente: $1" >&2; exit 1; }
+  mv -- "$3.part" "$3"
+}
+fetch "$MANGOHUD_URL" "$MANGOHUD_SHA256" "$cache/MangoHud.tar.gz"
+fetch "$OPENRGB_URL" "$OPENRGB_SHA256" "$cache/OpenRGB.AppImage"
+rm -rf -- "$cache/out"; mkdir -p -- "$cache/out/mangohud" "$cache/out/openrgb" "$cache/work"
+rm -rf -- "$cache/work"; mkdir -p -- "$cache/work"
+tar -xzf "$cache/MangoHud.tar.gz" -C "$cache/work"
+tar -xf "$cache/work/MangoHud/MangoHud-package.tar" -C "$cache/work" ./usr/lib/mangohud/lib64 ./usr/share/doc/mangohud
+cp -r -- "$cache/work/usr/lib/mangohud/lib64" "$cache/out/mangohud/lib64"
+cp -- "$cache/work/usr/share/doc/mangohud/MangoHud.conf.example" "$cache/out/mangohud/"
+curl -fsSL --max-time 60 -o "$cache/out/mangohud/LICENSE" "$MANGOHUD_LICENSE_URL"
+cp -- "$cache/OpenRGB.AppImage" "$cache/out/openrgb/OpenRGB.AppImage"; chmod 755 "$cache/out/openrgb/OpenRGB.AppImage"
+curl -fsSL --max-time 60 -o "$cache/out/openrgb/LICENSE" "$OPENRGB_LICENSE_URL"
+cat > "$cache/out/openrgb/SOURCE.txt" <<TEXT
+OpenRGB $OPENRGB_VERSION (GPL-2.0-only), unmodified official AppImage, bundled by Ilmenyx.
+Source code and license: https://codeberg.org/OpenRGB/OpenRGB (tag release_1.1).
+Ilmenyx runs it as a separate program (it does not link to it). Written offer: the corresponding source is available at the address above.
+TEXT
+cat > "$cache/out/mangohud/SOURCE.txt" <<TEXT
+MangoHud $MANGOHUD_VERSION (MIT), unmodified official release libraries (64-bit), bundled by Ilmenyx.
+Source code and license: https://github.com/flightlessmango/MangoHud (tag v0.8.4).
+TEXT
+rm -rf -- "$cache/work"
+echo "Componentes prontos em $cache/out"

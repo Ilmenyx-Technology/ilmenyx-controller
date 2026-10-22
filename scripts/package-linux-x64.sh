@@ -25,6 +25,13 @@ for project in Cli Desktop; do
 done
 # LTTng tracing provider of the runtime: optional (needs liblttng-ust, absent on most systems) and not used by Ilmenyx.
 rm -f -- "$bundle/cli/libcoreclrtraceptprovider.so" "$bundle/desktop/libcoreclrtraceptprovider.so"
+# Integrated programs (MangoHud, OpenRGB): pinned upstream builds, verified by SHA-256, cached outside the repository.
+components_cache=${ILMENYX_COMPONENTS_CACHE:-$repo/.artifacts/components-cache}
+bash "$repo/scripts/fetch-components.sh" "$components_cache"
+cp -r -- "$components_cache/out" "$bundle/components"
+mkdir -p -- "$bundle/licenses/components"
+cp -- "$bundle/components/mangohud/LICENSE" "$bundle/licenses/components/MangoHud-LICENSE-MIT.txt"
+cp -- "$bundle/components/openrgb/LICENSE" "$bundle/licenses/components/OpenRGB-LICENSE-GPL-2.0.txt"
 for file in LICENSE NOTICE.md LICENSING.md LICENSE-ILMENYX.md THIRD-PARTY-NOTICES.md; do
   cp -- "$repo/$file" "$bundle/$file"
 done
@@ -63,7 +70,8 @@ CLI: ./cli/ilmenyx --help ; ./cli/ilmenyx info --json
 UI X11: ILMENYX_DISPLAY_BACKEND=x11 ./desktop/Ilmenyx.Desktop
 UI Wayland: env -u DISPLAY ILMENYX_DISPLAY_BACKEND=wayland ./desktop/Ilmenyx.Desktop
 Nao inclui SDK, smartctl, drivers, instalador ou garantias de portabilidade.
-GameMode, MangoHud e Flatpak sao integracoes opcionais do sistema: o app indica quando faltam.
+MangoHud (overlay) e OpenRGB (iluminacao) acompanham o pacote em components/ e o GameMode tem versao embutida no app; os do sistema, quando existem, tem prioridade.
+Flatpak (pagina Apps) depende do sistema e nao e embutivel: o app indica quando falta e mostra o comando.
 Leia LICENSE, NOTICE.md, LICENSING.md, LICENSE-ILMENYX.md e THIRD-PARTY-NOTICES.md.
 MIT/terceiros e direitos anteriores preservados. Revisao humana antes de distribuir.
 Licencas coletadas do cache e dependencies.tsv sao inventario, nao liberacao juridica.

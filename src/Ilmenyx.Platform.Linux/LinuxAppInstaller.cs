@@ -11,6 +11,18 @@ public sealed class LinuxAppInstaller(ProgramRunner? run = null, Func<string, bo
     private readonly ProgramRunner runner = run ?? ((program, args, timeout, ct) => BoundedProcess.RunAsync(program, args, timeout, 262144, ct));
     private readonly Func<string, bool> native = nativeExists ?? (name => BoundedProcess.Find(name) is not null);
 
+    /// <summary>Install command for Flatpak on the running distribution (needs root, so it is only shown). Unknown distribution: lists the common ones.</summary>
+    public static string FlatpakInstallHint(string id, string idLike)
+    {
+        var all = (id + " " + idLike).ToLowerInvariant().Split([' ', '"'], StringSplitOptions.RemoveEmptyEntries);
+        bool Any(params string[] n) => n.Any(all.Contains);
+        if (Any("arch", "cachyos", "manjaro", "endeavouros")) return "sudo pacman -S flatpak";
+        if (Any("debian", "ubuntu", "linuxmint", "pop")) return "sudo apt install flatpak";
+        if (Any("fedora", "rhel", "centos", "nobara")) return "sudo dnf install flatpak";
+        if (Any("opensuse", "suse")) return "sudo zypper install flatpak";
+        return "sudo pacman -S flatpak, sudo apt install flatpak ou sudo dnf install flatpak";
+    }
+
     public static bool FlatpakAvailable => BoundedProcess.Find("flatpak") is not null;
 
     public async Task RefreshInstalledAsync(IEnumerable<InstallableApp> apps, CancellationToken ct = default)
