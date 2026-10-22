@@ -5,6 +5,13 @@ using Ilmenyx.Core;
 using Ilmenyx.Core.Benchmarks;
 using Ilmenyx.Platform.Linux;
 
+if (HeavyBenchCommand.Handles(args))
+{
+    if (!OperatingSystem.IsLinux()) { Console.Error.WriteLine("Backend disponível apenas no Linux."); return 3; }
+    using var heavyStop = new CancellationTokenSource();
+    Console.CancelKeyPress += (_, e) => { e.Cancel = true; heavyStop.Cancel(); };
+    return await HeavyBenchCommand.RunAsync(args, heavyStop.Token);
+}
 CliArguments command;
 try { command = CliArguments.Parse(args); }
 catch (ArgumentException e) { Console.Error.WriteLine(e.Message + "\n" + CliArguments.Help); return 2; }

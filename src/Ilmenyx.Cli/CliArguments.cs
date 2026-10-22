@@ -23,6 +23,8 @@ public sealed record CliArguments(CliOperation Operation, bool Json, string? Out
           bench memory [--threads 1|2|4] [--json|--html] [--output ARQUIVO]
           bench cpu [--profile validation|full] [--threads N] [--json|--html] [--output ARQUIVO]
                     [--min-seconds N] [--timeout-seconds N] [--allow-cpu-load]
+          bench memory-full --allow-memory-load [--timeout-seconds 5..300] [--json]
+          bench disk --directory PASTA --allow-disk-load [--size-mb 64..8192] [--phase-seconds 1..10] [--timeout-seconds N] [--json]
           --help
         smart-import: entrada padrao limitada, analise offline; nao consulta disco nem confirma origem/data original.
         doctor: requisitos locais, texto somente, sem inventario ou benchmarks.
@@ -30,6 +32,7 @@ public sealed record CliArguments(CliOperation Operation, bool Json, string? Out
         sim-plan: prepara configuração revisável; NÃO executa carga nem mede FPS/score.
         GameSim: 256 entidades, 16 passos fixos; sem FPS ou score.
         Memória: validação de algoritmos com buffers pequenos; sem latência, GB/s ou score.
+        memory-full: aloca ~2,3 GiB (recusa sem 1 GiB livre). disk: um arquivo temporário novo (0600), E/S direta, apagado ao final; nunca dispositivos.
         Perfil full exige --allow-cpu-load: carga alta de CPU, sem proteção térmica implementada.
         Relatórios locais: revise rótulos e configuração antes de compartilhar; sem anonimização garantida.
         Scores experimentais NÃO são comparáveis ao Windows. Exportação exige arquivo novo.
