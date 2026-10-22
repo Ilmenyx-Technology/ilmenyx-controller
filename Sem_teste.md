@@ -279,3 +279,7 @@ dependências nativas). O teste detectou applicationVersion ainda 0.24.0 em
 LinuxHardwareInfoProvider; corrigido para 0.25.0. Pacote gerado antes do commit desta
 correção (sourceWorkingTree=dirty). VM limpa, outras distros e redistribuição seguem
 NÃO TESTADOS/PENDENTES DE REVISÃO.
+
+Pacote 0.25.0 em VM Ubuntu 24.04 (QEMU/KVM, imagem cloud verificada): validate-linux-machine PASS,
+smart-import CLI OK, desktop abre sob Xvfb. Evidências em docs/evidencias/ilmenyx-vm-ubuntu-2404-0.25.0.
+Continuam NÃO TESTADOS: sessão gráfica real/Wayland/interação na VM, GNOME Boxes, outras distros, Orca.
