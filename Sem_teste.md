@@ -226,3 +226,13 @@ Revisão auxiliar Claude Code recebida para o código anterior à correção IPv
 achados de delimitador/caminho/truncamento corrigidos e cobertos por testes.
 Rótulos arbitrários colados (`src:fe80::1`), alias de zona e ofuscação permanecem
 PENDENTES DE REVISÃO; não declarar anonimização. Ver docs/privacidade-ipv6.md.
+
+
+## Atualização 0.22.0 — HTML de sensores na CLI
+
+IMPLEMENTADO: SensorHtmlReport no Core, snapshot existente, HTML passivo/escapado,
+escrita atômica sem overwrite. CLI sensors --html com coleta única, 371 testes
+aprovados; coleta real/arquivo/stdout e browser desktop/estreito passaram.
+Interface HTML de sensores PENDENTE DE IMPLEMENTAÇÃO; impressão, outros browsers,
+VM limpa/bateria/outras placas NÃO TESTADOS. Checklist jurídico/humano PENDENTE.
+[Comandos, colaboração Claude e evidências](docs/sensores-html.md).

@@ -7,7 +7,7 @@ política de contribuições próprias futuras: uso como ferramenta profissional
 venda do programa/acesso pago e derivação comercial do código restritos.
 Veja [mapa de licenças](LICENSING.md): a MIT original continua permitindo uso comercial das
 partes abrangidas, sem revogação de direitos anteriores. O conjunto não é anunciado como open source OSI.
-Versão local experimental 0.21.0; sem lançamento público nesta sessão.
+Versão local experimental 0.22.0; sem lançamento público nesta sessão.
 
 Ilmenyx é uma adaptação independente e não oficial do [RESET EXPLODE](https://github.com/GustavoReset/ResetExplode),
 criado por Gustavo (GustavoReset). Não possui afiliação, patrocínio ou endosso da equipe RESET.
@@ -232,3 +232,11 @@ NÃO TESTADAS; revisões humanas/jurídicas permanecem PENDENTES.
 A limpeza de texto Linux agora oculta IPv6 comuns, inclusive escopo de interface,
 além dos padrões anteriores. Não é anonimização garantida: revise antes de
 compartilhar. [Testes, comandos e limites](docs/privacidade-ipv6.md).
+
+
+### HTML de sensores pela CLI — 0.22.0
+
+`sensors --html --output /caminho/novo.html` gera relatório offline com fontes,
+unidades, horários, qualidade, indisponibilidades e créditos. Não ativa monitor,
+SMART ou benchmark; JSON anterior preservado. [Testes e comandos](docs/sensores-html.md).
+Exportação HTML de sensores pela interface ainda é pendente.

@@ -1,0 +1,19 @@
+{
+  "width": 390,
+  "pageWidth": 390,
+  "pageFits": true,
+  "wrappers": [
+    {
+      "client": 366,
+      "scroll": 991,
+      "overflow": "auto"
+    },
+    {
+      "client": 366,
+      "scroll": 631,
+      "overflow": "auto"
+    }
+  ],
+  "headerVisible": true,
+  "activeElements": 0
+}

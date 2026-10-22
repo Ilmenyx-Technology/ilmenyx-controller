@@ -1,0 +1,1 @@
+PASS: sensors --html no pacote publicado; stdout identico ao arquivo.

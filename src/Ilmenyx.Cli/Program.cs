@@ -44,8 +44,13 @@ try
     if (command.Operation == CliOperation.Sensors)
     {
         var readings = await LinuxPlatform.CreateSensorProvider().CollectAsync(stop.Token);
-        if (command.Output is { } sensorPath) await SnapshotReport.ExportAsync(readings, sensorPath, stop.Token);
-        Console.WriteLine(command.Json ? SnapshotReport.Json(readings) : SensorPresentation.Text(readings));
+        if (command.Output is { } sensorPath)
+        {
+            if (command.Html) await SensorHtmlReport.ExportAsync(readings, sensorPath, stop.Token);
+            else await SnapshotReport.ExportAsync(readings, sensorPath, stop.Token);
+        }
+        if (command.Html) Console.Write(SensorHtmlReport.Render(readings, stop.Token));
+        else Console.WriteLine(command.Json ? SnapshotReport.Json(readings) : SensorPresentation.Text(readings));
         return 0;
     }
     var snapshot = await LinuxPlatform.CreateHardwareProvider().CollectAsync(stop.Token);

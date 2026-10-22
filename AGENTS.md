@@ -221,3 +221,10 @@ as regras de arquitetura Linux, benchmarks, testes, licenças e segurança anter
 - Em truncamento, evitar publicar token com dois-pontos cortado; manter limite de 512 também após expansão dos marcadores.
 - Ocultar caminhos home antes de substituir IPv6 por marcador que contém espaço.
 - Executar build/publish sequencialmente quando compartilham bin/obj, inclusive entre auxiliares.
+
+
+## Sensores HTML 0.22.0
+- SensorHtmlReport recebe snapshot e não coleta; CLI sensors --html usa uma coleta para stdout/arquivo.
+- Preservar Channel/Quality/timestamps/fontes/unidades e não mostrar Value antigo se Status indisponível.
+- Todo dado variável somente em texto escapado; reutilizar ReportFile para escrita e cancelamento.
+- UI sensores continua JSON até incremento próprio com guardas de troca de snapshot/monitor.

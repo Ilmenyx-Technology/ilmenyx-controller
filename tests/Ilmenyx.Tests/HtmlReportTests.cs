@@ -133,7 +133,8 @@ public class HtmlReportTests
         Assert.True(CliArguments.Parse(["info", "--html", "--output", "report.html"]).Html);
         Assert.False(CliArguments.Parse(["info", "--json"]).Html);
         Assert.Throws<ArgumentException>(() => CliArguments.Parse(["info", "--html", "--json"]));
-        Assert.Throws<ArgumentException>(() => CliArguments.Parse(["sensors", "--html"]));
+        Assert.True(CliArguments.Parse(["sensors", "--html"]).Html);
+        Assert.Throws<ArgumentException>(() => CliArguments.Parse(["sensors", "--html", "--json"]));
         Assert.Throws<ArgumentException>(() => CliArguments.Parse(["capabilities", "--html"]));
     }
 }

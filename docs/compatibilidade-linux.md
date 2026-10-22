@@ -217,3 +217,13 @@ aprovados; fixture cobre saída texto/JSON/HTML e preservação de PCI/horários
 Casos arbitrários/ofuscados e limites de truncamento continuam PENDENTES DE REVISÃO;
 não há anonimização garantida. IPv6 em rótulos reais de outros dispositivos, VM limpa
 e matrizes adicionais seguem NÃO TESTADOS. [Evidências e limites](privacidade-ipv6.md).
+
+
+## Atualização 0.22.0 — HTML de sensores na CLI
+
+IMPLEMENTADO: SensorHtmlReport no Core, snapshot existente, HTML passivo/escapado,
+escrita atômica sem overwrite. CLI sensors --html com coleta única, 371 testes
+aprovados; coleta real/arquivo/stdout e browser desktop/estreito passaram.
+Interface HTML de sensores PENDENTE DE IMPLEMENTAÇÃO; impressão, outros browsers,
+VM limpa/bateria/outras placas NÃO TESTADOS. Checklist jurídico/humano PENDENTE.
+[Comandos, colaboração Claude e evidências](sensores-html.md).

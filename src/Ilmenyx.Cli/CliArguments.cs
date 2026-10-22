@@ -14,7 +14,7 @@ public sealed record CliArguments(CliOperation Operation, bool Json, string? Out
           doctor
           info [--json|--html] [--output ARQUIVO]
           capabilities [--json]
-          sensors [--json] [--output ARQUIVO]
+          sensors [--json|--html] [--output ARQUIVO]
           smart --device NOME --allow-device-query [--json] [--output ARQUIVO]
           bench sim-full --allow-cpu-load [--threads N] [--duration-seconds 1..10] [--timeout-seconds N] [--json] [--output ARQUIVO]
           bench sim-plan [--threads N] [--duration-seconds 1..10] [--timeout-seconds N] [--json] [--output ARQUIVO]
@@ -69,7 +69,7 @@ public sealed record CliArguments(CliOperation Operation, bool Json, string? Out
             if (!seen.Add(flag)) throw new ArgumentException("Argumento duplicado: " + flag);
             if (operation == CliOperation.Smart && flag == "--device") { device = Value(args, ref i); continue; }
             if (operation == CliOperation.Smart && flag == "--allow-device-query") { deviceQuery = true; continue; }
-            if (flag == "--html" && operation is (CliOperation.Info or CliOperation.CpuBenchmark or CliOperation.MemoryValidation or CliOperation.GameSimValidation)) { html = true; continue; }
+            if (flag == "--html" && operation is (CliOperation.Info or CliOperation.Sensors or CliOperation.CpuBenchmark or CliOperation.MemoryValidation or CliOperation.GameSimValidation)) { html = true; continue; }
             if (flag == "--json") { json = true; continue; }
             if (flag == "--allow-cpu-load" && operation is (CliOperation.CpuBenchmark or CliOperation.GameSimBenchmark)) { allow = true; continue; }
             if (flag == "--output" && operation != CliOperation.Capabilities) { output = Value(args, ref i); continue; }

@@ -1,0 +1,17 @@
+{
+  "title": "Ilmenyx — Relatório de sensores",
+  "headings": [
+    "Proveniência",
+    "Leituras de sensores",
+    "Bateria e alimentação — metadados brutos",
+    "Limitações"
+  ],
+  "tables": 2,
+  "rows": 35,
+  "pageFits": true,
+  "activeElements": 0,
+  "csp": "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'",
+  "hasAttribution": true,
+  "hasNotice": true,
+  "hasNonfinite": false
+}
