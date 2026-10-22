@@ -93,6 +93,7 @@ public sealed class BenchPage : StackPanel
     private void BuildOptions()
     {
         options.Children.Clear();
+        foreach (Control shared in new Control[] { tempLimit, diskDirectory, diskFs }) (shared.Parent as Panel)?.Children.Remove(shared);
         var wrap = new WrapPanel();
         switch (kind)
         {
