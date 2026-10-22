@@ -390,7 +390,7 @@ public sealed class UiSmokeApp : Application
         if (Find<Button>(shell, "DashMetricPower").IsEnabled) throw new InvalidOperationException("Unavailable power metric must stay disabled.");
         Click(shell, "GoMemory"); await Until(() => shell.CurrentPage == "system");
         var expected = new (string Key, string Control)[] { ("dash", "OverviewChart"), ("system", "SysRefresh"), ("sensors", "RefreshSensors"), ("gpu", "GpuValidationNotice"), ("disks", "BtnDiskRefresh"),
-            ("energy", "BtnEnergyRefresh"), ("net", "NetChart"), ("procs", "ProcessRows"), ("bottleneck", "BtnBnSession"), ("validate", "ValidateCpu"), ("driver", "BtnDrvScan"), ("tools", "About") };
+            ("energy", "BtnEnergyRefresh"), ("net", "NetChart"), ("procs", "ProcessRows"), ("bottleneck", "BtnBnSession"), ("validate", "ValidateCpu"), ("startup", "BtnStartupScan"), ("driver", "BtnDrvScan"), ("tools", "About") };
         foreach (var (key, control) in expected)
         {
             var nav = Find<Button>(shell, "Nav" + key);
@@ -472,6 +472,7 @@ public sealed class UiSmokeApp : Application
         if (!Find<TextBlock>(shell, "BnResultSummary").Text!.Contains("amostra")) throw new InvalidOperationException("Session summary missing.");
         await Task.Delay(200); Capture(shell, "shell-bottleneck.png");
         Console.WriteLine("PASS bottleneck page: balance, live verdict and meters, timed session produces a distribution and advice (FPS honestly unavailable)");
+        await StartupAsync(shell, desktop);
         Click(shell, "SortMemory"); await Until(() => Find<Button>(shell, "SortMemory").Content!.ToString()!.Contains('▼'));
         Click(shell, "ToggleMonitor");
         await Until(() => Find<Button>(shell, "ToggleMonitor").Content!.ToString() == "Retomar monitor" && Find<TextBlock>(shell, "SideMonitor").Text == "monitor parado");
@@ -487,6 +488,44 @@ public sealed class UiSmokeApp : Application
         desktop.Windows.OfType<AboutDialog>().Single(w => w.IsVisible).Close();
         Console.WriteLine("PASS shell: grouped sidebar, 10 pages reachable, overview chart/chips/components, live process table, GPU notice, pause/resume without sampling, classic diagnostics and About");
         shell.Close();
+    }
+    private static async Task StartupAsync(ShellWindow shell, IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        // Real startup entries are never touched: a standalone page over temporary XDG directories is exercised instead.
+        string root = Path.Combine(Program.OutputDirectory, "startup-fixture"), cfg = Path.Combine(root, "cfg"), sys = Path.Combine(root, "sys");
+        Directory.CreateDirectory(Path.Combine(cfg, "autostart")); Directory.CreateDirectory(sys);
+        File.WriteAllText(Path.Combine(cfg, "autostart", "mine.desktop"), "[Desktop Entry]\nType=Application\nName=Mine\nExec=/bin/true\n");
+        File.WriteAllText(Path.Combine(sys, "sysapp.desktop"), "[Desktop Entry]\nType=Application\nName=SysApp\nExec=/bin/true\n");
+        var manager = new Ilmenyx.Platform.Linux.LinuxStartupManager(cfg, Path.Combine(root, "data"), [sys], null);
+        Window? host = null;
+        var page = new StartupPage(manager, () => host, CancellationToken.None);
+        host = new Window { Width = 900, Height = 600, Content = new ScrollViewer { Content = page } }; host.Show();
+        await Until(() => page.Entries.Count == 2);
+        Click(host, "BtnStartupScan");
+        if (host.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "StartupRemove_sysapp.desktop")) throw new InvalidOperationException("System entries must not offer REMOVER.");
+        var toggle = Find<CheckBox>(host, "StartupToggle_sysapp.desktop"); toggle.IsChecked = false; toggle.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => File.Exists(Path.Combine(cfg, "autostart", "sysapp.desktop")) && Find<TextBlock>(host, "StartupState_sysapp.desktop").Text == "DESATIVADO");
+        if (File.ReadAllText(Path.Combine(sys, "sysapp.desktop")).Contains("Hidden")) throw new InvalidOperationException("System file was modified.");
+        Click(host, "StartupRemove_mine.desktop");
+        await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        var noDialog = desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible); Click(noDialog, "ConfirmNo");
+        await Until(() => !noDialog.IsVisible);
+        if (!File.Exists(Path.Combine(cfg, "autostart", "mine.desktop"))) throw new InvalidOperationException("Declined removal still removed the entry.");
+        Click(host, "StartupRemove_mine.desktop");
+        await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        var yesDialog = desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible); Click(yesDialog, "ConfirmYes");
+        await Until(() => !File.Exists(Path.Combine(cfg, "autostart", "mine.desktop")) && page.Entries.All(e => e.Name != "Mine"));
+        await Until(() => Find<Button>(host, "BtnStartupRestore").IsEnabled);
+        Click(host, "BtnStartupRestore");
+        await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        Click(desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible), "ConfirmYes");
+        await Until(() => File.Exists(Path.Combine(cfg, "autostart", "mine.desktop")) && page.Entries.Any(e => e.Name == "Mine"));
+        host.Close();
+        // The real shell page only lists (no clicks): entries come from the user's actual session.
+        Find<Button>(shell, "Navstartup").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => shell.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "StartupSummary" && (t.Text!.Contains("PROGRAMAS") || t.Text.Contains("NENHUM"))));
+        await Task.Delay(300); Capture(shell, "shell-startup.png");
+        Console.WriteLine("PASS startup page: system entry disabled by user override (system file untouched), declined removal keeps entry, confirmed removal + restore round trip; real list read-only");
     }
     private static async Task ExerciseAsync(DashboardWindow window, IClassicDesktopStyleApplicationLifetime desktop)
     {

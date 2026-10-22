@@ -341,3 +341,7 @@ NÃO TESTADO: qualquer NVIDIA ou AMD real (aviso permanece visível por autoriza
 
 Fase 1 — Gargalo: página no layout do original (equilíbrio CPU×GPU, veredito ao vivo, leituras, análise de sessão 1/3/5 min), regras/textos e tabelas (GameCatalog) portados; 585 testes; smoke no host.
 NÃO TESTADO: sessão real durante um jogo, GPU AMD/NVIDIA (carga/VRAM/temperatura), FPS (aguarda o módulo Overlay/MangoHud), tabelas de índice para GPUs Intel.
+
+Fase 1 — Inicialização: página no layout do original (resumo, interruptores, REMOVER, RESTAURAR REMOVIDOS com confirmação), autostart XDG + systemd --user.
+592 testes; smoke com diretórios temporários (override do sistema, recusa/confirmação, restauração) e leitura da sessão real (17 itens). Vantagem sobre o original: entradas do sistema são desativadas sem root.
+NÃO TESTADO: alteração real de serviços systemd do usuário (o smoke não clica em serviços reais), KDE/GNOME respeitando Hidden=true em todas as versões, ~/.config em disco de rede, entradas OnlyShowIn/NotShowIn.
