@@ -1,0 +1,13 @@
+Ilmenyx doctor - by Bismuth Technology
+Processo .NET Linux ativo. Sem inventario, SMART, sensores ou benchmarks.
+glibc (libc.so.6): carregavel.
+ICU (uc/i18n): carregavel.
+Globalizacao: modo padrao; requer ICU compativel.
+fontconfig: carregavel.
+X11: carregavel.
+EGL: carregavel.
+DISPLAY: ausente.
+WAYLAND_DISPLAY: ausente.
+Biblioteca carregavel e variavel definida nao certificam ABI, fontes, driver ou conexao grafica.
+GUI nao testada por este comando. Invariant nao certifica globalizacao padrao.
+Requisitos basicos CLI: encontrados; codigo 0.

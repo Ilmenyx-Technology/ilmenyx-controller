@@ -30,6 +30,12 @@ Controle: removendo `libicu*` do pacote, o runtime aborta ("Failed to load app-l
 Em seguida a libicu foi restaurada nas imagens. SHA256SUMS conferido no Ubuntu. NÃO TESTADO: smoke gráfico completo e
 suíte com o pacote autocontido (só a execução do pacote), Wayland nesta rodada, Arch/openSUSE/Alpine, ARM64.
 
+**Validação do pacote 0.29.0 (2026-10-22, `.artifacts/ilmenyx-0.29.0-sc`, árvore limpa, VMs QEMU/KVM).** Sem .NET no PATH em Ubuntu 24.04.5, Debian 13 e Fedora 44:
+`validate-linux-machine.sh` → IMPLEMENTED_TESTED (hashes, JSON, sensores com canais de GPU, dependências nativas resolvidas), `bench gpu-list` lista só o renderizador por CPU
+(llvmpipe) com o aviso correspondente, `bench gpu-burn` sem flag recusa, e `Ilmenyx.Desktop` ficou vivo por 14 s sob Xvfb. Uma primeira rodada falhou no Debian/Fedora por
+`liblttng-ust` (provedor de rastreamento opcional do runtime): removido do pacote. Evidências em `docs/evidencias/ilmenyx-vm-*-0.29.0/`. NÃO TESTADO: smoke gráfico completo e suíte nas VMs
+com 0.29.0, GPU real nas VMs, Wayland, Arch/openSUSE/Alpine, ARM64.
+
 **Continua do sistema (não dá para embutir):** glibc, fontconfig, X11/Wayland, EGL e fontes. Integrações
 opcionais — GameMode, MangoHud, Flatpak, smartctl, fwupd — são programas do sistema: o app detecta a falta,
 informa e degrada sem falhar. As seções abaixo sobre runtime e ICU instalados descrevem o pacote anterior
