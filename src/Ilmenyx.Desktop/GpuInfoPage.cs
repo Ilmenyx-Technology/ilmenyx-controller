@@ -57,7 +57,7 @@ public sealed class GpuInfoPage : Grid
         Grid.SetColumn(side, 2); body.Children.Add(side);
         Grid.SetRow(body, 2);
         Children.Add(header); Children.Add(highlight); Children.Add(body);
-        Loaded += async (_, _) => { if (gpus.Count == 0) await LoadAsync(); };
+        Loaded += async (_, _) => { if (IsVisible) StartPolling(); if (gpus.Count == 0) await LoadAsync(); };
     }
 
     public async Task LoadAsync()

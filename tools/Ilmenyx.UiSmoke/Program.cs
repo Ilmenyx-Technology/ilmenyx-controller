@@ -390,7 +390,7 @@ public sealed class UiSmokeApp : Application
         if (Find<Button>(shell, "DashMetricPower").IsEnabled) throw new InvalidOperationException("Unavailable power metric must stay disabled.");
         Click(shell, "GoMemory"); await Until(() => shell.CurrentPage == "system");
         var expected = new (string Key, string Control)[] { ("dash", "OverviewChart"), ("system", "SysRefresh"), ("sensors", "RefreshSensors"), ("gpu", "GpuValidationNotice"), ("disks", "BtnDiskRefresh"),
-            ("energy", "BtnEnergyRefresh"), ("net", "NetChart"), ("procs", "ProcessRows"), ("validate", "ValidateCpu"), ("driver", "BtnDrvScan"), ("tools", "About") };
+            ("energy", "BtnEnergyRefresh"), ("net", "NetChart"), ("procs", "ProcessRows"), ("bottleneck", "BtnBnSession"), ("validate", "ValidateCpu"), ("driver", "BtnDrvScan"), ("tools", "About") };
         foreach (var (key, control) in expected)
         {
             var nav = Find<Button>(shell, "Nav" + key);
@@ -462,6 +462,16 @@ public sealed class UiSmokeApp : Application
         await Until(() => Find<StackPanel>(shell, "GpuLive").Children.Count > 0 || Find<StackPanel>(shell, "GpuExtras").Children.Count > 0);
         await Task.Delay(200); Capture(shell, "shell-gpu.png");
         Console.WriteLine("PASS gpu page: chips, highlight card, 8 GPU-Z style sections, live sensors poll or honest 'no counters' text, AMD/NVIDIA notice kept");
+        Find<Button>(shell, "Navbottleneck").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        var bottleneck = shell.GetVisualDescendants().OfType<BottleneckPage>().Single();
+        await Until(() => bottleneck.Session is null && Find<TextBlock>(shell, "BnLiveTitle").Text != "—");
+        if (!Find<TextBlock>(shell, "BnBalanceText").Text!.Contains("GPU") && !Find<TextBlock>(shell, "BnBalanceText").Text!.Contains("CPU") && !Find<TextBlock>(shell, "BnBalanceText").Text!.Contains("equilibrado")) throw new InvalidOperationException("Balance text missing.");
+        await Until(() => Find<MeterView>(shell, "Bn_cpu").Text.Contains('%'));
+        bottleneck.StartSession(TimeSpan.FromSeconds(3));
+        await Until(() => shell.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "BnResultTitle" && t.Text!.Length > 0));
+        if (!Find<TextBlock>(shell, "BnResultSummary").Text!.Contains("amostra")) throw new InvalidOperationException("Session summary missing.");
+        await Task.Delay(200); Capture(shell, "shell-bottleneck.png");
+        Console.WriteLine("PASS bottleneck page: balance, live verdict and meters, timed session produces a distribution and advice (FPS honestly unavailable)");
         Click(shell, "SortMemory"); await Until(() => Find<Button>(shell, "SortMemory").Content!.ToString()!.Contains('▼'));
         Click(shell, "ToggleMonitor");
         await Until(() => Find<Button>(shell, "ToggleMonitor").Content!.ToString() == "Retomar monitor" && Find<TextBlock>(shell, "SideMonitor").Text == "monitor parado");

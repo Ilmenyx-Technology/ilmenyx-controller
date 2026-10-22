@@ -338,3 +338,6 @@ NÃO TESTADO: NVIDIA proprietária real (versão e consulta de rede), AMD, insta
 Fase 1 — GPU: página no layout do original (chips, cartão de destaque, 8 seções estilo GPU-Z, sensores ao vivo), banco de especificações portado, coletor sysfs + nvidia-smi.
 573 testes; smoke X11 no host real (Intel Iris Xe: clock ao vivo via i915; chip/arquitetura "—" pois a GPU não está no banco, como no original para GPUs não listadas).
 NÃO TESTADO: qualquer NVIDIA ou AMD real (aviso permanece visível por autorização), nvidia-smi com campos de versões novas/antigas do driver, contadores de carga de iGPU Intel (exigem privilégios), múltiplas GPUs.
+
+Fase 1 — Gargalo: página no layout do original (equilíbrio CPU×GPU, veredito ao vivo, leituras, análise de sessão 1/3/5 min), regras/textos e tabelas (GameCatalog) portados; 585 testes; smoke no host.
+NÃO TESTADO: sessão real durante um jogo, GPU AMD/NVIDIA (carga/VRAM/temperatura), FPS (aguarda o módulo Overlay/MangoHud), tabelas de índice para GPUs Intel.

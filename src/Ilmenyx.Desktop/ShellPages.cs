@@ -22,6 +22,7 @@ public sealed partial class ShellWindow
         pages["energy"] = ("Energia", EnergyPage, null);
         pages["net"] = ("Rede", NetPage, null);
         pages["procs"] = ("Processos", () => new ProcessTable(usage), null);
+        pages["bottleneck"] = ("Detector de gargalo", () => Scroll("BottleneckScroll", new BottleneckPage(usage, stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["validate"] = ("Validações reduzidas", ValidatePage, null);
         pages["driver"] = ("Drivers", () => Scroll("DriverScroll", new DriverPage(Destination("drivers"), stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["tools"] = ("Requisitos e sobre", ToolsPage, null);

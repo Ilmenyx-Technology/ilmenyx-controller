@@ -111,6 +111,7 @@ public sealed partial class ShellWindow : Window
             items.Children.Add(head); items.Children.Add(list);
         }
         Group("DIAGNÓSTICO", ("system", "Sistema"), ("sensors", "Sensores"), ("gpu", "GPU"), ("disks", "Discos"), ("energy", "Energia"), ("net", "Rede"), ("procs", "Processos"));
+        Group("JOGOS", ("bottleneck", "Detector de gargalo"));
         Group("DESEMPENHO", ("validate", "Validações reduzidas"));
         Group("FERRAMENTAS", ("driver", "Drivers"), ("tools", "Requisitos e sobre"));
 

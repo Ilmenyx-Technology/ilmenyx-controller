@@ -16,6 +16,7 @@ public sealed partial class LinuxUsageProvider(string procRoot = "/proc", string
     public const int MaxProcesses = 4096, MaxRows = 64, TicksPerSecond = 100, MaxFileCharacters = 1 << 20;
     private readonly Stopwatch clock = Stopwatch.StartNew();
     private (double At, long Total, long Idle)? cpuBefore;
+    private readonly Dictionary<string, (long Total, long Idle)> coreBefore = new(StringComparer.Ordinal);
     private (double At, long Read, long Written)? diskBefore;
     private (double At, long Rx, long Tx)? netBefore;
     private (double At, Dictionary<(int, long), long> Ticks) processBefore = (0, []);
@@ -34,12 +35,13 @@ public sealed partial class LinuxUsageProvider(string procRoot = "/proc", string
         string stat = await Read("stat", ct), meminfo = await Read("meminfo", ct), cpuinfo = await Read("cpuinfo", ct);
         string diskstats = await Read("diskstats", ct), netdev = await Read("net/dev", ct);
         var (cpu, logical) = Cpu(stat, now);
+        var (maxCore, busiest) = Cores(stat);
         var memory = Memory(meminfo);
         var (read, write) = Disk(diskstats, now);
         var (rx, tx, iface) = Net(netdev, now);
         var (processes, count) = await Processes(now, Math.Max(1, logical), ct);
         return new(DateTimeOffset.UtcNow, Field(cpuinfo, "model name"), cpu, AverageMhz(cpuinfo), Temperature(),
-            memory.total, memory.used, read, write, rx, tx, iface, count, processes);
+            memory.total, memory.used, read, write, rx, tx, iface, count, processes, maxCore, busiest);
     }
 
     private async Task<string> Read(string relative, CancellationToken ct)
@@ -70,6 +72,27 @@ public sealed partial class LinuxUsageProvider(string procRoot = "/proc", string
             percent = Math.Clamp(100.0 * (1.0 - (double)(idle - b.Idle) / (total - b.Total)), 0, 100);
         cpuBefore = (now, total, idle);
         return (percent, logical);
+    }
+
+    /// <summary>Busiest logical processor since the previous sample (per-core deltas of /proc/stat); null on the first sample.</summary>
+    private (double?, string?) Cores(string stat)
+    {
+        double? best = null; string? name = null;
+        foreach (var line in stat.Split('\n'))
+        {
+            var p = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (p.Length < 5 || !p[0].StartsWith("cpu", StringComparison.Ordinal) || p[0].Length <= 3 || !p[0][3..].All(char.IsAsciiDigit)) continue;
+            var values = p.Skip(1).Take(8).Select(Num).ToArray();
+            if (values.Any(v => v is null)) continue;
+            long total = values.Sum(v => v!.Value), idle = values[3]!.Value + (values.Length > 4 ? values[4]!.Value : 0);
+            if (coreBefore.TryGetValue(p[0], out var b) && total > b.Total && idle >= b.Idle)
+            {
+                double load = Math.Clamp(100.0 * (1.0 - (double)(idle - b.Idle) / (total - b.Total)), 0, 100);
+                if (best is null || load > best) { best = load; name = "núcleo " + p[0][3..]; }
+            }
+            coreBefore[p[0]] = (total, idle);
+        }
+        return (best, name);
     }
 
     internal static (long? total, long? used) Memory(string meminfo)

@@ -22,7 +22,7 @@ URL/credencial visíveis. Escrita em disco só em arquivo temporário autorizado
 | Energia (BatteryInfo) | bateria, plano de energia, consumo | power_supply, power-profiles-daemon (powerprofilesctl) | 1 | IMPLEMENTADO (testado em bateria real do host; desktop sem bateria só por fixture) |
 | Rede (NetworkTest) | latência, jitter, perda, DNS, velocidade, bufferbloat | ping/ICMP, DNS, HTTP; endpoints visíveis, só por clique | 2 | PENDENTE |
 | Driver (DriverManager) | inventário de drivers, vídeo, suporte da placa | sysfs PCI/USB + módulos (taint), versão NVIDIA instalada/mais recente (rede só por clique), fwupd (listagem), suporte do fabricante por DMI; sem instalar | 1 | IMPLEMENTADO (instalação = comando sugerido, não executado) |
-| Gargalo (BottleneckAnalyzer) | regras CPU/GPU/VRAM/térmico | portar regras sobre o monitor | 1 | PENDENTE |
+| Gargalo (BottleneckAnalyzer) | regras CPU/GPU/VRAM/térmico | regras e textos portados; amostras do monitor + telemetria de GPU; FPS depende do módulo Overlay (MangoHud) | 1 | IMPLEMENTADO (sem FPS; GPU AMD/NVIDIA só por fixtures) |
 | Inicialização (StartupManager) | itens que abrem com o sistema | XDG autostart + serviços systemd --user; desativar reversível | 1 | PENDENTE |
 | Manter portas (MakerPorts/MakerDrivers/UsbCleaner) | placas/conversores seriais, drivers | /dev/ttyUSB*/ttyACM*, /sys/bus/usb, módulos ch341/cp210x/ftdi_sio, grupo dialout | 1 | PENDENTE |
 | Jogos/Launcher (GameLibrary, GameLauncher, GameCatalog, Vdf) | biblioteca, perfis, iniciar com ajustes | Steam (libraryfolders/appmanifest), Lutris, Heroic; PRIME offload; powerprofilesctl reversível | 1–2 | PENDENTE |
