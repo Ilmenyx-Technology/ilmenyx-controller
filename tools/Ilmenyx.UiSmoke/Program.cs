@@ -488,6 +488,7 @@ public sealed class UiSmokeApp : Application
         if (OperatingSystem.IsLinux()) await BenchAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await OcAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await ReportAsync(shell);
+        if (OperatingSystem.IsLinux()) await OverlayAsync(shell, desktop);
         Click(shell, "SortMemory"); await Until(() => Find<Button>(shell, "SortMemory").Content!.ToString()!.Contains('▼'));
         Click(shell, "ToggleMonitor");
         await Until(() => Find<Button>(shell, "ToggleMonitor").Content!.ToString() == "Retomar monitor" && Find<TextBlock>(shell, "SideMonitor").Text == "monitor parado");
@@ -820,6 +821,38 @@ public sealed class UiSmokeApp : Application
         Find<Button>(shell, "Navreport").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await Until(() => shell.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnReportHtml"));
         Console.WriteLine($"PASS report page: real read-only collection exported to new HTML ({text.Length} chars) and valid JSON, cancelled destination writes nothing, existing file is never overwritten, host name and scripts absent");
+    }
+    [System.Runtime.Versioning.SupportedOSPlatform("linux")]
+    private static async Task OverlayAsync(ShellWindow shell, IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        // Fixture paths and fake telemetry: the user's MangoHud.conf and the real Ilmenyx log folder are never touched.
+        string root = Path.Combine(Program.OutputDirectory, "overlay-fixture"); Directory.CreateDirectory(root);
+        string settingsPath = Path.Combine(root, "cfg/settings.json"), config = Path.Combine(root, "cfg/mangohud.conf"), logs = Path.Combine(root, "logs");
+        var gpu = new Ilmenyx.Core.GpuTelemetry(55, 66, null, null, 1500, 1800, 2UL << 30, 8UL << 30, 35.5, null, null, 1200, null, null, null, null, null, null, null);
+        var frames = new Ilmenyx.Core.FrameStats(144, 6.9, 98, [6.9, 7.1, 6.8, 7.0], DateTimeOffset.UtcNow);
+        var services = new OverlayServices(_ => Task.FromResult<Ilmenyx.Core.GpuTelemetry?>(gpu), _ => frames, config, logs, () => true);
+        using var usage = new UsageViewModel(new FakeUsage()); await usage.SampleOnceAsync(CancellationToken.None);
+        var page = new OverlayPage(services, usage, settingsPath, CancellationToken.None);
+        var host = new Window { Width = 1000, Height = 1000, Content = new ScrollViewer { Content = page } }; host.Show();
+        await Until(() => host.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnOverlayToggle") && page.Lines.Count > 0);
+        if (!page.Lines.Any(l => l.Label == "FPS" && l.Value.StartsWith("144 FPS"))) throw new InvalidOperationException("Default selection must show FPS from the frame source.");
+        var fpsBox = Find<CheckBox>(host, "Ov_fps"); fpsBox.IsChecked = false; await page.TickAsync();
+        if (page.Lines.FirstOrDefault(l => l.Label == "FPS")?.Value.Contains("FPS") == true) throw new InvalidOperationException("Unchecked item must disappear.");
+        Click(host, "OvPresetMin"); await page.TickAsync();
+        if (page.Lines.Count != 1 || page.Lines[0].Label != "FPS" || !Find<TextBlock>(host, "OverlayPreview").Text!.Contains("98")) throw new InvalidOperationException("Minimal preset must show only the FPS line.");
+        if (IlmenyxSettings.Load(settingsPath).OverlayItems is not { } saved || !saved.SequenceEqual(["fps", "frametime", "low1"])) throw new InvalidOperationException("Selection must be persisted.");
+        Click(host, "BtnOverlayToggle"); await Until(() => desktop.Windows.OfType<OverlayWindow>().Any(w => w.IsVisible) && Find<Button>(host, "BtnOverlayToggle").Content!.ToString() == "OCULTAR OVERLAY");
+        var overlay = desktop.Windows.OfType<OverlayWindow>().Single(w => w.IsVisible);
+        await Until(() => overlay.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text!.StartsWith("144 FPS")));
+        Click(host, "BtnOverlayToggle"); await Until(() => !overlay.IsVisible && Find<Button>(host, "BtnOverlayToggle").Content!.ToString() == "MOSTRAR OVERLAY");
+        Click(host, "BtnMangoConfig"); await Until(() => File.Exists(config) && Find<TextBox>(host, "OvLaunchOption").IsVisible);
+        string text = File.ReadAllText(config);
+        if (!text.Contains("position=top-left") || !text.Contains("fps_metrics=avg,0.01") || !text.Contains($"output_folder={logs}") || !Find<TextBox>(host, "OvLaunchOption").Text!.EndsWith("mangohud %command%")) throw new InvalidOperationException("Generated MangoHud config and launch option must follow the selection.");
+        if (File.GetUnixFileMode(config) != (UnixFileMode.UserRead | UnixFileMode.UserWrite)) throw new InvalidOperationException("Config must be user-only.");
+        host.Close();
+        Find<Button>(shell, "Navoverlay").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => shell.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnOverlayToggle"));
+        Console.WriteLine("PASS overlay page: item picker and presets persist, Ilmenyx overlay window shows/hides with FPS from the frame source, MangoHud config and launch option generated into Ilmenyx's own file (user MangoHud.conf untouched)");
     }
     private sealed class FakeHttp : HttpMessageHandler
     {

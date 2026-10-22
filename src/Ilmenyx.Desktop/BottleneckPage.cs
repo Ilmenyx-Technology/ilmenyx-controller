@@ -37,9 +37,12 @@ public sealed class BottleneckPage : StackPanel
     public BottleneckSession? Session => session;
     public Limiter? LiveLimiter { get; private set; }
 
-    public BottleneckPage(UsageViewModel usage, CancellationToken lifetime)
+    private readonly Func<FrameStats?>? frameSource;
+
+    /// <param name="frameSource">Optional FPS source (MangoHud log written by the Ilmenyx config); null or empty means FPS stays unavailable.</param>
+    public BottleneckPage(UsageViewModel usage, CancellationToken lifetime, Func<FrameStats?>? frameSource = null)
     {
-        this.usage = usage; this.lifetime = lifetime; Spacing = 4;
+        this.frameSource = frameSource; this.usage = usage; this.lifetime = lifetime; Spacing = 4;
         Children.Add(new StackPanel { Margin = new Thickness(0, 4, 0, 20), Children = { new TextBlock { Text = "Detector de gargalo", FontSize = 26, FontWeight = FontWeight.Bold }, new TextBlock { Text = "Descobre o que está limitando o seu FPS: GPU, CPU, memória ou temperatura", Foreground = Palette.Muted } } });
 
         var balance = Card(new StackPanel
@@ -139,7 +142,7 @@ public sealed class BottleneckPage : StackPanel
         t?.LoadPercent, u?.CpuPercent, u?.CpuMaxCorePercent, u?.BusiestCore,
         t is { VramUsed: { } used, VramTotal: > 0 } ? 100.0 * used / t.VramTotal.Value : null,
         u is { MemoryTotal: > 0, MemoryUsed: { } mu } ? 100.0 * mu / u.MemoryTotal.Value : null,
-        t?.TempC, u?.CpuTempC, t?.ThrottleMask is { } mask && (mask & 0x60) != 0, null);
+        t?.TempC, u?.CpuTempC, t?.ThrottleMask is { } mask && (mask & 0x60) != 0, frameSource?.Invoke()?.Fps);
 
     public void Tick(GpuTelemetry? t)
     {
@@ -148,7 +151,7 @@ public sealed class BottleneckPage : StackPanel
         M("gpu", s.GpuLoad, " %", 100); M("cpu", s.CpuTotal, " %", 100);
         meters["core"].Set(s.CpuMaxCore is { } c ? $"{c.ToString("0", CultureInfo.InvariantCulture)} % ({s.BusiestCore})" : "—", (s.CpuMaxCore ?? 0) / 100);
         M("vram", s.VramPct, " %", 100); M("ram", s.RamPct, " %", 100); M("gpuT", s.GpuTemp, " °C", 100); M("cpuT", s.CpuTemp, " °C", 100);
-        meters["fps"].Set("indisponível", 0); // FPS needs a frame source (MangoHud/gamescope); added with the Overlay module.
+        meters["fps"].Set(s.Fps is { } fps ? fps.ToString("0", CultureInfo.InvariantCulture) : "indisponível", s.Fps is { } f2 ? Math.Min(1, f2 / 240) : 0); // FPS only from a MangoHud log written with the Ilmenyx config
         var limiter = s.Classify(); LiveLimiter = limiter;
         liveTitle.Text = BottleneckAnalyzer.Title(limiter); liveAdvice.Text = BottleneckAnalyzer.Advice(limiter);
         if (session is { } sess)

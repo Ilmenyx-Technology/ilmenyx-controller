@@ -85,10 +85,11 @@ public static class GameLaunchOptions
     };
 
     /// <summary>Launch options for Steam: <c>ENV=… wrappers %command% args</c>. No shell metacharacters beyond what the user typed in Extra.</summary>
-    public static string BuildSteamOptions(GameProfile p, string gpuVendor)
+    public static string BuildSteamOptions(GameProfile p, string gpuVendor, string? mangoConfig = null)
     {
         var parts = new List<string>();
         if (p.GpuHigh) parts.AddRange(GpuEnvironment(gpuVendor).Select(kv => $"{kv.Key}={kv.Value}"));
+        if (p.MangoHud && mangoConfig is not null) parts.Add("MANGOHUD_CONFIGFILE=" + ShellQuote(mangoConfig));
         if (p.MangoHud) parts.Add("mangohud");
         if (p.GameMode) parts.Add("gamemoderun");
         string args = BuildArgs(p);
@@ -96,6 +97,10 @@ public static class GameLaunchOptions
         parts.Add("%command%"); if (args.Length > 0) parts.Add(args);
         return string.Join(" ", parts);
     }
+
+    /// <summary>Single-quotes a value for the shell Steam uses to run launch options; plain safe paths stay unquoted.</summary>
+    public static string ShellQuote(string value) =>
+        value.Length > 0 && value.All(c => char.IsLetterOrDigit(c) || c is '/' or '.' or '_' or '-' or '+' or ':' or '@' or ',') ? value : "'" + value.Replace("'", "'\\''") + "'";
 
     /// <summary>Splits an argument string like a minimal shell would (quotes and backslash escapes only; no expansion). Throws on unterminated quotes.</summary>
     public static IReadOnlyList<string> SplitArguments(string text)

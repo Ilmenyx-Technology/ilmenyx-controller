@@ -218,7 +218,7 @@ public sealed class LauncherPage : Grid
         Save(); UpdatePreview();
     }
 
-    private void UpdatePreview() { if (profile is null) return; string a = GameLaunchOptions.BuildArgs(profile); string o = current?.IsSteam == true ? GameLaunchOptions.BuildSteamOptions(profile, gpuVendor) : a; preview.Text = o.Length > 0 ? o : "(nenhum argumento)"; }
+    private void UpdatePreview() { if (profile is null) return; string a = GameLaunchOptions.BuildArgs(profile); string o = current?.IsSteam == true ? GameLaunchOptions.BuildSteamOptions(profile, gpuVendor, File.Exists(MangoHudLogReader.ConfigPath()) ? MangoHudLogReader.ConfigPath() : null) : a; preview.Text = o.Length > 0 ? o : "(nenhum argumento)"; }
 
     private void Recommended()
     {
@@ -267,7 +267,7 @@ public sealed class LauncherPage : Grid
     private async Task ApplySteamAsync(Button button)
     {
         if (current is not { IsSteam: true } g || profile is null || owner() is not { } window) return;
-        string options = GameLaunchOptions.BuildSteamOptions(profile, gpuVendor);
+        string options = GameLaunchOptions.BuildSteamOptions(profile, gpuVendor, File.Exists(MangoHudLogReader.ConfigPath()) ? MangoHudLogReader.ConfigPath() : null);
         button.IsEnabled = false;
         try
         {

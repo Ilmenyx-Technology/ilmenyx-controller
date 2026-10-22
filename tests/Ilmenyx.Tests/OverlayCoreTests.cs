@@ -110,3 +110,24 @@ public class OverlayCoreTests
         Assert.InRange(stats!.Fps!.Value, 95, 105);
     }
 }
+
+public class MangoHudLaunchTests
+{
+    [Fact]
+    public void SteamOptionsPointMangoHudAtTheGeneratedFileOnlyWhenEnabled()
+    {
+        Assert.Equal("MANGOHUD_CONFIGFILE=/h/.config/ilmenyx/mangohud.conf mangohud %command%", Ilmenyx.Core.GameLaunchOptions.BuildSteamOptions(new() { MangoHud = true }, "AMD", "/h/.config/ilmenyx/mangohud.conf"));
+        Assert.Equal("mangohud %command%", Ilmenyx.Core.GameLaunchOptions.BuildSteamOptions(new() { MangoHud = true }, "AMD"));
+        Assert.Equal("", Ilmenyx.Core.GameLaunchOptions.BuildSteamOptions(new(), "AMD", "/cfg"));
+        Assert.Equal("MANGOHUD_CONFIGFILE='/h/my dir/it'\\''s.conf' mangohud %command%", Ilmenyx.Core.GameLaunchOptions.BuildSteamOptions(new() { MangoHud = true }, "AMD", "/h/my dir/it's.conf"));
+    }
+
+    [Fact]
+    public void ManualLaunchSetsTheConfigVariableOnlyWithMangoHudInstalledAndEnabled()
+    {
+        var cmd = Ilmenyx.Platform.Linux.LinuxGameLauncher.BuildManual("/g/game", new() { MangoHud = true }, "", "AMD", n => "/usr/bin/" + n, "/cfg/mangohud.conf");
+        Assert.Contains(new KeyValuePair<string, string>("MANGOHUD_CONFIGFILE", "/cfg/mangohud.conf"), cmd.Environment);
+        Assert.Empty(Ilmenyx.Platform.Linux.LinuxGameLauncher.BuildManual("/g/game", new() { MangoHud = true }, "", "AMD", _ => null, "/cfg/mangohud.conf").Environment);
+        Assert.Empty(Ilmenyx.Platform.Linux.LinuxGameLauncher.BuildManual("/g/game", new(), "", "AMD", n => "/usr/bin/" + n, "/cfg/mangohud.conf").Environment);
+    }
+}

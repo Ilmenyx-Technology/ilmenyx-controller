@@ -37,9 +37,10 @@ public sealed partial class ShellWindow
             return new GamesFpsPage(new HowManyFpsClient(cache), IlmenyxSettings.Load(IlmenyxSettings.DefaultPath()), IlmenyxSettings.DefaultPath(), () => this,
                 () => (usage.Last?.CpuModel ?? "", new LinuxGpuCollector().Collect(PciIds.Load()).FirstOrDefault().Raw?.Name ?? ""), stop.Token) { Margin = new Thickness(0, 4, 8, 12) };
         }, null);
-        pages["bottleneck"] = ("Detector de gargalo", () => Scroll("BottleneckScroll", new BottleneckPage(usage, stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
+        pages["bottleneck"] = ("Detector de gargalo", () => Scroll("BottleneckScroll", new BottleneckPage(usage, stop.Token, OperatingSystem.IsLinux() ? () => MangoHudLogReader.Read(MangoHudLogReader.DefaultFolder(), DateTimeOffset.UtcNow) : null) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["stress"] = ("Stress test", () => Scroll("StressScroll", stressPage = new StressPage(new StressTester(), usage, () => this, () => usage.Last is { MemoryTotal: > 0, MemoryUsed: { } u } l ? l.MemoryTotal!.Value - u : 0, stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["bench"] = ("Benchmark", () => Scroll("BenchScroll", new BenchPage(OperatingSystem.IsLinux() ? BenchServices.Real() : throw new PlatformNotSupportedException(), usage, () => this, IlmenyxSettings.DefaultPath(), stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
+        pages["overlay"] = ("Overlay", () => Scroll("OverlayScroll", new OverlayPage(OperatingSystem.IsLinux() ? RealOverlayServices() : throw new PlatformNotSupportedException(), usage, IlmenyxSettings.DefaultPath(), stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["oc"] = ("OC", () => Scroll("OcScroll", new OcPage(OperatingSystem.IsLinux() ? RealOcServices() : throw new PlatformNotSupportedException(), usage, () => this, IlmenyxSettings.DefaultPath(), stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["validate"] = ("Validações reduzidas", ValidatePage, null);
         pages["makerports"] = ("Maker · Portas", () => Scroll("MakerPortsScroll", new MakerPortsPage(stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
@@ -59,6 +60,17 @@ public sealed partial class ShellWindow
         string version = typeof(ShellWindow).Assembly.GetName().Version?.ToString(3) ?? "";
         return LinuxReportGatherer.GatherAsync(version, null, hardware.Snapshot?.Gpus, sensors.Snapshot?.Readings ?? [], smart, networkPage?.LastResult,
             IlmenyxSettings.Load(IlmenyxSettings.DefaultPath()).BenchRuns, ct);
+    }
+
+    [System.Runtime.Versioning.SupportedOSPlatform("linux")]
+    private OverlayServices RealOverlayServices()
+    {
+        var collector = new LinuxGpuCollector(); var ids = PciIds.Load(); GpuRaw? raw = null;
+        return new OverlayServices(async ct =>
+        {
+            raw ??= collector.Collect(ids).FirstOrDefault().Raw;
+            return raw is null ? null : await collector.TelemetryAsync(raw, ct);
+        }, now => MangoHudLogReader.Read(MangoHudLogReader.DefaultFolder(), now), MangoHudLogReader.ConfigPath(), MangoHudLogReader.DefaultFolder(), () => BoundedProcess.Find("mangohud") is not null);
     }
 
     [System.Runtime.Versioning.SupportedOSPlatform("linux")]

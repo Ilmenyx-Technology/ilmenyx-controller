@@ -289,7 +289,7 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
     private static readonly string[] AllowedProfiles = ["power-saver", "balanced", "performance"];
 
     /// <summary>Command for a manual executable: optional wrappers (mangohud, gamemoderun) before the executable, PRIME variables in the environment. Never a shell.</summary>
-    public static LaunchCommand BuildManual(string exe, GameProfile p, string gameArgs, string gpuVendor, Func<string, string?> find)
+    public static LaunchCommand BuildManual(string exe, GameProfile p, string gameArgs, string gpuVendor, Func<string, string?> find, string? mangoConfig = null)
     {
         var args = new List<string>(); string program = exe;
         var wrappers = new List<string>();
@@ -298,7 +298,9 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
         if (wrappers.Count > 0) { program = wrappers[0]; args.AddRange(wrappers.Skip(1)); args.Add(exe); }
         string graphics = GameLaunchOptions.BuildArgs(p);
         args.AddRange(GameLaunchOptions.SplitArguments((gameArgs + " " + graphics).Trim()));
-        return new(program, args, p.GpuHigh ? GameLaunchOptions.GpuEnvironment(gpuVendor) : []);
+        var env = new List<KeyValuePair<string, string>>(p.GpuHigh ? GameLaunchOptions.GpuEnvironment(gpuVendor) : []);
+        if (p.MangoHud && mangoConfig is not null && wrappers.Contains(find("mangohud") ?? "") ) env.Add(new("MANGOHUD_CONFIGFILE", mangoConfig));
+        return new(program, args, env);
     }
 
     public static async Task<string?> PowerProfileAsync(CancellationToken ct)
@@ -347,7 +349,7 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
             else if (g.LaunchUri is not null) await StartAsync("xdg-open", [g.LaunchUri], [], ct);
             else if (exe is not null && LinuxGameLibrary.IsRunnableFile(exe))
             {
-                var cmd = BuildManual(exe, p, g.Args, gpuVendor, BoundedProcess.Find);
+                var cmd = BuildManual(exe, p, g.Args, gpuVendor, BoundedProcess.Find, File.Exists(MangoHudLogReader.ConfigPath()) ? MangoHudLogReader.ConfigPath() : null);
                 await StartAsync(cmd.Program, cmd.Arguments, cmd.Environment, ct, Path.GetDirectoryName(exe));
             }
             else throw new InvalidOperationException("Não achei o executável deste jogo. Escolha o arquivo na seção Desempenho.");
