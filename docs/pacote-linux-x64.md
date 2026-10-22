@@ -173,3 +173,33 @@ avisos/erros e 296 testes aprovados. Host normal: código 0; Debian sem ICU: rel
 com código 5 sem abort; invariant explícito: código 0, sem certificação do modo padrão.
 JSON/exportação do doctor indisponíveis; opções recusadas. VM limpa, Debian com ICU
 e matrizes assistivas/de hardware seguem NÃO TESTADAS. [Evidências e limites](doctor-cli.md).
+
+
+## Dependências por distribuição — pacote 0.25.0
+
+Observado em VMs QEMU/KVM de imagens cloud oficiais (2026-10-21), x86_64, glibc. Evidências:
+`docs/evidencias/ilmenyx-vm-{ubuntu-2404,debian,fedora}-0.25.0/`. Lista de bibliotecas testadas, **não**
+uma garantia de suporte: outras versões, derivadas e escritórios gráficos reais não foram avaliados.
+
+| Distro (imagem) | ICU | Fontconfig | X11 | Para testar com Xvfb |
+|---|---|---|---|---|
+| Ubuntu 24.04.5 | `libicu74` (já na imagem) | `libfontconfig1` (já na imagem) | `libx11-6` (já na imagem) | `xvfb`, `x11-utils`, `fonts-dejavu-core` |
+| Debian 13 (trixie) | `libicu76` | `libfontconfig1` | `libx11-6` | `xvfb`, `x11-utils`, `fonts-dejavu-core` |
+| Fedora 44 Cloud | `libicu` (77.1) | `fontconfig` | `libX11` | `xorg-x11-server-Xvfb`, `xwininfo`, `xauth`, `dejavu-sans-fonts` |
+
+Pacotes de Xvfb só servem para teste automatizado sem sessão gráfica; usuários com desktop não precisam deles.
+
+**Runtime .NET.** O bundle é framework-dependent e exige Microsoft.NETCore.App 10.0. Nos testes o runtime
+10.0.0 veio do arquivo oficial do SDK, copiado para a VM e apontado por `DOTNET_ROOT`. Pacotes `dotnet-runtime`
+das distros **não foram testados** aqui; instale o runtime pelo método que você aprovar, nunca por instalação
+automática do Ilmenyx.
+
+**ICU é requisito.** Sem ICU instalado, o runtime .NET termina com "Couldn't find a valid ICU package"
+(código 134) ainda no início, antes do preflight do Ilmenyx; `validate-linux-machine.sh` registra BLOQUEADO.
+Não habilite `System.Globalization.Invariant` só para contornar: o modo invariant não aprova a globalização
+padrão. Instale o pacote da tabela e rode `ilmenyx doctor`.
+
+**Observações.** `ilmenyx doctor` listou EGL como não encontrada nas VMs sem GPU; a janela abriu sob Xvfb mesmo
+assim, o que não prova renderização em sessão real. Fedora rodou com SELinux em Enforcing sem ajustes.
+Nomes de pacote foram os usados nos testes; versões e nomes futuros podem mudar.
+NÃO TESTADO: Wayland em compositor real, GPU, Arch/openSUSE/Alpine (musl), ARM64, runtime empacotado pela distro.
