@@ -11,3 +11,11 @@ Imagem oficial Fedora-Cloud-Base-Generic-44-1.7.x86_64.qcow2 (SHA256 conferido c
 - **Do código-fonte na VM**: 0 avisos/erros, 468 testes aprovados; UiSmoke X11 sob Xvfb (25 PASS, sem FAIL).
 NÃO TESTADO: Wayland/compositor real, GPU, interação humana/Orca, SMART real, outras fontes/escalas.
 Xvfb não certifica renderização em sessão real; a VM recebeu ferramentas de teste.
+
+## Adendo: Wayland nativo contra Weston headless
+
+Fedora 44, Weston 15.0.1 (`--backend=headless --renderer=pixman`, socket próprio, sem GPU), DISPLAY removido,
+ILMENYX_DISPLAY_BACKEND=wayland. UiSmoke: 25 PASS, sem FAIL, janela `Avalonia.Wayland.WindowImpl`
+(`ui-smoke-wayland-weston.txt`). Limites: Weston headless não é GNOME/KDE, sem dispositivos de entrada
+reais, renderização por software; não certifica compositores de produção, portais, DPI/escala fracionária
+nem Orca.

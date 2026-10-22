@@ -296,3 +296,7 @@ Evidências: docs/evidencias/ilmenyx-vm-debian-0.25.0 e ilmenyx-vm-fedora-0.25.0
 Continuam NÃO TESTADOS: Wayland/compositor real (GNOME/KDE) nessas distros, hardware, interação
 humana/Orca, ARM64, musl/Alpine, assinatura GPG do checksum Fedora. Dependência de ICU deve constar
 nos requisitos de instalação por distro (ver docs/pacote-linux-x64.md).
+
+Wayland nativo fora do host (parcial): Fedora 44 VM + Weston 15 headless, UiSmoke 25 PASS com
+Avalonia.Wayland.WindowImpl (docs/evidencias/ilmenyx-vm-fedora-0.25.0). Continuam NÃO TESTADOS: GNOME/KDE reais,
+GPU/aceleração, escala fracionária, múltiplos monitores, entrada física, Orca.
