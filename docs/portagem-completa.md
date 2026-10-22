@@ -30,7 +30,7 @@ URL/credencial visíveis. Escrita em disco só em arquivo temporário autorizado
 | Benchmark CPU (BenchRenderer) | path tracer, RESET BENCH | existe; perfil Full opt-in já portado | 0 | PARCIAL (UI só validação) |
 | Benchmark GameSim/Memória/Disco (GameSimBench, MemoryBench, DiskBench) | CPU de jogo, RAM latência/banda, disco | existe reduzido; adicionar perfis completos opt-in; disco só arquivo temporário (O_DIRECT) | 2 | PARCIAL |
 | Benchmark GPU (GpuGameBench, GpuRtBench) | cena de jogo e ray tracing em D3D12 | reescrita em Vulkan (compute/RT), testável só na iGPU Intel local | 4 | PENDENTE |
-| Stress (StressTester, GpuBurn) | CPU/RAM; GPU estilo FurMark | CPU/RAM nativo; GPU via Vulkan; duração e cancelamento obrigatórios | 2/4 | PENDENTE |
+| Stress (StressTester, GpuBurn) | CPU/RAM; GPU estilo FurMark | CPU/RAM portados (motor no Core, reserva de 1 GiB de RAM, confirmação, corte por temperatura/erro/tempo); GPU via Vulkan fica para a fase 4 | 2/4 | CPU/RAM IMPLEMENTADO (carga real NÃO TESTADA); GPU PENDENTE |
 | OC (OcCheck, página OC) | erros WHEA, resets de GPU, ajustes NVML, guia BIOS | kernel log (MCE/EDAC/amdgpu/NVRM Xid) somente leitura; ajustes NVML exigem root (comando) | 2 | PENDENTE |
 | Otimiza (Optimizer, WindowsTweaks) | fechar programas, liberar memória, ajustes | fechar apps do usuário com confirmação; ajustes de usuário (perfil de energia); itens root só como comando | 3 | PENDENTE |
 | Apps (AppInstaller) | catálogo pós-formatação via winget | catálogo Flatpak/pacman; instalação só por clique, sem root implícito | 3 | PENDENTE |

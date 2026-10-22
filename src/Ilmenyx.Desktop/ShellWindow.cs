@@ -27,6 +27,7 @@ public sealed partial class ShellWindow : Window
     private readonly Grid host = new();
     private readonly TextBlock titlePage = new() { Name = "TitlePage", Foreground = Palette.Faint, FontSize = 13, Margin = new Thickness(16, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
     private CpuValidationPanel? cpuPanel;
+    private StressPage? stressPage;
     private DashboardWindow? classic;
 
     public string CurrentPage { get; private set; } = "";
@@ -66,7 +67,7 @@ public sealed partial class ShellWindow : Window
         Closed += async (_, _) =>
         {
             stop.Cancel(); await usage.StopAsync(); usage.Dispose(); sensors.Dispose(); smartImport.Dispose();
-            cpu.Dispose(); memory.Dispose(); simulation.Dispose(); cpuPanel?.Dispose();
+            cpu.Dispose(); memory.Dispose(); simulation.Dispose(); cpuPanel?.Dispose(); stressPage?.Stop("Parado: janela fechada");
         };
     }
 
@@ -112,7 +113,7 @@ public sealed partial class ShellWindow : Window
         }
         Group("DIAGNÓSTICO", ("system", "Sistema"), ("sensors", "Sensores"), ("gpu", "GPU"), ("disks", "Discos"), ("energy", "Energia"), ("net", "Rede"), ("procs", "Processos"));
         Group("JOGOS", ("launcher", "Jogos"), ("bottleneck", "Detector de gargalo"));
-        Group("DESEMPENHO", ("validate", "Validações reduzidas"));
+        Group("DESEMPENHO", ("validate", "Validações reduzidas"), ("stress", "Stress test"));
         Group("MAKER", ("makerports", "Portas"), ("makerdrv", "Drivers seriais"));
         Group("FERRAMENTAS", ("startup", "Inicialização"), ("driver", "Drivers"), ("tools", "Requisitos e sobre"));
 

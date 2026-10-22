@@ -355,3 +355,7 @@ auxiliares, JOGAR com perfil de energia reversível. 627 testes; smoke com árvo
 NÃO TESTADO: iniciar um jogo de verdade (por desenho o smoke nunca inicia), Heroic real (formatos lidos de forma defensiva), GameMode/MangoHud (não instalados), PRIME offload em máquina com 2 GPUs,
 fechamento da Steam real, detecção do processo de jogos Proton/Wine fora do Steam, Flatpak Steam.
 Não portado por não existir no Linux: prioridade de processo elevada (exige privilégio; use GameMode), otimizações de tela cheia do Windows, preferência de GPU do Windows.
+
+Fase 2 — Stress CPU/RAM: página no layout do original (componentes, limites, INICIAR/PARAR, leituras, gráfico, registro), motor no Core, guarda de abortamento pura e planejamento de RAM com reserva de 1 GiB.
+647 testes sem gerar carga; smoke com motor falso (limites inválidos, confirmação recusada, aborto por temperatura, término por tempo, aviso sem sensor).
+NÃO TESTADO (por regra): carga real de CPU/RAM, comportamento sob pouca RAM/OOM, sensor de temperatura em AMD (k10temp), stress de GPU (não portado).
