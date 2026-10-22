@@ -13,6 +13,7 @@ using Avalonia.Threading;
 using Ilmenyx.Contracts;
 using Ilmenyx.Core;
 using Ilmenyx.Core.Benchmarks;
+using Ilmenyx.Gpu.Vulkan;
 using Ilmenyx.Platform.Linux;
 
 namespace Ilmenyx.Desktop;
@@ -24,7 +25,7 @@ namespace Ilmenyx.Desktop;
 /// </summary>
 public sealed class BenchPage : StackPanel
 {
-    public enum Kind { Cpu, Memory, Sim, Disk }
+    public enum Kind { Cpu, Memory, Sim, Gpu, Disk }
     private enum CpuMode { Both, Multi, Single }
 
     private readonly BenchServices services;
@@ -50,7 +51,8 @@ public sealed class BenchPage : StackPanel
     private Kind kind = Kind.Cpu;
     private CpuMode cpuMode = CpuMode.Both;
     private bool sustained;
-    private int simThreads = 1, simSeconds = 3, diskMegabytes = 512;
+    private int simThreads = 1, simSeconds = 3, diskMegabytes = 512, gpuSeconds = 60;
+    private GpuBenchInfo? gpuInfo;
     private CancellationTokenSource? cts;
     private string? abortReason;
     private DateTime startedAt;
@@ -66,7 +68,7 @@ public sealed class BenchPage : StackPanel
         settings = IlmenyxSettings.Load(settingsPath);
         Children.Add(new StackPanel { Margin = new Thickness(0, 4, 0, 20), Children = { new TextBlock { Text = "Benchmark", FontSize = 26, FontWeight = FontWeight.Bold }, new TextBlock { Text = "CPU, memória, GameSim e disco · cada teste só começa após sua confirmação", Foreground = Palette.Muted } } });
 
-        var kinds = new UiKit.ChipGroup<Kind>("BenchKindPanel", [("CPU", Kind.Cpu), ("MEMÓRIA", Kind.Memory), ("GAMESIM", Kind.Sim), ("DISCO", Kind.Disk)], Kind.Cpu, k => { kind = k; BuildOptions(); });
+        var kinds = new UiKit.ChipGroup<Kind>("BenchKindPanel", [("CPU", Kind.Cpu), ("MEMÓRIA", Kind.Memory), ("GAMESIM", Kind.Sim), ("GPU", Kind.Gpu), ("DISCO", Kind.Disk)], Kind.Cpu, k => { kind = k; BuildOptions(); });
         string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         diskDirectory.Text = home; AutomationProperties.SetName(diskDirectory, "Pasta autorizada para o arquivo temporário do teste de disco");
         AutomationProperties.SetName(tempLimit, "Limite de temperatura da CPU em graus Celsius");
@@ -115,6 +117,17 @@ public sealed class BenchPage : StackPanel
                 options.Children.Add(wrap);
                 options.Children.Add(Note("Simulação de jogo com 30.000 entidades: aquecimento de 2 s e medição de FPS médio, 1% low e tempos de frame. Experimental."));
                 break;
+            case Kind.Gpu:
+                gpuInfo ??= services.GpuInfo();
+                if (gpuInfo.UnavailableReason is { } gwhy) { options.Children.Add(Note("Benchmark de GPU indisponível: " + gwhy)); break; }
+                wrap.Children.Add(Field("DURAÇÃO", new UiKit.ChipGroup<int>("BenchGpuSeconds", [("30 S", 30), ("60 S", 60), ("120 S", 120)], gpuSeconds, n => gpuSeconds = n).Panel));
+                wrap.Children.Add(Field("LIMITE °C", tempLimit));
+                var rt = new Button { Name = "BenchGpuRt", Content = "RAY TRACING", FontSize = 11, Padding = new Thickness(14, 5), CornerRadius = new CornerRadius(16), BorderBrush = Palette.Line, BorderThickness = new Thickness(1), IsEnabled = false };
+                ToolTip.SetTip(rt, gpuInfo.SupportsRayTracing ? "O teste de ray tracing ainda não foi portado (a GPU suporta VK_KHR_ray_tracing_pipeline)." : $"Ray tracing exige VK_KHR_ray_tracing_pipeline, que {gpuInfo.AdapterName} não oferece.");
+                wrap.Children.Add(Field("OUTROS TESTES", rt));
+                options.Children.Add(wrap);
+                options.Children.Add(Note($"Cena de jogo em Vulkan em {gpuInfo.AdapterName}: terreno procedural, 40.000 árvores instanciadas, sombras 4096² com PCF, água e HDR a 1920×1080, câmera em trajeto fixo, sem V-Sync. Carga máxima na GPU." + (gpuInfo.SharesCpuThermals ? " Esta GPU divide o chip com a CPU: vale o limite de temperatura da CPU." : "")));
+                break;
             case Kind.Disk:
                 wrap.Children.Add(Field("PASTA DO ARQUIVO TEMPORÁRIO", new StackPanel { Children = { diskDirectory, diskFs } }));
                 wrap.Children.Add(Field("TAMANHO", new UiKit.ChipGroup<int>("BenchDiskSize", [("256 MB", 256), ("512 MB", 512), ("1 GB", 1024), ("2 GB", 2048)], diskMegabytes, n => diskMegabytes = n).Panel));
@@ -140,9 +153,9 @@ public sealed class BenchPage : StackPanel
     {
         if (cts is null) return;
         phase.Text = $"{phaseText} · {DateTime.Now - startedAt:mm\\:ss}"; bar.Value = progressValue;
-        if (kind is Kind.Cpu or Kind.Sim && abortReason is null && usage.Last?.CpuTempC is double t && t >= cpuTempLimit)
+        if (kind is Kind.Cpu or Kind.Sim or Kind.Gpu && abortReason is null && (kind == Kind.Gpu && gpuInfo is { SharesCpuThermals: false } ? services.GpuTemp() : usage.Last?.CpuTempC) is double t && t >= cpuTempLimit)
         {
-            abortReason = string.Create(CultureInfo.InvariantCulture, $"ABORTADO: CPU a {t:0.#} °C, limite {cpuTempLimit:0} °C");
+            abortReason = string.Create(CultureInfo.InvariantCulture, $"ABORTADO: {(kind == Kind.Gpu && gpuInfo is { SharesCpuThermals: false } ? "GPU" : "CPU")} a {t:0.#} °C, limite {cpuTempLimit:0} °C");
             cts.Cancel();
         }
     }
@@ -151,7 +164,7 @@ public sealed class BenchPage : StackPanel
     {
         start.Content = on ? "PARAR" : "INICIAR";
         tempLimit.IsEnabled = diskDirectory.IsEnabled = !on;
-        foreach (var name in new[] { "BenchKindPanel", "BenchModePanel", "BenchDurationPanel", "BenchSimThreads", "BenchSimSeconds", "BenchDiskSize" })
+        foreach (var name in new[] { "BenchKindPanel", "BenchModePanel", "BenchDurationPanel", "BenchSimThreads", "BenchSimSeconds", "BenchGpuSeconds", "BenchDiskSize" })
             if (this.GetLogicalDescendants().OfType<StackPanel>().FirstOrDefault(p => p.Name == name) is { } panel) panel.IsEnabled = !on;
     }
 
@@ -161,13 +174,13 @@ public sealed class BenchPage : StackPanel
         hint.Text = ""; status.Text = "";
         if (owner() is not { } window) return;
         string? confirm;
-        if (kind is Kind.Cpu or Kind.Sim)
+        if (kind is Kind.Cpu or Kind.Sim or Kind.Gpu)
         {
             if (!double.TryParse(tempLimit.Text, NumberStyles.Float, CultureInfo.CurrentCulture, out cpuTempLimit) && !double.TryParse(tempLimit.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out cpuTempLimit) || cpuTempLimit is < 50 or > 105)
             { hint.Text = "Limite de temperatura de 50 a 105 °C."; return; }
         }
-        string guard = kind is Kind.Cpu or Kind.Sim
-            ? usage.Last?.CpuTempC is null
+        string guard = kind is Kind.Cpu or Kind.Sim or Kind.Gpu
+            ? (kind == Kind.Gpu && gpuInfo is { SharesCpuThermals: false } ? services.GpuTemp() : usage.Last?.CpuTempC) is null
                 ? "\n\nATENÇÃO: nenhum sensor de temperatura da CPU está sendo lido, então o corte automático NÃO funcionará."
                 : string.Create(CultureInfo.InvariantCulture, $"\n\nO teste é interrompido se a CPU chegar a {cpuTempLimit:0} °C.")
             : "";
@@ -178,6 +191,11 @@ public sealed class BenchPage : StackPanel
                 break;
             case Kind.Sim:
                 confirm = $"Isto vai gerar carga de CPU com {simThreads} worker(s): 2 s de aquecimento e {simSeconds} s de medição. Salve seu trabalho antes." + guard;
+                break;
+            case Kind.Gpu:
+                gpuInfo ??= services.GpuInfo();
+                if (gpuInfo.UnavailableReason is { } gpuWhy) { hint.Text = gpuWhy; return; }
+                confirm = $"Isto vai renderizar a cena de jogo em Vulkan em {gpuInfo.AdapterName} por {gpuSeconds} s com a GPU no máximo (1920×1080, sombras 4096², 40.000 árvores). O sistema pode ficar menos fluido durante o teste. Salve seu trabalho antes." + guard;
                 break;
             case Kind.Memory:
                 long available = services.AvailableMemory();
@@ -206,7 +224,7 @@ public sealed class BenchPage : StackPanel
         BenchRunEntry? entry = null; string finalStatus;
         try
         {
-            entry = kind switch { Kind.Cpu => await RunCpuAsync(token), Kind.Memory => await RunMemoryAsync(token), Kind.Sim => await RunSimAsync(token), _ => await RunDiskAsync(token) };
+            entry = kind switch { Kind.Cpu => await RunCpuAsync(token), Kind.Memory => await RunMemoryAsync(token), Kind.Sim => await RunSimAsync(token), Kind.Gpu => await RunGpuAsync(token), _ => await RunDiskAsync(token) };
             finalStatus = entry is not null ? $"Concluído em {DateTime.Now - startedAt:mm\\:ss}" : abortReason ?? (token.IsCancellationRequested ? "Cancelado: nenhum valor é publicado." : status.Text ?? "Não concluído.");
         }
         catch (OperationCanceledException) { finalStatus = abortReason ?? "Cancelado: nenhum valor é publicado."; }
@@ -269,6 +287,16 @@ public sealed class BenchPage : StackPanel
         headline.Text = N(r.AverageFps.Value, "0") + " FPS";
         result.Text = $"FPS médio: {N(r.AverageFps.Value, "0.0")}\n1% low: {(r.Low1Fps is double l ? N(l, "0.0") : "—")}\nThread principal: {(r.MainThreadMs is double m ? N(m, "0.00") : "—")} ms · paralelo: {(r.ParallelMs is double p ? N(p, "0.00") : "—")} ms\nQuadros: {r.MeasuredFrames} · workers: {r.Threads}\nPontuação experimental: {(r.ExperimentalScore is double s ? N(s, "N0") : "—")}, não comparável ao Windows.";
         return new(DateTimeOffset.Now, "GameSim", $"{N(r.AverageFps.Value, "0")} FPS · {r.Threads} worker(s)", r.ExperimentalScore);
+    }
+
+    private async Task<BenchRunEntry?> RunGpuAsync(CancellationToken ct)
+    {
+        var progress = new Progress<GpuSceneProgress>(p => SetPhase($"Cena de GPU · {N(p.Fps, "0")} FPS", p.Fraction));
+        var r = await services.GpuScene(new GpuSceneOptions(0, 1920, 1080, TimeSpan.FromSeconds(gpuSeconds), 4096, 40_000, true), ct, progress);
+        if (r.Status != GpuRunStatus.Completed || r.AverageFps is null) { status.Text = r.Status == GpuRunStatus.Cancelled ? "Cancelado: nenhum valor é publicado." : r.Reason ?? "Não concluído."; return null; }
+        headline.Text = N(r.AverageFps.Value, "0") + " FPS";
+        result.Text = $"{r.Adapter}\n{r.Width}×{r.Height} · {r.Frames} quadros em {N(r.Seconds, "0.0")} s\nFPS médio: {N(r.AverageFps.Value, "0.0")} · 1% low: {(r.Low1Fps is double l ? N(l, "0.0") : "—")}\nNota experimental: {N(r.Score ?? 0, "N0")}\n{GpuSceneResult.Comparability}";
+        return new(DateTimeOffset.Now, "GPU", $"{N(r.AverageFps.Value, "0")} FPS · 1% {(r.Low1Fps is double l2 ? N(l2, "0") : "—")} · {r.Width}×{r.Height}", r.Score);
     }
 
     private async Task<BenchRunEntry?> RunDiskAsync(CancellationToken ct)

@@ -7,7 +7,7 @@ dir="$repo/src/Ilmenyx.Gpu.Vulkan/Shaders"
 for tool in glslc spirv-val; do command -v "$tool" >/dev/null || { echo "Falta $tool" >&2; exit 1; }; done
 shopt -s nullglob
 for source in "$dir"/*.vert "$dir"/*.frag "$dir"/*.comp; do
-  glslc --target-env=vulkan1.3 -O "$source" -o "$source.spv"
+  glslc --target-env=vulkan1.3 -O -I "$dir" "$source" -o "$source.spv"
   spirv-val --target-env vulkan1.3 "$source.spv"
   echo "ok $(basename "$source")"
 done

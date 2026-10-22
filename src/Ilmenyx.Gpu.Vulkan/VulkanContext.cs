@@ -107,6 +107,18 @@ public sealed unsafe class VulkanContext : IDisposable
         return (image, memory, imageView);
     }
 
+    /// <summary>Buffer with its memory; caller owns and must destroy both. Host-visible buffers are returned unmapped.</summary>
+    public (Silk.NET.Vulkan.Buffer Buffer, DeviceMemory Memory) CreateBuffer(ulong size, BufferUsageFlags usage, MemoryPropertyFlags properties)
+    {
+        var info = new BufferCreateInfo { SType = StructureType.BufferCreateInfo, Size = size, Usage = usage, SharingMode = SharingMode.Exclusive };
+        Check(Api.CreateBuffer(Device, in info, null, out var buffer), "Criar o buffer");
+        Api.GetBufferMemoryRequirements(Device, buffer, out var req);
+        var alloc = new MemoryAllocateInfo { SType = StructureType.MemoryAllocateInfo, AllocationSize = req.Size, MemoryTypeIndex = FindMemoryType(req.MemoryTypeBits, properties) };
+        Check(Api.AllocateMemory(Device, in alloc, null, out var memory), "Alocar a memória do buffer");
+        Check(Api.BindBufferMemory(Device, buffer, memory, 0), "Associar a memória do buffer");
+        return (buffer, memory);
+    }
+
     public void Dispose()
     {
         if (disposed) return;

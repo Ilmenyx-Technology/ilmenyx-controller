@@ -12,11 +12,13 @@ public static class HeavyBenchCommand
           bench memory-full --allow-memory-load [--timeout-seconds 5..300] [--json]
           bench gpu-list [--json]
           bench gpu-burn --allow-gpu-load [--adapter N] [--seconds 1..600] [--shells 1..256] [--iterations 0..512] [--msaa 1|2|4|8] [--width W --height H] [--json]
+          bench gpu-scene --allow-gpu-load [--adapter N] [--seconds 1..300] [--width W --height H] [--shadow 512..4096] [--trees 0..200000] [--json]
+          bench gpu-snapshot --allow-gpu-load --output ARQUIVO.png [--t 0..1] [--adapter N] [--width W --height H] [--shadow N] [--trees N]
           bench disk --directory PASTA --allow-disk-load [--size-mb 64..8192] [--phase-seconds 1..10] [--timeout-seconds N] [--json]
         memory-full: aloca ~2,3 GiB (recusa sem 1 GiB de reserva livre). disk: um arquivo temporário novo (0600) na pasta indicada, E/S direta, apagado ao final; nunca dispositivos.
         """;
 
-    public static bool Handles(string[] args) => args is ["bench", "disk" or "memory-full" or "gpu-list" or "gpu-burn", ..];
+    public static bool Handles(string[] args) => args is ["bench", "disk" or "memory-full" or "gpu-list" or "gpu-burn" or "gpu-scene" or "gpu-snapshot", ..];
 
     [System.Runtime.Versioning.SupportedOSPlatform("linux")]
     public static async Task<int> RunAsync(string[] args, CancellationToken ct)
@@ -51,6 +53,28 @@ public static class HeavyBenchCommand
                 Console.WriteLine(json ? JsonSerializer.Serialize(burn, new JsonSerializerOptions { WriteIndented = true }) :
                     $"GPU burn · {burn.Status} · {burn.Adapter}" + (burn.Status == Ilmenyx.Gpu.Vulkan.GpuRunStatus.Completed ? string.Create(CultureInfo.InvariantCulture, $"\n{burn.Frames} quadros em {burn.Seconds:0.0} s · {burn.AverageFps:0.0} FPS médio") : "\n" + burn.Reason));
                 return burn.Status == Ilmenyx.Gpu.Vulkan.GpuRunStatus.Completed ? 0 : 1;
+            }
+            if (args[1] is "gpu-scene" or "gpu-snapshot")
+            {
+                if (!flags.ContainsKey("--allow-gpu-load")) { Console.Error.WriteLine(args[1] + " exige --allow-gpu-load (carga máxima na GPU)."); return 2; }
+                var so = new Ilmenyx.Gpu.Vulkan.GpuSceneOptions(Int(flags, "--adapter", 0, 0, 16), Int(flags, "--width", 1920, 320, 3840), Int(flags, "--height", 1080, 240, 2160), TimeSpan.FromSeconds(Int(flags, "--seconds", 60, 1, 300)),
+                    Int(flags, "--shadow", 4096, 512, 4096), Int(flags, "--trees", 40000, 0, 200000), true);
+                if (args[1] == "gpu-snapshot")
+                {
+                    if (!flags.TryGetValue("--output", out string? png) || png is null || !Path.IsPathFullyQualified(png)) { Console.Error.WriteLine("gpu-snapshot exige --output com caminho absoluto de um PNG novo."); return 2; }
+                    double t = flags.TryGetValue("--t", out string? ts) && double.TryParse(ts, NumberStyles.Float, CultureInfo.InvariantCulture, out double tv) ? tv : 0.1;
+                    var snap = await new Ilmenyx.Gpu.Vulkan.GpuScene().SnapshotAsync(so, t, png, ct);
+                    Console.WriteLine(snap.Status == Ilmenyx.Gpu.Vulkan.GpuRunStatus.Completed ? $"Quadro salvo em {png} ({snap.Width}×{snap.Height}) · {snap.Adapter}" : $"GPU snapshot · {snap.Status}\n{snap.Reason}");
+                    return snap.Status == Ilmenyx.Gpu.Vulkan.GpuRunStatus.Completed ? 0 : 1;
+                }
+                var sprogress = new Progress<Ilmenyx.Gpu.Vulkan.GpuSceneProgress>(p => { if (!json) Console.Error.Write(string.Create(CultureInfo.InvariantCulture, $"\r{p.Seconds:0.0} s · {p.Frames} quadros · {p.Fps:0.0} FPS   ")); });
+                var scene = await new Ilmenyx.Gpu.Vulkan.GpuScene().RunAsync(so, ct, sprogress);
+                if (!json) Console.Error.WriteLine();
+                Console.WriteLine(json ? JsonSerializer.Serialize(scene, new JsonSerializerOptions { WriteIndented = true }) :
+                    $"Cena de GPU · {scene.Status} · {scene.Adapter}" + (scene.Status == Ilmenyx.Gpu.Vulkan.GpuRunStatus.Completed
+                        ? string.Create(CultureInfo.InvariantCulture, $"\n{scene.Width}×{scene.Height} · {scene.Frames} quadros em {scene.Seconds:0.0} s · {scene.AverageFps:0.0} FPS médio · 1% low {scene.Low1Fps:0.0} · nota {scene.Score:0}\n{Ilmenyx.Gpu.Vulkan.GpuSceneResult.Comparability}")
+                        : "\n" + scene.Reason));
+                return scene.Status == Ilmenyx.Gpu.Vulkan.GpuRunStatus.Completed ? 0 : 1;
             }
             if (args[1] == "memory-full")
             {
