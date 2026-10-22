@@ -352,3 +352,25 @@ relatório NVMe histórico real aceito e erros/timeout/browser validados.
 SMART-01 permanece NÃO TESTADO para consulta ao vivo com sucesso sem elevação;
 VM/SATA/encodings/tecnologias assistivas e integração UI continuam pendentes.
 [Colaboração, comandos e evidências](smart-import.md).
+
+## Atualização 0.25.0–0.29.0 — shell, port completo e módulo Vulkan
+
+Estrutura atual (dependências só descem; `Core`/`Contracts` não conhecem Avalonia, Vulkan nem APIs de SO):
+
+```
+Ilmenyx.Contracts   dados e esquemas (JSON versionado)
+Ilmenyx.Core        lógica pura: avaliadores de saúde, catálogos, benchmarks de CPU/RAM/GameSim,
+                    StressTester, OcCheckRunner, OpenRgbClient, MangoHudConfig, GeneralReport, ReportFile
+Ilmenyx.Platform.Linux  leitores de /proc, /sys, journalctl, nvidia-smi, flatpak, systemd --user, O_DIRECT (disco)
+Ilmenyx.Gpu.Vulkan  Silk.NET + shaders SPIR-V embutidos: lista de adaptadores, GpuBurn, GpuScene (offscreen, sem janela)
+Ilmenyx.Desktop    Avalonia (UI só em código): ShellWindow + páginas; serviços injetáveis (BenchServices, OcServices,
+                    OverlayServices, LightingServices) para que o smoke use motores/relógios/servidores falsos
+Ilmenyx.Cli        comandos de linha; benchmarks pesados em HeavyBenchCommand com --allow-*-load
+```
+
+Princípios que as páginas novas seguem: (1) nada conecta, mede ou muda estado ao abrir; (2) carga, rede e mudanças só por clique com
+confirmação visível que cita limites; (3) cada serviço externo é injetável (o smoke nunca inicia carga real); (4) valores ausentes são
+`null`/indisponível com motivo, nunca zero; (5) resultados vão para um histórico local (`~/.config/ilmenyx/settings.json`, 0600, nunca enviado).
+
+Decisões de portabilidade: Corsair/Razer SDK (Windows) → OpenRGB em loopback; D3D → Vulkan 1.3 com renderização dinâmica; ETW de FPS → log CSV do MangoHud
+gerado por configuração própria; WHEA → linhas do log do kernel (MCE/EDAC/AER/GPU reset) via `journalctl -k`; NVML elevado → comandos `sudo` mostrados, nunca executados.
