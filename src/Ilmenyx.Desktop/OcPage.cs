@@ -13,7 +13,8 @@ namespace Ilmenyx.Desktop;
 
 public sealed record OcServices(IStressEngine Engine, Func<long> AvailableMemory, Func<CancellationToken, Task<double?>> CpuScore,
     Func<DateTimeOffset, CancellationToken, Task<KernelHardwareErrors>> Errors, Func<(string Vendor, string Name)> Board,
-    Func<CancellationToken, Task<IReadOnlyList<NvidiaTuningState>>> Nvidia, Func<string> CpuName);
+    Func<CancellationToken, Task<IReadOnlyList<NvidiaTuningState>>> Nvidia, Func<string> CpuName,
+    IGpuStressEngine? Gpu = null, Func<CancellationToken, Task<double?>>? GpuScore = null, Func<double?>? GpuTemp = null);
 
 /// <summary>
 /// Overclock helper. Nothing here changes hardware: GPU limits are validated and printed as commands for the user's terminal,
@@ -52,6 +53,7 @@ public sealed class OcPage : StackPanel
     private NvidiaTuningState? gpu;
     private uint? clockCap;
     private TimeSpan duration = TimeSpan.FromMinutes(15);
+    private string targetChoice = "cpu";
     private CancellationTokenSource? cts;
     public bool IsRunning => cts is not null;
     public string VerdictText => verdict.Text ?? "";
@@ -132,10 +134,16 @@ public sealed class OcPage : StackPanel
 
     private void BuildVerifier()
     {
-        var target = new UiKit.ChipGroup<string>("OcTargetPanel", [("CPU + RAM", "cpu")], "cpu", _ => { });
-        var gpuChip = new Button { Name = "OcTargetGpu", Content = "GPU", FontSize = 11, Padding = new Thickness(14, 5), CornerRadius = new CornerRadius(16), BorderBrush = Palette.Line, BorderThickness = new Thickness(1), IsEnabled = false };
-        ToolTip.SetTip(gpuChip, "O teste de estabilidade de GPU depende do módulo Vulkan, ainda não portado.");
-        target.Panel.Children.Add(gpuChip);
+        bool gpuUsable = services.Gpu is { UnavailableReason: null };
+        var choices = new List<(string, string)> { ("CPU + RAM", "cpu") };
+        if (gpuUsable) { choices.Add(("GPU", "gpu")); choices.Add(("CPU + RAM + GPU", "both")); }
+        var target = new UiKit.ChipGroup<string>("OcTargetPanel", choices, "cpu", t => targetChoice = t);
+        if (!gpuUsable)
+        {
+            var gpuChip = new Button { Name = "OcTargetGpu", Content = "GPU", FontSize = 11, Padding = new Thickness(14, 5), CornerRadius = new CornerRadius(16), BorderBrush = Palette.Line, BorderThickness = new Thickness(1), IsEnabled = false };
+            ToolTip.SetTip(gpuChip, "Teste de GPU indisponível: " + (services.Gpu?.UnavailableReason ?? "módulo Vulkan não carregado") + ".");
+            target.Panel.Children.Add(gpuChip);
+        }
         var dur = new UiKit.ChipGroup<int>("OcDurPanel", [("5 MIN", 5), ("15 MIN", 15), ("30 MIN", 30), ("60 MIN", 60)], 15, m => duration = TimeSpan.FromMinutes(m));
         AutomationProperties.SetName(label, "Descrição da configuração testada"); AutomationProperties.SetName(tempLimit, "Limite de temperatura da CPU");
         start.Click += async (_, _) => { if (cts is not null) cts.Cancel(); else await StartAsync(); };
@@ -193,14 +201,15 @@ public sealed class OcPage : StackPanel
         if (cts is not null || owner() is not { } window) return;
         hint.Text = "";
         if (!double.TryParse(tempLimit.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out double limit) && !double.TryParse(tempLimit.Text, NumberStyles.Float, CultureInfo.CurrentCulture, out limit)) { hint.Text = "Limite de temperatura inválido."; return; }
-        var options = new OcCheckOptions(true, duration, (label.Text ?? "").Trim(), limit);
+        bool wantCpu = targetChoice is "cpu" or "both", wantGpu = targetChoice is "gpu" or "both";
+        var options = new OcCheckOptions(wantCpu, duration, (label.Text ?? "").Trim(), limit, wantGpu, 88);
         if (OcCheckOptions.Validate(options) is { } why) { hint.Text = why; return; }
         long available = services.AvailableMemory();
-        if (StressMemory.Plan(available, 0.6) == 0) { hint.Text = "Pouca memória disponível: é preciso sobrar pelo menos 1 GiB livre."; return; }
+        if (wantCpu && StressMemory.Plan(available, 0.6) == 0) { hint.Text = "Pouca memória disponível: é preciso sobrar pelo menos 1 GiB livre."; return; }
         string guard = usage.Last?.CpuTempC is null
             ? "ATENÇÃO: nenhum sensor de temperatura da CPU está sendo lido; o corte automático por temperatura NÃO funcionará."
             : string.Create(CultureInfo.InvariantCulture, $"O teste é interrompido se a CPU chegar a {limit:0} °C.");
-        if (!await ConfirmDialog.AskAsync(window, "Iniciar verificação", $"Primeiro mede a nota da CPU (render multi-core, alguns minutos) e depois roda stress de CPU + RAM por {duration.TotalMinutes:0} min (60% da memória disponível, sempre deixando 1 GiB livre). Também para ao primeiro erro de memória ou erro de hardware no log do kernel.\n\n{guard}\n\nSalve seu trabalho antes: o sistema pode ficar lento.\n\nIniciar agora?", "Iniciar", "Cancelar")) return;
+        if (!await ConfirmDialog.AskAsync(window, "Iniciar verificação", $"Primeiro mede a nota{(wantCpu ? " da CPU (render multi-core, alguns minutos)" : "")}{(wantCpu && wantGpu ? " e" : "")}{(wantGpu ? $" da GPU ({services.Gpu!.AdapterName}, cena de jogo)" : "")} e depois roda stress de {(wantCpu && wantGpu ? "CPU + RAM + GPU" : wantGpu ? "GPU" : "CPU + RAM")} por {duration.TotalMinutes:0} min{(wantCpu ? " (60% da memória disponível, sempre deixando 1 GiB livre)" : "")}. Também para ao primeiro erro de memória ou erro de hardware no log do kernel.\n\n{guard}\n\nSalve seu trabalho antes: o sistema pode ficar lento.\n\nIniciar agora?", "Iniciar", "Cancelar")) return;
         await RunAsync(options, available);
     }
 
@@ -211,7 +220,7 @@ public sealed class OcPage : StackPanel
         var progress = new Progress<(string Status, double Fraction)>(p => { status.Text = p.Status; bar.Value = p.Fraction; });
         var kernel = new Func<DateTimeOffset, Task<KernelHardwareErrors>>(since => services.Errors(since, cts?.Token ?? CancellationToken.None));
         OcCheckResult result;
-        try { result = await OcCheckRunner.RunAsync(options, services.Engine, available, services.CpuScore, () => usage.Last?.CpuTempC, kernel, delay, now, cts.Token, progress); }
+        try { result = await OcCheckRunner.RunAsync(options, services.Engine, available, services.CpuScore, () => usage.Last?.CpuTempC, kernel, delay, now, cts.Token, progress, services.Gpu, services.GpuScore, services.GpuTemp); }
         finally { cts.Dispose(); cts = null; start.Content = "INICIAR VERIFICAÇÃO"; foreach (var c in Controls) c.IsEnabled = true; Controls[1].IsEnabled = true; label.IsEnabled = tempLimit.IsEnabled = true; bar.Value = 0; }
         if (result.Status == OcCheckStatus.Cancelled) { status.Text = "Verificação cancelada: nenhum veredito é publicado."; return; }
         if (result.Status == OcCheckStatus.Unavailable) { status.Text = "Não executada: " + result.FailureReason; return; }
@@ -222,12 +231,14 @@ public sealed class OcPage : StackPanel
         verdictCard.Background = stable ? Palette.Card : Palette.Fg; verdict.Foreground = verdictWhy.Foreground = verdictRows.Foreground = stable ? Palette.Fg : Palette.OnFg;
         var rows = new List<string> { "Configuração: " + (options.Label.Length > 0 ? options.Label : "sem descrição") };
         if (result.CpuScore is double score) rows.Add("Nota CPU (render): " + score.ToString("N0", CultureInfo.InvariantCulture) + " pts (experimental)");
+        if (result.GpuScore is double gscore) rows.Add("Nota GPU (cena): " + gscore.ToString("N0", CultureInfo.InvariantCulture) + " pts (experimental)");
+        if (result.MaxGpuTemp is double gt) rows.Add("Temp. máx. GPU: " + gt.ToString("0", CultureInfo.InvariantCulture) + " °C");
         if (result.MaxCpuTemp is double t) rows.Add("Temp. máx. CPU: " + t.ToString("0", CultureInfo.InvariantCulture) + " °C");
         rows.Add($"RAM: {result.MemoryPasses} passes, {result.MemoryErrors} erros");
         rows.Add(result.Errors.Error is null ? $"Erros de hardware no log do kernel: {result.Errors.Total}" : "Erros de hardware no log do kernel: NÃO VERIFICADO");
         if (result.Note is not null) rows.Add(result.Note);
         verdictRows.Text = string.Join("\n", rows); verdictCard.IsVisible = true;
-        settings.AddBenchRun(new(now(), "OC", (stable ? "estável" : "INSTÁVEL") + " · " + (options.Label.Length > 0 ? options.Label : "sem descrição") + (result.CpuScore is double s2 ? " · CPU " + s2.ToString("N0", CultureInfo.InvariantCulture) : ""), stable ? 1.0 : 0.15));
+        settings.AddBenchRun(new(now(), "OC", (stable ? "estável" : "INSTÁVEL") + " · " + (options.Label.Length > 0 ? options.Label : "sem descrição") + (result.CpuScore is double s2 ? " · CPU " + s2.ToString("N0", CultureInfo.InvariantCulture) : "") + (result.GpuScore is double gs2 ? " · GPU " + gs2.ToString("N0", CultureInfo.InvariantCulture) : ""), stable ? 1.0 : 0.15));
         try { settings.Save(settingsPath); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { status.Text += " · Histórico não salvo: " + e.Message; }
         BuildHistory(); await RefreshRecentAsync();
     }

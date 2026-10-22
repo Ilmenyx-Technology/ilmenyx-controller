@@ -238,3 +238,121 @@ public class OcSupportTests
         finally { Directory.Delete(root, true); }
     }
 }
+
+public class OcGpuTests
+{
+    private sealed class Gpu : IGpuStressEngine
+    {
+        public string? UnavailableReason { get; set; }
+        public string AdapterName => "Fake GPU";
+        public bool SharesCpuThermals { get; set; }
+        public bool Running { get; private set; }
+        public double Fps => 60;
+        private string? error;
+        public string? Error { get => error; set { error = value; if (value is not null) Running = false; } }
+        public int Starts, Stops;
+        public void Start() { Running = true; Starts++; }
+        public void Stop() { Running = false; Stops++; }
+    }
+
+    private sealed class Cpu : IStressEngine
+    {
+        public bool Running { get; private set; } public long MemoryErrors { get; set; } public long MemoryPasses => 1; public long MemoryAllocatedBytes => 1 << 30; public int Starts;
+        public void Start(bool cpu, bool ram, double ramFraction, long availableMemoryBytes) { Running = true; Starts++; }
+        public void Stop() => Running = false;
+    }
+
+    private static readonly Func<DateTimeOffset, Task<KernelHardwareErrors>> Clean = _ => Task.FromResult(new KernelHardwareErrors(0, 0, 0, 0, null, null));
+
+    private static Task<OcCheckResult> Run(OcCheckOptions o, Cpu cpu, Gpu? gpu, Func<double?> cpuTemp, Func<double?>? gpuTemp = null, Action? tick = null)
+    {
+        var now = new DateTimeOffset(2026, 10, 22, 12, 0, 0, TimeSpan.Zero);
+        return OcCheckRunner.RunAsync(o, cpu, 8L << 30, _ => Task.FromResult<double?>(5400), cpuTemp, Clean, (t, _) => { now += t; tick?.Invoke(); return Task.CompletedTask; }, () => now,
+            CancellationToken.None, null, gpu, _ => Task.FromResult<double?>(480), gpuTemp);
+    }
+
+    [Fact]
+    public async Task GpuOnlyRunNeverStartsTheCpuEngineAndPublishesTheGpuScore()
+    {
+        var cpu = new Cpu(); var gpu = new Gpu();
+        var r = await Run(new(false, TimeSpan.FromMinutes(5), "g", Gpu: true), cpu, gpu, () => 60, () => 70);
+        Assert.True(r.Stable);
+        Assert.Equal(0, cpu.Starts);
+        Assert.Equal(1, gpu.Starts); Assert.Equal(1, gpu.Stops);
+        Assert.Equal(480, r.GpuScore); Assert.Null(r.CpuScore);
+        Assert.Equal(70, r.MaxGpuTemp);
+    }
+
+    [Fact]
+    public async Task CombinedRunStartsBothAndStopsBoth()
+    {
+        var cpu = new Cpu(); var gpu = new Gpu();
+        var r = await Run(new(true, TimeSpan.FromMinutes(5), "x", Gpu: true), cpu, gpu, () => 60, () => 70);
+        Assert.True(r.Stable); Assert.Equal(1, cpu.Starts); Assert.Equal(1, gpu.Starts); Assert.Equal(5400, r.CpuScore); Assert.Equal(480, r.GpuScore);
+        Assert.False(cpu.Running); Assert.False(gpu.Running);
+    }
+
+    [Fact]
+    public async Task GpuOverTemperatureMakesItUnstable()
+    {
+        var gpu = new Gpu(); double temp = 60;
+        var r = await Run(new(false, TimeSpan.FromMinutes(5), "x", Gpu: true), new Cpu(), gpu, () => 60, () => temp, () => temp = 95);
+        Assert.False(r.Stable); Assert.Contains("GPU chegou a 95", r.FailureReason); Assert.Equal(1, gpu.Stops);
+    }
+
+    [Fact]
+    public async Task IntegratedGpuUsesTheCpuTemperature()
+    {
+        var gpu = new Gpu { SharesCpuThermals = true }; double cpuTemp = 60;
+        var r = await Run(new(false, TimeSpan.FromMinutes(5), "x", Gpu: true), new Cpu(), gpu, () => cpuTemp, () => 10, () => cpuTemp = 92);
+        Assert.False(r.Stable); Assert.Contains("GPU chegou a 92", r.FailureReason);
+    }
+
+    [Fact]
+    public async Task GpuEngineFailureIsReportedAsUnstable()
+    {
+        var gpu = new Gpu();
+        var r = await Run(new(false, TimeSpan.FromMinutes(5), "x", Gpu: true), new Cpu(), gpu, () => 60, () => 60, () => gpu.Error = "DEVICE_LOST");
+        Assert.False(r.Stable);
+    }
+
+    [Fact]
+    public async Task GpuEngineStoppedByItselfWithErrorIsNamed()
+    {
+        var gpu = new FailingGpu();
+        var r = await Run(new(false, TimeSpan.FromMinutes(5), "x", Gpu: true), new Cpu(), null, () => 60, null, null, gpu);
+        Assert.False(r.Stable); Assert.Contains("a GPU falhou (DEVICE_LOST)", r.FailureReason);
+    }
+
+    private sealed class FailingGpu : IGpuStressEngine
+    {
+        public string? UnavailableReason => null; public string AdapterName => "x"; public bool SharesCpuThermals => false; public double Fps => 0;
+        public bool Running => false; public string? Error => "DEVICE_LOST"; public void Start() { } public void Stop() { }
+    }
+
+    private static Task<OcCheckResult> Run(OcCheckOptions o, Cpu cpu, Gpu? _, Func<double?> cpuTemp, Func<double?>? gpuTemp, Action? tick, IGpuStressEngine engine)
+    {
+        var now = new DateTimeOffset(2026, 10, 22, 12, 0, 0, TimeSpan.Zero);
+        return OcCheckRunner.RunAsync(o, cpu, 8L << 30, _ => Task.FromResult<double?>(5400), cpuTemp, Clean, (t, _) => { now += t; tick?.Invoke(); return Task.CompletedTask; }, () => now,
+            CancellationToken.None, null, engine, _ => Task.FromResult<double?>(480), gpuTemp);
+    }
+
+    [Fact]
+    public async Task UnavailableGpuNeverStartsAnything()
+    {
+        var cpu = new Cpu();
+        var r = await Run(new(true, TimeSpan.FromMinutes(5), "x", Gpu: true), cpu, new Gpu { UnavailableReason = "sem Vulkan" }, () => 60);
+        Assert.Equal(OcCheckStatus.Unavailable, r.Status); Assert.Contains("sem Vulkan", r.FailureReason); Assert.Equal(0, cpu.Starts);
+        var none = await Run(new(true, TimeSpan.FromMinutes(5), "x", Gpu: true), cpu, null, () => 60);
+        Assert.Equal(OcCheckStatus.Unavailable, none.Status);
+    }
+
+    [Theory]
+    [InlineData(false, false, 95, 88, false)]
+    [InlineData(false, true, 95, 88, true)]
+    [InlineData(true, true, 95, 50, false)]
+    [InlineData(true, true, 95, 101, false)]
+    [InlineData(true, false, 95, 10, true)]
+    public void GpuOptionsAreValidated(bool cpu, bool gpu, double cpuLimit, double gpuLimit, bool valid) =>
+        Assert.Equal(valid, OcCheckOptions.Validate(new(cpu, TimeSpan.FromMinutes(15), "x", cpuLimit, gpu, gpuLimit)) is null);
+}

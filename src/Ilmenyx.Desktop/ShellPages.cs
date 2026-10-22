@@ -107,10 +107,11 @@ public sealed partial class ShellWindow
     [System.Runtime.Versioning.SupportedOSPlatform("linux")]
     private OcServices RealOcServices()
     {
-        var kernel = new LinuxKernelLog();
+        var kernel = new LinuxKernelLog(); var gpu = new Ilmenyx.Gpu.Vulkan.VulkanGpuStress();
         return new OcServices(new StressTester(), () => usage.Last is { MemoryTotal: > 0, MemoryUsed: { } u } l ? l.MemoryTotal!.Value - u : LinuxMemoryInfo.AvailableBytes(),
             async ct => (await new Ilmenyx.Core.Benchmarks.CpuBenchmarkRunner().RunAsync(new Ilmenyx.Contracts.CpuBenchmarkOptions { Profile = Ilmenyx.Contracts.CpuWorkloadProfile.Full, Threads = Environment.ProcessorCount, AllowCpuLoad = true, Timeout = TimeSpan.FromMinutes(5) }, ct)).Result.ExperimentalScore,
-            (since, ct) => kernel.ErrorsSinceAsync(since, ct), () => LinuxKernelLog.Board(), LinuxKernelLog.NvidiaStateAsync, () => usage.Last?.CpuModel ?? "");
+            (since, ct) => kernel.ErrorsSinceAsync(since, ct), () => LinuxKernelLog.Board(), LinuxKernelLog.NvidiaStateAsync, () => usage.Last?.CpuModel ?? "",
+            gpu, async ct => (await new Ilmenyx.Gpu.Vulkan.GpuScene().RunAsync(new Ilmenyx.Gpu.Vulkan.GpuSceneOptions(0, 1920, 1080, TimeSpan.FromSeconds(30), 4096, 40_000, true), ct)).Score, GpuTemperatureCache());
     }
 
     private static Border CardBox(Control child, Thickness? padding = null) => new()

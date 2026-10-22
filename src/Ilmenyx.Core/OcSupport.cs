@@ -80,20 +80,21 @@ public static class KernelLogParser
     }
 }
 
-public sealed record OcCheckOptions(bool Cpu, TimeSpan Duration, string Label, double CpuTempLimit = 95)
+public sealed record OcCheckOptions(bool Cpu, TimeSpan Duration, string Label, double CpuTempLimit = 95, bool Gpu = false, double GpuTempLimit = 88)
 {
     public static readonly TimeSpan[] AllowedDurations = [TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(15), TimeSpan.FromMinutes(30), TimeSpan.FromMinutes(60)];
     public static string? Validate(OcCheckOptions o) =>
-        !o.Cpu ? "Escolha CPU + RAM (o teste de GPU depende do módulo Vulkan, ainda não portado)."
+        !o.Cpu && !o.Gpu ? "Escolha CPU + RAM, GPU ou os dois."
         : !AllowedDurations.Contains(o.Duration) ? "Duração de 5, 15, 30 ou 60 minutos."
         : o.CpuTempLimit is < 60 or > 105 ? "Limite de temperatura de 60 a 105 °C."
+        : o.Gpu && o.GpuTempLimit is < 60 or > 100 ? "Limite de temperatura da GPU de 60 a 100 °C."
         : o.Label.Length > 80 ? "Descrição de até 80 caracteres." : null;
 }
 
 public enum OcCheckStatus { Completed, Cancelled, Unavailable }
 
 public sealed record OcCheckResult(OcCheckStatus Status, bool? Stable, string? FailureReason, double? CpuScore, double? MaxCpuTemp,
-    long MemoryPasses, long MemoryErrors, KernelHardwareErrors Errors, TimeSpan Elapsed, string? Note);
+    long MemoryPasses, long MemoryErrors, KernelHardwareErrors Errors, TimeSpan Elapsed, string? Note, double? GpuScore = null, double? MaxGpuTemp = null);
 
 /// <summary>
 /// Stability verifier (CPU + RAM stress with automatic cuts). Injectable clock/readings so the decision logic is unit-tested without any load.
@@ -103,39 +104,53 @@ public static class OcCheckRunner
 {
     public static async Task<OcCheckResult> RunAsync(OcCheckOptions options, IStressEngine engine, long availableMemoryBytes,
         Func<CancellationToken, Task<double?>> measureCpuScore, Func<double?> cpuTemp, Func<DateTimeOffset, Task<KernelHardwareErrors>> errorsSince,
-        Func<TimeSpan, CancellationToken, Task> delay, Func<DateTimeOffset> now, CancellationToken ct, IProgress<(string Status, double Fraction)>? progress = null)
+        Func<TimeSpan, CancellationToken, Task> delay, Func<DateTimeOffset> now, CancellationToken ct, IProgress<(string Status, double Fraction)>? progress = null,
+        IGpuStressEngine? gpuEngine = null, Func<CancellationToken, Task<double?>>? measureGpuScore = null, Func<double?>? gpuTemp = null)
     {
         if (OcCheckOptions.Validate(options) is { } why)
             return new(OcCheckStatus.Unavailable, null, why, null, null, 0, 0, KernelHardwareErrors.Unavailable(why), TimeSpan.Zero, null);
-        var start = now(); double? score = null; double? maxTemp = null; string? fail = null; bool cancelled = false;
+        if (options.Gpu && gpuEngine is not { UnavailableReason: null })
+        { string g = gpuEngine?.UnavailableReason ?? "módulo de GPU indisponível"; return new(OcCheckStatus.Unavailable, null, "GPU indisponível: " + g, null, null, 0, 0, KernelHardwareErrors.Unavailable(g), TimeSpan.Zero, null); }
+        var start = now(); double? score = null, gpuScore = null; double? maxTemp = null, maxGpuTemp = null; string? fail = null; bool cancelled = false, engineStarted = false, gpuStarted = false;
         try
         {
-            progress?.Report(("Medindo a nota da CPU (render multi-core)…", 0));
-            score = await measureCpuScore(ct);
-            ct.ThrowIfCancellationRequested();
-            try { engine.Start(cpu: true, ram: true, 0.6, availableMemoryBytes); }
-            catch (InvalidOperationException e) { return new(OcCheckStatus.Unavailable, null, e.Message, score, null, 0, 0, KernelHardwareErrors.Unavailable(e.Message), now() - start, null); }
+            if (options.Cpu) { progress?.Report(("Medindo a nota da CPU (render multi-core)…", 0)); score = await measureCpuScore(ct); ct.ThrowIfCancellationRequested(); }
+            if (options.Gpu && measureGpuScore is not null) { progress?.Report(("Medindo a nota da GPU (cena de jogo)…", 0)); gpuScore = await measureGpuScore(ct); ct.ThrowIfCancellationRequested(); }
+            if (options.Cpu)
+            {
+                try { engine.Start(cpu: true, ram: true, 0.6, availableMemoryBytes); engineStarted = true; }
+                catch (InvalidOperationException e) { return new(OcCheckStatus.Unavailable, null, e.Message, score, null, 0, 0, KernelHardwareErrors.Unavailable(e.Message), now() - start, null, gpuScore); }
+            }
+            if (options.Gpu) { gpuEngine!.Start(); gpuStarted = true; }
             var stressStart = now(); int ticks = 0;
+            string what = options.Cpu && options.Gpu ? "CPU + RAM + GPU" : options.Gpu ? "GPU" : "CPU + RAM";
             while (now() - stressStart < options.Duration)
             {
                 await delay(TimeSpan.FromSeconds(1), ct); ct.ThrowIfCancellationRequested(); ticks++;
-                if (cpuTemp() is double t) maxTemp = Math.Max(maxTemp ?? t, t);
+                double? cpuNow = cpuTemp(), gpuNow = options.Gpu ? (gpuEngine!.SharesCpuThermals ? cpuNow : gpuTemp?.Invoke()) : null;
+                if (cpuNow is double t) maxTemp = Math.Max(maxTemp ?? t, t);
+                if (gpuNow is double gt) maxGpuTemp = Math.Max(maxGpuTemp ?? gt, gt);
                 var elapsed = now() - stressStart;
-                progress?.Report((string.Create(CultureInfo.InvariantCulture, $"Stress CPU + RAM · {elapsed:mm\\:ss} de {options.Duration:mm\\:ss} · máx. CPU {(maxTemp is double m ? m.ToString("0", CultureInfo.InvariantCulture) + " °C" : "—")}"), Math.Min(1, elapsed / options.Duration)));
-                if (cpuTemp() is double now1 && now1 >= options.CpuTempLimit) { fail = string.Create(CultureInfo.InvariantCulture, $"CPU chegou a {now1:0} °C (limite de segurança {options.CpuTempLimit:0} °C)"); break; }
-                if (engine.MemoryErrors > 0) { fail = $"{engine.MemoryErrors} erros de memória (RAM/EXPO instável)"; break; }
+                string cpuPart = "máx. CPU " + (maxTemp is double m ? m.ToString("0", CultureInfo.InvariantCulture) + " °C" : "—");
+                string gpuPart = options.Gpu ? " · máx. GPU " + (maxGpuTemp is double mg ? mg.ToString("0", CultureInfo.InvariantCulture) + " °C" : "—") : "";
+                progress?.Report(($"Stress {what} · {elapsed:mm\\:ss} de {options.Duration:mm\\:ss} · {cpuPart}{gpuPart}", Math.Min(1, elapsed / options.Duration)));
+                if (options.Cpu && cpuNow is double now1 && now1 >= options.CpuTempLimit) { fail = string.Create(CultureInfo.InvariantCulture, $"CPU chegou a {now1:0} °C (limite de segurança {options.CpuTempLimit:0} °C)"); break; }
+                if (options.Gpu && gpuNow is double gnow && gnow >= options.GpuTempLimit) { fail = string.Create(CultureInfo.InvariantCulture, $"GPU chegou a {gnow:0} °C (limite de segurança {options.GpuTempLimit:0} °C)"); break; }
+                if (options.Gpu && !gpuEngine!.Running) { fail = gpuEngine.Error is { } ge ? "a GPU falhou (" + ge + ")" : "o teste de GPU parou sozinho"; break; }
+                if (options.Cpu && engine.MemoryErrors > 0) { fail = $"{engine.MemoryErrors} erros de memória (RAM/EXPO instável)"; break; }
                 if (ticks % 5 == 0 && (await errorsSince(start)) is { Total: > 0 } e) { fail = Describe(e); break; }
             }
         }
         catch (OperationCanceledException) { cancelled = true; }
         long passes = engine.MemoryPasses, errors = engine.MemoryErrors;
-        engine.Stop();
+        if (engineStarted) engine.Stop();
+        if (gpuStarted) gpuEngine!.Stop();
         var final = await SafeErrors(errorsSince, start);
         var elapsedTotal = now() - start;
-        if (cancelled) return new(OcCheckStatus.Cancelled, null, null, null, maxTemp, passes, errors, final, elapsedTotal, "Verificação cancelada: nenhum veredito é publicado.");
+        if (cancelled) return new(OcCheckStatus.Cancelled, null, null, null, maxTemp, passes, errors, final, elapsedTotal, "Verificação cancelada: nenhum veredito é publicado.", null, maxGpuTemp);
         if (fail is null && final.Total > 0) fail = Describe(final);
         string? note = final.Error is not null ? "Log do kernel indisponível (" + final.Error + "): erros de hardware não foram verificados; o veredito considera só temperatura e erros de memória." : null;
-        return new(OcCheckStatus.Completed, fail is null, fail, score, maxTemp, passes, errors, final, elapsedTotal, note);
+        return new(OcCheckStatus.Completed, fail is null, fail, score, maxTemp, passes, errors, final, elapsedTotal, note, gpuScore, maxGpuTemp);
     }
 
     private static async Task<KernelHardwareErrors> SafeErrors(Func<DateTimeOffset, Task<KernelHardwareErrors>> read, DateTimeOffset since)

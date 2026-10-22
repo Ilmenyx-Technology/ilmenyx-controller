@@ -490,6 +490,7 @@ public sealed class UiSmokeApp : Application
         if (OperatingSystem.IsLinux()) await AppsAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await BenchAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await OcAsync(shell, desktop);
+        if (OperatingSystem.IsLinux()) await OcGpuAsync(desktop);
         if (OperatingSystem.IsLinux()) await ReportAsync(shell);
         if (OperatingSystem.IsLinux()) await OverlayAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await LightingAsync(shell, desktop);
@@ -647,6 +648,26 @@ public sealed class UiSmokeApp : Application
         public string? UnavailableReason { get; set; } public string AdapterName => "Fake GPU"; public bool SharesCpuThermals { get; set; } public bool Running { get; private set; } public double Fps => 60; private string? error; public string? Error { get => error; set { error = value; if (value is not null) Running = false; } }
         public int Starts, Stops; public double? Temp = 50;
         public void Start() { Running = true; Starts++; } public void Stop() { Running = false; Stops++; }
+    }
+    private static async Task OcGpuAsync(IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        // Fake engines, clock and kernel log again; the GPU choice appears only when the GPU engine is usable.
+        string root = Path.Combine(Program.OutputDirectory, "oc-gpu-fixture"); Directory.CreateDirectory(root);
+        var engine = new FakeStress(); var gpu = new FakeGpuStress(); var fakeNow = new DateTimeOffset(2026, 10, 22, 12, 0, 0, TimeSpan.Zero); double temp = 55;
+        var services = new OcServices(engine, () => 8L << 30, _ => Task.FromResult<double?>(5400), (_, _) => Task.FromResult(new Ilmenyx.Core.KernelHardwareErrors(0, 0, 0, 0, null, null)), () => ("", ""),
+            _ => Task.FromResult<IReadOnlyList<Ilmenyx.Core.NvidiaTuningState>>([]), () => "AMD Ryzen 7", gpu, _ => Task.FromResult<double?>(480), () => temp);
+        using var usage = new UsageViewModel(new FakeUsage()); await usage.SampleOnceAsync(CancellationToken.None);
+        Window? host = null; var page = new OcPage(services, usage, () => host, Path.Combine(root, "cfg/settings.json"), CancellationToken.None, () => fakeNow, (t, _) => { fakeNow += t; return Task.CompletedTask; });
+        host = new Window { Width = 1100, Height = 1000, Content = new ScrollViewer { Content = page } }; host.Show();
+        await Until(() => host.GetVisualDescendants().OfType<StackPanel>().Any(p => p.Name == "OcTargetPanel" && p.Children.OfType<Button>().Count() == 3));
+        host.GetVisualDescendants().OfType<StackPanel>().Single(p => p.Name == "OcTargetPanel").Children.OfType<Button>().Single(b => b.Content!.ToString() == "GPU").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Click(host, "BtnOcCheck"); var dialog = await ConfirmAsync(desktop);
+        if (!Find<TextBlock>(dialog, "ConfirmText").Text!.Contains("Fake GPU")) throw new InvalidOperationException("GPU verification must name the adapter.");
+        Click(dialog, "ConfirmYes");
+        await Until(() => Find<TextBlock>(host, "OcVerdict").Text == "ESTÁVEL" && Find<Button>(host, "BtnOcCheck").Content!.ToString() == "INICIAR VERIFICAÇÃO");
+        if (engine.Starts != 0 || gpu.Starts != 1 || gpu.Stops != 1 || !Find<TextBlock>(host, "OcResult").Text!.Contains("Nota GPU (cena): 480")) throw new InvalidOperationException("GPU-only verification must use only the GPU engine and show its score.");
+        host.Close();
+        Console.WriteLine("PASS oc GPU: GPU target appears only with a usable GPU engine, GPU-only verification never starts the CPU engine and publishes the GPU score (fake engines)");
     }
     private static async Task StressGpuAsync(IClassicDesktopStyleApplicationLifetime desktop)
     {
