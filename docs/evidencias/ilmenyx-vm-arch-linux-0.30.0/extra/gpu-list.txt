@@ -1,0 +1,1 @@
+A biblioteca Vulkan (libvulkan.so.1) não foi encontrada. Instale o loader e o driver Vulkan da sua distribuição.

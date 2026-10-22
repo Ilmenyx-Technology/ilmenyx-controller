@@ -1,0 +1,7 @@
+Programas integrados (sistema tem prioridade; o pacote é o reserva):
+  mangohud     pacote (/home/ilm/.local/share/ilmenyx/components/bin/mangohud)  — overlay de FPS (MangoHud)
+  gamemoderun  embutido no app (/home/ilm/.local/share/ilmenyx/components/bin/gamemoderun)  — modo jogo
+  openrgb      pacote (/home/ilm/.local/share/ilmenyx/components/bin/openrgb)  — iluminação RGB (OpenRGB)
+  flatpak      AUSENTE (componente do sistema; não embutível)
+Pasta de componentes do pacote: /home/ilm/pkg030/Ilmenyx-linux-x64/components
+OpenRGB: falha — O OpenRGB encerrou ao iniciar (código 127). /tmp/appimage_extracted_addeefba37a34af60c3e8d0111f4e642/usr/bin/OpenRGB: error while loading shared libraries: libharfbuzz.so.0: cannot open shared object file: No such file or directory

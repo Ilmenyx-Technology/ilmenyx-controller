@@ -54,7 +54,7 @@ public static unsafe class VulkanDevices
             }
             return new(list, null);
         }
-        catch (Exception e) when (e is DllNotFoundException or EntryPointNotFoundException or Silk.NET.Core.Loader.SymbolLoadingException)
+        catch (Exception e) when (e is DllNotFoundException or FileNotFoundException or EntryPointNotFoundException or Silk.NET.Core.Loader.SymbolLoadingException)
         {
             return new([], "A biblioteca Vulkan (libvulkan.so.1) não foi encontrada. Instale o loader e o driver Vulkan da sua distribuição.");
         }

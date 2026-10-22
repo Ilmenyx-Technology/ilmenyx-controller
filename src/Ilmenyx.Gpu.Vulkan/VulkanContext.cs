@@ -28,7 +28,8 @@ public sealed unsafe class VulkanContext : IDisposable
 
     public VulkanContext(int adapterIndex)
     {
-        Api = Vk.GetApi();
+        try { Api = Vk.GetApi(); }
+        catch (Exception e) when (e is DllNotFoundException or FileNotFoundException or EntryPointNotFoundException or Silk.NET.Core.Loader.SymbolLoadingException) { throw new VulkanException("Biblioteca Vulkan (libvulkan.so.1) não encontrada. Instale o loader Vulkan da sua distribuição (vulkan-icd-loader, libvulkan1 ou vulkan-loader) e o driver da GPU."); }
         try { Create(adapterIndex); }
         catch { Dispose(); throw; }
     }
