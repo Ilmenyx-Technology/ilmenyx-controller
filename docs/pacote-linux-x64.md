@@ -4,6 +4,30 @@ Base: 6c01555, branch feat/ilmenyx-linux. Inspecionados scripts, projetos e meta
 Directory.Build.props, entradas CLI/desktop, harness, avisos de terceiros, README,
 licença e instruções aplicáveis. Upstream e termos preservados.
 
+## Pacote autocontido (0.28.0, decisão do usuário em 2026-10-22)
+
+O usuário determinou que o necessário para o app funcionar acompanhe a instalação. O pacote agora é
+**autocontido** (`--self-contained true`, RID linux-x64): inclui o runtime Microsoft.NETCore.App e o
+**ICU 72 app-local** (`Microsoft.ICU.ICU4C.Runtime` 72.1.0.3, opção `System.Globalization.AppLocalIcu`).
+Não é preciso instalar .NET nem libicu. Restore explícito antes do script (usa rede, só pacotes NuGet):
+
+```bash
+. scripts/env-local-sdk.sh
+for p in Cli Desktop; do dotnet restore src/Ilmenyx.$p -r linux-x64 -p:IlmenyxBundleIcu=true; done
+bash scripts/package-linux-x64.sh /caminho/absoluto/destino-novo
+```
+
+O ICU só entra no publish com `-p:IlmenyxBundleIcu=true` (build e testes comuns seguem usando o ICU do sistema).
+O doctor/preflight aceita o ICU ao lado do executável quando a opção app-local está no runtimeconfig.
+Tamanho: ~110 MB compactado (~256 MB extraído), sem trimming. Licenças do runtime (MIT) e do ICU (Unicode)
+vão em `licenses/` e `dependencies.tsv`; segue PENDENTE DE REVISÃO jurídica antes de distribuir.
+
+**Continua do sistema (não dá para embutir):** glibc, fontconfig, X11/Wayland, EGL e fontes. Integrações
+opcionais — GameMode, MangoHud, Flatpak, smartctl, fwupd — são programas do sistema: o app detecta a falta,
+informa e degrada sem falhar. As seções abaixo sobre runtime e ICU instalados descrevem o pacote anterior
+(framework-dependent, 0.17–0.27) e ficam como histórico.
+
+
 ## IMPLEMENTADO
 
 scripts/package-linux-x64.sh gera um bundle local de revisão, separado em cli/ e

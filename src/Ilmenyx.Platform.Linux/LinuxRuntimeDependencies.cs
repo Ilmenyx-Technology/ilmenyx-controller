@@ -4,13 +4,15 @@ using System.Runtime.InteropServices;
 namespace Ilmenyx.Platform.Linux;
 
 /// <summary>Conservative native preflight; presence is not certification of ICU/runtime compatibility.</summary>
-public sealed class LinuxRuntimeDependencies(Func<string, bool>? libraryAvailable = null)
+public sealed class LinuxRuntimeDependencies(Func<string, bool>? libraryAvailable = null, string? appBaseDirectory = null)
 {
     private readonly Func<string, bool> available = libraryAvailable ?? CanLoad;
+    private readonly string? baseDirectory = appBaseDirectory ?? (libraryAvailable is null ? AppContext.BaseDirectory : null);
 
     public bool CanUseGlobalization(bool invariantMode)
     {
         if (invariantMode) return true;
+        if (HasAppLocalIcu()) return true;
         if (Pair("")) return true;
         // Common system ICU sonames. ASCII construction avoids globalization during preflight.
         for (int major = 99; major >= 60; major--)
@@ -31,6 +33,18 @@ public sealed class LinuxRuntimeDependencies(Func<string, bool>? libraryAvailabl
     public LinuxRuntimeRequirements Inspect() => new(
         available("libc.so.6"), CanUseGlobalization(false),
         available("libfontconfig.so.1"), available("libX11.so.6"), available("libEGL.so.1"));
+
+    /// <summary>ICU shipped beside the app (System.Globalization.AppLocalIcu); the runtime loads it before system ICU.</summary>
+    private bool HasAppLocalIcu()
+    {
+        if (baseDirectory is null || AppContext.GetData("System.Globalization.AppLocalIcu") is not string) return false;
+        try
+        {
+            return Directory.EnumerateFiles(baseDirectory, "libicuuc.so.*").Any()
+                && Directory.EnumerateFiles(baseDirectory, "libicui18n.so.*").Any();
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return false; }
+    }
 
     private bool Pair(string suffix) => available("libicuuc.so" + suffix) && available("libicui18n.so" + suffix);
 

@@ -19,7 +19,7 @@ for project in Cli Desktop; do
   directory=cli
   if [[ $project == Desktop ]]; then directory=desktop; fi
   dotnet publish "$repo/src/Ilmenyx.$project/Ilmenyx.$project.csproj" -c Release \
-    -r linux-x64 --self-contained false --no-restore -m:1 -p:UseSharedCompilation=false \
+    -r linux-x64 --self-contained true -p:IlmenyxBundleIcu=true --no-restore -m:1 -p:UseSharedCompilation=false \
     -p:PublishSingleFile=false -p:PublishTrimmed=false -p:DebugType=None -p:DebugSymbols=false \
     -o "$bundle/$directory"
 done
@@ -49,18 +49,19 @@ if [[ -n $(git -C "$repo" status --porcelain) ]]; then state=dirty; fi
 version=$(jq -r '.libraries | keys[] | select(startswith("ilmenyx/")) | split("/")[1]' "$bundle/cli/ilmenyx.deps.json")
 [[ -n $version ]] || { echo 'Versao ausente no deps.json' >&2; exit 1; }
 jq -n --arg version "$version" --arg revision "$revision" --arg state "$state" \
-  '{product:"Ilmenyx",version:$version,maintainer:"Bismuth Technology",rid:"linux-x64",selfContained:false,runtime:"Microsoft.NETCore.App 10.0",sourceRevision:$revision,sourceWorkingTree:$state,distribution:"local-review-only",legalReview:"pending"}' > "$bundle/package.json"
+  '{product:"Ilmenyx",version:$version,maintainer:"Bismuth Technology",rid:"linux-x64",selfContained:true,runtime:"Microsoft.NETCore.App 10.0 (embutido)",icu:"Microsoft.ICU.ICU4C.Runtime 72.1.0.3 (embutido, app-local)",sourceRevision:$revision,sourceWorkingTree:$state,distribution:"local-review-only",legalReview:"pending"}' > "$bundle/package.json"
 cat > "$bundle/LEIA-ME.txt" <<'TEXT'
 Ilmenyx — by Bismuth Technology. Pacote local experimental, sem publicacao.
 Adaptacao independente e nao oficial do RESET EXPLODE, Gustavo (GustavoReset).
-Requer runtime .NET 10 Linux x64, glibc e ICU no modo padrao.
+Autocontido: runtime .NET 10 e ICU 72 acompanham o pacote; nao ha o que instalar para o .NET.
+Requer glibc e as bibliotecas graficas do SO (nao embutiveis).
 UI requer bibliotecas graficas do SO, incluindo fontconfig; validar via ldd e GUI.
 O RID linux-x64 deste bundle nao suporta Alpine/musl.
 CLI: ./cli/ilmenyx --help ; ./cli/ilmenyx info --json
 UI X11: ILMENYX_DISPLAY_BACKEND=x11 ./desktop/Ilmenyx.Desktop
 UI Wayland: env -u DISPLAY ILMENYX_DISPLAY_BACKEND=wayland ./desktop/Ilmenyx.Desktop
-Se runtime isolado: export DOTNET_ROOT=/caminho/do/runtime-dotnet10
-Nao inclui runtime, SDK, smartctl, drivers, instalador ou garantias de portabilidade.
+Nao inclui SDK, smartctl, drivers, instalador ou garantias de portabilidade.
+GameMode, MangoHud e Flatpak sao integracoes opcionais do sistema: o app indica quando faltam.
 Leia LICENSE, NOTICE.md, LICENSING.md, LICENSE-ILMENYX.md e THIRD-PARTY-NOTICES.md.
 MIT/terceiros e direitos anteriores preservados. Revisao humana antes de distribuir.
 Licencas coletadas do cache e dependencies.tsv sao inventario, nao liberacao juridica.

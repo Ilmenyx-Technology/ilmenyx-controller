@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Version>0.27.0</Version>
+    <Version>0.28.0</Version>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -13,5 +13,13 @@
     <ProjectReference Include="../Ilmenyx.Contracts/Ilmenyx.Contracts.csproj" />
     <ProjectReference Include="../Ilmenyx.Core/Ilmenyx.Core.csproj" />
     <ProjectReference Include="../Ilmenyx.Platform.Linux/Ilmenyx.Platform.Linux.csproj" />
+  </ItemGroup>
+  <!-- Pacote autocontido (scripts/package-linux-x64.sh): runtime e ICU acompanham o app. -->
+  <PropertyGroup Condition="'$(IlmenyxBundleIcu)' == 'true'">
+    <IlmenyxIcuVersion>72.1.0.3</IlmenyxIcuVersion>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(IlmenyxBundleIcu)' == 'true'">
+    <PackageReference Include="Microsoft.ICU.ICU4C.Runtime" Version="$(IlmenyxIcuVersion)" />
+    <RuntimeHostConfigurationOption Include="System.Globalization.AppLocalIcu" Value="$(IlmenyxIcuVersion)" />
   </ItemGroup>
 </Project>

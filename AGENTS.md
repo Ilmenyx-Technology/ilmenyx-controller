@@ -266,3 +266,9 @@ as regras de arquitetura Linux, benchmarks, testes, licenças e segurança anter
 - Salvaguardas mantidas: nada de carga, stress, benchmark pesado, rede ou alteração do sistema em testes automáticos, na abertura ou sem clique explícito
   com confirmação; limites, timeout, cancelamento e limpeza obrigatórios; alterações reversíveis com backup; sem sudo implícito (root = comando exibido);
   sem telemetria; serviços externos só por ação explícita; disco só em arquivo temporário autorizado; sem assets/marca do original; atribuição MIT.
+
+
+## Pacote autocontido 0.28.0
+- Por decisão do usuário (2026-10-22) o pacote embute runtime .NET e ICU app-local; isso substitui a regra de 0.17.0 de não incluir runtime. SDK, testes e drivers continuam fora.
+- ICU embutido só com -p:IlmenyxBundleIcu=true e restore explícito; não ativar Invariant para contornar. Programas externos opcionais (GameMode, MangoHud, Flatpak, smartctl) não são embutidos: detectar e informar.
+- Avisos do runtime (MIT) e do ICU (Unicode) acompanham em licenses/; sem liberação jurídica de redistribuição.

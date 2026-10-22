@@ -12,7 +12,7 @@ bundle=$(cd -- "$1" && pwd)
 mkdir -- "$2"
 output=$(cd -- "$2" && pwd)
 (cd -- "$bundle" && sha256sum --check SHA256SUMS) > "$output/integrity.txt"
-jq -e '.rid == "linux-x64" and .selfContained == false and .distribution == "local-review-only"' "$bundle/package.json" >/dev/null
+jq -e '.rid == "linux-x64" and .selfContained == true and .distribution == "local-review-only"' "$bundle/package.json" >/dev/null
 for directory in cli desktop; do
   for notice in LICENSE NOTICE.md LICENSING.md LICENSE-ILMENYX.md THIRD-PARTY-NOTICES.md; do
     cmp -- "$bundle/$notice" "$bundle/$directory/$notice"
