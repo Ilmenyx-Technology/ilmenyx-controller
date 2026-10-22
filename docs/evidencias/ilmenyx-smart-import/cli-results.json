@@ -1,0 +1,49 @@
+{
+  "deviceMismatch": {
+    "exitCode": 1,
+    "stdoutEmpty": true
+  },
+  "invalidJson": {
+    "exitCode": 1,
+    "stdoutEmpty": true
+  },
+  "oversized": {
+    "exitCode": 1,
+    "stdoutEmpty": true
+  },
+  "mixedFormats": {
+    "exitCode": 2,
+    "stdoutEmpty": true
+  },
+  "queryFlagRejected": {
+    "exitCode": 2,
+    "stdoutEmpty": true
+  },
+  "overwrite": {
+    "exitCode": 1,
+    "stdoutEmpty": true
+  },
+  "openStdinTimeout": {
+    "exitCode": 124,
+    "seconds": 3.12,
+    "stdoutEmpty": true
+  },
+  "importGlobalization0": {
+    "exitCode": 0,
+    "availableHistoricalReport": true
+  },
+  "importGlobalization1": {
+    "exitCode": 0,
+    "availableHistoricalReport": true
+  },
+  "realHistoricalNvme": {
+    "publishedHtmlFileEqualsStdout": true,
+    "filteredJsonAccepted": true,
+    "originalHtmlPreserved": true,
+    "freshDeviceQuery": false
+  },
+  "terminalWithoutRedirect": {
+    "exitCode": 2,
+    "testedInPty": true
+  }
+}

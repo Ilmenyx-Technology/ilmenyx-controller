@@ -1,0 +1,1 @@
+PASS: smart-import no pacote publicado com relatorio historico real; HTML stdout igual ao arquivo; nenhuma consulta ao disco.

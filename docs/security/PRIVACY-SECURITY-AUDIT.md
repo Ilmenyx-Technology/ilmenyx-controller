@@ -58,3 +58,14 @@ aprovados; fixture cobre saída texto/JSON/HTML e preservação de PCI/horários
 Casos arbitrários/ofuscados e limites de truncamento continuam PENDENTES DE REVISÃO;
 não há anonimização garantida. IPv6 em rótulos reais de outros dispositivos, VM limpa
 e matrizes adicionais seguem NÃO TESTADOS. [Evidências e limites](../privacidade-ipv6.md).
+
+
+## Atualização 0.24.0 — SMART importado offline
+
+IMPLEMENTADO: smart-import recebe JSON smartctl em stdin, verifica metadados/nome,
+filtra com parser existente e exporta wrapper histórico JSON/HTML. Sem dispositivo,
+processo smartctl ou nova consulta. Build sem avisos, 457 testes aprovados;
+relatório NVMe histórico real aceito e erros/timeout/browser validados.
+SMART-01 permanece NÃO TESTADO para consulta ao vivo com sucesso sem elevação;
+VM/SATA/encodings/tecnologias assistivas e integração UI continuam pendentes.
+[Colaboração, comandos e evidências](../smart-import.md).

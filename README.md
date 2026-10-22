@@ -7,7 +7,7 @@ política de contribuições próprias futuras: uso como ferramenta profissional
 venda do programa/acesso pago e derivação comercial do código restritos.
 Veja [mapa de licenças](LICENSING.md): a MIT original continua permitindo uso comercial das
 partes abrangidas, sem revogação de direitos anteriores. O conjunto não é anunciado como open source OSI.
-Versão local experimental 0.23.0; sem lançamento público nesta sessão.
+Versão local experimental 0.24.0; sem lançamento público nesta sessão.
 
 Ilmenyx é uma adaptação independente e não oficial do [RESET EXPLODE](https://github.com/GustavoReset/ResetExplode),
 criado por Gustavo (GustavoReset). Não possui afiliação, patrocínio ou endosso da equipe RESET.
@@ -247,3 +247,11 @@ Exportação HTML de sensores pela interface foi acrescentada em 0.23.0; veja ab
 No painel de sensores, escolha **Exportar sensores HTML**. Se o monitor atualizar
 a seleção durante o diálogo, a gravação é recusada; pare o monitor e selecione
 novamente. O mesmo controle protege JSON. [Resultados e comandos](docs/sensores-html-ui.md).
+
+
+### SMART offline — 0.24.0
+
+`smart-import --device nvme0n1 --html --output /caminho/novo.html < relatorio.json`
+converte relatório smartctl existente sem consultar o disco. Entrada limitada,
+saída filtrada e data da análise distinta da coleta original não confirmada.
+[Uso, testes e limites](docs/smart-import.md). Não é garantia de saúde atual.

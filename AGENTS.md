@@ -235,3 +235,11 @@ as regras de arquitetura Linux, benchmarks, testes, licenças e segurança anter
 - Monitor segue independente; recusar gravação se snapshot mudou ou há refresh ao voltar do diálogo.
 - Token de exportação ligado ao descarte; não escrever nem notificar após retorno de picker descartado.
 - Preservar extensão, foco, arquivo novo e testes de monitor real/seleção nos dois backends.
+
+
+## SMART offline 0.24.0
+- smart-import lê somente stdin limitado, sem query/sysfs/dispositivos; não aceitar --allow-device-query nessa rota.
+- Confrontar device.name e duplicatas/código; reutilizar parser existente para firmware/status.
+- Wrapper smart-import distingue análise atual de data original não confirmada; não apresentar importação como saúde atual.
+- Raw/serial/model/mensagens/horário bruto ficam fora da saída. Core só recebe DTO filtrado e texto escapado.
+- Timeout limita a espera; não prometer interrupção de leitor não cooperativo ou do kernel.

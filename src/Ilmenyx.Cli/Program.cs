@@ -34,6 +34,22 @@ try
         Console.Error.WriteLine("Dependencia ICU indisponivel. Os diagnosticos nao foram iniciados. Requer ICU compativel com o runtime .NET 10; consulte docs/pacote-linux-x64.md. Codigo: 5.");
         return 5;
     }
+    if (command.Operation == CliOperation.SmartImport)
+    {
+        if (!Console.IsInputRedirected) { Console.Error.WriteLine("smart-import exige relatório JSON redirecionado na entrada padrão."); return 2; }
+        SmartImportReport report;
+        try { report = await SmartctlReportImport.ReadAsync(command.Device!, Console.In, stop.Token); }
+        catch (TimeoutException e) { Console.Error.WriteLine(e.Message); return 124; }
+        if (command.Output is { } importPath)
+        {
+            if (command.Html) await SmartImportHtmlReport.ExportAsync(report, importPath, stop.Token);
+            else await SnapshotReport.ExportAsync(report, importPath, stop.Token);
+        }
+        if (command.Html) Console.Write(SmartImportHtmlReport.Render(report, stop.Token));
+        else Console.WriteLine(command.Json ? SnapshotReport.Json(report) :
+            $"SMART importado · {report.Diagnostic.Device} · {report.Diagnostic.Status}\nRelato passed: {SnapshotReport.Describe(report.Diagnostic.ReportedPassed)}\nAnálise offline de relatório histórico; sem nova consulta ou garantia de saúde atual.");
+        return 0;
+    }
     if (command.Operation == CliOperation.Smart)
     {
         var diagnostic = await new SmartctlDiagnostic(new SmartctlQuery()).CollectAsync(command.Device!, stop.Token);

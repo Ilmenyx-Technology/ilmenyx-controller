@@ -1,0 +1,13 @@
+{
+  "title": "Ilmenyx — SMART importado",
+  "width": 1280,
+  "pageFits": true,
+  "activeElements": 0,
+  "hasHistoricalNotice": true,
+  "hasNoQueryNotice": true,
+  "hasNoHealthGuarantee": true,
+  "hasCredits": true,
+  "hasSharingNotice": true,
+  "hasAnalysisTime": true,
+  "csp": "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"
+}

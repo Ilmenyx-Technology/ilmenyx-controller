@@ -248,3 +248,14 @@ Build sem avisos/erros, 392 testes aprovados; monitor real, exportação/cancela
 extensão/overwrite, teclado roteado e mínimos até 200% passaram. Interação física,
 Orca, VM limpa e revisão humana seguem PENDENTES/NÃO TESTADOS.
 [Colaboração Claude, comandos e evidências](docs/sensores-html-ui.md).
+
+
+## Atualização 0.24.0 — SMART importado offline
+
+IMPLEMENTADO: smart-import recebe JSON smartctl em stdin, verifica metadados/nome,
+filtra com parser existente e exporta wrapper histórico JSON/HTML. Sem dispositivo,
+processo smartctl ou nova consulta. Build sem avisos, 457 testes aprovados;
+relatório NVMe histórico real aceito e erros/timeout/browser validados.
+SMART-01 permanece NÃO TESTADO para consulta ao vivo com sucesso sem elevação;
+VM/SATA/encodings/tecnologias assistivas e integração UI continuam pendentes.
+[Colaboração, comandos e evidências](docs/smart-import.md).

@@ -4,7 +4,7 @@ using Ilmenyx.Platform.Linux;
 using Ilmenyx.Core.Benchmarks;
 namespace Ilmenyx.Cli;
 
-public enum CliOperation { Help, Info, Capabilities, CpuBenchmark, Sensors, Smart, MemoryValidation, GameSimValidation, GameSimPlan, GameSimBenchmark, Doctor }
+public enum CliOperation { Help, Info, Capabilities, CpuBenchmark, Sensors, Smart, MemoryValidation, GameSimValidation, GameSimPlan, GameSimBenchmark, Doctor, SmartImport }
 public sealed record CliArguments(CliOperation Operation, bool Json, string? Output, CpuBenchmarkOptions? Benchmark, string? Device = null, bool Html = false, MemoryValidationOptions? Memory = null, GameSimValidationOptions? Simulation = null, GameSimFullPlanOptions? SimulationPlan = null, GameSimBenchmarkOptions? SimulationBenchmark = null)
 {
     public const string Help = """
@@ -15,6 +15,7 @@ public sealed record CliArguments(CliOperation Operation, bool Json, string? Out
           info [--json|--html] [--output ARQUIVO]
           capabilities [--json]
           sensors [--json|--html] [--output ARQUIVO]
+          smart-import --device NOME [--json|--html] [--output ARQUIVO] < RELATORIO_SMARTCTL.json
           smart --device NOME --allow-device-query [--json] [--output ARQUIVO]
           bench sim-full --allow-cpu-load [--threads N] [--duration-seconds 1..10] [--timeout-seconds N] [--json] [--output ARQUIVO]
           bench sim-plan [--threads N] [--duration-seconds 1..10] [--timeout-seconds N] [--json] [--output ARQUIVO]
@@ -23,6 +24,7 @@ public sealed record CliArguments(CliOperation Operation, bool Json, string? Out
           bench cpu [--profile validation|full] [--threads N] [--json|--html] [--output ARQUIVO]
                     [--min-seconds N] [--timeout-seconds N] [--allow-cpu-load]
           --help
+        smart-import: entrada padrao limitada, analise offline; nao consulta disco nem confirma origem/data original.
         doctor: requisitos locais, texto somente, sem inventario ou benchmarks.
         CPU padrão: validação 32x18, 8 spp, uma passada, sem score.
         sim-plan: prepara configuração revisável; NÃO executa carga nem mede FPS/score.
@@ -46,6 +48,7 @@ public sealed record CliArguments(CliOperation Operation, bool Json, string? Out
         {
             "sensors" => CliOperation.Sensors,
             "smart" => CliOperation.Smart,
+            "smart-import" => CliOperation.SmartImport,
             "info" => CliOperation.Info,
             "capabilities" => CliOperation.Capabilities,
             "bench" when args.Length > 1 && args[1] == "sim-full" => CliOperation.GameSimBenchmark,
@@ -67,9 +70,9 @@ public sealed record CliArguments(CliOperation Operation, bool Json, string? Out
         {
             string flag = args[i];
             if (!seen.Add(flag)) throw new ArgumentException("Argumento duplicado: " + flag);
-            if (operation == CliOperation.Smart && flag == "--device") { device = Value(args, ref i); continue; }
+            if (operation is (CliOperation.Smart or CliOperation.SmartImport) && flag == "--device") { device = Value(args, ref i); continue; }
             if (operation == CliOperation.Smart && flag == "--allow-device-query") { deviceQuery = true; continue; }
-            if (flag == "--html" && operation is (CliOperation.Info or CliOperation.Sensors or CliOperation.CpuBenchmark or CliOperation.MemoryValidation or CliOperation.GameSimValidation)) { html = true; continue; }
+            if (flag == "--html" && operation is (CliOperation.Info or CliOperation.Sensors or CliOperation.SmartImport or CliOperation.CpuBenchmark or CliOperation.MemoryValidation or CliOperation.GameSimValidation)) { html = true; continue; }
             if (flag == "--json") { json = true; continue; }
             if (flag == "--allow-cpu-load" && operation is (CliOperation.CpuBenchmark or CliOperation.GameSimBenchmark)) { allow = true; continue; }
             if (flag == "--output" && operation != CliOperation.Capabilities) { output = Value(args, ref i); continue; }
@@ -110,6 +113,8 @@ public sealed record CliArguments(CliOperation Operation, bool Json, string? Out
         }
         if (operation == CliOperation.Smart && (!deviceQuery || device is null || !SmartctlQuery.ValidDeviceName(device)))
             throw new ArgumentException("SMART exige --device sda|nvme0n1 e --allow-device-query. Consulta somente leitura pode exigir permissões já existentes.");
+        if (operation == CliOperation.SmartImport && (device is null || !SmartctlQuery.ValidDeviceName(device)))
+            throw new ArgumentException("smart-import exige --device sda|nvme0n1 para conferir metadados da entrada; não executa consulta.");
         MemoryValidationOptions? memory = null;
         if (operation == CliOperation.MemoryValidation)
         {
