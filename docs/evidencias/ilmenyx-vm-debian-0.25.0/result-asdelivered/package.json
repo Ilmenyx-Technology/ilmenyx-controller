@@ -1,0 +1,12 @@
+{
+  "product": "Ilmenyx",
+  "version": "0.25.0",
+  "maintainer": "Bismuth Technology",
+  "rid": "linux-x64",
+  "selfContained": false,
+  "runtime": "Microsoft.NETCore.App 10.0",
+  "sourceRevision": "9d4b9db9f4ab4b8666e873f2e60132c574a6f544",
+  "sourceWorkingTree": "dirty",
+  "distribution": "local-review-only",
+  "legalReview": "pending"
+}

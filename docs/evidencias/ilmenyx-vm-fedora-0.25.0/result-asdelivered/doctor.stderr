@@ -1,0 +1,21 @@
+Process terminated.
+Couldn't find a valid ICU package installed on the system. Please install libicu (or icu-libs) using your package manager and try again. Alternatively you can set the configuration flag System.Globalization.Invariant to true if you want to run with no globalization support. Please see https://aka.ms/dotnet-missing-libicu for more information.
+   at System.Environment.FailFast(System.Runtime.CompilerServices.StackCrawlMarkHandle, System.String, System.Runtime.CompilerServices.ObjectHandleOnStack, System.String)
+   at System.Environment.FailFast(System.Threading.StackCrawlMark ByRef, System.String, System.Exception, System.String)
+   at System.Environment.FailFast(System.String)
+   at System.Globalization.GlobalizationMode+Settings..cctor()
+   at System.Globalization.CultureData.CreateCultureWithInvariantData()
+   at System.Globalization.CultureData.get_Invariant()
+   at System.Globalization.TextInfo..cctor()
+   at System.String.ToLowerInvariant()
+   at System.Text.EncodingHelper.GetEncodingFromCharset()
+   at System.ConsolePal.GetConsoleEncoding()
+   at System.Console.get_OutputEncoding()
+   at System.Console.CreateOutputWriter(System.IO.Stream)
+   at System.Console.<get_Out>g__EnsureInitialized|26_0()
+   at Program+<<Main>$>d__0.MoveNext()
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[[Program+<<Main>$>d__0, ilmenyx, Version=0.25.0.0, Culture=neutral, PublicKeyToken=null]](<<Main>$>d__0 ByRef)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1[[System.Int32, System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].Start[[Program+<<Main>$>d__0, ilmenyx, Version=0.25.0.0, Culture=neutral, PublicKeyToken=null]](<<Main>$>d__0 ByRef)
+   at Program.<Main>$(System.String[])
+   at Program.<Main>(System.String[])
+timeout: the monitored command dumped core

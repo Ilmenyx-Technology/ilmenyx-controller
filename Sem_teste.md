@@ -287,3 +287,12 @@ Continuam NÃO TESTADOS: sessão gráfica real/Wayland/interação na VM, GNOME 
 DISTRO-01 (Ubuntu 24.04, parcial): build, 468 testes e UiSmoke X11 (Xvfb) aprovados na VM.
 Achado e corrigido: títulos sem quebra cortavam a 200 % com DejaVu. Seguem NÃO TESTADOS:
 Wayland/compositor real no Ubuntu, Debian, interação humana/Orca, outras fontes/escalas.
+
+DISTRO-01 (Debian 13) e DISTRO-02 (Fedora 44, SELinux Enforcing), 2026-10-21, VMs QEMU/KVM de imagens
+cloud oficiais verificadas: pacote 0.25.0 sem ICU é BLOQUEADO (o runtime aborta antes do Ilmenyx;
+resultado negativo registrado); com libicu/fontconfig/X11 instalados: validate-linux-machine PASS,
+desktop abre sob Xvfb, build do código-fonte sem avisos, 468 testes e UiSmoke X11 (25 PASS) aprovados.
+Evidências: docs/evidencias/ilmenyx-vm-debian-0.25.0 e ilmenyx-vm-fedora-0.25.0.
+Continuam NÃO TESTADOS: Wayland/compositor real (GNOME/KDE) nessas distros, hardware, interação
+humana/Orca, ARM64, musl/Alpine, assinatura GPG do checksum Fedora. Dependência de ICU deve constar
+nos requisitos de instalação por distro (ver docs/pacote-linux-x64.md).
