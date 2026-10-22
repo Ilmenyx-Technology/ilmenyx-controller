@@ -349,3 +349,9 @@ NÃO TESTADO: alteração real de serviços systemd do usuário (o smoke não cl
 Fase 1 — Maker (Portas e Drivers seriais): páginas no layout do original; diagnóstico Linux (módulo ausente/não carregado, brltty, permissão/grupo, ModemManager) sem abrir a porta. 604 testes.
 Bugs reais achados por teste: SysfsText removia tabulações (quebraria /proc/self/status). NÃO TESTADO: qualquer placa serial USB real (host sem ttyUSB/ttyACM), regras udev, brltty/ModemManager reais, outras distros (grupo uucp x dialout).
 Não portado por não existir no Linux: instalação/remoção de pacotes de driver do Windows, dispositivos fantasma do registro (UsbCleaner), driver FTDI zerando PID.
+
+Fase 1 — Jogos (Launcher): página no layout do original, VDF portado, bibliotecas Steam/Lutris/Heroic/manuais, perfis persistidos em ~/.config/ilmenyx/settings.json, opções da Steam com backup,
+auxiliares, JOGAR com perfil de energia reversível. 627 testes; smoke com árvore Steam temporária e lançador falso; leitura real do Lutris do host.
+NÃO TESTADO: iniciar um jogo de verdade (por desenho o smoke nunca inicia), Heroic real (formatos lidos de forma defensiva), GameMode/MangoHud (não instalados), PRIME offload em máquina com 2 GPUs,
+fechamento da Steam real, detecção do processo de jogos Proton/Wine fora do Steam, Flatpak Steam.
+Não portado por não existir no Linux: prioridade de processo elevada (exige privilégio; use GameMode), otimizações de tela cheia do Windows, preferência de GPU do Windows.

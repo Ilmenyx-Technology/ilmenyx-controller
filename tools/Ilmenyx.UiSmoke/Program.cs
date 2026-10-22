@@ -390,7 +390,7 @@ public sealed class UiSmokeApp : Application
         if (Find<Button>(shell, "DashMetricPower").IsEnabled) throw new InvalidOperationException("Unavailable power metric must stay disabled.");
         Click(shell, "GoMemory"); await Until(() => shell.CurrentPage == "system");
         var expected = new (string Key, string Control)[] { ("dash", "OverviewChart"), ("system", "SysRefresh"), ("sensors", "RefreshSensors"), ("gpu", "GpuValidationNotice"), ("disks", "BtnDiskRefresh"),
-            ("energy", "BtnEnergyRefresh"), ("net", "NetChart"), ("procs", "ProcessRows"), ("bottleneck", "BtnBnSession"), ("validate", "ValidateCpu"), ("makerports", "BtnMakerPortScan"), ("makerdrv", "BtnMakerDrvScan"), ("startup", "BtnStartupScan"), ("driver", "BtnDrvScan"), ("tools", "About") };
+            ("energy", "BtnEnergyRefresh"), ("net", "NetChart"), ("procs", "ProcessRows"), ("launcher", "BtnScanGames"), ("bottleneck", "BtnBnSession"), ("validate", "ValidateCpu"), ("makerports", "BtnMakerPortScan"), ("makerdrv", "BtnMakerDrvScan"), ("startup", "BtnStartupScan"), ("driver", "BtnDrvScan"), ("tools", "About") };
         foreach (var (key, control) in expected)
         {
             var nav = Find<Button>(shell, "Nav" + key);
@@ -479,6 +479,7 @@ public sealed class UiSmokeApp : Application
         await Until(() => shell.GetVisualDescendants().OfType<StackPanel>().Any(p => p.Name == "MakerChipList" && p.Children.Count == 6));
         if (!shell.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "MakerChipState_ch341" && t.Text!.Length > 0)) throw new InvalidOperationException("Chip family state missing.");
         Console.WriteLine("PASS maker pages: serial ports listed (or honest empty state) without opening any port; chip family modules, environment checks and official pages (not opened)");
+        if (OperatingSystem.IsLinux()) await LauncherAsync(shell, desktop);
         Click(shell, "SortMemory"); await Until(() => Find<Button>(shell, "SortMemory").Content!.ToString()!.Contains('▼'));
         Click(shell, "ToggleMonitor");
         await Until(() => Find<Button>(shell, "ToggleMonitor").Content!.ToString() == "Retomar monitor" && Find<TextBlock>(shell, "SideMonitor").Text == "monitor parado");
@@ -532,6 +533,48 @@ public sealed class UiSmokeApp : Application
         await Until(() => shell.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "StartupSummary" && (t.Text!.Contains("PROGRAMAS") || t.Text.Contains("NENHUM"))));
         await Task.Delay(300); Capture(shell, "shell-startup.png");
         Console.WriteLine("PASS startup page: system entry disabled by user override (system file untouched), declined removal keeps entry, confirmed removal + restore round trip; real list read-only");
+    }
+    [System.Runtime.Versioning.SupportedOSPlatform("linux")]
+    private static async Task LauncherAsync(ShellWindow shell, IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        // Fixture library: nothing real is launched, written or closed (the launcher is a recording stub and Steam files are temporary).
+        string root = Path.Combine(Program.OutputDirectory, "launcher-fixture"), home = Path.Combine(root, "home"), steam = Path.Combine(home, ".local/share/Steam"), apps = Path.Combine(steam, "steamapps");
+        Directory.CreateDirectory(Path.Combine(apps, "common/Game One")); Directory.CreateDirectory(Path.Combine(steam, "userdata/1/config"));
+        File.WriteAllText(Path.Combine(apps, "libraryfolders.vdf"), "\"libraryfolders\"\n{\n\t\"0\"\n\t{\n\t\t\"path\"\t\t\"" + steam + "\"\n\t}\n}\n");
+        File.WriteAllText(Path.Combine(apps, "appmanifest_100.acf"), "\"AppState\"\n{\n\t\"appid\"\t\t\"100\"\n\t\"name\"\t\t\"Game One\"\n\t\"StateFlags\"\t\t\"4\"\n\t\"installdir\"\t\t\"Game One\"\n}\n");
+        string localConfig = Path.Combine(steam, "userdata/1/config/localconfig.vdf");
+        File.WriteAllText(localConfig, "\"UserLocalConfigStore\"\n{\n}\n");
+        string manual = Path.Combine(root, "manualgame.sh"); File.WriteAllText(manual, "#!/bin/sh\n"); File.SetUnixFileMode(manual, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        string settingsPath = Path.Combine(root, "cfg/ilmenyx/settings.json"); string? launched = null;
+        Window? host = null;
+        var page = new LauncherPage(new Ilmenyx.Platform.Linux.LinuxGameLibrary(home, (_, _) => Task.FromResult((0, "[]"))), new Ilmenyx.Platform.Linux.SteamInfo(home, Path.Combine(root, "noproc")), settingsPath,
+            (g, p, v, status, learned, ct) => { launched = g.Key + "|" + p.WinMode; status("stub launched"); return Task.CompletedTask; }, () => host, "AMD", true, CancellationToken.None);
+        host = new Window { Width = 1100, Height = 800, Content = page }; host.Show();
+        await Until(() => page.Games.Count == 1);
+        Click(host, "BtnAddExe"); Find<TextBox>(host, "LAddPath").Text = "relative/path"; Click(host, "BtnAddExeConfirm");
+        await Until(() => Find<TextBlock>(host, "LAddStatus").Text!.Contains("caminho completo"));
+        Find<TextBox>(host, "LAddPath").Text = manual; Click(host, "BtnAddExeConfirm");
+        await Until(() => page.Games.Count == 2 && page.Profile is not null && host.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "LTitle" && t.Text == "manualgame"));
+        Click(host, "LGame_Steam_100");
+        await Until(() => host.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "LTitle" && t.Text == "Game One") && Find<StackPanel>(host, "LSteamBox").IsVisible);
+        var plan = Find<CheckBox>(host, "LChkPlan"); plan.IsChecked = true;
+        var gpu = Find<CheckBox>(host, "LChkGpu"); if (!gpu.IsEnabled) throw new InvalidOperationException("GPU checkbox should be enabled with multiple GPUs."); gpu.IsChecked = true;
+        foreach (var chip in host.GetVisualDescendants().OfType<Button>().Where(b => b.Content?.ToString() is "Tela cheia" or "1920x1080" or "144")) chip.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => Find<TextBlock>(host, "LPreview").Text == "DRI_PRIME=1 %command% -fullscreen -w 1920 -h 1080 -freq 144");
+        if (!File.Exists(settingsPath) || !File.ReadAllText(settingsPath).Contains("\"HighPerfPlan\": true")) throw new InvalidOperationException("Profile was not persisted.");
+        Click(host, "BtnSteamApply");
+        await Until(() => Find<TextBlock>(host, "LStatus").Text!.Contains("Opções gravadas na Steam"));
+        if (!File.ReadAllText(localConfig).Contains("DRI_PRIME=1 %command% -fullscreen") || !File.Exists(localConfig + ".ilmenyx.bak")) throw new InvalidOperationException("Steam launch options not written with backup.");
+        Find<TextBox>(host, "LHelperPath").Text = "/bin/true -q"; Click(host, "BtnAddHelper");
+        await Until(() => Find<StackPanel>(host, "LHelpers").Children.Count == 1);
+        Click(host, "BtnPlay");
+        await Until(() => launched == "Steam:100|full" && Find<TextBlock>(host, "LStatus").Text == "stub launched" && Find<Button>(host, "BtnPlay").Content!.ToString() == "JOGAR");
+        host.Close();
+        // The real shell page reads the real libraries (Steam, Lutris, Heroic) without launching, writing or closing anything.
+        Find<Button>(shell, "Navlauncher").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => shell.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "LGameCount" && !t.Text!.StartsWith("Procurando")));
+        await Task.Delay(200); Capture(shell, "shell-launcher.png");
+        Console.WriteLine("PASS launcher page: library scan, manual executable validation, profile persistence, Steam launch options with backup, helper, stubbed launch; real library read-only");
     }
     private static async Task ExerciseAsync(DashboardWindow window, IClassicDesktopStyleApplicationLifetime desktop)
     {

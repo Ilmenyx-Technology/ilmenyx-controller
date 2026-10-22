@@ -1,0 +1,146 @@
+// New Ilmenyx additions, adapted from the profile model and argument builder of the original GameLauncher/AppSettings (MIT, see NOTICE): see LICENSING.md.
+using System.Text.Json;
+using System.Text.RegularExpressions;
+
+namespace Ilmenyx.Core;
+
+/// <summary>Program opened before the game and optionally closed with it. Started without a shell.</summary>
+public sealed class HelperProgram
+{
+    public string Path { get; set; } = "";
+    public string Args { get; set; } = "";
+    public bool CloseWithGame { get; set; } = true;
+    public string Display => System.IO.Path.GetFileName(Path) + (string.IsNullOrWhiteSpace(Args) ? "" : " " + Args);
+}
+
+/// <summary>Per-game profile. Linux: performance power profile, PRIME offload, GameMode, MangoHud, graphics arguments and helper programs.</summary>
+public sealed class GameProfile
+{
+    public bool HighPerfPlan { get; set; }
+    public bool GpuHigh { get; set; }
+    public bool GameMode { get; set; }
+    public bool MangoHud { get; set; }
+    public string? ExePath { get; set; }
+    public string WinMode { get; set; } = "default";   // default | full | borderless | window
+    public string Res { get; set; } = "default";       // default | 1280x720 | 1920x1080 | 2560x1440 | 3840x2160
+    public int Hz { get; set; }                        // 0 = do not set
+    public string Style { get; set; } = "source";      // source | unity | unreal
+    public string Extra { get; set; } = "";
+    public List<HelperProgram> Helpers { get; set; } = [];
+}
+
+/// <summary>Manually added executable (ELF, script, AppImage).</summary>
+public sealed class CustomGame
+{
+    public string Name { get; set; } = "";
+    public string Exe { get; set; } = "";
+    public string Args { get; set; } = "";
+}
+
+public sealed record LibGame(string Store, string Id, string Name, string InstallDir, string? ExePath = null, string? LaunchUri = null, string Args = "")
+{
+    public string Key => Store + ":" + Id;
+    public string Subtitle => Store;
+    public bool IsSteam => Store == "Steam";
+}
+
+public static class GameLaunchOptions
+{
+    private static readonly Regex Resolution = new(@"^(\d{3,5})x(\d{3,5})\z", RegexOptions.CultureInvariant);
+    public static readonly string[] WinModes = ["default", "full", "borderless", "window"];
+    public static readonly string[] Styles = ["source", "unity", "unreal"];
+
+    /// <summary>Graphics arguments of the profile in the style of the chosen engine (same logic as the original BuildArgs).</summary>
+    public static string BuildArgs(GameProfile p)
+    {
+        var a = new List<string>(); int w = 0, h = 0;
+        var m = Resolution.Match(p.Res ?? "");
+        if (m.Success) { w = int.Parse(m.Groups[1].Value); h = int.Parse(m.Groups[2].Value); }
+        switch (p.Style)
+        {
+            case "unity":
+                if (p.WinMode == "full") a.Add("-screen-fullscreen 1"); else if (p.WinMode == "window") a.Add("-screen-fullscreen 0"); else if (p.WinMode == "borderless") a.Add("-popupwindow");
+                if (w > 0) a.Add($"-screen-width {w} -screen-height {h}");
+                break;
+            case "unreal":
+                if (p.WinMode == "full") a.Add("-fullscreen"); else if (p.WinMode is "window" or "borderless") a.Add("-windowed");
+                if (w > 0) a.Add($"-ResX={w} -ResY={h}");
+                break;
+            default:
+                if (p.WinMode == "full") a.Add("-fullscreen"); else if (p.WinMode == "window") a.Add("-windowed"); else if (p.WinMode == "borderless") a.Add("-windowed -noborder");
+                if (w > 0) a.Add($"-w {w} -h {h}");
+                if (p.Hz > 0) a.Add($"-freq {p.Hz}");
+                break;
+        }
+        if (!string.IsNullOrWhiteSpace(p.Extra)) a.Add(p.Extra.Trim());
+        return string.Join(" ", a);
+    }
+
+    /// <summary>Environment variables selecting the discrete GPU through PRIME render offload (NVIDIA proprietary or Mesa).</summary>
+    public static IReadOnlyList<KeyValuePair<string, string>> GpuEnvironment(string vendor) => vendor switch
+    {
+        "NVIDIA" => [new("__NV_PRIME_RENDER_OFFLOAD", "1"), new("__GLX_VENDOR_LIBRARY_NAME", "nvidia"), new("__VK_LAYER_NV_optimus", "NVIDIA_only")],
+        "AMD" or "Intel" or "" => [new("DRI_PRIME", "1")],
+        _ => []
+    };
+
+    /// <summary>Launch options for Steam: <c>ENV=… wrappers %command% args</c>. No shell metacharacters beyond what the user typed in Extra.</summary>
+    public static string BuildSteamOptions(GameProfile p, string gpuVendor)
+    {
+        var parts = new List<string>();
+        if (p.GpuHigh) parts.AddRange(GpuEnvironment(gpuVendor).Select(kv => $"{kv.Key}={kv.Value}"));
+        if (p.MangoHud) parts.Add("mangohud");
+        if (p.GameMode) parts.Add("gamemoderun");
+        string args = BuildArgs(p);
+        if (parts.Count == 0 && args.Length == 0) return "";
+        parts.Add("%command%"); if (args.Length > 0) parts.Add(args);
+        return string.Join(" ", parts);
+    }
+
+    /// <summary>Splits an argument string like a minimal shell would (quotes and backslash escapes only; no expansion). Throws on unterminated quotes.</summary>
+    public static IReadOnlyList<string> SplitArguments(string text)
+    {
+        var result = new List<string>(); var cur = new System.Text.StringBuilder(); char quote = '\0'; bool any = false;
+        for (int i = 0; i < text.Length; i++)
+        {
+            char c = text[i];
+            if (quote != '\0') { if (c == quote) quote = '\0'; else if (c == '\\' && quote == '"' && i + 1 < text.Length && text[i + 1] is '"' or '\\') cur.Append(text[++i]); else cur.Append(c); }
+            else if (c is '"' or '\'') { quote = c; any = true; }
+            else if (c == '\\' && i + 1 < text.Length) { cur.Append(text[++i]); any = true; }
+            else if (char.IsWhiteSpace(c)) { if (any || cur.Length > 0) { result.Add(cur.ToString()); cur.Clear(); any = false; } }
+            else { cur.Append(c); any = true; }
+        }
+        if (quote != '\0') throw new FormatException("Aspas sem fechamento nos argumentos.");
+        if (any || cur.Length > 0) result.Add(cur.ToString());
+        return result;
+    }
+}
+
+/// <summary>User settings (game profiles, manual games, later overlay and benchmark history) in one JSON file, written atomically.</summary>
+public sealed class IlmenyxSettings
+{
+    public Dictionary<string, GameProfile> GameProfiles { get; set; } = [];
+    public List<CustomGame> CustomGames { get; set; } = [];
+
+    public static IlmenyxSettings Load(string path)
+    {
+        try { if (File.Exists(path) && new FileInfo(path).Length < 4 << 20) return JsonSerializer.Deserialize<IlmenyxSettings>(File.ReadAllText(path)) ?? new(); }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or JsonException) { }
+        return new();
+    }
+
+    public void Save(string path)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        string tmp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        File.WriteAllText(tmp, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
+        File.Move(tmp, path, overwrite: true);
+    }
+
+    public static string DefaultPath()
+    {
+        string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        string cfg = Environment.GetEnvironmentVariable("XDG_CONFIG_HOME") is { Length: > 0 } c && Path.IsPathRooted(c) ? c : Path.Combine(home, ".config");
+        return Path.Combine(cfg, "ilmenyx", "settings.json");
+    }
+}
