@@ -40,8 +40,9 @@ public sealed class LinuxHardwareInfoProvider(ILinuxFiles files, ISensorProvider
                 var source = $"/sys/block/{name}/size";
                 var size = await Read(source, ct);
                 var rotational = await Read($"/sys/block/{name}/queue/rotational", ct);
+                var bus = LinuxParsers.DiskBus(name, files.ResolveLink("/sys/block/" + name));
                 list.Add(new(name, size.Text is { } t ? LinuxParsers.Capacity(t, source) : Reading<long?>.Missing("B", source, size.Error!),
-                    LinuxParsers.DiskKind(rotational.Text, $"/sys/block/{name}/queue/rotational"), LinuxParsers.DiskBus(name, files.ResolveLink("/sys/block/" + name))));
+                    LinuxParsers.DiskKindFor(name, rotational.Text, $"/sys/block/{name}/queue/rotational", bus), bus));
             }
             disks = list.Count > 0 ? Reading<IReadOnlyList<DiskInfo>>.Available(list, "devices", "/sys/block") : Reading<IReadOnlyList<DiskInfo>>.Missing("devices", "/sys/block", "Nenhum dispositivo visível.");
         }

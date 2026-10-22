@@ -58,4 +58,24 @@ public sealed class DiskKindBusTests
         Assert.Equal(" · Rotacional (HDD)", SnapshotReport.DiskExtra(disk));
         Assert.Equal("", SnapshotReport.DiskExtra(new DiskInfo("sda", Reading<long?>.Available(1, "B", "x"))));
     }
+
+    [Theory]
+    [InlineData("sr0", "0", null, "Unidade óptica")]
+    [InlineData("fd0", "1", null, "Disquete")]
+    [InlineData("vda", "1", "/sys/devices/pci0000:00/0000:00:04.0/virtio1/block/vda", "disco virtual")]
+    [InlineData("loop0", "1", null, "disco virtual")]
+    [InlineData("sda", "1", "/sys/devices/pci0000:00/ata1/host0/block/sda", "Rotacional (HDD)")]
+    public void KindIsCorrectedForOpticalLegacyAndVirtualDevices(string name, string text, string? path, string expected)
+    {
+        var kind = LinuxParsers.DiskKindFor(name, text, "src", LinuxParsers.DiskBus(name, path));
+        Assert.Equal("available", kind.Status); Assert.Contains(expected, kind.Value);
+        if (name == "sda") Assert.DoesNotContain("virtual", kind.Value);
+    }
+
+    [Theory]
+    [InlineData("sr")]
+    [InlineData("sra")]
+    [InlineData("fdx")]
+    public void OpticalAndLegacyOverridesRequireNumericSuffix(string name) =>
+        Assert.DoesNotContain("óptica", LinuxParsers.DiskKindFor(name, "0", "src", LinuxParsers.DiskBus(name, null)).Value ?? "");
 }

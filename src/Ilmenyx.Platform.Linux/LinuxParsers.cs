@@ -73,6 +73,16 @@ public static class LinuxParsers
         "1" => Reading<string>.Available("Rotacional (HDD)", "", source),
         _ => Reading<string>.Missing("", source, "Valor de rotational ausente ou inválido.")
     };
+    /// <summary>Kind with device-specific corrections: optical/legacy names, and a caveat on virtual disks whose rotational flag is not the physical media.</summary>
+    public static Reading<string> DiskKindFor(string name, string? text, string source, Reading<string> bus)
+    {
+        static bool Numbered(string n, string prefix) => n.StartsWith(prefix, StringComparison.Ordinal) && n.Length > prefix.Length && n[prefix.Length..].All(char.IsAsciiDigit);
+        if (Numbered(name, "sr")) return Reading<string>.Available("Unidade óptica", "", source);
+        if (Numbered(name, "fd")) return Reading<string>.Available("Disquete/dispositivo legado", "", source);
+        var kind = DiskKind(text, source);
+        return kind.Status == "available" && (bus.Value is "VirtIO" or "Virtual/software")
+            ? Reading<string>.Available(kind.Value + " — disco virtual: indicação do kernel pode não refletir a mídia física", "", source) : kind;
+    }
     public static Reading<string> DiskBus(string name, string? resolved)
     {
         string source = "/sys/block/" + name;
