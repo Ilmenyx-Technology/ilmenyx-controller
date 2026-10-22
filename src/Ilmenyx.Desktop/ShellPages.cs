@@ -139,45 +139,7 @@ public sealed partial class ShellWindow
 
     private static void AutomationPropertiesName(Control c, string name) => Avalonia.Automation.AutomationProperties.SetName(c, name);
 
-    private Control SystemPage()
-    {
-        var stack = new StackPanel { Spacing = 14, DataContext = hardware };
-        var refresh = new Button { Name = "SysRefresh", Content = "Atualizar" };
-        var export = new Button { Name = "SysExportJson", Content = "Exportar hardware JSON" };
-        var exportHtml = new Button { Name = "SysExportHtml", Content = "Exportar hardware HTML" };
-        refresh.Click += async (_, _) => { refresh.IsEnabled = false; try { await hardware.RefreshAsync(stop.Token); } finally { refresh.IsEnabled = true; } };
-        export.Click += async (_, _) => await ExportHardwareAsync(false);
-        exportHtml.Click += async (_, _) => await ExportHardwareAsync(true);
-        async Task ExportHardwareAsync(bool html)
-        {
-            if (hardware.Snapshot is not { } snapshot) { hardware.SetStatus("Atualize os dados antes de exportar."); return; }
-            export.IsEnabled = false; exportHtml.IsEnabled = false;
-            try
-            {
-                string extension = html ? ".html" : ".json";
-                var path = await Destination("hardware")(extension);
-                if (path is null) return;
-                if (html) await Task.Run(() => HardwareHtmlReport.ExportAsync(snapshot, path, stop.Token), stop.Token);
-                else await SnapshotReport.ExportAsync(snapshot, path, stop.Token);
-                hardware.SetStatus("Snapshot exportado para arquivo local.");
-            }
-            catch (OperationCanceledException) { hardware.SetStatus("Exportação cancelada."); }
-            catch (Exception e) when (e is IOException or UnauthorizedAccessException or NotSupportedException or ArgumentException) { hardware.SetStatus("Não foi possível exportar. Escolha um nome novo: " + e.Message); }
-            finally { export.IsEnabled = true; exportHtml.IsEnabled = true; if (IsVisible && !stop.IsCancellationRequested) (html ? exportHtml : export).Focus(); }
-        }
-        stack.Children.Add(new WrapPanel { ItemSpacing = 10, LineSpacing = 8, Children = { refresh, export, exportHtml } });
-        var cards = new UniformGrid { Columns = 2 };
-        foreach (var (label, property) in new[] { ("PROCESSADOR", nameof(hardware.Cpu)), ("MEMÓRIA", nameof(hardware.Memory)), ("SISTEMA", nameof(hardware.System)) })
-        {
-            var value = new TextBlock { TextWrapping = TextWrapping.Wrap, FontSize = 16 }; value.Bind(TextBlock.TextProperty, new Binding(property));
-            cards.Children.Add(new Border { Margin = new Thickness(0, 0, 12, 12), Child = CardBox(new StackPanel { Spacing = 8, Children = { Label(label), value } }) });
-        }
-        stack.Children.Add(cards);
-        var status = new TextBlock { Name = "SysStatus", TextWrapping = TextWrapping.Wrap, Foreground = Palette.Muted }; status.Bind(TextBlock.TextProperty, new Binding(nameof(hardware.Status)));
-        stack.Children.Add(status);
-        stack.Children.Add(Wrapped("SysSources", "Fontes: /proc/cpuinfo, /proc/meminfo, /etc/os-release, /sys/block. Capacidade de dispositivo não é espaço livre. Dados não indicam saúde.", 12, Palette.Faint));
-        return Scroll("SystemScroll", stack);
-    }
+    private Control SystemPage() => new SystemInfoPage(hardware, Destination("hardware"), stop.Token) { Margin = new Thickness(0, 4, 0, 0) };
 
     private Control GpuPage()
     {

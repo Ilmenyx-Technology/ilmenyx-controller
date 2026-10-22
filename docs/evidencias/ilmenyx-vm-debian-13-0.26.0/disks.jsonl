@@ -1,0 +1,3 @@
+{"d":"sr0","kind":"Unidade óptica","bus":"SATA/ATA"}
+{"d":"vda","kind":"Rotacional (HDD) — disco virtual: indicação do kernel pode não refletir a mídia física","bus":"VirtIO"}
+{"d":"vdb","kind":"Rotacional (HDD) — disco virtual: indicação do kernel pode não refletir a mídia física","bus":"VirtIO"}

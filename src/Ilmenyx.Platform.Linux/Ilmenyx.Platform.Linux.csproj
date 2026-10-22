@@ -8,5 +8,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Ilmenyx.Contracts/Ilmenyx.Contracts.csproj" />
+    <ProjectReference Include="../Ilmenyx.Core/Ilmenyx.Core.csproj" />
   </ItemGroup>
 </Project>

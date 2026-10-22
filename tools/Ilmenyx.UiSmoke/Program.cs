@@ -401,6 +401,27 @@ public sealed class UiSmokeApp : Application
             if (key == "gpu" && Find<TextBlock>(shell, "GpuValidationNotice").Text != ValidationNotices.AmdNvidia) throw new InvalidOperationException("AMD/NVIDIA notice missing from GPU page.");
             if (key == "net") await Until(() => Find<UsageChart>(shell, "NetChart").Count >= 2);
         }
+        // System page (original layout): categories, drive rings, offline RAM inventory import.
+        Find<Button>(shell, "Navsystem").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => shell.GetVisualDescendants().OfType<StackPanel>().Any(p => p.Name == "SysDetails" && p.Children.Count > 3));
+        foreach (var category in new[] { "Sistema", "Placa-mãe", "Processador", "Memória", "Placa", "Armazenamento" })
+        {
+            Click(shell, "SysCat" + category);
+            await Until(() => Find<StackPanel>(shell, "SysDetails").Children.Count > 0);
+        }
+        if (!Find<StackPanel>(shell, "SysDrives").IsVisible || shell.GetVisualDescendants().OfType<RingGauge>().Count() < 1) throw new InvalidOperationException("Storage drive rings missing.");
+        await Task.Delay(300); Capture(shell, "shell-system-storage.png");
+        Click(shell, "SysCatMemória");
+        await Until(() => Find<StackPanel>(shell, "SysRamImport").IsVisible);
+        var dmiFile = Path.Combine(Program.OutputDirectory, "dmidecode-fixture.txt");
+        File.WriteAllText(dmiFile, "Handle 0x0040, DMI type 16, 23 bytes\nPhysical Memory Array\n\tMaximum Capacity: 64 GB\n\tNumber Of Devices: 2\n\nHandle 0x0041, DMI type 17, 40 bytes\nMemory Device\n\tSize: 16 GB\n\tLocator: DIMM_A2\n\tBank Locator: BANK 0\n\tType: DDR5\n\tSpeed: 4800 MT/s\n\tPart Number: F5-6000J3038F16GX2\n\tSerial Number: FIXTURE-SERIAL-NOT-REAL\n\tConfigured Memory Speed: 4800 MT/s\n");
+        Find<TextBox>(shell, "SysDmiPath").Text = "relativo.txt"; Click(shell, "SysImportDmi");
+        await Until(() => Find<TextBlock>(shell, "SysImportStatus").Text!.Contains("recusada"));
+        Find<TextBox>(shell, "SysDmiPath").Text = dmiFile; Click(shell, "SysImportDmi");
+        await Until(() => Find<TextBlock>(shell, "SysImportStatus").Text!.Contains("importado"));
+        await Until(() => shell.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text?.Contains("DESLIGADO") == true));
+        if (shell.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text?.Contains("FIXTURE-SERIAL") == true)) throw new InvalidOperationException("RAM serial leaked into the UI.");
+        Console.WriteLine("PASS system page: category list, drive rings, offline dmidecode import (relative path refused), EXPO estimate, no serial in UI");
         Click(shell, "SortMemory"); await Until(() => Find<Button>(shell, "SortMemory").Content!.ToString()!.Contains('▼'));
         Click(shell, "ToggleMonitor");
         await Until(() => Find<Button>(shell, "ToggleMonitor").Content!.ToString() == "Retomar monitor" && Find<TextBlock>(shell, "SideMonitor").Text == "monitor parado");

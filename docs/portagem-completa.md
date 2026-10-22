@@ -15,7 +15,7 @@ URL/credencial visíveis. Escrita em disco só em arquivo temporário autorizado
 | Original | Função | Adaptação Linux | Fase | Estado |
 |---|---|---|---|---|
 | Visão geral (Dash) | gráfico, desempenho, tabela de componentes | monitor /proc+hwmon; GPU/consumo dependem de GPU/RAPL | 0 | PARCIAL (sem GPU/consumo/score) |
-| Sistema (SystemInfoCollector) | placa-mãe, BIOS, CPU, RAM, SO | /sys/class/dmi/id, /proc, lscpu; módulos de RAM exigem root (instrução) | 1 | PENDENTE |
+| Sistema (SystemInfoCollector) | placa-mãe, BIOS, CPU, RAM, SO | /sys/class/dmi/id, /proc, /sys; módulos de RAM via importação offline do `dmidecode` (exige root) | 1 | IMPLEMENTADO (RAM por importação; sem serial) |
 | Sensores (SensorMonitor/LibreHardwareMonitor) | temperaturas, ventoinhas, tensões, potência | hwmon, thermal, power_supply, nvidia-smi/NVML, amdgpu sysfs | 0 | PARCIAL (sem GPU vendor) |
 | GPU (GpuInfoCollector, GpuSpecDb, Nvml, Dxgi) | ficha estilo GPU-Z | DRM sysfs, PCI ids, NVML (libnvidia-ml), amdgpu, Vulkan (vulkaninfo) | 1 | PARCIAL (inventário DRM) |
 | Discos (DiskHealth, DriveMap) | veredito de saúde, unidades e ocupação | smartctl/hwmon/sysfs + statfs/mounts; vereditos com limiares do original | 1 | PARCIAL (A/B feitos; sem veredito/mapa) |

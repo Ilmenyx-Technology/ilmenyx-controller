@@ -1,0 +1,12 @@
+{"d":"fd0","kind":"Disquete/dispositivo legado","bus":null}
+{"d":"loop0","kind":"Rotacional (HDD) — disco virtual: indicação do kernel pode não refletir a mídia física","bus":"Virtual/software"}
+{"d":"loop1","kind":"Rotacional (HDD) — disco virtual: indicação do kernel pode não refletir a mídia física","bus":"Virtual/software"}
+{"d":"loop2","kind":"Rotacional (HDD) — disco virtual: indicação do kernel pode não refletir a mídia física","bus":"Virtual/software"}
+{"d":"loop3","kind":"Rotacional (HDD) — disco virtual: indicação do kernel pode não refletir a mídia física","bus":"Virtual/software"}
+{"d":"loop4","kind":"Rotacional (HDD) — disco virtual: indicação do kernel pode não refletir a mídia física","bus":"Virtual/software"}
+{"d":"loop5","kind":"Rotacional (HDD) — disco virtual: indicação do kernel pode não refletir a mídia física","bus":"Virtual/software"}
+{"d":"loop6","kind":"Rotacional (HDD) — disco virtual: indicação do kernel pode não refletir a mídia física","bus":"Virtual/software"}
+{"d":"loop7","kind":"Rotacional (HDD) — disco virtual: indicação do kernel pode não refletir a mídia física","bus":"Virtual/software"}
+{"d":"sr0","kind":"Unidade óptica","bus":"SATA/ATA"}
+{"d":"vda","kind":"Rotacional (HDD) — disco virtual: indicação do kernel pode não refletir a mídia física","bus":"VirtIO"}
+{"d":"vdb","kind":"Rotacional (HDD) — disco virtual: indicação do kernel pode não refletir a mídia física","bus":"VirtIO"}

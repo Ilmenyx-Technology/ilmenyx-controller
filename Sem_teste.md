@@ -315,3 +315,8 @@ CachyOS. NÃO TESTADO: AMD k10temp, múltiplos discos/interfaces, /proc restrito
 
 Itens A/B da auditoria (0.26.0): métricas SMART por fixtures sintéticas e tipo/barramento validado no host (NVMe, SATA HDD, zram).
 NÃO TESTADO: métricas SMART em disco real (SMART-01), USB/MMC/VirtIO reais, outros fabricantes ATA. Desgaste de bateria (C) não implementado.
+
+## Portagem completa — Fase 1: Sistema
+IMPLEMENTADO: página Sistema no layout do original (categorias, anéis de unidades montadas, árvore de detalhes), coletor /proc+/sys+/etc, nomes de GPU
+por pci.ids, inventário de RAM por importação do `dmidecode -t memory` (estimativas EXPO/XMP, canais, ECC; sem serial). 522 testes; smoke X11 do CachyOS.
+NÃO TESTADO: módulos de RAM em hardware real com dmidecode, nome de GPU AMD/NVIDIA, outras distros (VMs não repetidas para esta página).
