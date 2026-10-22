@@ -272,3 +272,10 @@ passaram (recusa por nome divergente, importação, exportação JSON/HTML).
 NÃO TESTADO: FIFO/arquivo em FS de rede (abertura bloqueante só é limitada por timeout; a
 thread pode permanecer até o kernel liberar), teclado físico/Orca, VM limpa, SMART-01 ao vivo.
 Importação continua sendo relatório histórico, sem prova de origem ou saúde atual.
+
+Pacote local 0.25.0 (linux-x64, framework-dependent): gerado e aprovado por
+scripts/test-linux-package.sh (hashes, licenças, info/sensores, overwrite recusado,
+dependências nativas). O teste detectou applicationVersion ainda 0.24.0 em
+LinuxHardwareInfoProvider; corrigido para 0.25.0. Pacote gerado antes do commit desta
+correção (sourceWorkingTree=dirty). VM limpa, outras distros e redistribuição seguem
+NÃO TESTADOS/PENDENTES DE REVISÃO.
