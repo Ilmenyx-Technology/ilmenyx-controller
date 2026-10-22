@@ -22,6 +22,14 @@ O doctor/preflight aceita o ICU ao lado do executável quando a opção app-loca
 Tamanho: ~110 MB compactado (~256 MB extraído), sem trimming. Licenças do runtime (MIT) e do ICU (Unicode)
 vão em `licenses/` e `dependencies.tsv`; segue PENDENTE DE REVISÃO jurídica antes de distribuir.
 
+**Validação do pacote autocontido (2026-10-22, pacote `.artifacts/ilmenyx-0.28.0-sc-r2`, árvore limpa, VMs QEMU/KVM).**
+Em cada VM: `dotnet` fora do PATH, SDK de teste renomeado, libicu do sistema movida para fora e `ldconfig` sem ICU
+(`ICU sistema: 0`); `env -i` com PATH mínimo. Ubuntu 24.04.5, Debian 13 e Fedora 44: `ilmenyx doctor` código 0,
+`ilmenyx info --json` com versão 0.28.0 (runtime .NET 10.0.0 embutido) e `Ilmenyx.Desktop` vivo após 10–12 s sob Xvfb.
+Controle: removendo `libicu*` do pacote, o runtime aborta ("Failed to load app-local ICU"), logo o ICU em uso é o embutido.
+Em seguida a libicu foi restaurada nas imagens. SHA256SUMS conferido no Ubuntu. NÃO TESTADO: smoke gráfico completo e
+suíte com o pacote autocontido (só a execução do pacote), Wayland nesta rodada, Arch/openSUSE/Alpine, ARM64.
+
 **Continua do sistema (não dá para embutir):** glibc, fontconfig, X11/Wayland, EGL e fontes. Integrações
 opcionais — GameMode, MangoHud, Flatpak, smartctl, fwupd — são programas do sistema: o app detecta a falta,
 informa e degrada sem falhar. As seções abaixo sobre runtime e ICU instalados descrevem o pacote anterior
