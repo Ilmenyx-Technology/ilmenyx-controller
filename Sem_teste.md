@@ -304,3 +304,6 @@ GPU/aceleração, escala fracionária, múltiplos monitores, entrada física, Or
 Wayland nativo no GNOME (parcial): Fedora 44 + GNOME Shell 50.6 headless (mutter), UiSmoke 25 PASS com
 Avalonia.Wayland.WindowImpl. NÃO TESTADOS: sessão GNOME real/login, KDE Plasma, GPU, escala fracionária,
 múltiplos monitores, entrada física, Orca.
+
+Auditoria de paridade DiskHealth/BatteryInfo (2026-10-22): documento docs/auditoria-paridade-saude-energia.md;
+leitura de código apenas, sem execução comparativa (WIN-01 segue NÃO TESTADO). Implementações sugeridas A/B/C aguardam decisão.
