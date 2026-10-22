@@ -15,11 +15,7 @@ public sealed partial class LinuxDiskHealthReader(string sysRoot = "/sys")
     [GeneratedRegex("^(sd[a-z]+|vd[a-z]+|xvd[a-z]+|nvme[0-9]+n[0-9]+|mmcblk[0-9]+)\\z", RegexOptions.CultureInvariant)]
     private static partial Regex Physical();
 
-    private static string One(string path)
-    {
-        try { var f = new FileInfo(path); return f.Exists && f.Length < 4096 ? new string(File.ReadAllText(path).Trim().Where(c => !char.IsControl(c)).Take(120).ToArray()) : ""; }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return ""; }
-    }
+    private static string One(string path) => SysfsText.Read(path, 120).Replace("\n", " ").Trim();
 
     public IReadOnlyList<DiskHealthInput> Read(string mountsText, IReadOnlyDictionary<string, SmartDiagnostic>? smart = null)
     {

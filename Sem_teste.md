@@ -324,3 +324,9 @@ NÃO TESTADO: módulos de RAM em hardware real com dmidecode, nome de GPU AMD/NV
 Fase 1 — Discos: página no layout do original (cartões com veredito SAUDÁVEL/ATENÇÃO/CRÍTICO/SEM DADOS, limiares do original, métricas, SMART por clique ou importação).
 539 testes; smoke X11 do CachyOS. NÃO TESTADO: SMART ao vivo com sucesso (SMART-01), temperatura hwmon de NVMe/drivetemp em hardware real (este host não expõe),
 USB/MMC, HDD físico com métricas reais, outras distros para esta página.
+
+Fase 1 — Energia: página no layout do original (cartões de bateria com veredito DESGASTADA/ATENÇÃO/SAUDÁVEL, cartão de energia, perfil via powerprofilesctl).
+Validado em bateria física do host (HP, Li-ion, desgaste 27,9%). Bug real corrigido: sysfs reporta tamanho 4096 e uma guarda por FileInfo.Length descartava todos os
+valores (afetava também modelo/firmware dos discos); agora SysfsText limita por caracteres lidos, com teste de regressão contra o /sys real.
+NÃO TESTADO: bateria dupla, ciclos reais (este host reporta 0), descarga/autonomia, PC de mesa sem bateria em hardware real, power-profiles-daemon ausente.
+SENSOR-01 (bateria física) passa a PARCIAL: uma bateria, em tomada.

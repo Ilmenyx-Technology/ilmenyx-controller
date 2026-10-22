@@ -390,7 +390,7 @@ public sealed class UiSmokeApp : Application
         if (Find<Button>(shell, "DashMetricPower").IsEnabled) throw new InvalidOperationException("Unavailable power metric must stay disabled.");
         Click(shell, "GoMemory"); await Until(() => shell.CurrentPage == "system");
         var expected = new (string Key, string Control)[] { ("dash", "OverviewChart"), ("system", "SysRefresh"), ("sensors", "RefreshSensors"), ("gpu", "GpuValidationNotice"), ("disks", "BtnDiskRefresh"),
-            ("energy", "EnergyText"), ("net", "NetChart"), ("procs", "ProcessRows"), ("validate", "ValidateCpu"), ("tools", "About") };
+            ("energy", "BtnEnergyRefresh"), ("net", "NetChart"), ("procs", "ProcessRows"), ("validate", "ValidateCpu"), ("tools", "About") };
         foreach (var (key, control) in expected)
         {
             var nav = Find<Button>(shell, "Nav" + key);
@@ -425,7 +425,7 @@ public sealed class UiSmokeApp : Application
         // Disks page: verdict cards, bounded SMART query (fails closed without privilege), offline import with raw metrics.
         Find<Button>(shell, "Navdisks").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await Until(() => shell.GetVisualDescendants().OfType<StackPanel>().Any(p => p.Name == "DiskCards" && p.Children.Count > 0));
-        var verdicts = shell.GetVisualDescendants().OfType<TextBlock>().Where(t => t.Name?.StartsWith("Verdict_") == true).ToList();
+        var verdicts = Find<StackPanel>(shell, "DiskCards").GetVisualDescendants().OfType<TextBlock>().Where(t => t.Name?.StartsWith("Verdict_") == true).ToList();
         if (verdicts.Count == 0 || verdicts.Any(v => v.Text is not ("SAUDÁVEL" or "ATENÇÃO" or "CRÍTICO" or "SEM DADOS"))) throw new InvalidOperationException("Disk verdict badges invalid.");
         var smartable = verdicts.Select(v => v.Name!["Verdict_".Length..]).FirstOrDefault(n => System.Text.RegularExpressions.Regex.IsMatch(n, "^(sd[a-z]+|nvme[0-9]+n[0-9]+)$"));
         if (smartable is not null)
@@ -437,11 +437,16 @@ public sealed class UiSmokeApp : Application
                 : "{\"smartctl\":{\"exit_status\":0},\"device\":{\"name\":\"/dev/" + smartable + "\"},\"smart_status\":{\"passed\":true},\"temperature\":{\"current\":35},\"ata_smart_attributes\":{\"table\":[{\"id\":197,\"raw\":{\"value\":1}}]}}";
             var smartFile = Path.Combine(Program.OutputDirectory, "disk-smart-fixture.json"); File.WriteAllText(smartFile, fixture);
             Find<TextBox>(shell, "SmartImportDevice").Text = smartable; Find<TextBox>(shell, "SmartImportPath").Text = smartFile; Click(shell, "ImportSmart");
-            await Until(() => shell.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "Verdict_" + smartable && t.Text == "ATENÇÃO"));
+            await Until(() => Find<StackPanel>(shell, "DiskCards").GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "Verdict_" + smartable && t.Text == "ATENÇÃO"));
             await Task.Delay(200); Capture(shell, "shell-disks.png");
             Console.WriteLine("PASS disks page: verdict cards, bounded SMART query without privilege, offline SMART import raises the verdict with raw metrics");
         }
         else Console.WriteLine("SKIP disks SMART import: no sd*/nvme* disk visible in this environment");
+        Find<Button>(shell, "Navenergy").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => shell.GetVisualDescendants().OfType<StackPanel>().Any(p => p.Name == "EnergyCards" && p.Children.Count > 0));
+        if (!shell.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "Verdict_energia" && t.Text == "EM USO")) throw new InvalidOperationException("Energy card missing.");
+        await Task.Delay(200); Capture(shell, "shell-energy.png");
+        Console.WriteLine("PASS energy page: power card always present, battery cards when the kernel reports batteries");
         Click(shell, "SortMemory"); await Until(() => Find<Button>(shell, "SortMemory").Content!.ToString()!.Contains('▼'));
         Click(shell, "ToggleMonitor");
         await Until(() => Find<Button>(shell, "ToggleMonitor").Content!.ToString() == "Retomar monitor" && Find<TextBlock>(shell, "SideMonitor").Text == "monitor parado");

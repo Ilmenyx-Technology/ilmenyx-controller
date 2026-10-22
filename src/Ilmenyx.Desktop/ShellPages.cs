@@ -150,20 +150,7 @@ public sealed partial class ShellWindow
 
     private Control DisksPage() => Scroll("DisksScroll", new DiskHealthPage(smartImport, Destination("smart-import"), stop.Token) { Margin = new Thickness(0, 4, 8, 12) });
 
-    private Control EnergyPage()
-    {
-        var text = new TextBlock { Name = "EnergyText", TextWrapping = TextWrapping.Wrap, FontSize = 14 };
-        void Fill()
-        {
-            var supplies = sensors.Snapshot?.PowerSupplies;
-            text.Text = supplies is { Count: > 0 }
-                ? string.Join("\n", supplies.Select(p => $"{p.Device} · {SnapshotReport.Describe(p.Type)} · {SnapshotReport.Describe(p.Status)} · presente: {SnapshotReport.Describe(p.Present)}"))
-                : "Nenhuma fonte de energia/bateria informada pelo kernel (comum em desktops) ou sensores ainda não lidos.";
-        }
-        sensors.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(sensors.Snapshot)) Fill(); };
-        Fill();
-        return Scroll("EnergyScroll", new StackPanel { Spacing = 12, Children = { CardBox(new StackPanel { Spacing = 10, Children = { Label("FONTES DE ENERGIA · /sys/class/power_supply"), text, Wrapped("EnergyNote", "Dados brutos do kernel, sem desgaste, autonomia ou veredito de saúde. Leituras detalhadas aparecem em Sensores.", 12, Palette.Faint) } }) } });
-    }
+    private Control EnergyPage() => Scroll("EnergyScroll", new Ilmenyx.Desktop.EnergyPage(sensors, stop.Token) { Margin = new Thickness(0, 4, 8, 12) });
 
     private Control NetPage()
     {
