@@ -373,9 +373,39 @@ public sealed class UiSmokeApp : Application
         if (errors.Count != 0) throw new InvalidOperationException(string.Join("\n", errors));
         Console.WriteLine("PASS layout minimum sizes, text factors 1/1.5/2: dashboard buttons, save field/error/actions, About selector/text/close reachable; reading area >=120 DIP");
     }
+    private static async Task MonitorAsync(IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        var monitor = new MonitorWindow { Width = 1180, Height = 780 };
+        monitor.Show();
+        await Until(() => monitor.IsVisible && Find<TextBlock>(monitor, "CpuLine").Text!.Contains('%') && !Find<TextBlock>(monitor, "CpuLine").Text!.StartsWith("Aguardando"));
+        await Until(() => monitor.GetVisualDescendants().OfType<UsageChart>().All(c => c.Count >= 3) && Find<StackPanel>(monitor, "ProcessRows").Children.Count > 0);
+        if (monitor.GetVisualDescendants().OfType<UsageChart>().Count() != 4) throw new InvalidOperationException("Monitor must show CPU, memory, disk and network charts.");
+        if (Find<TextBlock>(monitor, "ProductName").Text != "Ilmenyx" || Find<TextBlock>(monitor, "MaintainerSignature").Text != "by Bismuth Technology")
+            throw new InvalidOperationException("Identity missing from monitor window.");
+        await Until(() => Find<TextBlock>(monitor, "MonitorGpuSummary").Text != "Lendo inventário DRM…");
+        if (Find<TextBlock>(monitor, "GpuValidationNotice").Text != ValidationNotices.AmdNvidia) throw new InvalidOperationException("AMD/NVIDIA notice missing from monitor.");
+        await Task.Delay(1200); Capture(monitor, "monitor.png");
+        int rows = Find<StackPanel>(monitor, "ProcessRows").Children.Count;
+        Click(monitor, "SortMemory"); await Until(() => Find<Button>(monitor, "SortMemory").Content!.ToString()!.Contains('▼'));
+        Click(monitor, "ToggleMonitor");
+        await Until(() => Find<Button>(monitor, "ToggleMonitor").Content!.ToString() == "Retomar" && Find<TextBlock>(monitor, "MonitorStatus").Text!.Contains("pausado"));
+        var frozen = Find<TextBlock>(monitor, "CpuLine").Text; await Task.Delay(1500);
+        if (Find<TextBlock>(monitor, "CpuLine").Text != frozen) throw new InvalidOperationException("Paused monitor kept sampling.");
+        Click(monitor, "ToggleMonitor");
+        await Until(() => Find<Button>(monitor, "ToggleMonitor").Content!.ToString() == "Pausar");
+        Click(monitor, "OpenDiagnostics");
+        await Until(() => desktop.Windows.OfType<DashboardWindow>().Count(w => w.IsVisible) == 2);
+        desktop.Windows.OfType<DashboardWindow>().Single(w => w.IsVisible && w != desktop.MainWindow).Close();
+        Click(monitor, "MonitorAbout");
+        await Until(() => desktop.Windows.OfType<AboutDialog>().Any(w => w.IsVisible));
+        desktop.Windows.OfType<AboutDialog>().Single(w => w.IsVisible).Close();
+        Console.WriteLine($"PASS monitor: live CPU/memory/disk/network charts, {rows} process rows, GPU notice, sort, pause/resume without sampling, diagnostics and About reachable");
+        monitor.Close();
+    }
     private static async Task ExerciseAsync(DashboardWindow window, IClassicDesktopStyleApplicationLifetime desktop)
     {
         var output = Program.OutputDirectory;
+        await MonitorAsync(desktop);
         await KeyboardAsync(window, desktop);
         await RequirementsAsync(window, desktop);
         if (window.Title != ProductIdentity.Name || Find<TextBlock>(window, "ProductName").Text != "Ilmenyx" ||

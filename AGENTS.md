@@ -249,3 +249,8 @@ as regras de arquitetura Linux, benchmarks, testes, licenças e segurança anter
 - Importação só por ação explícita do usuário, com arquivo regular e disco declarado; sem smartctl/sysfs/dispositivo.
 - Preservar recusa de links, /dev, /proc, /sys, limites de tamanho/tempo e bloqueio de reentrada durante exportação.
 - Exportar o relatório selecionado, nunca reimportar ao exportar; relatório histórico não indica saúde atual.
+
+## Monitor ao vivo 0.26.0
+- Janela inicial Monitor amostra a cada 1 s ao abrir, por decisão explícita do usuário (2026-10-22); botão Pausar/Retomar obrigatório.
+- Histórico só em memória (60 pontos); nunca gravar/exportar amostras ou nomes de processo. Somente leitura de /proc e hwmon.
+- Preservar aviso AMD/NVIDIA na janela e o acesso a Diagnósticos e Licenças/créditos; não inferir saúde dos gráficos.

@@ -256,6 +256,12 @@ converte relatório smartctl existente sem consultar o disco. Entrada limitada,
 saída filtrada e data da análise distinta da coleta original não confirmada.
 [Uso, testes e limites](docs/smart-import.md). Não é garantia de saúde atual.
 
+### Monitor ao vivo — 0.26.0
+
+A janela inicial agora é um monitor de sistema: tabela de processos e gráficos de CPU, memória, disco e rede em tempo real
+(somente leitura de /proc e hwmon, histórico só em memória), com o painel de diagnósticos em "Diagnósticos de hardware".
+[Dados, limites e o que falta](docs/monitor.md). Aplicações agrupadas e GPU por processo ainda não existem.
+
 ### SMART importado na interface — 0.25.0
 
 O dashboard tem o painel "SMART · importação offline": informe o disco e o caminho
