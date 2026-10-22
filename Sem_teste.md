@@ -25,6 +25,46 @@ Não marcar como concluído sem evidência. Casos implementados parcialmente sã
 | IO-01 | Disco/loading/RAM de carga/rede/GPU benchmark | Não implementados; requerem desenho próprio e autorização de carga/tráfego | Especificar limites/cache/temporários/endpoint e metodologia antes de executar. Nunca disco bruto nem endpoints automáticos. |
 | PKG-01 | Distribuição/pacotes em máquinas limpas | Builds locais não certificam instalação | Publicação local por RID e teste em VMs, licenças e dependências nativas; sem publicar releases automaticamente. |
 
+## Regra deste registro (2026-10-22)
+
+**Toda pendência precisa dizer POR QUE não foi testada** (motivo concreto: hardware ausente, risco de dano, regra do projeto, serviço externo, permissão) e a **condição para testar**.
+As listas "NÃO TESTADO: …" das seções históricas abaixo não trazem o motivo; para cada item vigente o motivo está na tabela a seguir, que prevalece.
+Um item só sai daqui com evidência real (comando, ambiente, data). Fixture, build e smoke com serviços falsos não contam como teste do caminho real.
+
+## Pendências vigentes — motivo e condição (consolidado em 2026-10-22, versão 0.27.0)
+
+| ID | Item | Por que não foi testado | Condição para testar |
+|---|---|---|---|
+| GPU-04 | Ficha e telemetria de GPU AMD/NVIDIA (sysfs amdgpu, `nvidia-smi`, PRIME) | O host só tem Intel Iris Xe; `nvidia-smi` não existe e não há amdgpu. O código foi escrito contra o formato documentado e coberto só por fixtures | Máquina com GPU AMD ou NVIDIA e driver; comparar a página GPU com GPU-Z/`nvidia-smi`/`radeontop` |
+| GPU-05 | Carga e VRAM de iGPU Intel | O i915/xe só expõe carga com privilégios (perf) ou `intel_gpu_top`; sem root o app mostra só clock | Rodar com permissão (CAP_PERFMON) ou instalar `intel_gpu_top`; decidir se o app deve depender dele |
+| SMART-02 | Métricas SMART (temperatura, desgaste, erros) em disco real | `smartctl` sem privilégio falha neste host; o relatório NVMe real do usuário foi gerado só com `--health` e não contém atributos | `sudo smartctl -a -j /dev/nvme0n1 > arq.json` e importar na página Discos; ou dar acesso de leitura ao dispositivo |
+| DISK-01 | Temperatura do disco por hwmon (NVMe, drivetemp) | Este kernel não expõe `/sys/block/*/device/hwmon` para o NVMe/SATA do host | Carregar `drivetemp` (root) ou usar outro host/kernel |
+| DISK-02 | Tipo/barramento de USB, MMC, SD | Não há disco USB/MMC conectado; só NVMe, SATA e zram reais (VirtIO, óptico e legado vistos nas VMs) | Conectar pendrive/cartão SD |
+| ENERGY-01 | Bateria em descarga, ciclos, autonomia, duas baterias | O host tem uma bateria cheia na tomada e reporta `cycle_count=0`; autonomia só existe descarregando | Rodar em bateria até descarregar; outra máquina com ciclos reais |
+| ENERGY-02 | PC de mesa sem bateria em hardware real | O host é notebook; o caso foi coberto só por fixture | Executar a página Energia em um desktop |
+| DRV-01 | Versão NVIDIA proprietária e consulta online | Sem GPU NVIDIA; a consulta usa a rede e o smoke nunca contata serviços externos | GPU NVIDIA e clique em "Verificar versão mais recente" |
+| DRV-02 | Abrir páginas oficiais (`xdg-open`) | O smoke não abre o navegador do usuário | Clique manual nos botões "Abrir página oficial" |
+| DRV-03 | fwupd com atualização disponível | O fwupd do host listou 18 dispositivos, nenhum com atualização pendente | Host com firmware desatualizado no LVFS |
+| START-01 | Alterar serviços systemd reais e `Hidden=true` real em KDE/GNOME | O smoke só altera diretórios temporários para não mexer na sessão do usuário | Teste manual com uma entrada descartável, ou numa VM com sessão gráfica |
+| MAKER-01 | Placa serial USB real (CH340, CP210x, FTDI, Arduino, ESP) | Nenhuma placa serial conectada; o diagnóstico foi validado com fixtures de sysfs | Conectar uma placa e abrir Maker · Portas; testar também sem estar no grupo `dialout`/`uucp` |
+| MAKER-02 | brltty e ModemManager reais atrapalhando a porta | Não há porta serial para reproduzir; brltty não está instalado | Máquina com brltty (Ubuntu) e adaptador CH340 |
+| GAME-01 | Iniciar um jogo de verdade pelo Launcher e acompanhar o processo | O smoke nunca inicia jogos (decisão de segurança); a biblioteca real do host só tem Lutris | Clique manual com um jogo instalado; conferir perfil de energia revertido ao fechar |
+| GAME-02 | Heroic (Epic/GOG) real | Heroic não está instalado; os JSON foram lidos pelo formato conhecido, sem arquivo real | Instalar Heroic e um jogo; abrir a página Jogos |
+| GAME-03 | PRIME offload (GPU dedicada) | O host tem uma GPU; o controle fica desativado | Notebook/desktop com iGPU + dGPU |
+| GAME-04 | Fechar a Steam real e gravar opções em `localconfig.vdf` real | Fechar a Steam derrubaria jogos do usuário; o smoke usa árvore temporária | Teste manual com Steam aberta e um jogo |
+| GAME-05 | Detecção do processo de jogos Proton/Wine | Sem jogo instalado para observar `environ`/`cmdline` reais | Rodar um jogo Proton e abrir a página Jogos |
+| STRESS-01 | Carga real de CPU/RAM, comportamento sob pouca RAM/OOM | Regra do projeto: nenhum teste automático gera stress; risco de aquecer/travar o notebook de desenvolvimento | Clique manual com o monitor ativo e limite de temperatura; ver STRESS na lista de validações manuais |
+| STRESS-02 | Corte por temperatura em CPU AMD (k10temp/zenpower) | Host Intel (coretemp) | Máquina AMD |
+| NET-01 | Teste de rede real (ping, DNS, download, upload, bufferbloat) | Consumiria ~100 MB e contataria serviços de terceiros; por regra só acontece com clique; o smoke usa sonda falsa | Clique manual em TESTAR; testar com Wi-Fi e cabo e com ICMP sem privilégio |
+| OPT-01 | Fechar aplicativos reais e alterar perfil de energia/mouse pela UI | O smoke usaria processos e perfis reais do usuário; usa fixtures e serviços falsos | Teste manual com apps descartáveis; mouse requer GNOME |
+| OPT-02 | Aceleração do mouse em KDE | A página só implementa GNOME (gsettings); KDE exige edição por dispositivo em `kcminputrc` | Implementar e testar numa sessão Plasma |
+| APP-01 | Instalação real de Flatpaks | Baixaria centenas de MB e alteraria o sistema do usuário; o smoke usa executor falso (a leitura real de `flatpak list/remotes` foi verificada) | Clique manual instalando um app pequeno |
+| FPS-01 | API HowManyFPS real | Exige chave pedida por e-mail à HowManyFPS e consome cota; o formato de autenticação só vem com a credencial | Obter a chave e clicar em CONSULTAR API |
+| PKG-02 | Pacote sem runtime nem ICU em VM limpa e em outras distros/arquiteturas | Ver registro da portagem do pacote autocontido (seção 0.28.0) | VMs já preparadas; ARM64/musl exigem outro hardware |
+| GUI-03 | Novas páginas em Wayland/GNOME/KDE reais, DPI e escala | Só X11 e Wayland/KWin no host e Xvfb/Weston/GNOME headless nas VMs; sem sessão gráfica real nas VMs | Desktop real; GNOME Boxes com ISO de desktop |
+| BENCH-02 | Benchmarks completos (CPU Full, GameSim completo, memória, disco) pela UI | Carga pesada: regra do projeto proíbe execução automática; ainda não portados para a UI | Clique manual após a página Bench existir |
+| GPU-06 | Benchmarks e stress de GPU | Ainda não portados (dependem de Vulkan); só a iGPU Intel poderia testar | Após o port em Vulkan |
+
 ## Verificado anteriormente no CachyOS x64
 
 Inventário factual CLI/UI/JSON/HTML; CPU reduzida e corpus de pixels; RAM reduzida; GameSim
