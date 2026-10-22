@@ -36,7 +36,7 @@ URL/credencial visíveis. Escrita em disco só em arquivo temporário autorizado
 | Apps (AppInstaller) | catálogo pós-formatação via winget | catálogo Flatpak (Flathub, instalação por usuário, sem root); Flameshot no lugar do Lightshot; WinRAR sem equivalente; só por clique com confirmação | 3 | IMPLEMENTADO (instalação real NÃO TESTADA; executor falso) |
 | Overlay (OverlayMetrics, OverlayWindow, FrameMonitor) | métricas sobre o jogo, FPS por ETW | janela sempre-no-topo (X11; Wayland depende do compositor); FPS via MangoHud/gamescope se presente | 3 | PENDENTE |
 | Integração (LightBackends, CorsairSdk) | iluminação: Corsair, OpenRGB, Razer | OpenRGB SDK (TCP 6742); Corsair via OpenRGB; Razer via OpenRazer; sem baixar SDK | 3 | PENDENTE |
-| Relatório (ReportBuilder) | HTML/JSON de tudo | estender relatórios existentes às novas páginas | 1–3 | PARCIAL |
+| Relatório (ReportBuilder) | HTML/JSON de tudo | página Relatório: HTML/JSON único com sistema, GPUs, discos, energia, sensores, rede (último teste da sessão) e histórico; sem série, hostname, MAC/IP; sem SMART/benchmark/rede ao exportar | 1–3 | PORTADO (validado nesta máquina; outras distros/hardware NÃO TESTADO) |
 | Chrome (tema claro/escuro, toasts) | tema, notificações | tema alternável e notificação in-app/freedesktop | 3 | PENDENTE |
 
 ## Ordem de execução

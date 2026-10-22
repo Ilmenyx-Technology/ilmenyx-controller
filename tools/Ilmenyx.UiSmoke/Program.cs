@@ -487,6 +487,7 @@ public sealed class UiSmokeApp : Application
         if (OperatingSystem.IsLinux()) await AppsAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await BenchAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await OcAsync(shell, desktop);
+        if (OperatingSystem.IsLinux()) await ReportAsync(shell);
         Click(shell, "SortMemory"); await Until(() => Find<Button>(shell, "SortMemory").Content!.ToString()!.Contains('▼'));
         Click(shell, "ToggleMonitor");
         await Until(() => Find<Button>(shell, "ToggleMonitor").Content!.ToString() == "Retomar monitor" && Find<TextBlock>(shell, "SideMonitor").Text == "monitor parado");
@@ -798,6 +799,28 @@ public sealed class UiSmokeApp : Application
     }
     private static async Task<ConfirmDialog> ConfirmAsync(IClassicDesktopStyleApplicationLifetime desktop)
     { await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible)); return desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible); }
+    [System.Runtime.Versioning.SupportedOSPlatform("linux")]
+    private static async Task ReportAsync(ShellWindow shell)
+    {
+        // The real read-only gatherer runs here (no SMART, benchmark or network test); the destination is a fixed path instead of the dialog.
+        string dir = Path.Combine(Program.OutputDirectory, "report-fixture"); Directory.CreateDirectory(dir);
+        string html = Path.Combine(dir, "r.html"), json = Path.Combine(dir, "r.json"); File.Delete(html); File.Delete(json);
+        string? next = null; Window? host = null;
+        var page = new ReportPage(ct => Ilmenyx.Platform.Linux.LinuxReportGatherer.GatherAsync("0.28.0", null, null, [], new Dictionary<string, Ilmenyx.Contracts.SmartDiagnostic>(), null, [], ct), _ => Task.FromResult(next), CancellationToken.None);
+        host = new Window { Width = 900, Height = 700, Content = new ScrollViewer { Content = page } }; host.Show();
+        await Until(() => host.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnReportHtml"));
+        next = null; Click(host, "BtnReportHtml"); await Until(() => Find<TextBlock>(host, "ReportStatus").Text == "Exportação cancelada."); if (File.Exists(html)) throw new InvalidOperationException("Cancelled destination must write nothing.");
+        next = html; Click(host, "BtnReportHtml"); await Until(() => File.Exists(html) && Find<TextBlock>(host, "ReportStatus").Text!.StartsWith("Relatório salvo"));
+        next = json; Click(host, "BtnReportJson"); await Until(() => File.Exists(json) && Find<TextBlock>(host, "ReportStatus").Text!.StartsWith("Relatório salvo"));
+        string text = File.ReadAllText(html);
+        if (text.Contains("<script", StringComparison.OrdinalIgnoreCase) || text.Contains(Environment.MachineName, StringComparison.OrdinalIgnoreCase) && Environment.MachineName.Length > 3 || text.Length < 2000) throw new InvalidOperationException("Report must be a real, script-free file without the host name.");
+        using (System.Text.Json.JsonDocument.Parse(File.ReadAllText(json))) { }
+        next = html; Click(host, "BtnReportHtml"); await Until(() => Find<TextBlock>(host, "ReportStatus").Text!.StartsWith("Não foi possível exportar"));
+        host.Close();
+        Find<Button>(shell, "Navreport").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => shell.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnReportHtml"));
+        Console.WriteLine($"PASS report page: real read-only collection exported to new HTML ({text.Length} chars) and valid JSON, cancelled destination writes nothing, existing file is never overwritten, host name and scripts absent");
+    }
     private sealed class FakeHttp : HttpMessageHandler
     {
         public int Calls;

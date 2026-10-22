@@ -48,7 +48,17 @@ public sealed partial class ShellWindow
         pages["startup"] = ("Inicialização", () => Scroll("StartupScroll", new StartupPage(LinuxStartupManager.CreateDefault(), () => this, stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["apps"] = ("Instalar apps", () => Scroll("AppsScroll", new AppsPage(new LinuxAppInstaller(), LinuxAppInstaller.FlatpakAvailable, () => this, stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["driver"] = ("Drivers", () => Scroll("DriverScroll", new DriverPage(Destination("drivers"), stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
+        pages["report"] = ("Relatório", () => Scroll("ReportScroll", new ReportPage(GatherReportAsync, Destination("report"), stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["tools"] = ("Requisitos e sobre", ToolsPage, null);
+    }
+
+    private Task<ReportData> GatherReportAsync(CancellationToken ct)
+    {
+        if (!OperatingSystem.IsLinux()) throw new PlatformNotSupportedException();
+        var smart = smartImport.Report is { } r ? new Dictionary<string, Ilmenyx.Contracts.SmartDiagnostic> { [r.Diagnostic.Device] = r.Diagnostic } : [];
+        string version = typeof(ShellWindow).Assembly.GetName().Version?.ToString(3) ?? "";
+        return LinuxReportGatherer.GatherAsync(version, null, hardware.Snapshot?.Gpus, sensors.Snapshot?.Readings ?? [], smart, networkPage?.LastResult,
+            IlmenyxSettings.Load(IlmenyxSettings.DefaultPath()).BenchRuns, ct);
     }
 
     [System.Runtime.Versioning.SupportedOSPlatform("linux")]
@@ -181,7 +191,9 @@ public sealed partial class ShellWindow
 
     private Control EnergyPage() => Scroll("EnergyScroll", new Ilmenyx.Desktop.EnergyPage(sensors, stop.Token) { Margin = new Thickness(0, 4, 8, 12) });
 
-    private Control NetPage() => Scroll("NetScroll", new NetworkPage(new SystemNetworkProbe(), usage, () => this, stop.Token) { Margin = new Thickness(0, 4, 8, 12) });
+    private NetworkPage? networkPage;
+
+    private Control NetPage() => Scroll("NetScroll", networkPage = new NetworkPage(new SystemNetworkProbe(), usage, () => this, stop.Token) { Margin = new Thickness(0, 4, 8, 12) });
 
     private Control ValidatePage()
     {
