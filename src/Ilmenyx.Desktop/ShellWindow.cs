@@ -113,6 +113,7 @@ public sealed partial class ShellWindow : Window
         Group("DIAGNÓSTICO", ("system", "Sistema"), ("sensors", "Sensores"), ("gpu", "GPU"), ("disks", "Discos"), ("energy", "Energia"), ("net", "Rede"), ("procs", "Processos"));
         Group("JOGOS", ("bottleneck", "Detector de gargalo"));
         Group("DESEMPENHO", ("validate", "Validações reduzidas"));
+        Group("MAKER", ("makerports", "Portas"), ("makerdrv", "Drivers seriais"));
         Group("FERRAMENTAS", ("startup", "Inicialização"), ("driver", "Drivers"), ("tools", "Requisitos e sobre"));
 
         var temp = new TextBlock { Name = "SideTemp", Text = "—", FontSize = 12, FontFamily = new FontFamily("monospace") };

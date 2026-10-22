@@ -345,3 +345,7 @@ NÃO TESTADO: sessão real durante um jogo, GPU AMD/NVIDIA (carga/VRAM/temperatu
 Fase 1 — Inicialização: página no layout do original (resumo, interruptores, REMOVER, RESTAURAR REMOVIDOS com confirmação), autostart XDG + systemd --user.
 592 testes; smoke com diretórios temporários (override do sistema, recusa/confirmação, restauração) e leitura da sessão real (17 itens). Vantagem sobre o original: entradas do sistema são desativadas sem root.
 NÃO TESTADO: alteração real de serviços systemd do usuário (o smoke não clica em serviços reais), KDE/GNOME respeitando Hidden=true em todas as versões, ~/.config em disco de rede, entradas OnlyShowIn/NotShowIn.
+
+Fase 1 — Maker (Portas e Drivers seriais): páginas no layout do original; diagnóstico Linux (módulo ausente/não carregado, brltty, permissão/grupo, ModemManager) sem abrir a porta. 604 testes.
+Bugs reais achados por teste: SysfsText removia tabulações (quebraria /proc/self/status). NÃO TESTADO: qualquer placa serial USB real (host sem ttyUSB/ttyACM), regras udev, brltty/ModemManager reais, outras distros (grupo uucp x dialout).
+Não portado por não existir no Linux: instalação/remoção de pacotes de driver do Windows, dispositivos fantasma do registro (UsbCleaner), driver FTDI zerando PID.

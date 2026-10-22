@@ -15,7 +15,7 @@ public static class SysfsText
             var buffer = new char[maxCharacters + 1];
             int n = reader.ReadBlock(buffer, 0, buffer.Length);
             if (n > maxCharacters) return "";
-            return new string(buffer.Take(n).Where(c => !char.IsControl(c) || c == '\n').ToArray()).Trim();
+            return new string(buffer.Take(n).Where(c => !char.IsControl(c) || c is '\n' or '\t').ToArray()).Trim();
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return ""; }
     }
