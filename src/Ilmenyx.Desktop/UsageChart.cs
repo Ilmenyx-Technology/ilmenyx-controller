@@ -11,7 +11,8 @@ public sealed class UsageChart : Control
     public const int Window = 60; // default visible points (1 s each)
     private static readonly IBrush Back = Palette.Panel, Fill = new SolidColorBrush(Color.Parse("#B07CD6"), 0.55);
     private static readonly IPen Grid = new Pen(Palette.Line, 1), Line = new Pen(Palette.AccentText, 1.4);
-    private double[] values = [];
+    private static readonly IPen SecondLine = new Pen(Palette.Warn, 1.4);
+    private double[] values = [], second = [];
     private double max = 1;
     public int Points { get; private set; } = Window;
     public double LastMax => max;
@@ -27,6 +28,9 @@ public sealed class UsageChart : Control
         max = ceiling ?? Math.Max(1, values.Length == 0 ? 1 : values.Max() * 1.15);
         InvalidateVisual();
     }
+
+    /// <summary>Optional second line (e.g. GPU load) drawn over the first with the same ceiling; empty hides it.</summary>
+    public void SetSecond(IReadOnlyList<double> series) { second = series.Count > Points ? series.Skip(series.Count - Points).ToArray() : series.ToArray(); InvalidateVisual(); }
 
     public override void Render(DrawingContext context)
     {
@@ -53,5 +57,20 @@ public sealed class UsageChart : Control
             g.EndFigure(false);
         }
         context.DrawGeometry(null, Line, line);
+        if (second.Length >= 2)
+        {
+            double step2 = rect.Width / (Points - 1), left2 = rect.Width - step2 * (second.Length - 1);
+            var g2 = new StreamGeometry();
+            using (var g = g2.Open())
+            {
+                for (int i = 0; i < second.Length; i++)
+                {
+                    var pt = new Point(left2 + step2 * i, rect.Height - Math.Clamp(second[i] / max, 0, 1) * (rect.Height - 2) - 1);
+                    if (i == 0) g.BeginFigure(pt, false); else g.LineTo(pt);
+                }
+                g.EndFigure(false);
+            }
+            context.DrawGeometry(null, SecondLine, g2);
+        }
     }
 }

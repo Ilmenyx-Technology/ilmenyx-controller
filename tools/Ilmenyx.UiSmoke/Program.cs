@@ -493,6 +493,7 @@ public sealed class UiSmokeApp : Application
         if (OperatingSystem.IsLinux()) await ReportAsync(shell);
         if (OperatingSystem.IsLinux()) await OverlayAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await LightingAsync(shell, desktop);
+        if (OperatingSystem.IsLinux()) await OverviewSummaryAsync(shell);
         await ThemeAsync(shell);
         await ToastAsync(shell);
         Click(shell, "SortMemory"); await Until(() => Find<Button>(shell, "SortMemory").Content!.ToString()!.Contains('▼'));
@@ -922,6 +923,23 @@ public sealed class UiSmokeApp : Application
         Find<Button>(shell, "Navtools").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await Until(() => shell.GetVisualDescendants().OfType<CheckBox>().Any(c => c.Name == "DeviceToastsToggle" && c.IsChecked == true));
         Console.WriteLine("PASS toasts: baseline read is silent, connect/remove notices appear bottom-right and queue, disabling stops them, toggle persisted (fake device source)");
+    }
+    [System.Runtime.Versioning.SupportedOSPlatform("linux")]
+    private static async Task OverviewSummaryAsync(ShellWindow shell)
+    {
+        // The history lives in the fixture settings file; health reads (journal, sysfs, power profile) are the real read-only ones.
+        var settings = IlmenyxSettings.Load(IlmenyxSettings.DefaultPath());
+        settings.AddBenchRun(new(DateTimeOffset.Now.AddMinutes(-30), "CPU", "multi 5,400", 5400)); settings.AddBenchRun(new(DateTimeOffset.Now.AddMinutes(-10), "CPU", "multi 6,000", 6000));
+        settings.AddBenchRun(new(DateTimeOffset.Now.AddMinutes(-5), "Memória", "95.5 ns · 40.1 GB/s leitura", null)); settings.Save(IlmenyxSettings.DefaultPath());
+        Find<Button>(shell, "Navsystem").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Find<Button>(shell, "Navdash").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => Find<TextBlock>(shell, "OverviewScore").Text == "6,000" && Find<TextBlock>(shell, "OverviewScoreDelta").Text!.Contains("600"));
+        if (!shell.GetVisualDescendants().OfType<StackPanel>().Any(p => p.Name == "OverviewScores" && p.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text == "95.5 ns"))) throw new InvalidOperationException("Latest memory result must be listed.");
+        await Until(() => shell.GetVisualDescendants().OfType<StackPanel>().Any(p => p.Name == "OverviewHealth" && p.Children.Count >= 1) && Find<TextBlock>(shell, "OverviewHealthStatus").Text!.StartsWith("Lido"));
+        await Until(() => shell.GetVisualDescendants().OfType<WrapPanel>().Any(p => p.Name == "OverviewRings" && p.Children.Count >= 2));
+        if (!shell.GetVisualDescendants().OfType<StackPanel>().Any(p => p.Name == "OverviewEvents" && p.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text!.Contains("multi 6,000")))) throw new InvalidOperationException("Recent events must list the latest benchmark.");
+        await Task.Delay(300); Capture(shell, "shell-overview.png");
+        Console.WriteLine("PASS overview: performance card from the local benchmark history with delta, real read-only health checklist, occupancy rings and recent events");
     }
     private sealed class FakeHttp : HttpMessageHandler
     {

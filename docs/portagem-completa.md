@@ -14,7 +14,7 @@ URL/credencial visíveis. Escrita em disco só em arquivo temporário autorizado
 ## Matriz (página do original → Linux)
 | Original | Função | Adaptação Linux | Fase | Estado |
 |---|---|---|---|---|
-| Visão geral (Dash) | gráfico, desempenho, tabela de componentes | monitor /proc+hwmon; GPU/consumo dependem de GPU/RAPL | 0 | PARCIAL (sem GPU/consumo/score) |
+| Visão geral (Dash) | gráfico, desempenho, tabela de componentes | gráfico CPU (+ linha da GPU quando há contador), cartão de desempenho do histórico local (nota e variação), tabela de componentes, anéis de memória/disco, saúde do PC (leitura somente leitura) e eventos recentes | 0 | PORTADO (GPU AMD/NVIDIA e consumo RAPL NÃO TESTADOS; ver OVW-01..02) |
 | Sistema (SystemInfoCollector) | placa-mãe, BIOS, CPU, RAM, SO | /sys/class/dmi/id, /proc, /sys; módulos de RAM via importação offline do `dmidecode` (exige root) | 1 | IMPLEMENTADO (RAM por importação; sem serial) |
 | Sensores (SensorMonitor/LibreHardwareMonitor) | temperaturas, ventoinhas, tensões, potência | hwmon, thermal, power_supply, nvidia-smi/NVML, amdgpu sysfs | 0 | PARCIAL (sem GPU vendor) |
 | GPU (GpuInfoCollector, GpuSpecDb, Nvml, Dxgi) | ficha estilo GPU-Z | sysfs PCI/amdgpu/i915 + nvidia-smi CSV (sem P/Invoke); banco de especificações portado como dados | 1 | IMPLEMENTADO (AMD/NVIDIA só por fixtures; iGPU Intel real) |

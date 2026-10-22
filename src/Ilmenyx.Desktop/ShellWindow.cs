@@ -72,7 +72,7 @@ public sealed partial class ShellWindow : Window
         {
             if (!OperatingSystem.IsLinux()) { hardware.SetStatus("Backend disponível apenas no Linux."); return; }
             usage.Start(stop.Token);
-            toasts = new DeviceToastService(() => LinuxDeviceWatcher.Read()) { Enabled = appSettings.DeviceToasts }; toasts.Start();
+            toasts = new DeviceToastService(() => LinuxDeviceWatcher.Read()) { Enabled = appSettings.DeviceToasts }; toasts.Notified += t => { sessionEvents.Insert(0, (DateTimeOffset.Now, t.Title, t.Text)); if (sessionEvents.Count > 50) sessionEvents.RemoveAt(50); overviewRefresh?.Invoke(); }; toasts.Start();
             await hardware.RefreshAsync(stop.Token);
             await sensors.RefreshAsync(stop.Token);
         };
@@ -88,6 +88,7 @@ public sealed partial class ShellWindow : Window
         if (!pages.TryGetValue(key, out var entry)) throw new ArgumentException("Página desconhecida: " + key);
         if (entry.Page is null) { var page = entry.Build(); pages[key] = entry = (entry.Title, entry.Build, page); host.Children.Add(page); }
         foreach (var (k, e) in pages) if (e.Page is { } p) p.IsVisible = k == key;
+        if (key == "dash") overviewRefresh?.Invoke();
         foreach (var (k, button) in nav) Style(button, k == key);
         CurrentPage = key; titlePage.Text = entry.Title;
     }

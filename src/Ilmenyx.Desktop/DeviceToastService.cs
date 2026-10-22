@@ -16,6 +16,8 @@ public sealed class DeviceToastService : IDisposable
     private bool busy;
     public bool Enabled { get; set; } = true;
     public int Shown { get; private set; }
+    /// <summary>Raised for every notice shown (the Overview keeps a session list of them).</summary>
+    public event Action<ToastMessage>? Notified;
 
     public DeviceToastService(Func<DeviceSnapshot> read)
     {
@@ -45,7 +47,7 @@ public sealed class DeviceToastService : IDisposable
     private void Next()
     {
         if (queue.Count == 0) { drain.Stop(); return; }
-        var toast = queue.Dequeue(); Shown++;
+        var toast = queue.Dequeue(); Shown++; Notified?.Invoke(toast);
         window ??= new ToastWindow();
         window.Notify(toast.Title, toast.Text);
     }

@@ -122,10 +122,13 @@ public sealed partial class ShellWindow
         var chart = new UsageChart { Name = "OverviewChart", Height = 210, HorizontalAlignment = HorizontalAlignment.Stretch };
         var chartLabel = Label("CPU · CARGA");
         var hero = new TextBlock { Name = "OverviewValue", Text = "—", FontSize = 44, FontWeight = FontWeight.Bold, FontFamily = new FontFamily("monospace") };
+        var gpuLoad = new List<double>(); var gpuValue = new TextBlock { Name = "OverviewGpuValue", Text = "—", FontSize = 22, Foreground = Palette.Muted, HorizontalAlignment = HorizontalAlignment.Right };
+        var gpuLegend = new TextBlock { Name = "OverviewLegendGpu", Text = "GPU: sem contadores de uso neste monitor", FontSize = 11, Foreground = Palette.Muted };
         void Refresh()
         {
             bool temp = metric == "temp";
             chart.SetValues(temp ? usage.TempSeries : usage.CpuSeries, temp ? null : 100, range);
+            chart.SetSecond(!temp && gpuLoad.Count > 0 ? gpuLoad : []);
             chartLabel.Text = temp ? "CPU · TEMPERATURA" : "CPU · CARGA";
             hero.Text = temp ? (usage.Last?.CpuTempC is { } t ? t.ToString("0.0", CultureInfo.InvariantCulture) + " °C" : "—") : UsageViewModel.Pct(usage.Last?.CpuPercent);
         }
@@ -137,26 +140,41 @@ public sealed partial class ShellWindow
         metrics.Children.Add(power);
         var chips = new Grid { Margin = new Thickness(0, 16, 0, 8) };
         metrics.HorizontalAlignment = HorizontalAlignment.Right; chips.Children.Add(ranges); chips.Children.Add(metrics);
-        var gpuTag = new StackPanel { HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Bottom, Children = { Label("GPU"), new TextBlock { Text = "—", FontSize = 22, Foreground = Palette.Muted, HorizontalAlignment = HorizontalAlignment.Right } } };
+        var gpuTag = new StackPanel { HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Bottom, Children = { Label("GPU"), gpuValue } };
         var top = new Grid { Children = { new StackPanel { Children = { chartLabel, hero } }, gpuTag } };
-        var legend = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 8, 0, 0), Spacing = 6, Children = { new Border { Width = 14, Height = 2, Background = Palette.Accent, VerticalAlignment = VerticalAlignment.Center }, new TextBlock { Text = "CPU (GPU: sem contadores de uso neste monitor)", FontSize = 11, Foreground = Palette.Muted } } };
+        var legend = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 8, 0, 0), Spacing = 6, Children = { new Border { Width = 14, Height = 2, Background = Palette.Accent, VerticalAlignment = VerticalAlignment.Center }, new TextBlock { Text = "CPU", FontSize = 11, Foreground = Palette.Muted }, new Border { Width = 14, Height = 2, Background = Palette.Warn, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 0, 0) }, gpuLegend } };
         var chartCard = CardBox(new StackPanel { Children = { top, chips, chart, legend } }, new Thickness(24, 20));
 
-        // Right card: reduced validations (no score), like the benchmark card of the original.
-        var open = Primary("OpenValidations", "ABRIR VALIDAÇÕES");
-        open.Click += (_, _) => Select("validate");
+        // Right card: performance from the local benchmark history, like the benchmark card of the original (experimental scores).
+        var open = Primary("OpenBench", "ABRIR BENCHMARK");
+        open.Click += (_, _) => Select("bench");
+        var openValidations = new Button { Name = "OpenValidations", Content = "Validações reduzidas", Margin = new Thickness(0, 8, 0, 0), HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Center };
+        openValidations.Click += (_, _) => Select("validate");
         var notice = new Border { HorizontalAlignment = HorizontalAlignment.Left, Background = Palette.WarnBg, CornerRadius = new CornerRadius(6), Padding = new Thickness(10, 6), Margin = new Thickness(0, 10, 0, 0), Child = new TextBlock { Name = "OverviewGpuNotice", Text = ValidationNotices.AmdNvidia, Foreground = Palette.Warn, TextWrapping = TextWrapping.Wrap, FontSize = 12 } };
         var memoryRow = Wrapped("OverviewMemory", "—", 13, Palette.Muted); var procRow = Wrapped("OverviewProcesses", "—", 13, Palette.Muted); var cpuName = Wrapped("OverviewCpuName", "—", 12, Palette.Muted);
         usage.Updated += () => { memoryRow.Text = usage.MemoryLine; procRow.Text = usage.ProcessSummary; cpuName.Text = usage.CpuModel; };
-        var inner = new Border { Background = Palette.Bg, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(14), Padding = new Thickness(14, 10), Margin = new Thickness(0, 14, 0, 0), Child = new StackPanel { Spacing = 4, Children = { Label("CPU"), cpuName } } };
+        var score = new TextBlock { Name = "OverviewScore", Text = "—", FontSize = 30, FontWeight = FontWeight.Bold, Margin = new Thickness(0, 6, 0, 0) };
+        var scoreDelta = new TextBlock { Name = "OverviewScoreDelta", FontSize = 13, Foreground = Palette.Muted };
+        var scoreSub = Wrapped("OverviewScoreSub", "rode o Benchmark para ter uma nota", 11, Palette.Faint);
+        var scoreRows = new StackPanel { Name = "OverviewScores", Margin = new Thickness(0, 8, 0, 0) };
+        void RefreshScores()
+        {
+            var summary = PerformanceSummary.From(IlmenyxSettings.Load(IlmenyxSettings.DefaultPath()).BenchRuns);
+            score.Text = summary.CpuScore is double sc ? sc.ToString("N0", CultureInfo.InvariantCulture) : "—";
+            scoreDelta.Text = summary.CpuDelta is double d ? (d >= 0 ? "▲ " : "▼ ") + Math.Abs(d).ToString("N0", CultureInfo.InvariantCulture) : "";
+            scoreSub.Text = summary.CpuSubtitle + (summary.CpuScore is null ? "" : " · experimental, não comparável ao Windows");
+            scoreRows.Children.Clear();
+            foreach (var kv in summary.Others)
+                scoreRows.Children.Add(new Grid { ColumnDefinitions = new("*,Auto"), Children = { new TextBlock { Text = kv.Key, FontSize = 12, Foreground = Palette.Muted }, new TextBlock { Text = kv.Value, FontSize = 12, FontFamily = new FontFamily("monospace"), [Grid.ColumnProperty] = 1 } } });
+        }
+        overviewRefresh += RefreshScores; RefreshScores();
         var side = CardBox(new StackPanel
         {
             Children =
             {
-                Label("DESEMPENHO · VALIDAÇÕES REDUZIDAS"), new TextBlock { Text = "Sem score", FontSize = 30, FontWeight = FontWeight.Bold, Margin = new Thickness(0, 6, 0, 0) },
-                Wrapped("OverviewScoreNote", "CPU, memória e GameSim validam corretude em carga reduzida. Score Linux/Windows não é comparável.", 11, Palette.Faint),
-                new Border { Height = 1, Background = Palette.Line, Margin = new Thickness(0, 14) }, Label("MEMÓRIA"), memoryRow, new Border { Height = 8 }, Label("PROCESSOS"), procRow, inner, notice,
-                new Border { Height = 14 }, open
+                Label("DESEMPENHO"), score, scoreDelta, scoreSub, scoreRows,
+                new Border { Height = 1, Background = Palette.Line, Margin = new Thickness(0, 14) }, Label("MEMÓRIA"), memoryRow, new Border { Height = 8 }, Label("PROCESSOS"), procRow, notice,
+                new Border { Height = 14 }, open, openValidations
             }
         }, new Thickness(22, 20));
         var row1 = new Grid { ColumnDefinitions = new("*,16,330"), Margin = new Thickness(0, 6, 0, 16) };
@@ -194,7 +212,100 @@ public sealed partial class ShellWindow
         }
         usage.Updated += Components; Components();
         var table = CardBox(new StackPanel { Children = { head, rows } }, new Thickness(22, 14, 22, 8));
-        return Scroll("OverviewScroll", new StackPanel { Margin = new Thickness(0, 0, 8, 12), Children = { row1, table } });
+        // Health checklist, recent events and occupancy rings.
+        var healthList = new StackPanel { Name = "OverviewHealth", Spacing = 6 };
+        var healthStatus = new TextBlock { Name = "OverviewHealthStatus", FontSize = 11, Foreground = Palette.Faint };
+        var refreshHealth = new Button { Name = "BtnHealthRefresh", Content = "VERIFICAR AGORA", Padding = new Thickness(12, 4), FontSize = 11 };
+        refreshHealth.Click += async (_, _) => await RefreshHealthAsync();
+        var eventsList = new StackPanel { Name = "OverviewEvents", Spacing = 4 };
+        var rings = new WrapPanel { Name = "OverviewRings" };
+        async Task RefreshHealthAsync()
+        {
+            refreshHealth.IsEnabled = false; healthStatus.Text = "Lendo (somente leitura)…";
+            try
+            {
+                IReadOnlyList<HealthCheck> checks = OperatingSystem.IsLinux() ? await GatherHealthAsync() : [];
+                healthList.Children.Clear();
+                foreach (var c in checks)
+                    healthList.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, Children = {
+                        new TextBlock { Text = c.Ok == true ? "✓" : c.Ok == false ? "!" : "?", FontWeight = FontWeight.Bold, Width = 16, Foreground = c.Ok == false ? Palette.Warn : Palette.Muted },
+                        new StackPanel { Children = { new TextBlock { Text = c.Title, FontSize = 13 }, new TextBlock { Text = c.Detail, FontSize = 11, Foreground = Palette.Faint, TextWrapping = TextWrapping.Wrap, MaxWidth = 520 } } } } });
+                healthStatus.Text = $"Lido às {DateTime.Now:HH:mm:ss}. \"?\" = fonte indisponível, não é sinal de problema.";
+            }
+            catch (OperationCanceledException) { }
+            finally { refreshHealth.IsEnabled = true; }
+        }
+        void RefreshEvents()
+        {
+            eventsList.Children.Clear();
+            var items = sessionEvents.Select(e => (e.At, e.Title, e.Text)).Concat(IlmenyxSettings.Load(IlmenyxSettings.DefaultPath()).BenchRuns.Take(8).Select(r => (r.At, r.Kind, r.Summary))).OrderByDescending(x => x.Item1).Take(8).ToList();
+            if (items.Count == 0) eventsList.Children.Add(new TextBlock { Text = "Nenhum evento ainda. Resultados de benchmark e dispositivos conectados aparecem aqui.", Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap });
+            foreach (var (at, title, text) in items)
+                eventsList.Children.Add(new StackPanel { Children = { new TextBlock { Text = $"{at.LocalDateTime.ToString("HH:mm", CultureInfo.InvariantCulture)} · {title}", FontSize = 12, FontWeight = FontWeight.SemiBold }, new TextBlock { Text = text, FontSize = 11, Foreground = Palette.Faint, TextWrapping = TextWrapping.Wrap } } });
+        }
+        void RefreshRings()
+        {
+            rings.Children.Clear();
+            void Ring(string title, double fraction, string text) => rings.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 24, 8), Spacing = 12, Children = {
+                new Grid { Children = { new RingGauge(fraction), new TextBlock { Text = (fraction * 100).ToString("0", CultureInfo.InvariantCulture) + "%", FontFamily = new FontFamily("monospace"), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center } } },
+                new StackPanel { VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center, Children = { Label(title), new TextBlock { Text = text, FontSize = 12, Foreground = Palette.Muted } } } } });
+            if (usage.Last is { MemoryTotal: > 0, MemoryUsed: { } u } l) Ring("MEMÓRIA", (double)u / l.MemoryTotal!.Value, usage.MemoryLine);
+            if (OperatingSystem.IsLinux())
+                try { foreach (var d in MountedDrives.Read(File.ReadAllText("/proc/self/mounts")).Take(4)) Ring("DISCO · " + d.Title, d.UsedFraction, d.Sizes); }
+                catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+        }
+        overviewRefresh += () => { RefreshEvents(); RefreshRings(); };
+        overviewRefresh += () => { if (healthList.Children.Count == 0) _ = RefreshHealthAsync(); };
+        var lower = new Grid { ColumnDefinitions = new("*,16,*"), Margin = new Thickness(0, 16, 0, 0) };
+        var healthCard = CardBox(new StackPanel { Spacing = 10, Children = { Label("SAÚDE DO PC"), healthList, healthStatus, refreshHealth } }, new Thickness(22, 18));
+        var eventsCard = CardBox(new StackPanel { Spacing = 10, Children = { Label("EVENTOS RECENTES"), eventsList } }, new Thickness(22, 18));
+        Grid.SetColumn(eventsCard, 2); lower.Children.Add(healthCard); lower.Children.Add(eventsCard);
+        var ringCard = CardBox(new StackPanel { Spacing = 8, Children = { Label("OCUPAÇÃO"), rings } }, new Thickness(22, 18)); ringCard.Margin = new Thickness(0, 16, 0, 0);
+        var content = new StackPanel { Margin = new Thickness(0, 0, 8, 12), Children = { row1, table, lower, ringCard } };
+        var scroll = Scroll("OverviewScroll", content);
+        scroll.AttachedToVisualTree += (_, _) => overviewRefresh?.Invoke();
+        var refreshTimer = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(20) };
+        refreshTimer.Tick += (_, _) => { if (scroll.IsEffectivelyVisible) { RefreshScores(); RefreshEvents(); RefreshRings(); } };
+        refreshTimer.Start(); stop.Token.Register(() => Avalonia.Threading.Dispatcher.UIThread.Post(refreshTimer.Stop));
+        // GPU load line: read-only telemetry every 2 s, only while the Overview is on screen (nvidia-smi is spawned only for NVIDIA cards).
+        var gpuTimer = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(2) }; bool gpuBusy = false; GpuRaw? gpuRaw = null; bool gpuResolved = false;
+        gpuTimer.Tick += async (_, _) =>
+        {
+            if (gpuBusy || !scroll.IsEffectivelyVisible || !OperatingSystem.IsLinux()) return;
+            gpuBusy = true;
+            try
+            {
+                if (!gpuResolved) { gpuRaw = await Task.Run(() => new LinuxGpuCollector().Collect(PciIds.Load()).FirstOrDefault().Raw); gpuResolved = true; }
+                var t = gpuRaw is null ? null : await new LinuxGpuCollector().TelemetryAsync(gpuRaw, stop.Token);
+                if (t?.LoadPercent is double load) { gpuLoad.Add(load); if (gpuLoad.Count > UsageViewModel.MaxHistory) gpuLoad.RemoveAt(0); gpuValue.Text = load.ToString("0.0", CultureInfo.InvariantCulture) + "%"; gpuLegend.Text = "GPU"; Refresh(); }
+            }
+            catch (Exception e) when (e is IOException or TimeoutException or OperationCanceledException) { }
+            finally { gpuBusy = false; }
+        };
+        gpuTimer.Start(); stop.Token.Register(() => Avalonia.Threading.Dispatcher.UIThread.Post(gpuTimer.Stop));
+        return scroll;
+    }
+
+    private event Action? overviewRefresh;
+    private readonly List<(DateTimeOffset At, string Title, string Text)> sessionEvents = [];
+
+    /// <summary>Read-only inputs of the health checklist: sensors, kernel log, disk verdicts, power profile, GameMode.</summary>
+    [System.Runtime.Versioning.SupportedOSPlatform("linux")]
+    private async Task<IReadOnlyList<HealthCheck>> GatherHealthAsync()
+    {
+        var errors = await new LinuxKernelLog().ErrorsSinceAsync(DateTimeOffset.UtcNow.AddDays(-7), stop.Token);
+        int good = 0, attention = 0, unknown = 0;
+        try
+        {
+            string mounts = File.ReadAllText("/proc/self/mounts");
+            foreach (var card in await Task.Run(() => new LinuxDiskHealthReader().Read(mounts, null).Select(DiskHealthEvaluator.Evaluate).ToList(), stop.Token))
+                if (card.Verdict == HealthVerdict.Good) good++; else if (card.Verdict is HealthVerdict.Warning or HealthVerdict.Critical) attention++; else unknown++;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+        string? plan = await LinuxPowerReader.ActiveProfileAsync(stop.Token);
+        bool onBattery = false;
+        try { onBattery = new LinuxPowerReader().Read() is { MainsOnline: false, Batteries.Count: > 0 }; } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+        return HealthChecklist.Build(new(usage.Last is null ? null : usage.Last.CpuTempC is not null, errors, good, attention, unknown, plan, onBattery, BoundedProcess.Find("gamemoderun") is not null));
     }
 
     private static void AutomationPropertiesName(Control c, string name) => Avalonia.Automation.AutomationProperties.SetName(c, name);
