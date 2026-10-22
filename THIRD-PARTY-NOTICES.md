@@ -105,3 +105,14 @@ Avalonia.BuildServices continua excluído dos assets/privado, com telemetria des
 Runner GameSim 0.9.0: medição/warmup adaptados de GameSimBench.cs MIT GustavoReset, com
 aviso preservado no novo GameSimBenchmarkRunner.cs. Sem nova dependência; carga completa ainda
 não executada. Metodologia e diferenças versionadas em docs/gamesim-completo.md.
+
+
+## Componentes embutidos no pacote autocontido (0.28.0+)
+
+| Componente | Versão | Licença | Observação |
+|---|---|---|---|
+| .NET runtime (Microsoft.NETCore.App) | 10.0.x | MIT | embutido por `--self-contained true`; avisos do runtime acompanham o pacote em `licenses/` |
+| Microsoft.ICU.ICU4C.Runtime (ICU 72, app-local) | 72.1.0.3 | Unicode License (ICU) | `libicuuc/libicui18n/libicudata`; o texto da licença vai em `licenses/` e deve ser mantido |
+| Silk.NET.Vulkan e dependências | 2.23.0 | MIT | bindings; o loader `libvulkan.so.1` e o driver são do sistema, não embutidos |
+
+Inventário, hashes e avisos coletados não equivalem a liberação jurídica de redistribuição.

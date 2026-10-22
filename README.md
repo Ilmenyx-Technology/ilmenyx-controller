@@ -7,7 +7,7 @@ política de contribuições próprias futuras: uso como ferramenta profissional
 venda do programa/acesso pago e derivação comercial do código restritos.
 Veja [mapa de licenças](LICENSING.md): a MIT original continua permitindo uso comercial das
 partes abrangidas, sem revogação de direitos anteriores. O conjunto não é anunciado como open source OSI.
-Versão local experimental 0.24.0; sem lançamento público nesta sessão.
+Versão local experimental 0.29.0; sem lançamento público (push, release e divulgação dependem de aprovação do mantenedor).
 
 Ilmenyx é uma adaptação independente e não oficial do [RESET EXPLODE](https://github.com/GustavoReset/ResetExplode),
 criado por Gustavo (GustavoReset). Não possui afiliação, patrocínio ou endosso da equipe RESET.
@@ -20,21 +20,25 @@ Ilmenyx e Bismuth Technology são nomes informados pelo mantenedor; não se afir
 exclusividade ou disponibilidade jurídica. Manual de Marca ainda não aprovado: texto/UI atuais
 são provisórios, sem logo, paleta ou tipografia oficial definida.
 
-## O que existe
+## O que existe (0.29.0)
 
-| Recurso | Estado e limite |
-|---|---|
-| Inventário CPU/RAM/SO/kernel/discos | IMPLEMENTADO e testado no CachyOS x64, dados proc/sys e indisponibilidades explícitas |
-| Sensores/energia/GPU DRM/PCI | IMPLEMENTADO conforme fontes disponíveis; monitor opt-in, sem calibração/proteção térmica |
-| JSON e HTML local | IMPLEMENTADO, sem overwrite, HTML escapado sem scripts/recursos externos; aviso de compartilhamento |
-| CLI e Avalonia .NET 10 | IMPLEMENTADO; Wayland nativo opt-in e X11/XWayland testados no KWin/CachyOS |
-| CPU, RAM e GameSim reduzidos | IMPLEMENTADO, hashes/oracles independentes upstream; não são scores de carga |
-| CPU/GameSim completos | Experimental, opt-in somente CLI; carga real NÃO TESTADA, sem equivalência Windows certificada |
-| SMART | Leitura explícita opcional via smartctl; relatório NVMe real do usuário validado pelo parser; sem sudo no app |
-| Sobre/licenças/créditos | IMPLEMENTADO, leitura local, sem abrir rede |
-| AMD/NVIDIA reais | NÃO TESTADO; aviso visível mantido por autorização do usuário |
-| Windows, outras distros/ISAs, embalagem final | NÃO TESTADO/PENDENTE; ver Sem_teste.md |
-| Disco pesado/rede/GPU benchmark/overlay/ajustes | Não implementados; roadmap planejado, não promessas de funcionamento |
+O aplicativo desktop (Avalonia 12 + .NET 10) tem barra lateral com as páginas abaixo; a CLI (`ilmenyx`) cobre inventário,
+sensores, SMART importado e os benchmarks com opt-in explícito. Tema escuro/claro, avisos de dispositivo e relatórios HTML/JSON locais.
+
+| Grupo | Páginas | Estado |
+|---|---|---|
+| Diagnóstico | Visão geral (gráfico, desempenho, saúde do PC, eventos, anéis), Sistema, Sensores (hwmon + GPU), GPU, Discos (veredito + SMART importado), Energia/bateria, Rede (teste só por clique), Processos | IMPLEMENTADO; leitura somente leitura de /proc, /sys, /etc |
+| Jogos | Jogos (Steam/Lutris/Heroic/manual, GameMode, MangoHud, PRIME), Estimativa de FPS, Gargalo | IMPLEMENTADO; jogo real, Heroic e API HowManyFPS NÃO TESTADOS |
+| Desempenho | Benchmark (CPU render, memória, GameSim, GPU em Vulkan, disco O_DIRECT), OC (verificador CPU/RAM/GPU, erros do kernel, comandos NVIDIA, guia da BIOS), Overlay (janela + MangoHud), Stress (CPU/RAM/GPU) | IMPLEMENTADO; carga só por clique + confirmação, com limites e corte por temperatura |
+| Maker | Portas seriais, drivers seriais (CH340/CP210x/FTDI…) | IMPLEMENTADO; sem placa real NÃO TESTADO |
+| Ferramentas | Otimiza (fechar apps próprios, ajustes reversíveis), Integração (RGB via OpenRGB), Inicialização, Instalar apps (Flatpak, escopo do usuário), Drivers, Relatório, Requisitos e sobre | IMPLEMENTADO; sem sudo implícito: o que exige root vira comando para você copiar |
+
+- **Pacote autocontido**: runtime .NET e ICU vão no pacote (`scripts/package-linux-x64.sh`); ver `docs/pacote-linux-x64.md`.
+  Bibliotecas do sistema (glibc, fontconfig, X11/Wayland, EGL, loader Vulkan) e integrações opcionais (GameMode, MangoHud, Flatpak, smartctl, OpenRGB) são do sistema.
+- **Matriz do port** em `docs/portagem-completa.md`; **tudo que não foi testado, com o motivo e a condição de reteste, em `Sem_teste.md`**.
+- Windows-only e não aplicável: tweaks de registro, Game DVR, HAGS, SDKs Corsair/Razer Synapse, "números COM presos". Ray tracing de GPU: BLOQUEADO sem hardware.
+- Scores (CPU, GameSim, GPU, disco) são experimentais e **não comparáveis ao Windows**.
+- AMD/NVIDIA reais: NÃO TESTADO; aviso visível mantido por autorização do usuário.
 
 Nenhuma coleta fabrica temperatura/saúde/VRAM. Capacidade de disco não é espaço livre ou saúde.
 Carga completa não roda ao abrir o app ou na suíte. Sem instalação, drivers, root ou telemetria de

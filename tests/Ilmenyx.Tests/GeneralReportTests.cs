@@ -19,7 +19,7 @@ public class GeneralReportTests
         var group = cpu.Add("Cache"); group.Add("L3", "32 MiB"); group.Add("Serial interno", "SN-SECRET-3");
         return new ReportData
         {
-            AppVersion = "0.28.0", Date = new DateTimeOffset(2026, 10, 22, 10, 0, 0, TimeSpan.Zero), System = [cpu],
+            AppVersion = "0.29.0", Date = new DateTimeOffset(2026, 10, 22, 10, 0, 0, TimeSpan.Zero), System = [cpu],
             Gpus = [new ReportGpu("GPU <b>", "sub", [new InfoNode { Header = "Geral" }])],
             Disks = [new HealthCard { Title = "nvme0n1 <img src=x>", Meta = "NVMe", Verdict = HealthVerdict.Warning, Reasons = "Desgaste", Metrics = [new("Temp", "40 °C")] }],
             Sensors = [new ReportSensorRow("coretemp", "Package", "55 °C", "ok")],
@@ -94,7 +94,7 @@ public class GeneralReportTests
             File.WriteAllText(Path.Combine(root, "proc/meminfo"), "MemTotal:       8000000 kB\nMemAvailable:   4000000 kB\n");
             var sensors = new[] { new SensorMeasurement("d", "chip", "temp1", "label mac=aa:bb:cc:dd:ee:ff", DateTimeOffset.Now, "ok", new Reading<double?>(42.5, "°C", "x", "available", null)) };
             var history = new[] { new BenchRunEntry(DateTimeOffset.Now, "OC", "config em /home/pessoa/segredo", 1) };
-            var data = await LinuxReportGatherer.GatherAsync("0.28.0", null, null, sensors, new Dictionary<string, SmartDiagnostic>(), null, history, CancellationToken.None,
+            var data = await LinuxReportGatherer.GatherAsync("0.29.0", null, null, sensors, new Dictionary<string, SmartDiagnostic>(), null, history, CancellationToken.None,
                 Path.Combine(root, "proc"), Path.Combine(root, "sys"), Path.Combine(root, "etc"));
             Assert.DoesNotContain("aa:bb:cc", data.Sensors[0].Name);
             Assert.DoesNotContain("/home/pessoa", data.Benchmarks[0].Summary);

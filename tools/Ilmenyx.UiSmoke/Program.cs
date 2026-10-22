@@ -881,7 +881,7 @@ public sealed class UiSmokeApp : Application
         string dir = Path.Combine(Program.OutputDirectory, "report-fixture"); Directory.CreateDirectory(dir);
         string html = Path.Combine(dir, "r.html"), json = Path.Combine(dir, "r.json"); File.Delete(html); File.Delete(json);
         string? next = null; Window? host = null;
-        var page = new ReportPage(ct => Ilmenyx.Platform.Linux.LinuxReportGatherer.GatherAsync("0.28.0", null, null, [], new Dictionary<string, Ilmenyx.Contracts.SmartDiagnostic>(), null, [], ct), _ => Task.FromResult(next), CancellationToken.None);
+        var page = new ReportPage(ct => Ilmenyx.Platform.Linux.LinuxReportGatherer.GatherAsync("0.29.0", null, null, [], new Dictionary<string, Ilmenyx.Contracts.SmartDiagnostic>(), null, [], ct), _ => Task.FromResult(next), CancellationToken.None);
         host = new Window { Width = 900, Height = 700, Content = new ScrollViewer { Content = page } }; host.Show();
         await Until(() => host.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnReportHtml"));
         next = null; Click(host, "BtnReportHtml"); await Until(() => Find<TextBlock>(host, "ReportStatus").Text == "Exportação cancelada."); if (File.Exists(html)) throw new InvalidOperationException("Cancelled destination must write nothing.");
