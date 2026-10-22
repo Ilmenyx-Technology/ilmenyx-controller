@@ -255,3 +255,11 @@ novamente. O mesmo controle protege JSON. [Resultados e comandos](docs/sensores-
 converte relatório smartctl existente sem consultar o disco. Entrada limitada,
 saída filtrada e data da análise distinta da coleta original não confirmada.
 [Uso, testes e limites](docs/smart-import.md). Não é garantia de saúde atual.
+
+### SMART importado na interface — 0.25.0
+
+O dashboard tem o painel "SMART · importação offline": informe o disco e o caminho
+completo de um JSON smartctl existente, importe e exporte JSON/HTML. Só arquivo regular
+(sem link, /dev, /proc, /sys), sem smartctl nem consulta ao disco. Pacote 0.25.0 validado
+por CLI em VM Ubuntu 24.04; GUI real, Wayland e Orca na VM seguem NÃO TESTADOS
+([evidências](docs/evidencias/ilmenyx-vm-ubuntu-2404-0.25.0/README.md), [limites](docs/smart-import.md)).
