@@ -133,6 +133,10 @@ public sealed class IlmenyxSettings
     public string? HowManyFpsKey { get; set; }
     /// <summary>Local benchmark history (newest first, at most <see cref="BenchRunEntry.MaxEntries"/>). Never sent anywhere.</summary>
     public List<BenchRunEntry> BenchRuns { get; set; } = [];
+    /// <summary>Overlay items (null = defaults), corner (top-left, top-right, bottom-left, bottom-right) and text scale.</summary>
+    public List<string>? OverlayItems { get; set; }
+    public string OverlayCorner { get; set; } = "top-left";
+    public double OverlayScale { get; set; } = 1.0;
 
     public void AddBenchRun(BenchRunEntry entry)
     {
