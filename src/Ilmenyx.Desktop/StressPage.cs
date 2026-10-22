@@ -89,7 +89,7 @@ public sealed class StressPage : StackPanel
 
     private void SetStatus(string text, bool alert)
     {
-        stStatus.Text = text; statusCard.Background = alert ? Palette.Fg : Palette.Card; stStatus.Foreground = alert ? Brushes.Black : Palette.Fg;
+        stStatus.Text = text; statusCard.Background = alert ? Palette.Fg : Palette.Card; stStatus.Foreground = alert ? Palette.OnFg : Palette.Fg;
     }
 
     private void Controls(bool running)

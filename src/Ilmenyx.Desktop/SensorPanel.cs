@@ -12,7 +12,7 @@ public sealed class SensorPanel : Border
     public SensorPanel(SensorMonitorViewModel model, Func<string, Task<string?>> chooseDestination, CancellationToken lifetime)
     {
         DataContext = model;
-        Background = Brush.Parse("#2A2531"); CornerRadius = new CornerRadius(12); Padding = new Thickness(20); Margin = new Thickness(0, 0, 12, 0);
+        Background = Palette.Card; CornerRadius = new CornerRadius(12); Padding = new Thickness(20); Margin = new Thickness(0, 0, 12, 0);
         var refresh = new Button { Name = "RefreshSensors", Content = "Atualizar sensores", Margin = new Thickness(0, 0, 8, 8) };
         var monitor = new Button { Name = "MonitorSensors", Content = "Monitorar (2 s)", Margin = new Thickness(0, 0, 8, 8) };
         var stop = new Button { Name = "StopSensors", Content = "Parar monitor", Margin = new Thickness(0, 0, 8, 8) };
@@ -47,7 +47,7 @@ public sealed class SensorPanel : Border
             Children =
             {
                 new TextBlock { Text = "SENSORES · HWMON / THERMAL / ENERGIA", TextWrapping = TextWrapping.Wrap, FontSize = 14, FontWeight = FontWeight.Bold },
-                new TextBlock { Text = "Leituras brutas do kernel, sem inferência de saúde. Canais não identificados preservam o nome original.\nMonitor opcional: atualiza a cada 2 segundos, sem manter histórico. Tensão pode exigir calibração da placa.", TextWrapping = TextWrapping.Wrap, Foreground = Brushes.LightGray },
+                new TextBlock { Text = "Leituras brutas do kernel, sem inferência de saúde. Canais não identificados preservam o nome original.\nMonitor opcional: atualiza a cada 2 segundos, sem manter histórico. Tensão pode exigir calibração da placa.", TextWrapping = TextWrapping.Wrap, Foreground = Palette.Muted },
                 new WrapPanel { Children = { refresh, monitor, stop, export, exportHtml } }, status,
                 new ScrollViewer { MaxHeight = 260, Content = values }
             }

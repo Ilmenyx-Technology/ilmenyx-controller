@@ -9,8 +9,8 @@ namespace Ilmenyx.Desktop;
 public sealed class UsageChart : Control
 {
     public const int Window = 60; // default visible points (1 s each)
-    private static readonly IBrush Back = Brush.Parse("#1B1721"), Fill = new SolidColorBrush(Color.Parse("#B07CD6"), 0.55);
-    private static readonly IPen Grid = new Pen(Brush.Parse("#4A4454"), 1), Line = new Pen(Brush.Parse("#D9A8FF"), 1.4);
+    private static readonly IBrush Back = Palette.Panel, Fill = new SolidColorBrush(Color.Parse("#B07CD6"), 0.55);
+    private static readonly IPen Grid = new Pen(Palette.Line, 1), Line = new Pen(Palette.AccentText, 1.4);
     private double[] values = [];
     private double max = 1;
     public int Points { get; private set; } = Window;

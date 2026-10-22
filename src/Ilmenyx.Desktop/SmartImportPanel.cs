@@ -13,7 +13,7 @@ public sealed class SmartImportPanel : Border
     public SmartImportPanel(SmartImportViewModel model, Func<string, Task<string?>> chooseDestination, CancellationToken lifetime)
     {
         DataContext = model;
-        Background = Brush.Parse("#2A2531"); CornerRadius = new CornerRadius(12); Padding = new Thickness(20); Margin = new Thickness(0, 0, 12, 0);
+        Background = Palette.Card; CornerRadius = new CornerRadius(12); Padding = new Thickness(20); Margin = new Thickness(0, 0, 12, 0);
         var deviceLabel = new TextBlock { Text = "Disco declarado no relatório (ex.: nvme0n1 ou sda)", TextWrapping = TextWrapping.Wrap };
         var device = new TextBox { Name = "SmartImportDevice", PlaceholderText = "nvme0n1" };
         AutomationProperties.SetName(device, "Disco declarado no relatório SMART");
@@ -55,7 +55,7 @@ public sealed class SmartImportPanel : Border
             Children =
             {
                 new TextBlock { Text = "SMART · IMPORTAÇÃO OFFLINE", TextWrapping = TextWrapping.Wrap, FontSize = 14, FontWeight = FontWeight.Bold },
-                new TextBlock { Text = "Lê somente o arquivo JSON que você indicar (até 64 KiB, arquivo regular). Não executa smartctl nem acessa o disco. A data original da coleta não é confirmada e o relato não garante saúde atual.", TextWrapping = TextWrapping.Wrap, Foreground = Brushes.LightGray },
+                new TextBlock { Text = "Lê somente o arquivo JSON que você indicar (até 64 KiB, arquivo regular). Não executa smartctl nem acessa o disco. A data original da coleta não é confirmada e o relato não garante saúde atual.", TextWrapping = TextWrapping.Wrap, Foreground = Palette.Muted },
                 deviceLabel, device, pathLabel, path,
                 new WrapPanel { Children = { import, export, exportHtml } }, status,
                 new ScrollViewer { MaxHeight = 200, Content = values }

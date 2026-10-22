@@ -100,7 +100,7 @@ public sealed partial class ShellWindow
     private static ScrollViewer Scroll(string name, Control content) => new() { Name = name, Content = content };
     private static Button Primary(string name, string text) => new() { Name = name, Content = text, Background = Palette.Accent, Foreground = Brushes.Black, FontWeight = FontWeight.Bold, Padding = new Thickness(20, 12), HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Center, CornerRadius = new CornerRadius(12) };
 
-    private static void ChipStyle(Button b, bool on) { b.Background = on ? Palette.Fg : Brushes.Transparent; b.Foreground = on ? Brushes.Black : Palette.Muted; }
+    private static void ChipStyle(Button b, bool on) { b.Background = on ? Palette.Fg : Brushes.Transparent; b.Foreground = on ? Palette.OnFg : Palette.Muted; }
     private static StackPanel Chips<T>(string name, (string Label, T Value)[] options, T initial, Action<T> chosen)
     {
         var panel = new StackPanel { Name = name, Orientation = Orientation.Horizontal, Spacing = 6 };
@@ -145,7 +145,7 @@ public sealed partial class ShellWindow
         // Right card: reduced validations (no score), like the benchmark card of the original.
         var open = Primary("OpenValidations", "ABRIR VALIDAÇÕES");
         open.Click += (_, _) => Select("validate");
-        var notice = new Border { HorizontalAlignment = HorizontalAlignment.Left, Background = Brush.Parse("#3A3020"), CornerRadius = new CornerRadius(6), Padding = new Thickness(10, 6), Margin = new Thickness(0, 10, 0, 0), Child = new TextBlock { Name = "OverviewGpuNotice", Text = ValidationNotices.AmdNvidia, Foreground = Palette.Warn, TextWrapping = TextWrapping.Wrap, FontSize = 12 } };
+        var notice = new Border { HorizontalAlignment = HorizontalAlignment.Left, Background = Palette.WarnBg, CornerRadius = new CornerRadius(6), Padding = new Thickness(10, 6), Margin = new Thickness(0, 10, 0, 0), Child = new TextBlock { Name = "OverviewGpuNotice", Text = ValidationNotices.AmdNvidia, Foreground = Palette.Warn, TextWrapping = TextWrapping.Wrap, FontSize = 12 } };
         var memoryRow = Wrapped("OverviewMemory", "—", 13, Palette.Muted); var procRow = Wrapped("OverviewProcesses", "—", 13, Palette.Muted); var cpuName = Wrapped("OverviewCpuName", "—", 12, Palette.Muted);
         usage.Updated += () => { memoryRow.Text = usage.MemoryLine; procRow.Text = usage.ProcessSummary; cpuName.Text = usage.CpuModel; };
         var inner = new Border { Background = Palette.Bg, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(14), Padding = new Thickness(14, 10), Margin = new Thickness(0, 14, 0, 0), Child = new StackPanel { Spacing = 4, Children = { Label("CPU"), cpuName } } };

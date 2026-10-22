@@ -28,6 +28,9 @@ internal static class Program
             throw new InvalidOperationException("Smoke did not load the expected packaged desktop assembly.");
         OutputDirectory = Path.Combine(args[0], "ilmenyx-ui-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(OutputDirectory);
+        // Every page that reads or writes Ilmenyx settings/logs uses the fixture directories, never the user's real ones.
+        Environment.SetEnvironmentVariable("XDG_CONFIG_HOME", Path.Combine(OutputDirectory, "xdg-config"));
+        Environment.SetEnvironmentVariable("XDG_DATA_HOME", Path.Combine(OutputDirectory, "xdg-data"));
         return DesktopBackend.Configure(AppBuilder.Configure<UiSmokeApp>(), DesktopBackend.Parse(DesktopBackend.ReadSelection())).StartWithClassicDesktopLifetime(Array.Empty<string>());
     }
 }
@@ -490,6 +493,7 @@ public sealed class UiSmokeApp : Application
         if (OperatingSystem.IsLinux()) await ReportAsync(shell);
         if (OperatingSystem.IsLinux()) await OverlayAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await LightingAsync(shell, desktop);
+        await ThemeAsync(shell);
         Click(shell, "SortMemory"); await Until(() => Find<Button>(shell, "SortMemory").Content!.ToString()!.Contains('▼'));
         Click(shell, "ToggleMonitor");
         await Until(() => Find<Button>(shell, "ToggleMonitor").Content!.ToString() == "Retomar monitor" && Find<TextBlock>(shell, "SideMonitor").Text == "monitor parado");
@@ -885,6 +889,19 @@ public sealed class UiSmokeApp : Application
         Find<Button>(shell, "Navlighting").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await Until(() => shell.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnLightConnect"));
         Console.WriteLine("PASS lighting page: nothing connects or is sent before the click, control needs confirmation, effect frames reach the OpenRGB server, every device is handed back to its original mode (fake loopback server; no real RGB hardware)");
+    }
+    private static async Task ThemeAsync(ShellWindow shell)
+    {
+        if (Palette.IsLight) throw new InvalidOperationException("Default theme must be dark.");
+        Find<Button>(shell, "Navsystem").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Click(shell, "ToggleTheme"); await Until(() => Palette.IsLight && Find<Button>(shell, "ToggleTheme").Content!.ToString() == "Tema escuro");
+        if (((Avalonia.Media.SolidColorBrush)Palette.Bg).Color.R < 200 || ((Avalonia.Media.SolidColorBrush)Palette.Fg).Color.R > 80) throw new InvalidOperationException("Light palette must have a light background and dark ink.");
+        await Task.Delay(400); Capture(shell, "shell-light.png");
+        string saved = File.ReadAllText(Path.Combine(Environment.GetEnvironmentVariable("XDG_CONFIG_HOME")!, "ilmenyx", "settings.json"));
+        if (!saved.Contains("\"ThemeLight\": true")) throw new InvalidOperationException("Theme choice must be persisted.");
+        foreach (var key in new[] { "stress", "oc", "disks" }) { Find<Button>(shell, "Nav" + key).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); await Task.Delay(500); Capture(shell, $"shell-light-{key}.png"); }
+        Click(shell, "ToggleTheme"); await Until(() => !Palette.IsLight && Find<Button>(shell, "ToggleTheme").Content!.ToString() == "Tema claro");
+        Console.WriteLine("PASS theme: light/dark toggle recolours the live window, choice persisted to the settings file (fixture directory), default is dark");
     }
     private sealed class FakeHttp : HttpMessageHandler
     {

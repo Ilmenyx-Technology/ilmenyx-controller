@@ -9,7 +9,7 @@ public sealed class MemoryValidationPanel : Border
 {
     public MemoryValidationPanel(MemoryValidationViewModel model, Func<string, Task<string?>> chooseDestination, CancellationToken lifetime)
     {
-        DataContext = model; Background = Brush.Parse("#2A2531"); CornerRadius = new CornerRadius(12);
+        DataContext = model; Background = Palette.Card; CornerRadius = new CornerRadius(12);
         Padding = new Thickness(20); Margin = new Thickness(0, 0, 12, 0);
         var start = new Button { Name = "ValidateMemory", Content = "Validar memória (reduzido)", Margin = new Thickness(0, 0, 8, 8) };
         var cancel = new Button { Name = "CancelMemory", Content = "Cancelar memória", Margin = new Thickness(0, 0, 8, 8) };
@@ -49,7 +49,7 @@ public sealed class MemoryValidationPanel : Border
             Children =
         {
             new TextBlock { Text = "VALIDAÇÃO DE ALGORITMOS DE MEMÓRIA", TextWrapping = TextWrapping.Wrap, FontSize = 14, FontWeight = FontWeight.Bold },
-            new TextBlock { Text = "Cadeia de ponteiros, soma e cópia · buffers de 256 KiB · uma passada · 1 worker.\nNão mede latência, GB/s, estabilidade ou saúde da RAM. Não executa GameSim ou testes de disco.", Foreground = Brushes.LightGray, TextWrapping = TextWrapping.Wrap },
+            new TextBlock { Text = "Cadeia de ponteiros, soma e cópia · buffers de 256 KiB · uma passada · 1 worker.\nNão mede latência, GB/s, estabilidade ou saúde da RAM. Não executa GameSim ou testes de disco.", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap },
             new WrapPanel { Children = { start, cancel, export, exportHtml } }, status, summary
         }
         };

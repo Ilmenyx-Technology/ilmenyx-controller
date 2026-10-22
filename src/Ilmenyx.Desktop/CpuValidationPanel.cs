@@ -24,7 +24,7 @@ public sealed class CpuValidationPanel : Border, IDisposable
     {
         this.model = model;
         DataContext = model;
-        Background = Brush.Parse("#2A2531");
+        Background = Palette.Card;
         CornerRadius = new CornerRadius(12);
         Padding = new Thickness(20);
         Margin = new Thickness(0, 0, 12, 0);
@@ -77,7 +77,7 @@ public sealed class CpuValidationPanel : Border, IDisposable
             Children =
             {
                 new TextBlock { Text = "VALIDAÇÃO DO RENDERIZADOR CPU", TextWrapping = TextWrapping.Wrap, FontSize = 14, FontWeight = FontWeight.Bold },
-                new TextBlock { Text = "32×18 pixels · 8 amostras/pixel · uma passada · sem score.\nA imagem é calculada ao clicar. Este modo não mede desempenho nem saúde do hardware.", TextWrapping = TextWrapping.Wrap, Foreground = Brushes.LightGray },
+                new TextBlock { Text = "32×18 pixels · 8 amostras/pixel · uma passada · sem score.\nA imagem é calculada ao clicar. Este modo não mede desempenho nem saúde do hardware.", TextWrapping = TextWrapping.Wrap, Foreground = Palette.Muted },
                 new WrapPanel { Orientation = Orientation.Horizontal, Children = { start, cancel, export, exportHtml } },
                 progress, status, preview, summary
             }

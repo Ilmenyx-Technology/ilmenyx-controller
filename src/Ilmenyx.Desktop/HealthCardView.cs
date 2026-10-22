@@ -16,7 +16,7 @@ public static class HealthCardView
         {
             HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, BorderBrush = Palette.Fg, BorderThickness = new Thickness(1), Padding = new Thickness(12, 4),
             CornerRadius = new CornerRadius(4), Background = c.IsAlert ? Palette.Fg : Brushes.Transparent,
-            Child = new TextBlock { Name = "Verdict_" + c.Device, Text = c.VerdictText, FontSize = 11, FontWeight = FontWeight.SemiBold, Foreground = c.IsAlert ? Brushes.Black : Palette.Fg }
+            Child = new TextBlock { Name = "Verdict_" + c.Device, Text = c.VerdictText, FontSize = 11, FontWeight = FontWeight.SemiBold, Foreground = c.IsAlert ? Palette.OnFg : Palette.Fg }
         };
         var top = new Grid();
         top.Children.Add(new StackPanel { Margin = new Thickness(0, 0, 130, 0), Children = { new TextBlock { Text = c.Title, FontSize = 16, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap }, new TextBlock { Text = c.Meta, Foreground = Palette.Muted, FontSize = 12, Margin = new Thickness(0, 3, 0, 0), TextWrapping = TextWrapping.Wrap } } });

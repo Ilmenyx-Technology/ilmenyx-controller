@@ -183,7 +183,7 @@ public sealed class OcPage : StackPanel
         foreach (var s in steps)
             guide.Children.Add(new Border { BorderBrush = Palette.Line, BorderThickness = new Thickness(0, 1, 0, 0), Padding = new Thickness(0, 8), Child = new StackPanel { Spacing = 2, Children = {
                 new TextBlock { Text = $"{s.Number} · {s.Title}", FontWeight = FontWeight.SemiBold },
-                new TextBlock { Text = s.Where, FontFamily = new FontFamily("monospace"), FontSize = 12, Foreground = Palette.Accent, TextWrapping = TextWrapping.Wrap },
+                new TextBlock { Text = s.Where, FontFamily = new FontFamily("monospace"), FontSize = 12, Foreground = Palette.AccentText, TextWrapping = TextWrapping.Wrap },
                 new TextBlock { Text = s.Text, TextWrapping = TextWrapping.Wrap, Foreground = Palette.Muted, FontSize = 12 } } } });
         Children.Add(UiKit.Card(new StackPanel { Spacing = 6, Children = { guideTitle, guideIntro, guide } }));
     }
@@ -219,7 +219,7 @@ public sealed class OcPage : StackPanel
         status.Text = $"Concluído em {result.Elapsed:mm\\:ss}.";
         verdict.Text = stable ? "ESTÁVEL" : "INSTÁVEL";
         verdictWhy.Text = stable ? $"Nenhum erro em {options.Duration.TotalMinutes:0} min de stress. Para Curve Optimizer, use o PC normalmente por um dia e confira os erros recentes." : "Motivo: " + result.FailureReason + ". Volte um passo no ajuste e teste de novo.";
-        verdictCard.Background = stable ? Palette.Card : Palette.Fg; verdict.Foreground = verdictWhy.Foreground = verdictRows.Foreground = stable ? Palette.Fg : Brushes.Black;
+        verdictCard.Background = stable ? Palette.Card : Palette.Fg; verdict.Foreground = verdictWhy.Foreground = verdictRows.Foreground = stable ? Palette.Fg : Palette.OnFg;
         var rows = new List<string> { "Configuração: " + (options.Label.Length > 0 ? options.Label : "sem descrição") };
         if (result.CpuScore is double score) rows.Add("Nota CPU (render): " + score.ToString("N0", CultureInfo.InvariantCulture) + " pts (experimental)");
         if (result.MaxCpuTemp is double t) rows.Add("Temp. máx. CPU: " + t.ToString("0", CultureInfo.InvariantCulture) + " °C");

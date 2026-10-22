@@ -21,7 +21,7 @@ public sealed class DashboardWindow : Window
     public DashboardWindow()
     {
         Title = ProductIdentity.Name; Width = 1060; Height = 780; MinWidth = 640; MinHeight = 480;
-        Background = Brush.Parse("#17131C"); DataContext = vm;
+        Background = Palette.Bg; DataContext = vm;
         var refresh = new Button { Name = "RefreshHardware", Content = "Atualizar" };
         var export = new Button { Name = "ExportHardware", Content = "Exportar hardware JSON" };
         var exportHtml = new Button { Name = "ExportHardwareHtml", Content = "Exportar hardware HTML" };
@@ -57,13 +57,13 @@ public sealed class DashboardWindow : Window
         var stack = new StackPanel { Margin = new Thickness(32), Spacing = 18 };
         stack.Children.Add(new TextBlock { Name = "ProductName", Text = ProductIdentity.Name, FontSize = 32, FontWeight = FontWeight.Bold });
         stack.Children.Add(new TextBlock { Name = "MaintainerSignature", Text = ProductIdentity.Signature });
-        stack.Children.Add(new TextBlock { Text = "Diagnóstico de hardware · Linux · 0.28.0", Foreground = Brushes.LightGray });
+        stack.Children.Add(new TextBlock { Text = "Diagnóstico de hardware · Linux · 0.28.0", Foreground = Palette.Muted });
         stack.Children.Add(new WrapPanel { Orientation = Orientation.Horizontal, ItemSpacing = 12, LineSpacing = 8, Children = { refresh, export, exportHtml, requirements, about } });
         foreach (var (label, property) in new[] { ("PROCESSADOR", nameof(vm.Cpu)), ("MEMÓRIA", nameof(vm.Memory)), ("SISTEMA", nameof(vm.System)), ("DISPOSITIVOS DE BLOCO", nameof(vm.Disks)) })
         {
             var value = new TextBlock { TextWrapping = TextWrapping.Wrap, FontSize = 17 };
             value.Bind(TextBlock.TextProperty, new Binding(property));
-            cards.Children.Add(new Border { Margin = new Thickness(0, 0, 12, 12), Background = Brush.Parse("#2A2531"), CornerRadius = new CornerRadius(12), Padding = new Thickness(20), Child = new StackPanel { Spacing = 10, Children = { new TextBlock { Text = label, TextWrapping = TextWrapping.Wrap, Foreground = Brushes.LightGray, FontSize = 12 }, value } } });
+            cards.Children.Add(new Border { Margin = new Thickness(0, 0, 12, 12), Background = Palette.Card, CornerRadius = new CornerRadius(12), Padding = new Thickness(20), Child = new StackPanel { Spacing = 10, Children = { new TextBlock { Text = label, TextWrapping = TextWrapping.Wrap, Foreground = Palette.Muted, FontSize = 12 }, value } } });
         }
         stack.Children.Add(cards);
         var gpuSummary = new TextBlock { Name = "GpuSummary", TextWrapping = TextWrapping.Wrap, FontSize = 15 };
@@ -71,7 +71,7 @@ public sealed class DashboardWindow : Window
         stack.Children.Add(new Border
         {
             Margin = new Thickness(0, 0, 12, 0),
-            Background = Brush.Parse("#2A2531"),
+            Background = Palette.Card,
             CornerRadius = new CornerRadius(12),
             Padding = new Thickness(20),
             Child = new StackPanel
@@ -83,19 +83,19 @@ public sealed class DashboardWindow : Window
                     new Border
                     {
                         HorizontalAlignment = HorizontalAlignment.Left,
-                        Background = Brush.Parse("#3A3020"), CornerRadius = new CornerRadius(6),
+                        Background = Palette.WarnBg, CornerRadius = new CornerRadius(6),
                         Padding = new Thickness(10, 6),
                         Child = new TextBlock
                         {
                             Name = "GpuValidationNotice",
                             Text = ValidationNotices.AmdNvidia,
-                            Foreground = Brush.Parse("#F3CE85"), TextWrapping = TextWrapping.Wrap, FontSize = 13
+                            Foreground = Palette.Warn, TextWrapping = TextWrapping.Wrap, FontSize = 13
                         }
                     }
                 }
             }
         });
-        stack.Children.Add(new TextBlock { Text = "Fontes: /proc/cpuinfo, /proc/meminfo, /etc/os-release, /sys/block.\nSensores Linux e validação CPU reduzida disponíveis abaixo. GPU: inventário DRM/PCI; SMART: consulta somente CLI por opt-in; importação offline de arquivo abaixo.\nCapacidade de dispositivo não representa espaço livre. Dados não indicam saúde.", TextWrapping = TextWrapping.Wrap, Foreground = Brushes.LightGray });
+        stack.Children.Add(new TextBlock { Text = "Fontes: /proc/cpuinfo, /proc/meminfo, /etc/os-release, /sys/block.\nSensores Linux e validação CPU reduzida disponíveis abaixo. GPU: inventário DRM/PCI; SMART: consulta somente CLI por opt-in; importação offline de arquivo abaixo.\nCapacidade de dispositivo não representa espaço livre. Dados não indicam saúde.", TextWrapping = TextWrapping.Wrap, Foreground = Palette.Muted });
         var status = new TextBlock { Name = "HardwareStatus", TextWrapping = TextWrapping.Wrap }; status.Bind(TextBlock.TextProperty, new Binding(nameof(vm.Status))); stack.Children.Add(status);
         stack.Children.Add(new SensorPanel(sensors,
             extension => JsonSaveDialog.ChooseAsync(this, $"ilmenyx-sensors-{DateTime.Now:yyyyMMdd-HHmmss}{extension}", extension), stop.Token));

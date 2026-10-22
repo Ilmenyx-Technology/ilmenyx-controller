@@ -142,6 +142,10 @@ public sealed class IlmenyxSettings
     public List<string>? OverlayItems { get; set; }
     public string OverlayCorner { get; set; } = "top-left";
     public double OverlayScale { get; set; } = 1.0;
+    /// <summary>Light theme (the default is dark). Applied at startup and when toggled.</summary>
+    public bool ThemeLight { get; set; }
+    /// <summary>Toast when a removable drive or USB device appears or disappears (local polling only).</summary>
+    public bool DeviceToasts { get; set; } = true;
 
     public void AddBenchRun(BenchRunEntry entry)
     {

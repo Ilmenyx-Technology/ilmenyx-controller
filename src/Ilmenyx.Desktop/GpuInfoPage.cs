@@ -41,7 +41,7 @@ public sealed class GpuInfoPage : Grid
                 Children =
                 {
                     new Grid { Children = { new StackPanel { Children = { name, subtitle } }, vendor } },
-                    new Border { HorizontalAlignment = HorizontalAlignment.Left, Background = Brush.Parse("#3A3020"), CornerRadius = new CornerRadius(6), Padding = new Thickness(10, 6), Child = new TextBlock { Name = "GpuValidationNotice", Text = ValidationNotices.AmdNvidia, Foreground = Palette.Warn, TextWrapping = TextWrapping.Wrap, FontSize = 13 } },
+                    new Border { HorizontalAlignment = HorizontalAlignment.Left, Background = Palette.WarnBg, CornerRadius = new CornerRadius(6), Padding = new Thickness(10, 6), Child = new TextBlock { Name = "GpuValidationNotice", Text = ValidationNotices.AmdNvidia, Foreground = Palette.Warn, TextWrapping = TextWrapping.Wrap, FontSize = 13 } },
                     status
                 }
             }
@@ -87,7 +87,7 @@ public sealed class GpuInfoPage : Grid
         if (index < 0 || index >= gpus.Count) return;
         selected = index; var card = gpus[index].Card;
         name.Text = card.Name; subtitle.Text = card.Subtitle; vendor.Text = card.Vendor.ToUpperInvariant();
-        for (int i = 0; i < chips.Children.Count; i++) if (chips.Children[i] is Button b) { b.Background = i == index ? Palette.Fg : Brushes.Transparent; b.Foreground = i == index ? Brushes.Black : Palette.Muted; }
+        for (int i = 0; i < chips.Children.Count; i++) if (chips.Children[i] is Button b) { b.Background = i == index ? Palette.Fg : Brushes.Transparent; b.Foreground = i == index ? Palette.OnFg : Palette.Muted; }
         sections.Children.Clear();
         foreach (var section in card.Sections)
         {

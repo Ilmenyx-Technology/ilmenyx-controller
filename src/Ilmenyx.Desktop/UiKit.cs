@@ -12,7 +12,7 @@ public static class UiKit
     public static Border Card(Control child, Thickness? margin = null) => new() { Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(16), Padding = new Thickness(22, 18), Margin = margin ?? new Thickness(0, 0, 0, 14), Child = child };
     public static Button Primary(string name, string text, double padX = 20, double padY = 9) => new() { Name = name, Content = text, Background = Palette.Accent, Foreground = Brushes.Black, FontWeight = FontWeight.Bold, Padding = new Thickness(padX, padY), CornerRadius = new CornerRadius(12) };
 
-    public static void ChipStyle(Button b, bool on) { b.Background = on ? Palette.Fg : Brushes.Transparent; b.Foreground = on ? Brushes.Black : Palette.Muted; }
+    public static void ChipStyle(Button b, bool on) { b.Background = on ? Palette.Fg : Brushes.Transparent; b.Foreground = on ? Palette.OnFg : Palette.Muted; }
 
     /// <summary>Exclusive chip group. <see cref="Select"/> changes the visual selection without raising <paramref name="chosen"/> (used when loading a profile).</summary>
     public sealed class ChipGroup<T>

@@ -29,13 +29,23 @@ public sealed partial class ShellWindow : Window
     private CpuValidationPanel? cpuPanel;
     private StressPage? stressPage;
     private DashboardWindow? classic;
+    private readonly string settingsPath;
+    private readonly IlmenyxSettings appSettings;
 
     public string CurrentPage { get; private set; } = "";
 
     public ShellWindow()
     {
         Title = ProductIdentity.Name; Width = 1280; Height = 820; MinWidth = 900; MinHeight = 560; Background = Palette.Bg;
+        settingsPath = IlmenyxSettings.DefaultPath(); appSettings = IlmenyxSettings.Load(settingsPath);
+        if (appSettings.ThemeLight) Palette.Apply(true);
         BuildPages();
+        var theme = new Button { Name = "ToggleTheme", Content = Palette.IsLight ? "Tema escuro" : "Tema claro", Padding = new Thickness(14, 6), Margin = new Thickness(0, 0, 8, 0) };
+        theme.Click += (_, _) =>
+        {
+            Palette.Apply(!Palette.IsLight); appSettings.ThemeLight = Palette.IsLight; theme.Content = Palette.IsLight ? "Tema escuro" : "Tema claro";
+            try { appSettings.Save(settingsPath); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+        };
         var pause = new Button { Name = "ToggleMonitor", Content = "Pausar monitor", Padding = new Thickness(14, 6) };
         pause.Click += async (_, _) =>
         {
@@ -48,7 +58,7 @@ public sealed partial class ShellWindow : Window
         brand.Children.Add(new TextBlock { Name = "ProductName", Text = ProductIdentity.Name, FontWeight = FontWeight.Bold, FontSize = 15, VerticalAlignment = VerticalAlignment.Center });
         brand.Children.Add(new TextBlock { Name = "MaintainerSignature", Text = ProductIdentity.Signature, FontWeight = FontWeight.Light, FontSize = 13, Margin = new Thickness(10, 0, 0, 0), Foreground = Palette.Muted, VerticalAlignment = VerticalAlignment.Center });
         brand.Children.Add(titlePage);
-        header.Children.Add(brand); Grid.SetColumn(pause, 1); header.Children.Add(pause);
+        header.Children.Add(brand); var actions = new StackPanel { Orientation = Orientation.Horizontal, Children = { theme, pause } }; Grid.SetColumn(actions, 1); header.Children.Add(actions);
 
         var body = new Grid { ColumnDefinitions = new("250,*") };
         var sidebar = Sidebar(); body.Children.Add(sidebar);

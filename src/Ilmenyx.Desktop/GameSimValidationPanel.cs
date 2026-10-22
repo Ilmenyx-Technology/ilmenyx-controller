@@ -10,7 +10,7 @@ public sealed class GameSimValidationPanel : Border
 {
     public GameSimValidationPanel(GameSimValidationViewModel model, Func<string, Task<string?>> chooseDestination, CancellationToken lifetime)
     {
-        DataContext = model; Background = Brush.Parse("#2A2531"); CornerRadius = new CornerRadius(12);
+        DataContext = model; Background = Palette.Card; CornerRadius = new CornerRadius(12);
         Padding = new Thickness(20); Margin = new Thickness(0, 0, 12, 0);
         var start = new Button { Name = "ValidateSim", Content = "Validar simulação (reduzida)", Margin = new Thickness(0, 0, 8, 8) };
         var cancel = new Button { Name = "CancelSim", Content = "Cancelar simulação", Margin = new Thickness(0, 0, 8, 8) };
@@ -54,7 +54,7 @@ public sealed class GameSimValidationPanel : Border
             Children =
         {
             new TextBlock { Text = "VALIDAÇÃO REDUZIDA · GAMESIM", TextWrapping = TextWrapping.Wrap, FontSize = 14, FontWeight = FontWeight.Bold },
-            new TextBlock { Text = "256 entidades · 16 passos fixos · 1 worker · sem aquecimento por tempo.\nSimulação sintética de física/IA. Não mede FPS de jogos, desempenho da GPU ou score.", Foreground = Brushes.LightGray, TextWrapping = TextWrapping.Wrap },
+            new TextBlock { Text = "256 entidades · 16 passos fixos · 1 worker · sem aquecimento por tempo.\nSimulação sintética de física/IA. Não mede FPS de jogos, desempenho da GPU ou score.", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap },
             new WrapPanel { Children = { start, cancel, export, exportHtml } }, preview, status, summary
         }
         };

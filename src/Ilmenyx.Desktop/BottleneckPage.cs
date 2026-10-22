@@ -72,9 +72,9 @@ public sealed class BottleneckPage : StackPanel
         foreach (var minutes in new[] { 1, 3, 5 })
         {
             var chip = new Button { Content = minutes + " min", FontSize = 11, Padding = new Thickness(14, 5), CornerRadius = new CornerRadius(16), BorderBrush = Palette.Line, BorderThickness = new Thickness(1) };
-            void Style(bool on) { chip.Background = on ? Palette.Fg : Brushes.Transparent; chip.Foreground = on ? Brushes.Black : Palette.Muted; }
+            void Style(bool on) { chip.Background = on ? Palette.Fg : Brushes.Transparent; chip.Foreground = on ? Palette.OnFg : Palette.Muted; }
             Style(minutes == 1); chips.Add(chip);
-            chip.Click += (_, _) => { chosen = TimeSpan.FromMinutes(minutes); foreach (var c in chips) { bool on = ReferenceEquals(c, chip); c.Background = on ? Palette.Fg : Brushes.Transparent; c.Foreground = on ? Brushes.Black : Palette.Muted; } };
+            chip.Click += (_, _) => { chosen = TimeSpan.FromMinutes(minutes); foreach (var c in chips) { bool on = ReferenceEquals(c, chip); c.Background = on ? Palette.Fg : Brushes.Transparent; c.Foreground = on ? Palette.OnFg : Palette.Muted; } };
             durations.Children.Add(chip);
         }
         start.Click += (_, _) => { if (session is { Done: false }) Finish(); else StartSession(chosen); };
