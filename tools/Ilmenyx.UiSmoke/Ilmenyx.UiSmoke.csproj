@@ -7,4 +7,7 @@
     <ProjectReference Include="../../src/Ilmenyx.Desktop/Ilmenyx.Desktop.csproj" />
     <PackageReference Include="Avalonia.BuildServices" Version="11.3.2" ExcludeAssets="all" PrivateAssets="all" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../Ilmenyx.TestSupport/FakeOpenRgbServer.cs" Link="Support/FakeOpenRgbServer.cs" />
+  </ItemGroup>
 </Project>

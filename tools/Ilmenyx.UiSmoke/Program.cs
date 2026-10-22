@@ -489,6 +489,7 @@ public sealed class UiSmokeApp : Application
         if (OperatingSystem.IsLinux()) await OcAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await ReportAsync(shell);
         if (OperatingSystem.IsLinux()) await OverlayAsync(shell, desktop);
+        if (OperatingSystem.IsLinux()) await LightingAsync(shell, desktop);
         Click(shell, "SortMemory"); await Until(() => Find<Button>(shell, "SortMemory").Content!.ToString()!.Contains('▼'));
         Click(shell, "ToggleMonitor");
         await Until(() => Find<Button>(shell, "ToggleMonitor").Content!.ToString() == "Retomar monitor" && Find<TextBlock>(shell, "SideMonitor").Text == "monitor parado");
@@ -853,6 +854,37 @@ public sealed class UiSmokeApp : Application
         Find<Button>(shell, "Navoverlay").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await Until(() => shell.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnOverlayToggle"));
         Console.WriteLine("PASS overlay page: item picker and presets persist, Ilmenyx overlay window shows/hides with FPS from the frame source, MangoHud config and launch option generated into Ilmenyx's own file (user MangoHud.conf untouched)");
+    }
+    private static async Task LightingAsync(ShellWindow shell, IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        // A fake OpenRGB SDK server on loopback: no real light, device or driver is touched.
+        await using var server = new Ilmenyx.TestSupport.FakeOpenRgbServer();
+        server.Devices.Add(Ilmenyx.TestSupport.FakeOpenRgbServer.DevicePayload("Teclado", "Corsair", 4)); server.Devices.Add(Ilmenyx.TestSupport.FakeOpenRgbServer.DevicePayload("Fita", "MSI", 3));
+        var services = new LightingServices(Ilmenyx.Core.OpenRgbClient.ConnectAsync, () => 50, (_, _) => Task.CompletedTask, () => false);
+        using var usage = new UsageViewModel(new FakeUsage()); await usage.SampleOnceAsync(CancellationToken.None);
+        Window? host = null; var page = new LightingPage(services, usage, () => host, CancellationToken.None);
+        host = new Window { Width = 1000, Height = 1100, Content = new ScrollViewer { Content = page } }; host.Show();
+        await Until(() => host.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnLightConnect"));
+        Click(host, "BtnLightRun"); await Until(() => Find<TextBlock>(host, "LightRunHint").Text!.Contains("Conecte")); if (server.Snapshot().Length != 0) throw new InvalidOperationException("Nothing may reach the server before the user connects.");
+        Find<TextBox>(host, "LightPort").Text = server.Port.ToString(System.Globalization.CultureInfo.InvariantCulture); Click(host, "BtnLightConnect");
+        await Until(() => page.Devices.Count == 2 && Find<TextBlock>(host, "LightStatus").Text!.StartsWith("Conectado"));
+        Click(host, "BtnLightRun"); var dialog = await ConfirmAsync(desktop);
+        if (!Find<TextBlock>(dialog, "ConfirmText").Text!.Contains("2 dispositivo(s)")) throw new InvalidOperationException("Confirmation must state how many devices are taken.");
+        Click(dialog, "ConfirmNo"); await Until(() => !dialog.IsVisible); await Task.Delay(150); if (server.Snapshot().Any(p => p.Type >= 1000)) throw new InvalidOperationException("Declined confirmation still took control.");
+        Click(host, "BtnLightRun"); Click(await ConfirmAsync(desktop), "ConfirmYes");
+        await Until(() => page.IsControlling && server.Snapshot().Count(p => p.Type == 1100) == 2);
+        await page.TickAsync(); await Task.Delay(60); await page.TickAsync();
+        await Until(() => server.Snapshot().Any(p => p.Type == 1050));
+        var fxPanel = host.GetVisualDescendants().OfType<StackPanel>().Single(p => p.Name == "LightFxPanel");
+        fxPanel.Children.OfType<Button>().Single(b => b.Content!.ToString() == "APAGAR").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Task.Delay(60); await page.TickAsync();
+        await Until(() => server.Snapshot().Where(p => p.Type == 1050).Any(p => p.Payload[6..].All(x => x == 0)));
+        Click(host, "BtnLightRun"); await Until(() => !page.IsControlling && server.Snapshot().Count(p => p.Type == 1101) == 2);
+        if (!Find<TextBlock>(host, "LightRunHint").Text!.Contains("devolvido")) throw new InvalidOperationException("Control must be handed back and say so.");
+        host.Close(); await page.StopAsync(false);
+        Find<Button>(shell, "Navlighting").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => shell.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnLightConnect"));
+        Console.WriteLine("PASS lighting page: nothing connects or is sent before the click, control needs confirmation, effect frames reach the OpenRGB server, every device is handed back to its original mode (fake loopback server; no real RGB hardware)");
     }
     private sealed class FakeHttp : HttpMessageHandler
     {
