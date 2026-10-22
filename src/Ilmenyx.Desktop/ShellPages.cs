@@ -23,6 +23,7 @@ public sealed partial class ShellWindow
         pages["net"] = ("Rede", NetPage, null);
         pages["procs"] = ("Processos", () => new ProcessTable(usage), null);
         pages["validate"] = ("Validações reduzidas", ValidatePage, null);
+        pages["driver"] = ("Drivers", () => Scroll("DriverScroll", new DriverPage(Destination("drivers"), stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["tools"] = ("Requisitos e sobre", ToolsPage, null);
     }
 

@@ -8,6 +8,7 @@ public static class SnapshotReport
     public static JsonSerializerOptions Options { get; } = new() { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase, Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) } };
     public static string Json(SmartImportReport report) => JsonSerializer.Serialize(report, Options);
     public static Task ExportAsync(SmartImportReport report, string path, CancellationToken ct = default) => ExportDocumentAsync(report, path, ct);
+    public static Task ExportAsync(DriverInventoryReport report, string path, CancellationToken ct = default) => ExportDocumentAsync(report, path, ct);
     public static string Json(GameSimBenchmarkReport report) => JsonSerializer.Serialize(report, Options);
     public static Task ExportAsync(GameSimBenchmarkReport report, string path, CancellationToken ct = default) => ExportDocumentAsync(report, path, ct);
     public static string Json(GameSimFullPlan plan) => JsonSerializer.Serialize(plan, Options);

@@ -330,3 +330,7 @@ Validado em bateria física do host (HP, Li-ion, desgaste 27,9%). Bug real corri
 valores (afetava também modelo/firmware dos discos); agora SysfsText limita por caracteres lidos, com teste de regressão contra o /sys real.
 NÃO TESTADO: bateria dupla, ciclos reais (este host reporta 0), descarga/autonomia, PC de mesa sem bateria em hardware real, power-profiles-daemon ausente.
 SENSOR-01 (bateria física) passa a PARCIAL: uma bateria, em tomada.
+
+Fase 1 — Drivers: página no layout do original (GPU instalada/mais recente, placa-mãe + suporte, firmware fwupd, backup do inventário, lista de drivers).
+561 testes; smoke X11 do CachyOS com dados reais (Iris Xe/i915, HP, 18 itens fwupd). Bug real corrigido: GPU com nouveau herdava a versão do módulo proprietário.
+NÃO TESTADO: NVIDIA proprietária real (versão e consulta de rede), AMD, instalação (por desenho não executada), abertura de páginas no navegador (xdg-open), fwupd com atualização disponível, outras distros.
