@@ -37,7 +37,7 @@ public static partial class RamInfoBuilder
         n.Add("Total visível ao sistema", totalBytes is { } t ? Bytes(t) : "—");
         if (installed > 0) n.Add("Total instalado (SMBIOS)", Bytes(installed));
         var sum = n.Add("Resumo");
-        if (usedBytes is { } u && totalBytes is > 0) sum.Add("Em uso (no momento da leitura)", $"{Bytes(u)} de {Bytes(totalBytes.Value)} ({(double)u / totalBytes.Value:P0})");
+        if (usedBytes is { } u && totalBytes is > 0) sum.Add("Em uso (no momento da leitura)", $"{Bytes(u)} de {Bytes(totalBytes.Value)} ({((double)u / totalBytes.Value * 100).ToString("0", CultureInfo.InvariantCulture)}%)");
         if (swapTotal is > 0 && swapUsed is { } su) sum.Add("Swap em uso", $"{Bytes(su)} de {Bytes(swapTotal.Value)}");
         if (inventory is null || modules.Count == 0)
         {

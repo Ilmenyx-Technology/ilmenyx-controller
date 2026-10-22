@@ -372,3 +372,8 @@ Fase 2 — Estimativa de FPS: página no layout do original (busca, resolução/
 677 testes (manipulador HTTP falso). Diferença deliberada do original: a API não é consultada automaticamente a cada mudança de opção, só em CONSULTAR API após confirmação.
 Marcador de equilíbrio do Gargalo agora usa a escala logarítmica exata do original.
 NÃO TESTADO: serviço HowManyFPS real e seu formato de autenticação, chave inválida/cota reais.
+
+Fase 3 — Instalar apps: página no layout do original (INSTALAR SELECIONADOS, progresso, lista, marcar todos/desmarcar), catálogo Flatpak com equivalentes Linux, Flathub só no usuário, confirmações. 690 testes (executor flatpak falso).
+Achado nas VMs: formatação de percentual dependia da cultura ("25 %" na cultura invariante de Debian/Ubuntu sem LANG); padronizada.
+NÃO TESTADO: instalação real de Flatpaks, Flathub real, rede/espaço em disco, flatpak system-wide, Snap/AppImage.
+Validação 0.27.0 nas VMs (pacote do commit "bump 0.27.0"): validate-linux-machine PASS e smoke X11 (38 PASS) nas três distros; suíte 677/677 no Fedora e 676/677 em Debian/Ubuntu (teste de cultura, corrigido depois).

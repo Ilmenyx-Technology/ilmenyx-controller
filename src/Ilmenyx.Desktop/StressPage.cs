@@ -112,13 +112,13 @@ public sealed class StressPage : StackPanel
                 : "O monitor está pausado e não há leitura de temperatura da CPU, então o corte automático por temperatura NÃO funcionará. Retome o monitor ou continue por sua conta e risco. Continuar mesmo assim?", "Continuar sem corte", "Cancelar")) return;
         }
         long available = availableMemory();
-        string what = string.Join(" e ", new[] { cpu ? $"CPU ({Environment.ProcessorCount} threads a 100%)" : null, ram ? $"RAM ({ramFraction:P0} da memória disponível, sempre deixando 1 GiB livre)" : null }.Where(x => x != null));
+        string what = string.Join(" e ", new[] { cpu ? $"CPU ({Environment.ProcessorCount} threads a 100%)" : null, ram ? $"RAM ({(ramFraction * 100).ToString("0", CultureInfo.InvariantCulture)}% da memória disponível, sempre deixando 1 GiB livre)" : null }.Where(x => x != null));
         string time = parsed!.Duration > TimeSpan.Zero ? $"por {parsed.Duration.TotalMinutes:0.##} min" : "SEM LIMITE DE TEMPO (só para quando você clicar em PARAR, ou ao atingir o limite de temperatura ou erro)";
         if (!await ConfirmDialog.AskAsync(window, "Iniciar stress test", $"Isto vai gerar carga máxima em {what} {time}.\n\nLimite de temperatura da CPU: {parsed.CpuTempLimit:0} °C (o teste é interrompido automaticamente). Salve seu trabalho antes: o sistema pode ficar lento e, com pouca RAM livre, instável.\n\nIniciar agora?", "Iniciar", "Cancelar")) return;
         try { engine.Start(cpu, ram, ramFraction, available); }
         catch (InvalidOperationException e) { hint.Text = e.Message; return; }
         limits = parsed; cpuOn = cpu; ramOn = ram; startedAt = DateTime.Now; maxTemp = 0; temps.Clear();
-        Controls(true); SetStatus("Rodando", false); Log($"Iniciado · CPU {(cpu ? $"sim (limite {parsed.CpuTempLimit:0} °C)" : "não")} · RAM {(ram ? $"sim ({ramFraction:P0} da disponível, {engine.MemoryAllocatedBytes / 1048576} MiB)" : "não")} · {(parsed.Duration > TimeSpan.Zero ? $"{parsed.Duration.TotalMinutes:0.##} min" : "sem limite de tempo")}");
+        Controls(true); SetStatus("Rodando", false); Log($"Iniciado · CPU {(cpu ? $"sim (limite {parsed.CpuTempLimit:0} °C)" : "não")} · RAM {(ram ? $"sim ({(ramFraction * 100).ToString("0", CultureInfo.InvariantCulture)}% da disponível, {engine.MemoryAllocatedBytes / 1048576} MiB)" : "não")} · {(parsed.Duration > TimeSpan.Zero ? $"{parsed.Duration.TotalMinutes:0.##} min" : "sem limite de tempo")}");
         timer.Start();
     }
 

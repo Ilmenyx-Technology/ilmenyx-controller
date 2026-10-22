@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "1.1",
+  "collectedAt": "2026-10-22T04:58:25.317538+00:00",
+  "status": "unavailable",
+  "reason": "Algumas fontes est\u00E3o indispon\u00EDveis; consulte cada leitura e limita\u00E7\u00F5es.",
+  "readings": [],
+  "limitations": [
+    "Leituras brutas do kernel; sem calibra\u00E7\u00E3o de placa, infer\u00EAncia de sa\u00FAde ou controle de hardware.",
+    "Sem ajuste por sensors.conf; canais de tens\u00E3o podem exigir escala espec\u00EDfica da placa.",
+    "Temperatura em \u00B0C validada apenas para coretemp, k10temp, acpitz, nvme e amdgpu; termistores exigem convers\u00E3o pr\u00F3pria.",
+    "Identificadores hwmon podem mudar ap\u00F3s hotplug/reboot; nenhuma identidade persistente \u00E9 inferida.",
+    "Invent\u00E1rio hwmon ausente ou inacess\u00EDvel.",
+    "Fontes independentes: thermal pode duplicar hwmon; n\u00E3o somar ou deduplicar por r\u00F3tulo.",
+    "Energia/carga/pot\u00EAncia s\u00E3o dados brutos do kernel; sem c\u00E1lculo de desgaste, autonomia, sa\u00FAde ou prote\u00E7\u00E3o t\u00E9rmica.",
+    "Atributos opcionais de power_supply ausentes s\u00E3o omitidos; capacidade em % n\u00E3o \u00E9 sa\u00FAde. Sem identificadores de fabricante/modelo/serial."
+  ],
+  "powerSupplies": []
+}
