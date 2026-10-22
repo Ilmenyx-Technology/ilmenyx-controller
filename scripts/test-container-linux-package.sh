@@ -97,7 +97,7 @@ if jq -e 'map(select(.exitCode == 125)) | length > 0' "$output/status.json" >/de
 fi
 jq -e 'map(select(.exitCode != 0)) | length == 0' "$output/status.json" >/dev/null
 [[ ! -s $output/results/sdks.stdout ]] # Runtime only; no SDK inside the test environment.
-jq -e -s 'length == 2 and .[0] == .[1] and .[0].schemaVersion == "1.2"' "$output/results/info.stdout" "$output/results/info.json" >/dev/null
+jq -e -s 'length == 2 and .[0] == .[1] and .[0].schemaVersion == "1.3"' "$output/results/info.stdout" "$output/results/info.json" >/dev/null
 jq -e 'type == "array" and length > 0' "$output/results/capabilities.stdout" >/dev/null
 jq -e '.schemaVersion == "1.1"' "$output/results/sensors.stdout" >/dev/null
 printf 'PASS CLI em container sem SDK; invariant=%s; GUI/VM limpa nao certificadas.\n' "$mode"

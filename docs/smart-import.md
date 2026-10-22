@@ -112,3 +112,16 @@ caminho relativo, /dev, /proc, /sys, link simbólico, arquivo ausente/vazio/não
 Falha preserva o relatório anterior. A exportação JSON/HTML usa o relatório capturado antes
 do diálogo; importar/exportar simultaneamente é bloqueado e descarte da janela suprime a
 escrita. Limites: FIFOs só são contidas pelo timeout; sem seletor nativo de arquivo.
+
+
+## Métricas brutas (0.26.0, item A da auditoria de paridade)
+
+`SmartDiagnostic` schema 1.1 ganhou `Metrics` (nome, valor, unidade, fonte), sem veredito nem limiar. Extraídos do JSON do smartctl:
+temperatura (`temperature.current`), horas ligado, ciclos liga/desliga; NVMe: percentual usado, reserva disponível, erros de mídia,
+entradas no log de erros, desligamentos inseguros, aviso crítico (bitmask), total lido/gravado (unidades de 512 000 B → B); ATA:
+atributos 5, 197 e 198 (valor bruto, primeira ocorrência). Valores não numéricos, não finitos ou fora de faixa são descartados;
+nenhum identificador (serial/modelo) é lido. A consulta ao vivo agora inclui `--attributes` (somente leitura, sem escrita, self-test ou
+elevação). CLI (texto/JSON), HTML e painel da interface mostram as métricas.
+**Limite de evidência:** o relatório NVMe real do usuário foi gerado só com `--health` e não contém essas métricas; o parser foi validado
+com fixtures sintéticas no formato do smartctl e com a saída real do `info` do host para tipo/barramento. Leitura ao vivo das métricas
+em disco real segue NÃO TESTADA (SMART-01), assim como semântica específica de fabricantes ATA.

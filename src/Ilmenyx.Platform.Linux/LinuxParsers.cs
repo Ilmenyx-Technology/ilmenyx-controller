@@ -66,4 +66,25 @@ public static class LinuxParsers
         value = Clean(value);
         return value.Length > 0 ? value : null;
     }
+
+    public static Reading<string> DiskKind(string? text, string source) => text?.Trim() switch
+    {
+        "0" => Reading<string>.Available("Não rotacional (SSD, flash ou virtual)", "", source),
+        "1" => Reading<string>.Available("Rotacional (HDD)", "", source),
+        _ => Reading<string>.Missing("", source, "Valor de rotational ausente ou inválido.")
+    };
+    public static Reading<string> DiskBus(string name, string? resolved)
+    {
+        string source = "/sys/block/" + name;
+        var segments = (resolved ?? "").Split('/', StringSplitOptions.RemoveEmptyEntries);
+        bool Has(string prefix) => segments.Any(s => s.StartsWith(prefix, StringComparison.Ordinal));
+        string? bus = name.StartsWith("nvme", StringComparison.Ordinal) ? "NVMe"
+            : name.StartsWith("mmcblk", StringComparison.Ordinal) || Has("mmc") ? "MMC/SD"
+            : name.StartsWith("loop", StringComparison.Ordinal) || name.StartsWith("zram", StringComparison.Ordinal) || name.StartsWith("ram", StringComparison.Ordinal) || name.StartsWith("dm-", StringComparison.Ordinal) || name.StartsWith("md", StringComparison.Ordinal) ? "Virtual/software"
+            : Has("usb") ? "USB"
+            : Has("ata") ? "SATA/ATA"
+            : Has("virtio") ? "VirtIO"
+            : null;
+        return bus is null ? Reading<string>.Missing("", source, "Transporte não identificado pelo caminho do dispositivo.") : Reading<string>.Available(bus, "", source);
+    }
 }

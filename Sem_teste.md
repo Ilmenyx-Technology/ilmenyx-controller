@@ -312,3 +312,6 @@ leitura de código apenas, sem execução comparativa (WIN-01 segue NÃO TESTADO
 IMPLEMENTADO: janela principal estilo RESET EXPLODE (lateral, Visão geral, 10 páginas) com monitor ao vivo. 481 testes e smoke X11/Wayland no
 CachyOS. NÃO TESTADO: AMD k10temp, múltiplos discos/interfaces, /proc restrito, execução prolongada, Orca, outras distros
 (smoke nas VMs não repetido). Ver docs/monitor.md.
+
+Itens A/B da auditoria (0.26.0): métricas SMART por fixtures sintéticas e tipo/barramento validado no host (NVMe, SATA HDD, zram).
+NÃO TESTADO: métricas SMART em disco real (SMART-01), USB/MMC/VirtIO reais, outros fabricantes ATA. Desgaste de bateria (C) não implementado.

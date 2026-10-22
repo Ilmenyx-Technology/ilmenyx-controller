@@ -4,6 +4,8 @@ public interface ILinuxFiles
 {
     Task<string> ReadAsync(string path, CancellationToken ct);
     IReadOnlyList<string> BlockDevices();
+    /// <summary>Final target of a symbolic link, or null when unavailable. Default for test doubles.</summary>
+    string? ResolveLink(string path) => null;
 }
 public sealed class LinuxFiles : ILinuxFiles
 {
@@ -20,6 +22,11 @@ public sealed class LinuxFiles : ILinuxFiles
             result.Append(buffer, 0, count);
         }
         return result.ToString();
+    }
+    public string? ResolveLink(string path)
+    {
+        try { return new FileInfo(path).ResolveLinkTarget(true)?.FullName ?? new DirectoryInfo(path).ResolveLinkTarget(true)?.FullName; }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or NotSupportedException) { return null; }
     }
     public IReadOnlyList<string> BlockDevices() => Directory.EnumerateDirectories("/sys/block")
         .Take(257).Select(p => Path.GetFileName(p)).ToArray();

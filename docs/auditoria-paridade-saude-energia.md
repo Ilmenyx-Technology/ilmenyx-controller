@@ -81,3 +81,13 @@ original é WPF/Windows e não executa aqui: WIN-01). Afirmações marcadas *[in
 - A: ler campos adicionais do JSON smartctl (NVMe/ATA), só rótulos e unidades, sem veredito; testar com o relatório NVMe real existente.
 - B: tipo de mídia via `/sys/block/*/queue/rotational` e barramento pelo prefixo do nome.
 - C: desgaste de bateria como valor derivado **rotulado** (fórmula + fonte), sem veredito, só se você autorizar a exceção à regra atual.
+
+
+## 5. Atualização 0.26.0 — A e B implementados
+- **A (métricas SMART):** implementado como em docs/smart-import.md (valores brutos, sem veredito). Paridade parcial com o DiskHealth do
+  original: temperatura, horas, ciclos, desgaste NVMe e erros de mídia; faltam setores ATA além de 5/197/198 e total gravado de ATA
+  (unidade de fabricante). Validação só com fixtures; SMART-01 segue NÃO TESTADO.
+- **B (tipo e barramento):** `DiskInfo.Kind/Bus` (schema de hardware 1.3) via `/sys/block/*/queue/rotational` e caminho do dispositivo
+  (NVMe, SATA/ATA, USB, VirtIO, MMC/SD, virtual); transporte não reconhecido fica indisponível, sem chute. No host: nvme0n1 → não rotacional/NVMe,
+  sda → rotacional/SATA, zram0 → virtual. `rotational=0` não prova SSD.
+- C (desgaste de bateria) continua aguardando decisão.

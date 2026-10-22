@@ -55,7 +55,12 @@ public static class HardwareHtmlReport
         AddReading("RAM total", snapshot.Memory.Total); AddReading("RAM disponível", snapshot.Memory.Available); EndTable();
         Table("Dispositivos de bloco — capacidade, não espaço livre");
         if (snapshot.Disks.Status == "available" && snapshot.Disks.Value is { Count: > 0 } disks)
-            foreach (var disk in disks) AddReading(disk.Device, disk.Capacity);
+            foreach (var disk in disks)
+            {
+                AddReading(disk.Device, disk.Capacity);
+                if (disk.Kind is { } kind) AddReading(disk.Device + " · tipo (rotational)", kind);
+                if (disk.Bus is { } bus) AddReading(disk.Device + " · barramento", bus);
+            }
         else AddReading("Dispositivos de bloco", Reading<string>.Missing("devices", snapshot.Disks.Source, snapshot.Disks.Reason ?? "Nenhum dispositivo informado."));
         EndTable();
         html.Append("<section><h2>GPU · DRM/PCI</h2><p class=\"notice\">").Append(E(ValidationNotices.AmdNvidia)).Append("</p>");

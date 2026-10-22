@@ -255,3 +255,6 @@ as regras de arquitetura Linux, benchmarks, testes, licenças e segurança anter
 - Histórico só em memória (até 900 pontos); nunca gravar/exportar amostras ou nomes de processo. Somente leitura de /proc e hwmon.
 - Preservar aviso AMD/NVIDIA na janela e o acesso a Diagnósticos e Licenças/créditos; não inferir saúde dos gráficos.
 - Layout da janela principal segue a estrutura do RESET EXPLODE (autorizado pelo usuário em 2026-10-22); cores da imagem de referência são provisórias. Não copiar assets/logo/textos de marca do original.
+
+- smartctl ao vivo passa a usar --health --attributes (somente leitura); métricas SMART são valores brutos sem veredito/limiar; ler só campos listados em docs/smart-import.md, nunca serial/modelo.
+- DiskInfo.Kind/Bus são classificações best-effort do sysfs; transporte desconhecido fica indisponível.

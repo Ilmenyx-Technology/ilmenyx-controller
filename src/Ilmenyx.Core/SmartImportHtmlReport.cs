@@ -40,7 +40,9 @@ public static class SmartImportHtmlReport
         Field("Motivo", d.Reason ?? ""); Field("Código smartctl da entrada", d.ToolExitCode?.ToString(CultureInfo.InvariantCulture) ?? "Indisponível");
         Field("reportedPassed — relato do firmware", d.ReportedPassed.Status == "available" && d.ReportedPassed.Value is { } value ? (value ? "true" : "false") : "Indisponível");
         Field("Estado da leitura", d.ReportedPassed.Status); Field("Unidade", d.ReportedPassed.Unit); Field("Fonte declarada", d.ReportedPassed.Source);
-        Field("Motivo da leitura", d.ReportedPassed.Reason ?? ""); html.Append("</dl>");
+        Field("Motivo da leitura", d.ReportedPassed.Reason ?? "");
+        foreach (var metric in d.Metrics ?? []) { ct.ThrowIfCancellationRequested(); Field("Métrica bruta: " + metric.Name, SmartMetricText.Describe(metric) + " · fonte " + metric.Source); }
+        html.Append("</dl>");
         Limitations("Limitações da importação", report.Limitations); Limitations("Limitações do diagnóstico", d.Limitations);
         html.Append("<footer><p>").Append(E(ProductIdentity.Attribution)).Append("</p><p>").Append(E(ProductIdentity.SharingNotice))
             .Append("</p></footer></main></body></html>\n");

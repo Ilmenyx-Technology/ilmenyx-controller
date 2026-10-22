@@ -7,7 +7,8 @@ public sealed record Reading<T>(T? Value, string Unit, string Source, string Sta
 }
 public sealed record CpuInfo(Reading<string> Name, Reading<int?> LogicalProcessors);
 public sealed record MemoryInfo(Reading<long?> Total, Reading<long?> Available);
-public sealed record DiskInfo(string Device, Reading<long?> Capacity);
+/// <summary>Kind and Bus are best-effort sysfs classifications (null when not collected); rotational=0 does not prove an SSD.</summary>
+public sealed record DiskInfo(string Device, Reading<long?> Capacity, Reading<string>? Kind = null, Reading<string>? Bus = null);
 public sealed record Capability(string Name, string Status, string Reason);
 public sealed record HardwareSnapshot(string SchemaVersion, string ApplicationVersion, DateTimeOffset CollectedAt,
     string Runtime, Reading<string> OperatingSystem, Reading<string> Kernel, CpuInfo Cpu, MemoryInfo Memory,

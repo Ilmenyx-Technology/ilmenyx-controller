@@ -10,7 +10,7 @@ public sealed class DashboardViewModel(IHardwareInfoProvider provider) : INotify
     public string Cpu => Snapshot is { } s ? SnapshotReport.Describe(s.Cpu.Name) + "\n" + (s.Cpu.LogicalProcessors.Status == "available" ? $"{s.Cpu.LogicalProcessors.Value} processadores lógicos visíveis" : SnapshotReport.Describe(s.Cpu.LogicalProcessors)) : "Aguardando coleta";
     public string Memory => Snapshot is { } s ? "Total: " + Bytes(s.Memory.Total) + "\nDisponível: " + Bytes(s.Memory.Available) : "Aguardando coleta";
     public string System => Snapshot is { } s ? SnapshotReport.Describe(s.OperatingSystem) + "\n" + SnapshotReport.Describe(s.Kernel) : "Aguardando coleta";
-    public string Disks => Snapshot is { } s ? (s.Disks.Status == "available" ? string.Join("\n", s.Disks.Value!.Select(d => d.Device + " · " + Bytes(d.Capacity))) : SnapshotReport.Describe(s.Disks)) : "Aguardando coleta";
+    public string Disks => Snapshot is { } s ? (s.Disks.Status == "available" ? string.Join("\n", s.Disks.Value!.Select(d => d.Device + " · " + Bytes(d.Capacity) + SnapshotReport.DiskExtra(d))) : SnapshotReport.Describe(s.Disks)) : "Aguardando coleta";
     public string Gpus => Snapshot?.Gpus is { } g ? GpuPresentation.Text(g) : "Inventário DRM indisponível.";
     private static string Bytes(Reading<long?> reading) => reading.Status == "available" && reading.Value is { } value ? $"{value / 1073741824.0:0.00} GiB ({value} B)" : SnapshotReport.Describe(reading);
     public string Status { get; private set; } = "Pronto";

@@ -56,7 +56,7 @@ public class HardwareTests
     {
         var snapshot = await new LinuxHardwareInfoProvider(new FixtureFiles()).CollectAsync();
         using var doc = JsonDocument.Parse(SnapshotReport.Json(snapshot));
-        Assert.Equal("1.2", doc.RootElement.GetProperty("schemaVersion").GetString());
+        Assert.Equal("1.3", doc.RootElement.GetProperty("schemaVersion").GetString());
         Assert.Equal(2, doc.RootElement.GetProperty("cpu").GetProperty("logicalProcessors").GetProperty("value").GetInt32());
         Assert.False(doc.RootElement.TryGetProperty("hostname", out _));
         var path = Path.Combine(Path.GetTempPath(), "ilmenyx-test-" + Guid.NewGuid() + ".json");

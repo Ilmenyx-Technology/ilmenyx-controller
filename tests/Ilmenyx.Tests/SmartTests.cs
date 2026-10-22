@@ -27,7 +27,7 @@ public class SmartTests
     [Fact]
     public void QueryArgumentsAllowOnlyHealthReadAndRequireCliOptIn()
     {
-        Assert.Equal(new[] { "--json", "--health", "--nocheck=standby,3,5", "--device=ata", "/dev/sda" }, SmartctlQuery.Arguments("sda"));
+        Assert.Equal(new[] { "--json", "--health", "--attributes", "--nocheck=standby,3,5", "--device=ata", "/dev/sda" }, SmartctlQuery.Arguments("sda"));
         Assert.Throws<ArgumentException>(() => CliArguments.Parse(["smart", "--device", "sda"]));
         Assert.Throws<ArgumentException>(() => CliArguments.Parse(["smart", "--allow-device-query"]));
         Assert.Equal("nvme0n1", CliArguments.Parse(["smart", "--device", "nvme0n1", "--allow-device-query", "--json"]).Device);

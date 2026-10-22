@@ -21,7 +21,7 @@ done
 [[ -x $bundle/cli/ilmenyx && -x $bundle/desktop/Ilmenyx.Desktop ]]
 "$bundle/cli/ilmenyx" --help > "$output/help.txt"
 "$bundle/cli/ilmenyx" info --json --output "$output/info.json" > "$output/info-stdout.json"
-jq -e -s 'length == 2 and .[0] == .[1] and .[0].schemaVersion == "1.2"' "$output/info.json" "$output/info-stdout.json" >/dev/null
+jq -e -s 'length == 2 and .[0] == .[1] and .[0].schemaVersion == "1.3"' "$output/info.json" "$output/info-stdout.json" >/dev/null
 jq -e --slurpfile package "$bundle/package.json" '.applicationVersion == $package[0].version and (.runtime | type == "string" and length > 0)' "$output/info.json" >/dev/null
 "$bundle/cli/ilmenyx" capabilities --json > "$output/capabilities.json"
 jq -e 'type == "array" and length > 0' "$output/capabilities.json" >/dev/null

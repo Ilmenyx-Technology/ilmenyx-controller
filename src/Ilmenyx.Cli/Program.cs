@@ -47,14 +47,14 @@ try
         }
         if (command.Html) Console.Write(SmartImportHtmlReport.Render(report, stop.Token));
         else Console.WriteLine(command.Json ? SnapshotReport.Json(report) :
-            $"SMART importado · {report.Diagnostic.Device} · {report.Diagnostic.Status}\nRelato passed: {SnapshotReport.Describe(report.Diagnostic.ReportedPassed)}\nAnálise offline de relatório histórico; sem nova consulta ou garantia de saúde atual.");
+            $"SMART importado · {report.Diagnostic.Device} · {report.Diagnostic.Status}\nRelato passed: {SnapshotReport.Describe(report.Diagnostic.ReportedPassed)}\nAnálise offline de relatório histórico; sem nova consulta ou garantia de saúde atual." + MetricBlock(report.Diagnostic));
         return 0;
     }
     if (command.Operation == CliOperation.Smart)
     {
         var diagnostic = await new SmartctlDiagnostic(new SmartctlQuery()).CollectAsync(command.Device!, stop.Token);
         if (command.Output is { } smartPath) await SnapshotReport.ExportAsync(diagnostic, smartPath, stop.Token);
-        Console.WriteLine(command.Json ? SnapshotReport.Json(diagnostic) : $"SMART · {diagnostic.Device} · {diagnostic.Status}\nRelato passed: {SnapshotReport.Describe(diagnostic.ReportedPassed)}\nNão representa garantia de saúde.");
+        Console.WriteLine(command.Json ? SnapshotReport.Json(diagnostic) : $"SMART · {diagnostic.Device} · {diagnostic.Status}\nRelato passed: {SnapshotReport.Describe(diagnostic.ReportedPassed)}\nNão representa garantia de saúde." + MetricBlock(diagnostic));
         return 0;
     }
     if (command.Operation == CliOperation.Sensors)
@@ -146,3 +146,5 @@ try
 catch (OperationCanceledException) { Console.Error.WriteLine("Coleta cancelada ou timeout de 5 segundos."); return 130; }
 catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException or AggregateException)
 { Console.Error.WriteLine("Falha: " + e.Message); return 1; }
+
+static string MetricBlock(SmartDiagnostic d) => SmartMetricText.Lines(d) is { Count: > 0 } lines ? "\nMétricas brutas (sem veredito):\n" + string.Join("\n", lines) : "";

@@ -28,10 +28,11 @@ public static class SnapshotReport
         ReportFile.WriteAsync(path, (output, token) => JsonSerializer.SerializeAsync(output, snapshot, Options, token), ct);
     public static string Describe<T>(Reading<T> reading) => reading.Status == "available"
         ? $"{reading.Value} {reading.Unit}".TrimEnd() : $"Indisponível: {reading.Reason}";
+    public static string DiskExtra(DiskInfo d) => (d.Kind is { Status: "available" } k ? " · " + k.Value : "") + (d.Bus is { Status: "available" } b ? " · " + b.Value : "");
     public static string Text(HardwareSnapshot s) => $"Ilmenyx · by Bismuth Technology · {s.ApplicationVersion} · {s.CollectedAt:O}\n" +
         $"SO: {Describe(s.OperatingSystem)}\nKernel: {Describe(s.Kernel)}\nCPU: {Describe(s.Cpu.Name)}\n" +
         $"Processadores lógicos visíveis: {Describe(s.Cpu.LogicalProcessors)}\nRAM total: {Describe(s.Memory.Total)}\nRAM disponível: {Describe(s.Memory.Available)}\n" +
-        "Discos: " + (s.Disks.Status == "available" ? string.Join("\n", s.Disks.Value!.Select(d => $"{d.Device}: {Describe(d.Capacity)}")) : Describe(s.Disks)) + "\n" + (s.Sensors is { } sensors ? SensorPresentation.Text(sensors) : "Sensores: leitor não configurado.") + "\n" + (s.Gpus is { } gpus ? GpuPresentation.Text(gpus) : "GPU: leitor não configurado.");
+        "Discos: " + (s.Disks.Status == "available" ? string.Join("\n", s.Disks.Value!.Select(d => $"{d.Device}: {Describe(d.Capacity)}{DiskExtra(d)}")) : Describe(s.Disks)) + "\n" + (s.Sensors is { } sensors ? SensorPresentation.Text(sensors) : "Sensores: leitor não configurado.") + "\n" + (s.Gpus is { } gpus ? GpuPresentation.Text(gpus) : "GPU: leitor não configurado.");
 }
 
 

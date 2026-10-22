@@ -18,7 +18,7 @@ public sealed class SmartImportViewModel(Func<string, string, CancellationToken,
     public bool CanExport => !disposed && Report is not null && !IsImporting && !IsExporting;
     public string Status { get; private set; } = "Nenhum relatório SMART importado. Nada é consultado no disco.";
     public string Text => Report is { } r
-        ? $"{r.Diagnostic.Device} · {r.Diagnostic.Status}\nRelato passed: {SnapshotReport.Describe(r.Diagnostic.ReportedPassed)}\n" + string.Join("\n", r.Limitations)
+        ? $"{r.Diagnostic.Device} · {r.Diagnostic.Status}\nRelato passed: {SnapshotReport.Describe(r.Diagnostic.ReportedPassed)}\n" + (SmartMetricText.Lines(r.Diagnostic) is { Count: > 0 } m ? "Métricas brutas (sem veredito):\n" + string.Join("\n", m) + "\n" : "") + string.Join("\n", r.Limitations)
         : "Sem relatório importado.";
 
     public async Task ImportAsync(string device, string path, CancellationToken ct = default)
