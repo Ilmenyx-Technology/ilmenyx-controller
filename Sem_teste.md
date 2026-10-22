@@ -320,3 +320,7 @@ NÃO TESTADO: métricas SMART em disco real (SMART-01), USB/MMC/VirtIO reais, ou
 IMPLEMENTADO: página Sistema no layout do original (categorias, anéis de unidades montadas, árvore de detalhes), coletor /proc+/sys+/etc, nomes de GPU
 por pci.ids, inventário de RAM por importação do `dmidecode -t memory` (estimativas EXPO/XMP, canais, ECC; sem serial). 522 testes; smoke X11 do CachyOS.
 NÃO TESTADO: módulos de RAM em hardware real com dmidecode, nome de GPU AMD/NVIDIA, outras distros (VMs não repetidas para esta página).
+
+Fase 1 — Discos: página no layout do original (cartões com veredito SAUDÁVEL/ATENÇÃO/CRÍTICO/SEM DADOS, limiares do original, métricas, SMART por clique ou importação).
+539 testes; smoke X11 do CachyOS. NÃO TESTADO: SMART ao vivo com sucesso (SMART-01), temperatura hwmon de NVMe/drivetemp em hardware real (este host não expõe),
+USB/MMC, HDD físico com métricas reais, outras distros para esta página.

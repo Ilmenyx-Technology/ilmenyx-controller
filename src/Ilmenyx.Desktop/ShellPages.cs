@@ -148,16 +148,7 @@ public sealed partial class ShellWindow
         return Scroll("GpuScroll", new StackPanel { Spacing = 12, Children = { CardBox(new StackPanel { Spacing = 12, Children = { Label("GPU · INVENTÁRIO DRM/PCI"), summary, notice, Wrapped("GpuNote", "Contadores de uso e VRAM não são lidos; GPU disponível no inventário não implica telemetria. VRAM de iGPU não é inferida.", 12, Palette.Faint) } }) } });
     }
 
-    private Control DisksPage()
-    {
-        var disks = new TextBlock { Name = "DisksSummary", TextWrapping = TextWrapping.Wrap, FontSize = 15, DataContext = hardware }; disks.Bind(TextBlock.TextProperty, new Binding(nameof(hardware.Disks)));
-        return Scroll("DisksScroll", new StackPanel
-        {
-            Spacing = 14,
-            Children = { CardBox(new StackPanel { Spacing = 10, Children = { Label("DISPOSITIVOS DE BLOCO"), disks, Wrapped("DisksNote", "Capacidade não é espaço livre nem saúde. SMART ao vivo: somente CLI com opt-in; abaixo, importação offline de relatório existente.", 12, Palette.Faint) } }),
-                new SmartImportPanel(smartImport, Destination("smart-import"), stop.Token) }
-        });
-    }
+    private Control DisksPage() => Scroll("DisksScroll", new DiskHealthPage(smartImport, Destination("smart-import"), stop.Token) { Margin = new Thickness(0, 4, 8, 12) });
 
     private Control EnergyPage()
     {

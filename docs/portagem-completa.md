@@ -18,7 +18,7 @@ URL/credencial visíveis. Escrita em disco só em arquivo temporário autorizado
 | Sistema (SystemInfoCollector) | placa-mãe, BIOS, CPU, RAM, SO | /sys/class/dmi/id, /proc, /sys; módulos de RAM via importação offline do `dmidecode` (exige root) | 1 | IMPLEMENTADO (RAM por importação; sem serial) |
 | Sensores (SensorMonitor/LibreHardwareMonitor) | temperaturas, ventoinhas, tensões, potência | hwmon, thermal, power_supply, nvidia-smi/NVML, amdgpu sysfs | 0 | PARCIAL (sem GPU vendor) |
 | GPU (GpuInfoCollector, GpuSpecDb, Nvml, Dxgi) | ficha estilo GPU-Z | DRM sysfs, PCI ids, NVML (libnvidia-ml), amdgpu, Vulkan (vulkaninfo) | 1 | PARCIAL (inventário DRM) |
-| Discos (DiskHealth, DriveMap) | veredito de saúde, unidades e ocupação | smartctl/hwmon/sysfs + statfs/mounts; vereditos com limiares do original | 1 | PARCIAL (A/B feitos; sem veredito/mapa) |
+| Discos (DiskHealth, DriveMap) | veredito de saúde, unidades e ocupação | smartctl/hwmon/sysfs + statfs/mounts; vereditos com limiares do original | 1 | IMPLEMENTADO (SMART só por clique/importação; sem privilégio o veredito fica SEM DADOS) |
 | Energia (BatteryInfo) | bateria, plano de energia, consumo | power_supply, power-profiles-daemon (powerprofilesctl) | 1 | PARCIAL (bruto) |
 | Rede (NetworkTest) | latência, jitter, perda, DNS, velocidade, bufferbloat | ping/ICMP, DNS, HTTP; endpoints visíveis, só por clique | 2 | PENDENTE |
 | Driver (DriverManager) | inventário de drivers, vídeo, suporte da placa | /proc/modules + modinfo, versão NVIDIA/Mesa, firmware, links por DMI; sem instalar | 1 | PENDENTE |
