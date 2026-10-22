@@ -367,3 +367,8 @@ Fase 3 — Otimiza: página no layout do original (RAM + OTIMIZA, programas para
 Bug real achado por teste: caminhos entre aspas com espaço no Exec (.desktop) quebravam o nome do executável (corrigido).
 NÃO TESTADO: fechamento real de aplicativos, perfil de energia e mouse reais pela UI, KDE (mouse), Flatpak/Snap (nomes de processo), drop_caches (por regra só comando).
 Não portado por não existir no Linux: limpeza de standby list/working set do Windows, Game DVR, HAGS, otimização de janelas DX.
+
+Fase 2 — Estimativa de FPS: página no layout do original (busca, resolução/gráficos/upscaling, fonte de dados com chave, cartões em grade); catálogo e estimativa portados; cliente HowManyFPS com cache de 7 dias.
+677 testes (manipulador HTTP falso). Diferença deliberada do original: a API não é consultada automaticamente a cada mudança de opção, só em CONSULTAR API após confirmação.
+Marcador de equilíbrio do Gargalo agora usa a escala logarítmica exata do original.
+NÃO TESTADO: serviço HowManyFPS real e seu formato de autenticação, chave inválida/cota reais.

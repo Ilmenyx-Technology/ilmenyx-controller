@@ -86,10 +86,11 @@ public sealed class BottleneckPage : StackPanel
     private static Grid Legend() { var g = new Grid(); g.Children.Add(new TextBlock { Text = "limita a GPU", Foreground = Palette.Faint, FontSize = 11 }); g.Children.Add(new TextBlock { Text = "equilibrado", Foreground = Palette.Faint, FontSize = 11, HorizontalAlignment = HorizontalAlignment.Center }); g.Children.Add(new TextBlock { Text = "limita a CPU", Foreground = Palette.Faint, FontSize = 11, HorizontalAlignment = HorizontalAlignment.Right }); return g; }
 
     private double ratio = 1;
+    /// <summary>Marker position as in the original: logarithmic scale of the GPU/CPU ratio (0.4x … 2.5x), centre = balanced.</summary>
     private void PlaceDot()
     {
-        double pos = Math.Clamp(0.5 + 0.25 * Math.Log2(Math.Max(ratio, 0.01)), 0.03, 0.97);
-        dot.Margin = new Thickness(Math.Max(0, scale.Bounds.Width * pos - 7), 0, 0, 0);
+        double t = Math.Clamp((Math.Log(Math.Max(ratio, 0.01)) - Math.Log(0.4)) / (Math.Log(2.5) - Math.Log(0.4)), 0, 1);
+        dot.Margin = new Thickness(Math.Max(0, t * (scale.Bounds.Width - dot.Width)), 0, 0, 0);
     }
 
     private async Task InitAsync()

@@ -123,6 +123,8 @@ public sealed class IlmenyxSettings
     public List<CustomGame> CustomGames { get; set; } = [];
     /// <summary>Original values of user-level tweaks before the first change ("&lt;absent&gt;" = unknown), so "Restaurar originais" can undo them.</summary>
     public Dictionary<string, string?> TweakBackup { get; set; } = [];
+    /// <summary>HowManyFPS API key. Stored in this user-only (0600) file; never exported or logged.</summary>
+    public string? HowManyFpsKey { get; set; }
 
     public static IlmenyxSettings Load(string path)
     {
@@ -136,6 +138,7 @@ public sealed class IlmenyxSettings
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         string tmp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
         File.WriteAllText(tmp, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
+        if (OperatingSystem.IsLinux()) File.SetUnixFileMode(tmp, UnixFileMode.UserRead | UnixFileMode.UserWrite);
         File.Move(tmp, path, overwrite: true);
     }
 
