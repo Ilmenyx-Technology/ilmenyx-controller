@@ -66,7 +66,7 @@ public sealed class LinuxHardwareInfoProvider(ILinuxFiles files, ISensorProvider
         };
         foreach (var feature in new[] { "overlay", "windows-backend" }) capabilities.Add(new(feature, "unavailable", "Não implementado na Fase 1."));
         ct.ThrowIfCancellationRequested();
-        return new("1.3", "0.26.0", DateTimeOffset.UtcNow, RuntimeInformation.FrameworkDescription,
+        return new("1.3", "0.27.0", DateTimeOffset.UtcNow, RuntimeInformation.FrameworkDescription,
             os is null ? Reading<string>.Missing("", "/etc/os-release", osText.Error ?? "PRETTY_NAME inválido ou ausente.") : Reading<string>.Available(os, "", "/etc/os-release"),
             kernel.Length == 0 ? Reading<string>.Missing("", "/proc/sys/kernel/osrelease", kernelText.Error ?? "Kernel não informado.") : Reading<string>.Available(kernel, "", "/proc/sys/kernel/osrelease"),
             cpu, memory, disks, capabilities, new[] { "Snapshot somente leitura; não mede desempenho ou saúde.", "Dados refletem /proc e /sys visíveis; contêiner/cgroup/afinidade podem limitar recursos utilizáveis.", "Sem coleta dedicada de hostname, serial, UUID, IP ou machine-id; rótulos livres podem conter identificadores. Revise antes de compartilhar." }, sensorSnapshot, gpuSnapshot);
