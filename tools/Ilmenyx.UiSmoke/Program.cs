@@ -486,6 +486,7 @@ public sealed class UiSmokeApp : Application
         if (OperatingSystem.IsLinux()) await FpsAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await AppsAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await BenchAsync(shell, desktop);
+        if (OperatingSystem.IsLinux()) await OcAsync(shell, desktop);
         Click(shell, "SortMemory"); await Until(() => Find<Button>(shell, "SortMemory").Content!.ToString()!.Contains('▼'));
         Click(shell, "ToggleMonitor");
         await Until(() => Find<Button>(shell, "ToggleMonitor").Content!.ToString() == "Retomar monitor" && Find<TextBlock>(shell, "SideMonitor").Text == "monitor parado");
@@ -758,6 +759,45 @@ public sealed class UiSmokeApp : Application
         await Task.Delay(300); Capture(shell, "shell-bench.png");
         Console.WriteLine("PASS bench page: every test needs a visible confirmation, declined/stopped/aborted runs publish nothing, temperature guard cuts the run, tmpfs folders refused, results kept in the local history; real load never started");
     }
+    [System.Runtime.Versioning.SupportedOSPlatform("linux")]
+    private static async Task OcAsync(ShellWindow shell, IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        // Fake engine, clock and kernel log: no stress, no journal read, no nvidia-smi and no privileged command is ever run.
+        string root = Path.Combine(Program.OutputDirectory, "oc-fixture"); Directory.CreateDirectory(root);
+        var engine = new FakeStress(); var errors = new Ilmenyx.Core.KernelHardwareErrors(0, 0, 0, 0, null, null); var fakeNow = new DateTimeOffset(2026, 10, 22, 12, 0, 0, TimeSpan.Zero);
+        var gpu = new Ilmenyx.Core.NvidiaTuningState(0, "Fixture GPU", 200, 200, 100, 220, 3000, 210);
+        var services = new OcServices(engine, () => 8L << 30, _ => Task.FromResult<double?>(5400), (_, _) => Task.FromResult(errors), () => ("Gigabyte Technology Co., Ltd.", "B650 FIXTURE"),
+            _ => Task.FromResult<IReadOnlyList<Ilmenyx.Core.NvidiaTuningState>>([gpu]), () => "AMD Ryzen 7 7800X3D 8-Core Processor");
+        using var usage = new UsageViewModel(new FakeUsage()); await usage.SampleOnceAsync(CancellationToken.None);
+        Window? host = null;
+        var page = new OcPage(services, usage, () => host, Path.Combine(root, "cfg/settings.json"), CancellationToken.None, () => fakeNow, (t, _) => { fakeNow += t; return Task.CompletedTask; });
+        host = new Window { Width = 1100, Height = 1000, Content = new ScrollViewer { Content = page } }; host.Show();
+        await Until(() => host.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnOcCommands" && b.IsEnabled) && host.GetVisualDescendants().OfType<StackPanel>().Any(p => p.Name == "OcGuide" && p.Children.Count == 6));
+        if (!Find<TextBlock>(host, "OcGuideTitle").Text!.Contains("GIGABYTE B650 FIXTURE")) throw new InvalidOperationException("Guide must use the board from DMI.");
+        Find<TextBox>(host, "OcPower").Text = "90"; Click(host, "BtnOcCommands");
+        await Until(() => Find<TextBlock>(host, "OcGpuResult").Text!.Contains("100")); if (Find<TextBox>(host, "OcCommands").IsVisible) throw new InvalidOperationException("Out-of-range power must not produce commands.");
+        Find<TextBox>(host, "OcPower").Text = "180"; Click(host, "BtnOcCommands");
+        await Until(() => Find<TextBox>(host, "OcCommands").IsVisible && Find<TextBox>(host, "OcCommands").Text!.Contains("sudo nvidia-smi -i 0 -pl 180"));
+        if (!Find<TextBlock>(host, "OcGpuResult").Text!.Contains("nunca usa sudo")) throw new InvalidOperationException("Commands must be shown, never run, with the sudo note.");
+        Click(host, "BtnOcCheck"); var dialog = await ConfirmAsync(desktop);
+        if (!Find<TextBlock>(dialog, "ConfirmText").Text!.Contains("15 min")) throw new InvalidOperationException("Confirmation must state the duration.");
+        Click(dialog, "ConfirmNo"); await Until(() => !dialog.IsVisible); if (engine.Starts != 0) throw new InvalidOperationException("Declined confirmation still started stress.");
+        Click(host, "BtnOcCheck"); Click(await ConfirmAsync(desktop), "ConfirmYes");
+        await Until(() => Find<TextBlock>(host, "OcVerdict").Text == "ESTÁVEL" && Find<Button>(host, "BtnOcCheck").Content!.ToString() == "INICIAR VERIFICAÇÃO");
+        if (engine.Starts != 1 || engine.Stops != 1 || !Find<TextBlock>(host, "OcResult").Text!.Contains("5,400")) throw new InvalidOperationException("Stable run must start and stop the engine once and show the score.");
+        errors = new Ilmenyx.Core.KernelHardwareErrors(1, 0, 0, 0, "mce: fixture", null);
+        Click(host, "BtnOcCheck"); Click(await ConfirmAsync(desktop), "ConfirmYes");
+        await Until(() => Find<TextBlock>(host, "OcVerdict").Text == "INSTÁVEL" && Find<Button>(host, "BtnOcCheck").Content!.ToString() == "INICIAR VERIFICAÇÃO");
+        if (!Find<TextBlock>(host, "OcVerdictWhy").Text!.Contains("MCE")) throw new InvalidOperationException("Kernel errors must explain the unstable verdict.");
+        if (IlmenyxSettings.Load(Path.Combine(root, "cfg/settings.json")).BenchRuns.Count(r => r.Kind == "OC") != 2) throw new InvalidOperationException("Both verdicts must be kept in the local history.");
+        host.Close();
+        Find<Button>(shell, "Navoc").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => shell.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnOcCheck"));
+        await Task.Delay(300); Capture(shell, "shell-oc.png");
+        Console.WriteLine("PASS oc page: GPU limits validated and shown as commands (never run), verifier needs confirmation, stable/unstable verdicts from temperature, memory and kernel-log errors, BIOS guide from DMI board; no real stress or journal read");
+    }
+    private static async Task<ConfirmDialog> ConfirmAsync(IClassicDesktopStyleApplicationLifetime desktop)
+    { await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible)); return desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible); }
     private sealed class FakeHttp : HttpMessageHandler
     {
         public int Calls;

@@ -40,6 +40,7 @@ public sealed partial class ShellWindow
         pages["bottleneck"] = ("Detector de gargalo", () => Scroll("BottleneckScroll", new BottleneckPage(usage, stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["stress"] = ("Stress test", () => Scroll("StressScroll", stressPage = new StressPage(new StressTester(), usage, () => this, () => usage.Last is { MemoryTotal: > 0, MemoryUsed: { } u } l ? l.MemoryTotal!.Value - u : 0, stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["bench"] = ("Benchmark", () => Scroll("BenchScroll", new BenchPage(OperatingSystem.IsLinux() ? BenchServices.Real() : throw new PlatformNotSupportedException(), usage, () => this, IlmenyxSettings.DefaultPath(), stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
+        pages["oc"] = ("OC", () => Scroll("OcScroll", new OcPage(OperatingSystem.IsLinux() ? RealOcServices() : throw new PlatformNotSupportedException(), usage, () => this, IlmenyxSettings.DefaultPath(), stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["validate"] = ("Validações reduzidas", ValidatePage, null);
         pages["makerports"] = ("Maker · Portas", () => Scroll("MakerPortsScroll", new MakerPortsPage(stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["makerdrv"] = ("Maker · Drivers seriais", () => Scroll("MakerDrvScroll", new MakerDriversPage(stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
@@ -48,6 +49,15 @@ public sealed partial class ShellWindow
         pages["apps"] = ("Instalar apps", () => Scroll("AppsScroll", new AppsPage(new LinuxAppInstaller(), LinuxAppInstaller.FlatpakAvailable, () => this, stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["driver"] = ("Drivers", () => Scroll("DriverScroll", new DriverPage(Destination("drivers"), stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["tools"] = ("Requisitos e sobre", ToolsPage, null);
+    }
+
+    [System.Runtime.Versioning.SupportedOSPlatform("linux")]
+    private OcServices RealOcServices()
+    {
+        var kernel = new LinuxKernelLog();
+        return new OcServices(new StressTester(), () => usage.Last is { MemoryTotal: > 0, MemoryUsed: { } u } l ? l.MemoryTotal!.Value - u : LinuxMemoryInfo.AvailableBytes(),
+            async ct => (await new Ilmenyx.Core.Benchmarks.CpuBenchmarkRunner().RunAsync(new Ilmenyx.Contracts.CpuBenchmarkOptions { Profile = Ilmenyx.Contracts.CpuWorkloadProfile.Full, Threads = Environment.ProcessorCount, AllowCpuLoad = true, Timeout = TimeSpan.FromMinutes(5) }, ct)).Result.ExperimentalScore,
+            (since, ct) => kernel.ErrorsSinceAsync(since, ct), () => LinuxKernelLog.Board(), LinuxKernelLog.NvidiaStateAsync, () => usage.Last?.CpuModel ?? "");
     }
 
     private static Border CardBox(Control child, Thickness? padding = null) => new()
