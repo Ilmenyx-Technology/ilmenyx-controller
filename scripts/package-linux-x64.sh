@@ -23,6 +23,8 @@ for project in Cli Desktop; do
     -p:PublishSingleFile=false -p:PublishTrimmed=false -p:DebugType=None -p:DebugSymbols=false \
     -o "$bundle/$directory"
 done
+# LTTng tracing provider of the runtime: optional (needs liblttng-ust, absent on most systems) and not used by Ilmenyx.
+rm -f -- "$bundle/cli/libcoreclrtraceptprovider.so" "$bundle/desktop/libcoreclrtraceptprovider.so"
 for file in LICENSE NOTICE.md LICENSING.md LICENSE-ILMENYX.md THIRD-PARTY-NOTICES.md; do
   cp -- "$repo/$file" "$bundle/$file"
 done

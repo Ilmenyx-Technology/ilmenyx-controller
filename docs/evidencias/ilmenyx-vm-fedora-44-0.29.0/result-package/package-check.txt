@@ -1,0 +1,2 @@
+	liblttng-ust.so.0 => not found
+	liblttng-ust.so.0 => not found

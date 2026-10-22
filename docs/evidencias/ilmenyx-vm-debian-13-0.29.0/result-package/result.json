@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "1.1",
+  "scope": "CLI package acceptance on the observed machine",
+  "state": "FAILED",
+  "reason": "CLI package smoke failed or timed out; inspect package-check logs.",
+  "exitCode": 1,
+  "bundleVersion": "0.29.0",
+  "observedRuntime": "unknown",
+  "globalizationMode": "default",
+  "defaultGlobalizationRequested": true,
+  "doctorExitCode": 0,
+  "smokeExitCode": 1,
+  "cleanVmCertified": false,
+  "guiTested": false,
+  "hardwareCertified": false
+}

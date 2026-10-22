@@ -1,0 +1,13 @@
+{
+  "product": "Ilmenyx",
+  "version": "0.29.0",
+  "maintainer": "Bismuth Technology",
+  "rid": "linux-x64",
+  "selfContained": true,
+  "runtime": "Microsoft.NETCore.App 10.0 (embutido)",
+  "icu": "Microsoft.ICU.ICU4C.Runtime 72.1.0.3 (embutido, app-local)",
+  "sourceRevision": "1ecbb3aa6108db6887ac78b96a772ef2b041aedb",
+  "sourceWorkingTree": "clean",
+  "distribution": "local-review-only",
+  "legalReview": "pending"
+}
