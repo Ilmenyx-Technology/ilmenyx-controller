@@ -45,6 +45,7 @@ Carga completa não roda ao abrir o app ou na suíte. Sem instalação, drivers,
 produto automáticos. Dependências gráficas podem usar IPC local; restore/audit NuGet acessam rede.
 
 ## O que não foi portado (contribuições são bem-vindas)
+O próprio aplicativo mostra esta lista na página **Bloqueados (!)**: cada função tem o motivo no (!) e, quando o computador tem o hardware que ela esperava, o cartão passa a dizer "Teste disponível nesta máquina" (o menu mostra quantos itens podem ser concluídos ali).
 Tudo o que o RESET EXPLODE faz foi portado ou substituído por um equivalente Linux, exceto o que está abaixo. Se você quiser implementar algum destes itens, a contribuição é bem-vinda: veja `docs/portagem-completa.md` (matriz com o original), `Sem_teste.md` (o que falta validar e como) e `AGENTS.md` (regras de segurança). Respeite a licença (`LICENSING.md`).
 
 | Item do original | Situação no Linux | Motivo |

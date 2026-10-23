@@ -122,8 +122,8 @@ public sealed class BenchPage : StackPanel
                 if (gpuInfo.UnavailableReason is { } gwhy) { options.Children.Add(Note("Benchmark de GPU indisponível: " + gwhy)); break; }
                 wrap.Children.Add(Field("DURAÇÃO", new UiKit.ChipGroup<int>("BenchGpuSeconds", [("30 S", 30), ("60 S", 60), ("120 S", 120)], gpuSeconds, n => gpuSeconds = n).Panel));
                 wrap.Children.Add(Field("LIMITE °C", tempLimit));
-                var rt = new Button { Name = "BenchGpuRt", Content = "RAY TRACING", FontSize = 11, Padding = new Thickness(14, 5), CornerRadius = new CornerRadius(16), BorderBrush = Palette.Line, BorderThickness = new Thickness(1), IsEnabled = false };
-                ToolTip.SetTip(rt, gpuInfo.SupportsRayTracing ? "O teste de ray tracing ainda não foi portado (a GPU suporta VK_KHR_ray_tracing_pipeline)." : $"Ray tracing exige VK_KHR_ray_tracing_pipeline, que {gpuInfo.AdapterName} não oferece.");
+                var rt = new Button { Name = "BenchGpuRt", Content = "🔒 RAY TRACING (!)", FontSize = 11, Padding = new Thickness(14, 5), CornerRadius = new CornerRadius(16), BorderBrush = Palette.Line, BorderThickness = new Thickness(1), IsEnabled = false };
+                ToolTip.SetTip(rt, gpuInfo.SupportsRayTracing ? "Teste disponível nesta máquina: esta GPU suporta VK_KHR_ray_tracing_pipeline, mas o teste de ray tracing ainda não foi portado. Veja a página Bloqueados (!)." : $"Bloqueado — limitação de hardware do autor: o ray tracing exige VK_KHR_ray_tracing_pipeline, que {gpuInfo.AdapterName} não oferece. Veja a página Bloqueados (!).");
                 wrap.Children.Add(Field("OUTROS TESTES", rt));
                 options.Children.Add(wrap);
                 options.Children.Add(Note($"Cena de jogo em Vulkan em {gpuInfo.AdapterName}: terreno procedural, 40.000 árvores instanciadas, sombras 4096² com PCF, água e HDR a 1920×1080, câmera em trajeto fixo, sem V-Sync. Carga máxima na GPU." + (gpuInfo.SharesCpuThermals ? " Esta GPU divide o chip com a CPU: vale o limite de temperatura da CPU." : "")));

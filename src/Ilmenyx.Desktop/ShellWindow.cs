@@ -73,6 +73,7 @@ public sealed partial class ShellWindow : Window
             if (!OperatingSystem.IsLinux()) { hardware.SetStatus("Backend disponível apenas no Linux."); return; }
             usage.Start(stop.Token);
             toasts = new DeviceToastService(() => LinuxDeviceWatcher.Read()) { Enabled = appSettings.DeviceToasts }; toasts.Notified += t => { sessionEvents.Insert(0, (DateTimeOffset.Now, t.Title, t.Text)); if (sessionEvents.Count > 50) sessionEvents.RemoveAt(50); overviewRefresh?.Invoke(); }; toasts.Start();
+            _ = RefreshBlockedBadgeAsync();
             await hardware.RefreshAsync(stop.Token);
             await sensors.RefreshAsync(stop.Token);
         };
@@ -128,7 +129,7 @@ public sealed partial class ShellWindow : Window
         Group("JOGOS", ("launcher", "Jogos"), ("fps", "Estimativa de FPS"), ("bottleneck", "Detector de gargalo"));
         Group("DESEMPENHO", ("bench", "Benchmark"), ("oc", "OC"), ("overlay", "Overlay"), ("validate", "Validações reduzidas"), ("stress", "Stress test"));
         Group("MAKER", ("makerports", "Portas"), ("makerdrv", "Drivers seriais"));
-        Group("FERRAMENTAS", ("optimize", "Otimiza"), ("lighting", "Integração"), ("startup", "Inicialização"), ("apps", "Instalar apps"), ("driver", "Drivers"), ("report", "Relatório"), ("tools", "Requisitos e sobre"));
+        Group("FERRAMENTAS", ("optimize", "Otimiza"), ("lighting", "Integração"), ("startup", "Inicialização"), ("apps", "Instalar apps"), ("driver", "Drivers"), ("report", "Relatório"), ("blocked", "Bloqueados (!)"), ("tools", "Requisitos e sobre"));
 
         var temp = new TextBlock { Name = "SideTemp", Text = "—", FontSize = 12, FontFamily = new FontFamily("monospace") };
         var load = new TextBlock { Name = "SideLoad", Text = "—", FontSize = 12, Foreground = Palette.Muted, FontFamily = new FontFamily("monospace") };

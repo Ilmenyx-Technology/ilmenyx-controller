@@ -494,6 +494,7 @@ public sealed class UiSmokeApp : Application
         if (OperatingSystem.IsLinux()) await ReportAsync(shell);
         if (OperatingSystem.IsLinux()) await OverlayAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await LightingAsync(shell, desktop);
+        if (OperatingSystem.IsLinux()) await BlockedAsync(shell);
         if (OperatingSystem.IsLinux()) await OverviewSummaryAsync(shell);
         await ThemeAsync(shell);
         await ToastAsync(shell);
@@ -928,6 +929,27 @@ public sealed class UiSmokeApp : Application
         await Until(() => shell.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnOverlayToggle"));
         Console.WriteLine("PASS overlay page: item picker and presets persist, Ilmenyx overlay window shows/hides with FPS from the frame source, MangoHud config and launch option generated into Ilmenyx's own file (user MangoHud.conf untouched)");
     }
+    private static async Task BlockedAsync(ShellWindow shell)
+    {
+        shell.Select("blocked"); await Task.Delay(100);
+        var list = Find<StackPanel>(shell, "BlockedList");
+        if (list.Children.Count != Ilmenyx.Core.BlockedCatalog.All.Count) throw new InvalidOperationException("Every blocked feature must have a card.");
+        foreach (var f in Ilmenyx.Core.BlockedCatalog.All)
+        {
+            var chip = (TextBlock)Find<Border>(shell, "BlockedChip_" + f.Id).Child!;
+            string text = chip.Text ?? "";
+            if (!(text.Contains("BLOQUEADO") || text.Contains("TESTE DISPONÍVEL") || text.Contains("NÃO SE APLICA"))) throw new InvalidOperationException("Unexpected state text for " + f.Id + ": " + text);
+            if (f.Kind == Ilmenyx.Core.BlockReason.WindowsOnly && !text.Contains("NÃO SE APLICA")) throw new InvalidOperationException(f.Id + " must be not applicable.");
+        }
+        var details = Find<StackPanel>(shell, "BlockedDetails_rt-bench"); bool before = details.IsVisible;
+        Click(shell, "BlockedWhy_rt-bench"); if (details.IsVisible == before) throw new InvalidOperationException("(!) must toggle the reason.");
+        if (!details.Children.OfType<TextBlock>().Any(t => (t.Text ?? "").Contains("VK_KHR_ray_tracing_pipeline"))) throw new InvalidOperationException("The reason must name the missing extension.");
+        string summary = Find<TextBlock>(shell, "BlockedSummary").Text ?? "";
+        if (summary.Length == 0) throw new InvalidOperationException("Summary missing.");
+        shell.Select("dash");
+        Console.WriteLine("PASS blocked page: one card per blocked feature, state chips, (!) toggles the reason, Windows-only items are not applicable");
+    }
+
     private static async Task LightingAsync(ShellWindow shell, IClassicDesktopStyleApplicationLifetime desktop)
     {
         // A fake OpenRGB SDK server on loopback: no real light, device or driver is touched.

@@ -52,6 +52,7 @@ public sealed partial class ShellWindow
         pages["apps"] = ("Instalar apps", () => Scroll("AppsScroll", new AppsPage(new LinuxAppInstaller(), LinuxAppInstaller.FlatpakAvailable, () => this, stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["driver"] = ("Drivers", () => Scroll("DriverScroll", new DriverPage(Destination("drivers"), stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["report"] = ("Relatório", () => Scroll("ReportScroll", new ReportPage(GatherReportAsync, Destination("report"), stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
+        pages["blocked"] = ("Bloqueados (!)", () => Scroll("BlockedScroll", new BlockedPage(ReadMachineProbe) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["tools"] = ("Requisitos e sobre", ToolsPage, null);
     }
 
@@ -88,6 +89,27 @@ public sealed partial class ShellWindow
             }
             return last;
         };
+    }
+
+    /// <summary>Passive look at this machine (sysfs and the Vulkan adapter list); nothing is tested or started.</summary>
+    private static MachineProbe ReadMachineProbe()
+    {
+        if (!OperatingSystem.IsLinux()) return new(false, false, false, false, false);
+        bool rt = false;
+        try { rt = Ilmenyx.Gpu.Vulkan.VulkanDevices.List().Adapters.Any(a => !a.IsSoftware && a.SupportsRayTracingPipeline); } catch (Exception e) when (e is IOException or InvalidOperationException or DllNotFoundException) { }
+        return MachineProbeReader.Read(rt, MachineProbeReader.HasGameLibrary());
+    }
+
+    /// <summary>Menu label shows how many blocked items this machine can now finish, read in the background after the window opens.</summary>
+    private async Task RefreshBlockedBadgeAsync()
+    {
+        try
+        {
+            var probe = await Task.Run(ReadMachineProbe);
+            int n = BlockedCatalog.AvailableCount(probe);
+            if (nav.TryGetValue("blocked", out var b)) { b.Content = n > 0 ? $"Bloqueados (!) · {n} p/ testar" : "Bloqueados (!)"; Avalonia.Automation.AutomationProperties.SetName(b, n > 0 ? $"Bloqueados, {n} teste(s) disponível(is) nesta máquina" : "Bloqueados"); }
+        }
+        catch (Exception e) when (e is IOException or InvalidOperationException) { }
     }
 
     private LightingServices RealLightingServices() => new(OpenRgbClient.ConnectAsync, () => null,
