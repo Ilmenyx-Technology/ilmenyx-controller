@@ -30,7 +30,7 @@ public sealed class NetworkPage : StackPanel
         test.HorizontalAlignment = HorizontalAlignment.Right; test.VerticalAlignment = VerticalAlignment.Top;
         test.Click += async (_, _) => { if (running is not null) running.Cancel(); else await RunAsync(); };
         var header = new Grid { Margin = new Thickness(0, 4, 0, 20) };
-        header.Children.Add(new StackPanel { Margin = new Thickness(0, 0, 160, 0), Children = { new TextBlock { Text = "Rede", FontSize = 26, FontWeight = FontWeight.Bold }, new TextBlock { Text = "Descubra se o lag vem do seu PC, do Wi-Fi ou do provedor", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap } } });
+        header.Children.Add(new StackPanel { Margin = new Thickness(0, 0, 160, 0), Children = { new TextBlock { Text = "Rede", FontSize = 32, FontWeight = FontWeight.Bold }, new TextBlock { Text = "Descubra se o lag vem do seu PC, do Wi-Fi ou do provedor", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap } } });
         header.Children.Add(test);
         track.Children.Add(progress); track.SizeChanged += (_, _) => progress.Width = track.Bounds.Width * fraction;
         Children.Add(header); Children.Add(track); Children.Add(status); Children.Add(cards);

@@ -41,7 +41,7 @@ public sealed class OcPage : StackPanel
     private readonly TextBlock hint = new() { Name = "OcHint", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, FontSize = 12 };
     private readonly TextBlock status = new() { Name = "OcStatus", Text = "Parado", FontSize = 15 };
     private readonly ProgressBar bar = new() { Name = "OcProgress", Minimum = 0, Maximum = 1, Height = 8, Margin = new Thickness(0, 8, 0, 0) };
-    private readonly Border verdictCard = new() { Name = "OcVerdictCard", IsVisible = false, CornerRadius = new CornerRadius(16), Padding = new Thickness(18) };
+    private readonly Border verdictCard = new() { Name = "OcVerdictCard", IsVisible = false, CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), Padding = new Thickness(18) };
     private readonly TextBlock verdict = new() { Name = "OcVerdict", FontSize = 28, FontWeight = FontWeight.Bold };
     private readonly TextBlock verdictWhy = new() { Name = "OcVerdictWhy", TextWrapping = TextWrapping.Wrap };
     private readonly TextBlock verdictRows = new() { Name = "OcResult", TextWrapping = TextWrapping.Wrap, FontFamily = new FontFamily("monospace"), FontSize = 12, Margin = new Thickness(0, 8, 0, 0) };
@@ -64,7 +64,7 @@ public sealed class OcPage : StackPanel
         this.services = services; this.usage = usage; this.owner = owner; this.settingsPath = settingsPath; this.lifetime = lifetime; Spacing = 4;
         this.now = now ?? (() => DateTimeOffset.Now); this.delay = delay ?? Task.Delay;
         settings = IlmenyxSettings.Load(settingsPath);
-        Children.Add(new StackPanel { Margin = new Thickness(0, 4, 0, 20), Children = { new TextBlock { Text = "OC", FontSize = 26, FontWeight = FontWeight.Bold }, new TextBlock { Text = "Verificador de estabilidade, ajustes da GPU e guia de overclock na BIOS · o Ilmenyx não altera hardware nem BIOS", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap } } });
+        Children.Add(new StackPanel { Margin = new Thickness(0, 4, 0, 20), Children = { new TextBlock { Text = "OC", FontSize = 32, FontWeight = FontWeight.Bold }, new TextBlock { Text = "Verificador de estabilidade, ajustes da GPU e guia de overclock na BIOS · o Ilmenyx não altera hardware nem BIOS", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap } } });
         BuildGpuCard(); BuildVerifier(); BuildRecent(); BuildHistoryCard(); BuildGuide();
         _ = LoadAsync();
     }

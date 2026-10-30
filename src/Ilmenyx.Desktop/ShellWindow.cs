@@ -37,14 +37,14 @@ public sealed partial class ShellWindow : Window
 
     public ShellWindow()
     {
-        Title = ProductIdentity.Name; Width = 1280; Height = 820; MinWidth = 900; MinHeight = 560; Background = Palette.Bg;
+        Icon = AppIcon.Window; Title = ProductIdentity.Name; Width = 1280; Height = 820; MinWidth = 900; MinHeight = 560; Background = Palette.Bg;
         settingsPath = IlmenyxSettings.DefaultPath(); appSettings = IlmenyxSettings.Load(settingsPath);
         if (appSettings.ThemeLight) Palette.Apply(true);
         BuildPages();
         var theme = new Button { Name = "ToggleTheme", Content = Palette.IsLight ? "Tema escuro" : "Tema claro", Padding = new Thickness(14, 6), Margin = new Thickness(0, 0, 8, 0) };
         theme.Click += (_, _) =>
         {
-            Palette.Apply(!Palette.IsLight); appSettings.ThemeLight = Palette.IsLight; theme.Content = Palette.IsLight ? "Tema escuro" : "Tema claro";
+            Palette.Apply(!Palette.IsLight); appSettings.ThemeLight = Palette.IsLight; if (Content is Grid shellRoot) shellRoot.Background = IlmenyxTheme.Ambient(); theme.Content = Palette.IsLight ? "Tema escuro" : "Tema claro";
             try { appSettings.Save(settingsPath); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
         };
         var pause = new Button { Name = "ToggleMonitor", Content = "Pausar monitor", Padding = new Thickness(14, 6) };
@@ -56,6 +56,8 @@ public sealed partial class ShellWindow : Window
         };
         var header = new Grid { ColumnDefinitions = new("*,Auto"), Margin = new Thickness(30, 10, 16, 6) };
         var brand = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+        if (AppIcon.Symbol is { } symbol)
+            brand.Children.Add(new Image { Name = "ProductSymbol", Source = symbol, Height = 22, Margin = new Thickness(0, 0, 10, 0), VerticalAlignment = VerticalAlignment.Center });
         brand.Children.Add(new TextBlock { Name = "ProductName", Text = ProductIdentity.Name, FontWeight = FontWeight.Bold, FontSize = 15, VerticalAlignment = VerticalAlignment.Center });
         brand.Children.Add(new TextBlock { Name = "MaintainerSignature", Text = ProductIdentity.Signature, FontWeight = FontWeight.Light, FontSize = 13, Margin = new Thickness(10, 0, 0, 0), Foreground = Palette.Muted, VerticalAlignment = VerticalAlignment.Center });
         brand.Children.Add(titlePage);
@@ -64,7 +66,7 @@ public sealed partial class ShellWindow : Window
         var body = new Grid { ColumnDefinitions = new("250,*") };
         var sidebar = Sidebar(); body.Children.Add(sidebar);
         host.Margin = new Thickness(18, 0, 18, 14); Grid.SetColumn(host, 1); body.Children.Add(host);
-        var root = new Grid { RowDefinitions = new("Auto,*") };
+        var root = new Grid { Name = "ShellRoot", RowDefinitions = new("Auto,*"), Background = IlmenyxTheme.Ambient() };
         Grid.SetRow(body, 1); root.Children.Add(header); root.Children.Add(body);
         Content = root;
         Select("dash");
@@ -105,7 +107,7 @@ public sealed partial class ShellWindow : Window
         var b = new Button
         {
             Name = "Nav" + key, Content = label, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Left,
-            Padding = new Thickness(14, 9), CornerRadius = new CornerRadius(12), BorderThickness = new Thickness(0), Margin = new Thickness(0, 1)
+            Padding = new Thickness(14, 9), CornerRadius = new CornerRadius(IlmenyxTheme.Pill), BorderThickness = new Thickness(0), Margin = new Thickness(0, 1)
         };
         AutomationProperties.SetName(b, label);
         b.Click += (_, _) => Select(key);
@@ -158,7 +160,7 @@ public sealed partial class ShellWindow : Window
         var dock = new DockPanel();
         DockPanel.SetDock(footer, Dock.Bottom); dock.Children.Add(footer);
         dock.Children.Add(new ScrollViewer { Name = "NavScroll", Content = items });
-        return new Border { Name = "Sidebar", Margin = new Thickness(14, 0, 0, 14), Background = Palette.Panel, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(20), Child = dock };
+        return new Border { Name = "Sidebar", Margin = new Thickness(14, 0, 0, 14), Background = Palette.Glass, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.ContainerRadius), Child = dock };
     }
 
     private Func<string, Task<string?>> Destination(string stem) => extension => JsonSaveDialog.ChooseAsync(this, $"ilmenyx-{stem}-{DateTime.Now:yyyyMMdd-HHmmss}{extension}", extension);

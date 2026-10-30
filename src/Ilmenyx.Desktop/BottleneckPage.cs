@@ -33,7 +33,7 @@ public sealed class BottleneckPage : StackPanel
     private readonly TextBlock liveAdvice = new() { Name = "BnLiveAdvice", TextWrapping = TextWrapping.Wrap, Foreground = Palette.Muted };
     private readonly TextBlock sessionStatus = new() { Name = "BnSessionStatus", Foreground = Palette.Muted, Margin = new Thickness(0, 14, 0, 0), TextWrapping = TextWrapping.Wrap };
     private readonly StackPanel result = new() { Name = "BnResult", IsVisible = false, Margin = new Thickness(0, 16, 0, 0) };
-    private readonly Button start = new() { Name = "BtnBnSession", Content = "INICIAR ANÁLISE", Background = Palette.Accent, Foreground = Brushes.Black, FontWeight = FontWeight.Bold, Padding = new Thickness(18, 9) };
+    private readonly Button start = new() { Name = "BtnBnSession", Content = "INICIAR ANÁLISE", Background = Palette.Accent, Foreground = Palette.OnAccent, FontWeight = FontWeight.Bold, Padding = new Thickness(18, 9) };
     public BottleneckSession? Session => session;
     public Limiter? LiveLimiter { get; private set; }
 
@@ -43,7 +43,7 @@ public sealed class BottleneckPage : StackPanel
     public BottleneckPage(UsageViewModel usage, CancellationToken lifetime, Func<FrameStats?>? frameSource = null)
     {
         this.frameSource = frameSource; this.usage = usage; this.lifetime = lifetime; Spacing = 4;
-        Children.Add(new StackPanel { Margin = new Thickness(0, 4, 0, 20), Children = { new TextBlock { Text = "Detector de gargalo", FontSize = 26, FontWeight = FontWeight.Bold }, new TextBlock { Text = "Descobre o que está limitando o seu FPS: GPU, CPU, memória ou temperatura", Foreground = Palette.Muted } } });
+        Children.Add(new StackPanel { Margin = new Thickness(0, 4, 0, 20), Children = { new TextBlock { Text = "Detector de gargalo", FontSize = 32, FontWeight = FontWeight.Bold }, new TextBlock { Text = "Descobre o que está limitando o seu FPS: GPU, CPU, memória ou temperatura", Foreground = Palette.Muted } } });
 
         var balance = Card(new StackPanel
         {
@@ -65,7 +65,7 @@ public sealed class BottleneckPage : StackPanel
         var grid = new UniformGrid { Columns = 3 };
         foreach (var (key, label) in new[] { ("gpu", "GPU"), ("cpu", "CPU total"), ("core", "Núcleo mais carregado"), ("vram", "VRAM"), ("ram", "RAM"), ("gpuT", "Temp. GPU"), ("cpuT", "Temp. CPU"), ("fps", "FPS") })
         { var m = new MeterView(label, "Bn_" + key) { Margin = new Thickness(0, 0, 24, 12) }; meters[key] = m; grid.Children.Add(m); }
-        Children.Add(new Border { Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(16), Padding = new Thickness(18, 16, 18, 6), Margin = new Thickness(0, 0, 0, 14), Child = new StackPanel { Children = { Label("LEITURAS AO VIVO"), new Border { Height = 4 }, grid } } });
+        Children.Add(new Border { Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), Padding = new Thickness(18, 16, 18, 6), Margin = new Thickness(0, 0, 0, 14), Child = new StackPanel { Children = { Label("LEITURAS AO VIVO"), new Border { Height = 4 }, grid } } });
 
         var durations = new StackPanel { Name = "BnDurationPanel", Orientation = Orientation.Horizontal, Spacing = 6, Margin = new Thickness(0, 0, 14, 0), VerticalAlignment = VerticalAlignment.Center };
         var chips = new List<Button>();
@@ -80,12 +80,12 @@ public sealed class BottleneckPage : StackPanel
         start.Click += (_, _) => { if (session is { Done: false }) Finish(); else StartSession(chosen); };
         var intro = new StackPanel { Children = { Label("ANÁLISE DE SESSÃO"), new TextBlock { Text = "Clique em iniciar, abra o jogo e jogue normalmente. Ao final você recebe o diagnóstico. As amostras ficam só na memória.", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap } } };
         var controls = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 12, 0, 0), Children = { durations, start } };
-        Children.Add(new Border { Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(16), Padding = new Thickness(22, 18), Child = new StackPanel { Children = { intro, controls, sessionStatus, result } } });
+        Children.Add(new Border { Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), Padding = new Thickness(22, 18), Child = new StackPanel { Children = { intro, controls, sessionStatus, result } } });
         Loaded += async (_, _) => { if (IsVisible) StartPolling(); await InitAsync(); };
     }
 
     private static TextBlock Label(string t) => new() { Text = t, FontSize = 11, FontWeight = FontWeight.Bold, Foreground = Palette.Faint, Margin = new Thickness(0, 0, 0, 4) };
-    private static Border Card(Control child) => new() { Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(16), Padding = new Thickness(22, 18), Child = child };
+    private static Border Card(Control child) => new() { Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), Padding = new Thickness(22, 18), Child = child };
     private static Grid Legend() { var g = new Grid(); g.Children.Add(new TextBlock { Text = "limita a GPU", Foreground = Palette.Faint, FontSize = 11 }); g.Children.Add(new TextBlock { Text = "equilibrado", Foreground = Palette.Faint, FontSize = 11, HorizontalAlignment = HorizontalAlignment.Center }); g.Children.Add(new TextBlock { Text = "limita a CPU", Foreground = Palette.Faint, FontSize = 11, HorizontalAlignment = HorizontalAlignment.Right }); return g; }
 
     private double ratio = 1;

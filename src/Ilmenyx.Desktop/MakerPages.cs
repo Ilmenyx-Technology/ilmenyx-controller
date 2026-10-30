@@ -19,10 +19,10 @@ public sealed class MakerPortsPage : StackPanel
     public MakerPortsPage(CancellationToken lifetime)
     {
         this.lifetime = lifetime; Spacing = 4;
-        var scan = new Button { Name = "BtnMakerPortScan", Content = "ATUALIZAR", Background = Palette.Accent, Foreground = Brushes.Black, FontWeight = FontWeight.Bold, Padding = new Thickness(20, 9), HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top };
+        var scan = new Button { Name = "BtnMakerPortScan", Content = "ATUALIZAR", Background = Palette.Accent, Foreground = Palette.OnAccent, FontWeight = FontWeight.Bold, Padding = new Thickness(20, 9), HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top };
         scan.Click += async (_, _) => await ScanAsync();
         var header = new Grid { Margin = new Thickness(0, 4, 0, 20) };
-        header.Children.Add(new StackPanel { Margin = new Thickness(0, 0, 190, 0), Children = { new TextBlock { Text = "Maker · Portas", FontSize = 26, FontWeight = FontWeight.Bold }, status } });
+        header.Children.Add(new StackPanel { Margin = new Thickness(0, 0, 190, 0), Children = { new TextBlock { Text = "Maker · Portas", FontSize = 32, FontWeight = FontWeight.Bold }, status } });
         header.Children.Add(scan);
         Children.Add(header); Children.Add(list);
         Children.Add(new TextBlock { Text = "O Ilmenyx lê só o sysfs e as permissões do nó em /dev: não abre a porta (isso pode reiniciar placas como Arduino/ESP), não altera grupos, serviços nem regras udev. Os comandos mostrados são sugestões para você executar.", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 8) });
@@ -35,7 +35,7 @@ public sealed class MakerPortsPage : StackPanel
         try
         {
             Rows = await ports.ReadAsync(lifetime); list.Children.Clear();
-            if (Rows.Count == 0) { list.Children.Add(new Border { Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(16), Padding = new Thickness(22, 18), Child = new TextBlock { Name = "MakerPortEmpty", Text = "Nenhuma placa serial USB (ttyUSB*/ttyACM*) conectada. Conecte a placa e clique em ATUALIZAR.", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap } }); }
+            if (Rows.Count == 0) { list.Children.Add(new Border { Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), Padding = new Thickness(22, 18), Child = new TextBlock { Name = "MakerPortEmpty", Text = "Nenhuma placa serial USB (ttyUSB*/ttyACM*) conectada. Conecte a placa e clique em ATUALIZAR.", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap } }); }
             foreach (var r in Rows) list.Children.Add(Card(r));
             int bad = Rows.Count(r => !r.Diagnosis.Ok);
             status.Text = Rows.Count == 0 ? "Nenhum dispositivo serial" : bad == 0 ? $"{Rows.Count} dispositivo(s) · tudo funcionando · lido às {DateTime.Now:HH:mm:ss}" : $"{Rows.Count} dispositivo(s) · {bad} com problema · lido às {DateTime.Now:HH:mm:ss}";
@@ -47,11 +47,11 @@ public sealed class MakerPortsPage : StackPanel
     private static Control Card(SerialRow r)
     {
         string title = r.Port.Product.Length > 0 ? r.Port.Product : r.Chip?.Name ?? "Dispositivo serial";
-        var badge = new Border { HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, BorderBrush = Palette.Fg, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(4), Padding = new Thickness(12, 4), Background = r.Diagnosis.Ok ? Brushes.Transparent : Palette.Fg, Child = new TextBlock { Name = "MakerState_" + System.IO.Path.GetFileName(r.Port.Node), Text = r.Diagnosis.Ok ? "FUNCIONANDO" : "COM PROBLEMA", FontSize = 11, FontWeight = FontWeight.SemiBold, Foreground = r.Diagnosis.Ok ? Palette.Fg : Brushes.Black } };
+        var badge = new Border { HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, BorderBrush = Palette.Fg, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(4), Padding = new Thickness(12, 4), Background = r.Diagnosis.Ok ? Brushes.Transparent : Palette.Fg, Child = new TextBlock { Name = "MakerState_" + System.IO.Path.GetFileName(r.Port.Node), Text = r.Diagnosis.Ok ? "FUNCIONANDO" : "COM PROBLEMA", FontSize = 11, FontWeight = FontWeight.SemiBold, Foreground = r.Diagnosis.Ok ? Palette.Fg : Palette.OnFg } };
         var top = new Grid(); top.Children.Add(new StackPanel { Margin = new Thickness(0, 0, 150, 0), Children = { new TextBlock { Text = title, FontSize = 16, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap }, new TextBlock { Text = $"{r.Port.Node} · {r.Chip?.Name ?? r.Port.Maker} · VID {r.Port.Vid} PID {r.Port.Pid}", Foreground = Palette.Muted, FontSize = 12, Margin = new Thickness(0, 3, 0, 0), TextWrapping = TextWrapping.Wrap } } });
         top.Children.Add(badge);
         var body = new StackPanel { Children = { top, new TextBlock { Text = "Driver: " + (r.Port.BoundDriver.Length > 0 ? r.Port.BoundDriver : "sem driver"), Foreground = Palette.Muted, FontSize = 12, Margin = new Thickness(0, 10, 0, 0) }, new TextBlock { Text = r.Diagnosis.Verdict, FontWeight = FontWeight.SemiBold, Margin = new Thickness(0, 10, 0, 2), TextWrapping = TextWrapping.Wrap }, new TextBox { Text = r.Diagnosis.Advice, IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) } } };
-        return new Border { Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(16), Padding = new Thickness(22, 18), Margin = new Thickness(0, 0, 0, 14), Child = body };
+        return new Border { Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), Padding = new Thickness(22, 18), Margin = new Thickness(0, 0, 0, 14), Child = body };
     }
 }
 
@@ -65,10 +65,10 @@ public sealed class MakerDriversPage : StackPanel
     public MakerDriversPage(CancellationToken lifetime)
     {
         this.lifetime = lifetime; Spacing = 4;
-        var scan = new Button { Name = "BtnMakerDrvScan", Content = "VERIFICAR", Background = Palette.Accent, Foreground = Brushes.Black, FontWeight = FontWeight.Bold, Padding = new Thickness(20, 9), HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top };
+        var scan = new Button { Name = "BtnMakerDrvScan", Content = "VERIFICAR", Background = Palette.Accent, Foreground = Palette.OnAccent, FontWeight = FontWeight.Bold, Padding = new Thickness(20, 9), HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top };
         scan.Click += (_, _) => Scan();
         var header = new Grid { Margin = new Thickness(0, 4, 0, 20) };
-        header.Children.Add(new StackPanel { Margin = new Thickness(0, 0, 190, 0), Children = { new TextBlock { Text = "Maker · Drivers seriais", FontSize = 26, FontWeight = FontWeight.Bold }, status } });
+        header.Children.Add(new StackPanel { Margin = new Thickness(0, 0, 190, 0), Children = { new TextBlock { Text = "Maker · Drivers seriais", FontSize = 32, FontWeight = FontWeight.Bold }, status } });
         header.Children.Add(scan);
         Children.Add(header);
         Children.Add(Card("AMBIENTE (O QUE ATRAPALHA PLACAS SERIAIS)", env));
@@ -76,7 +76,7 @@ public sealed class MakerDriversPage : StackPanel
         Children.Add(new TextBlock { Text = "No Linux esses drivers já vêm no kernel (não há .exe para instalar nem pacotes de driver para remover como no Windows). O Ilmenyx só informa e abre a página oficial; instalar módulos ou mudar permissões é com você.", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 8) });
         Loaded += (_, _) => Scan();
     }
-    private static Border Card(string title, Control content) => new() { Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(16), Padding = new Thickness(22, 18), Margin = new Thickness(0, 0, 0, 14), Child = new StackPanel { Spacing = 8, Children = { new TextBlock { Text = title, FontSize = 11, FontWeight = FontWeight.Bold, Foreground = Palette.Faint }, content } } };
+    private static Border Card(string title, Control content) => new() { Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), Padding = new Thickness(22, 18), Margin = new Thickness(0, 0, 0, 14), Child = new StackPanel { Spacing = 8, Children = { new TextBlock { Text = title, FontSize = 11, FontWeight = FontWeight.Bold, Foreground = Palette.Faint }, content } } };
 
     public void Scan()
     {

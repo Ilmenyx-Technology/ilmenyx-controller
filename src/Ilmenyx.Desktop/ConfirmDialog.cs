@@ -13,7 +13,7 @@ public sealed class ConfirmDialog : Window
 {
     public ConfirmDialog(string title, string message, string yes = "Sim", string no = "Não")
     {
-        Title = title; Width = 520; MinWidth = 360; SizeToContent = SizeToContent.Height; CanResize = false; WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        Icon = AppIcon.Window; Title = title; Width = 520; MinWidth = 360; SizeToContent = SizeToContent.Height; CanResize = false; WindowStartupLocation = WindowStartupLocation.CenterOwner;
         Background = Palette.Panel; KeyboardNavigation.SetTabNavigation(this, KeyboardNavigationMode.Cycle);
         var text = new TextBlock { Name = "ConfirmText", Text = message, TextWrapping = TextWrapping.Wrap };
         AutomationProperties.SetName(text, message);

@@ -12,7 +12,7 @@ public sealed class AboutDialog : Window
 {
     public AboutDialog()
     {
-        Title = "Ilmenyx — Licenças e créditos"; Width = 740; Height = 560;
+        Icon = AppIcon.Window; Title = "Ilmenyx — Licenças e créditos"; Width = 740; Height = 560;
         MinWidth = 480; MinHeight = 360; WindowStartupLocation = WindowStartupLocation.CenterOwner;
         KeyboardNavigation.SetTabNavigation(this, KeyboardNavigationMode.Cycle);
         var close = new Button { Name = "CloseAbout", Content = "Fechar", IsCancel = true, HorizontalAlignment = HorizontalAlignment.Right };

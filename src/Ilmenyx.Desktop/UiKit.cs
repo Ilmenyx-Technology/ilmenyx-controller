@@ -9,8 +9,8 @@ namespace Ilmenyx.Desktop;
 public static class UiKit
 {
     public static TextBlock Label(string text) => new() { Text = text, FontSize = 11, FontWeight = FontWeight.Bold, Foreground = Palette.Faint, TextWrapping = TextWrapping.Wrap };
-    public static Border Card(Control child, Thickness? margin = null) => new() { Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(16), Padding = new Thickness(22, 18), Margin = margin ?? new Thickness(0, 0, 0, 14), Child = child };
-    public static Button Primary(string name, string text, double padX = 20, double padY = 9) => new() { Name = name, Content = text, Background = Palette.Accent, Foreground = Brushes.Black, FontWeight = FontWeight.Bold, Padding = new Thickness(padX, padY), CornerRadius = new CornerRadius(12) };
+    public static Border Card(Control child, Thickness? margin = null) => new() { Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), Padding = new Thickness(22, 18), Margin = margin ?? new Thickness(0, 0, 0, 14), Child = child };
+    public static Button Primary(string name, string text, double padX = 20, double padY = 9) => new() { Name = name, Content = text, Background = Palette.Accent, Foreground = Palette.OnAccent, FontWeight = FontWeight.Bold, Padding = new Thickness(padX, padY), CornerRadius = new CornerRadius(IlmenyxTheme.Pill) };
 
     public static void ChipStyle(Button b, bool on) { b.Background = on ? Palette.Fg : Brushes.Transparent; b.Foreground = on ? Palette.OnFg : Palette.Muted; }
 

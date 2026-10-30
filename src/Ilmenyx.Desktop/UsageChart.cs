@@ -9,7 +9,7 @@ namespace Ilmenyx.Desktop;
 public sealed class UsageChart : Control
 {
     public const int Window = 60; // default visible points (1 s each)
-    private static readonly IBrush Back = Palette.Panel, Fill = new SolidColorBrush(Color.Parse("#B07CD6"), 0.55);
+    private static readonly IBrush Back = Palette.Panel, Fill = Palette.DataCpu; // série de CPU da paleta; segue o tema
     private static readonly IPen Grid = new Pen(Palette.Line, 1), Line = new Pen(Palette.AccentText, 1.4);
     private static readonly IPen SecondLine = new Pen(Palette.Warn, 1.4);
     private double[] values = [], second = [];
@@ -48,7 +48,7 @@ public sealed class UsageChart : Control
             for (int i = 0; i < values.Length; i++) g.LineTo(P(i));
             g.LineTo(new Point(left + step * (values.Length - 1), rect.Height)); g.EndFigure(true);
         }
-        context.DrawGeometry(Fill, null, area);
+        using (context.PushOpacity(0.55)) context.DrawGeometry(Fill, null, area);
         var line = new StreamGeometry();
         using (var g = line.Open())
         {

@@ -25,7 +25,7 @@ public sealed class EnergyPage : StackPanel
         var refresh = new Button { Name = "BtnEnergyRefresh", Content = "ATUALIZAR", Padding = new Thickness(18, 9), HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top };
         refresh.Click += async (_, _) => await RefreshAsync();
         var header = new Grid { Margin = new Thickness(0, 4, 0, 18) };
-        header.Children.Add(new StackPanel { Margin = new Thickness(0, 0, 160, 0), Children = { new TextBlock { Text = "Energia", FontSize = 26, FontWeight = FontWeight.Bold }, status } });
+        header.Children.Add(new StackPanel { Margin = new Thickness(0, 0, 160, 0), Children = { new TextBlock { Text = "Energia", FontSize = 32, FontWeight = FontWeight.Bold }, status } });
         header.Children.Add(refresh);
         Children.Add(header); Children.Add(cards);
         Children.Add(new TextBlock

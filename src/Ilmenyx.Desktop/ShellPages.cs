@@ -139,7 +139,7 @@ public sealed partial class ShellWindow
 
     private static Border CardBox(Control child, Thickness? padding = null) => new()
     {
-        Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(16), Padding = padding ?? new Thickness(22, 18), Child = child
+        Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), Padding = padding ?? new Thickness(22, 18), Child = child
     };
     private static TextBlock Label(string text) => new() { Text = text, FontSize = 11, FontWeight = FontWeight.Bold, Foreground = Palette.Faint, TextWrapping = TextWrapping.Wrap };
     private static TextBlock Wrapped(string name, string text, double size = 14, IBrush? brush = null)
@@ -149,7 +149,7 @@ public sealed partial class ShellWindow
         return t;
     }
     private static ScrollViewer Scroll(string name, Control content) => new() { Name = name, Content = content };
-    private static Button Primary(string name, string text) => new() { Name = name, Content = text, Background = Palette.Accent, Foreground = Brushes.Black, FontWeight = FontWeight.Bold, Padding = new Thickness(20, 12), HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Center, CornerRadius = new CornerRadius(12) };
+    private static Button Primary(string name, string text) => new() { Name = name, Content = text, Background = Palette.Accent, Foreground = Palette.OnAccent, FontWeight = FontWeight.Bold, Padding = new Thickness(20, 12), HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Center, CornerRadius = new CornerRadius(IlmenyxTheme.Pill) };
 
     private static void ChipStyle(Button b, bool on) { b.Background = on ? Palette.Fg : Brushes.Transparent; b.Foreground = on ? Palette.OnFg : Palette.Muted; }
     private static StackPanel Chips<T>(string name, (string Label, T Value)[] options, T initial, Action<T> chosen)
@@ -201,7 +201,7 @@ public sealed partial class ShellWindow
         open.Click += (_, _) => Select("bench");
         var openValidations = new Button { Name = "OpenValidations", Content = "Validações reduzidas", Margin = new Thickness(0, 8, 0, 0), HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Center };
         openValidations.Click += (_, _) => Select("validate");
-        var notice = new Border { HorizontalAlignment = HorizontalAlignment.Left, Background = Palette.WarnBg, CornerRadius = new CornerRadius(6), Padding = new Thickness(10, 6), Margin = new Thickness(0, 10, 0, 0), Child = new TextBlock { Name = "OverviewGpuNotice", Text = ValidationNotices.AmdNvidia, Foreground = Palette.Warn, TextWrapping = TextWrapping.Wrap, FontSize = 12 } };
+        var notice = new Border { HorizontalAlignment = HorizontalAlignment.Left, Background = Palette.WarnBg, CornerRadius = new CornerRadius(IlmenyxTheme.ControlRadius), Padding = new Thickness(10, 6), Margin = new Thickness(0, 10, 0, 0), Child = new TextBlock { Name = "OverviewGpuNotice", Text = ValidationNotices.AmdNvidia, Foreground = Palette.Warn, TextWrapping = TextWrapping.Wrap, FontSize = 12 } };
         var memoryRow = Wrapped("OverviewMemory", "—", 13, Palette.Muted); var procRow = Wrapped("OverviewProcesses", "—", 13, Palette.Muted); var cpuName = Wrapped("OverviewCpuName", "—", 12, Palette.Muted);
         usage.Updated += () => { memoryRow.Text = usage.MemoryLine; procRow.Text = usage.ProcessSummary; cpuName.Text = usage.CpuModel; };
         var score = new TextBlock { Name = "OverviewScore", Text = "—", FontSize = 30, FontWeight = FontWeight.Bold, Margin = new Thickness(0, 6, 0, 0) };

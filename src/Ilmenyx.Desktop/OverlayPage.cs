@@ -41,7 +41,7 @@ public sealed class OverlayPage : StackPanel
         this.services = services; this.usage = usage; this.settingsPath = settingsPath; this.lifetime = lifetime; Spacing = 4;
         settings = IlmenyxSettings.Load(settingsPath);
         show = OverlayMetrics.Sanitize(settings.OverlayItems).ToHashSet();
-        Children.Add(new StackPanel { Margin = new Thickness(0, 4, 0, 20), Children = { new TextBlock { Text = "Overlay", FontSize = 26, FontWeight = FontWeight.Bold }, new TextBlock { Text = "Métricas sobre a tela. A janela do Ilmenyx mostra o sistema; dentro do jogo, o MangoHud desenha com o mesmo conjunto.", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap } } });
+        Children.Add(new StackPanel { Margin = new Thickness(0, 4, 0, 20), Children = { new TextBlock { Text = "Overlay", FontSize = 32, FontWeight = FontWeight.Bold }, new TextBlock { Text = "Métricas sobre a tela. A janela do Ilmenyx mostra o sistema; dentro do jogo, o MangoHud desenha com o mesmo conjunto.", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap } } });
         BuildItems();
         Button Preset(string name, string text, Func<HashSet<string>> keys) { var b = new Button { Name = name, Content = text }; b.Click += (_, _) => { show = keys(); Changed(); BuildItems(); }; return b; }
         corners = new("OvCornerPanel", [("SUPERIOR ESQ.", "top-left"), ("SUPERIOR DIR.", "top-right"), ("INFERIOR ESQ.", "bottom-left"), ("INFERIOR DIR.", "bottom-right")], settings.OverlayCorner, c => { settings.OverlayCorner = c; Changed(); });

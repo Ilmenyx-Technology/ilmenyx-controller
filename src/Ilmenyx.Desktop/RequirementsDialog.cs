@@ -21,7 +21,7 @@ public sealed class RequirementsDialog : Window
             LinuxRuntimeDependencies.IsInvariantModeRequested(),
             !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DISPLAY")),
             !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WAYLAND_DISPLAY")));
-        Title = "Ilmenyx — Requisitos"; Width = 740; Height = 560;
+        Icon = AppIcon.Window; Title = "Ilmenyx — Requisitos"; Width = 740; Height = 560;
         MinWidth = 480; MinHeight = 360; WindowStartupLocation = WindowStartupLocation.CenterOwner;
         KeyboardNavigation.SetTabNavigation(this, KeyboardNavigationMode.Cycle);
         var verify = new Button { Name = "VerifyRequirements", Content = "Verificar" };

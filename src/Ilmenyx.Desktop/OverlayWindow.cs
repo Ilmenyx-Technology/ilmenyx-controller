@@ -21,9 +21,9 @@ public sealed class OverlayWindow : Window
 
     public OverlayWindow()
     {
-        Title = "Ilmenyx · Overlay"; WindowDecorations = WindowDecorations.None; Topmost = true; ShowInTaskbar = false; ShowActivated = false; CanResize = false;
+        Icon = AppIcon.Window; Title = "Ilmenyx · Overlay"; WindowDecorations = WindowDecorations.None; Topmost = true; ShowInTaskbar = false; ShowActivated = false; CanResize = false;
         Background = Brushes.Transparent; TransparencyLevelHint = [WindowTransparencyLevel.Transparent]; SizeToContent = SizeToContent.WidthAndHeight; Focusable = false;
-        Content = new Border { Background = Brush.Parse("#CC120F16"), CornerRadius = new CornerRadius(8), Padding = new Thickness(10, 8), Child = new StackPanel { Children = { body, graph } } };
+        Content = new Border { Background = Brush.Parse("#CC181A1C"), CornerRadius = new CornerRadius(8), Padding = new Thickness(10, 8), Child = new StackPanel { Children = { body, graph } } };
         SizeChanged += (_, _) => Reposition();
     }
 

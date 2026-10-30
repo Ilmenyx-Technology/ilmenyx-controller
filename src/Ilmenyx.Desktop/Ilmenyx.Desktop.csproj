@@ -17,6 +17,10 @@
     <PackageReference Include="Avalonia.Desktop" Version="12.1.4" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.4" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Identidade visual oficial: ícone da janela e símbolo do cabeçalho. -->
+    <AvaloniaResource Include="Assets/**" />
+  </ItemGroup>
   <!-- Pacote autocontido (scripts/package-linux-x64.sh): runtime e ICU acompanham o app. -->
   <PropertyGroup Condition="'$(IlmenyxBundleIcu)' == 'true'">
     <IlmenyxIcuVersion>72.1.0.3</IlmenyxIcuVersion>

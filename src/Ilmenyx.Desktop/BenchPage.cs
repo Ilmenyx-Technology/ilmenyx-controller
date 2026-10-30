@@ -66,7 +66,7 @@ public sealed class BenchPage : StackPanel
     {
         this.services = services; this.usage = usage; this.owner = owner; this.settingsPath = settingsPath; this.lifetime = lifetime; Spacing = 4;
         settings = IlmenyxSettings.Load(settingsPath);
-        Children.Add(new StackPanel { Margin = new Thickness(0, 4, 0, 20), Children = { new TextBlock { Text = "Benchmark", FontSize = 26, FontWeight = FontWeight.Bold }, new TextBlock { Text = "CPU, memória, GameSim e disco · cada teste só começa após sua confirmação", Foreground = Palette.Muted } } });
+        Children.Add(new StackPanel { Margin = new Thickness(0, 4, 0, 20), Children = { new TextBlock { Text = "Benchmark", FontSize = 32, FontWeight = FontWeight.Bold }, new TextBlock { Text = "CPU, memória, GameSim e disco · cada teste só começa após sua confirmação", Foreground = Palette.Muted } } });
 
         var kinds = new UiKit.ChipGroup<Kind>("BenchKindPanel", [("CPU", Kind.Cpu), ("MEMÓRIA", Kind.Memory), ("GAMESIM", Kind.Sim), ("GPU", Kind.Gpu), ("DISCO", Kind.Disk)], Kind.Cpu, k => { kind = k; BuildOptions(); });
         string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);

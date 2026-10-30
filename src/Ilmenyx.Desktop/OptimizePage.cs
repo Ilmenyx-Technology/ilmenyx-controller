@@ -37,7 +37,7 @@ public sealed class OptimizePage : StackPanel
     {
         this.optimizer = optimizer; this.services = services; this.usage = usage; this.settingsPath = settingsPath; this.owner = owner; this.lifetime = lifetime; Spacing = 4;
         settings = IlmenyxSettings.Load(settingsPath);
-        Children.Add(new StackPanel { Margin = new Thickness(0, 4, 0, 20), Children = { new TextBlock { Text = "Otimiza", FontSize = 26, FontWeight = FontWeight.Bold }, new TextBlock { Text = "Fecha o que atrapalha e ajusta o sistema para jogos (somente o que não exige root)", Foreground = Palette.Muted } } });
+        Children.Add(new StackPanel { Margin = new Thickness(0, 4, 0, 20), Children = { new TextBlock { Text = "Otimiza", FontSize = 32, FontWeight = FontWeight.Bold }, new TextBlock { Text = "Fecha o que atrapalha e ajusta o sistema para jogos (somente o que não exige root)", Foreground = Palette.Muted } } });
         optimize.Click += async (_, _) => await OptimizeAsync();
         var ram = new Grid { ColumnDefinitions = new("*,Auto") };
         var info = new StackPanel { Children = { new Grid { Children = { UiKit.Label("MEMÓRIA RAM"), ramText } }, new Border { Height = 6 }, ramMeter, result } };

@@ -13,7 +13,7 @@ public sealed class JsonSaveDialog : Window
     public JsonSaveDialog(string suggestedFileName, string extension = ".json")
     {
         if (extension is not (".json" or ".html")) throw new ArgumentException("Formato de relatório não suportado.", nameof(extension));
-        Title = extension == ".html" ? "Salvar relatório HTML" : "Salvar relatório JSON"; Width = 660; Height = 390; MinHeight = 360; MinWidth = 440;
+        Icon = AppIcon.Window; Title = extension == ".html" ? "Salvar relatório HTML" : "Salvar relatório JSON"; Width = 660; Height = 390; MinHeight = 360; MinWidth = 440;
         KeyboardNavigation.SetTabNavigation(this, KeyboardNavigationMode.Cycle);
         CanResize = true; WindowStartupLocation = WindowStartupLocation.CenterOwner;
         string directory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);

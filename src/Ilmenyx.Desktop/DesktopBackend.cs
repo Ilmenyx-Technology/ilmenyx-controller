@@ -9,6 +9,8 @@ public static class DesktopBackend
 {
     public const string EnvironmentVariable = "ILMENYX_DISPLAY_BACKEND";
     public const string LegacyEnvironmentVariable = "SILEX_DISPLAY_BACKEND";
+    /// <summary>Reverse-DNS app ID (packaging/linux): X11 WM_CLASS and Wayland app_id, so the desktop matches windows to the .desktop entry and icon.</summary>
+    public const string AppId = "io.github.bismuth_technology.Ilmenyx";
     public static string? ReadSelection() => Resolve(Environment.GetEnvironmentVariable(EnvironmentVariable), Environment.GetEnvironmentVariable(LegacyEnvironmentVariable));
     public static string? Resolve(string? current, string? legacy) => current ?? legacy;
     public static DisplayBackend Parse(string? value) => value switch
@@ -22,7 +24,9 @@ public static class DesktopBackend
     {
         if (backend != DisplayBackend.Auto && !OperatingSystem.IsLinux())
             throw new PlatformNotSupportedException("Seleção explícita X11/Wayland está disponível somente no Linux.");
-        builder = builder.UsePlatformDetect(); // Also configures Skia and font services.
+        builder = builder.UsePlatformDetect() // Also configures Skia and font services.
+            .With(new X11PlatformOptions { WmClass = AppId })
+            .With(new WaylandPlatformOptions { AppId = AppId });
         return backend switch
         {
             DisplayBackend.Auto => builder,

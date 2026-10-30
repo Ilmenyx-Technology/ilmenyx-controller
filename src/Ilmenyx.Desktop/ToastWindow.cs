@@ -12,15 +12,15 @@ public sealed class ToastWindow : Window
 {
     private readonly DispatcherTimer hide = new() { Interval = TimeSpan.FromSeconds(5) };
     private readonly TextBlock title = new() { Name = "ToastTitle", FontWeight = FontWeight.SemiBold, Foreground = Brushes.White, FontSize = 13 };
-    private readonly TextBlock text = new() { Name = "ToastText", Foreground = Brush.Parse("#C9C2D4"), FontSize = 12, TextWrapping = TextWrapping.Wrap, MaxWidth = 320 };
+    private readonly TextBlock text = new() { Name = "ToastText", Foreground = Brush.Parse("#C2C7CF"), FontSize = 12, TextWrapping = TextWrapping.Wrap, MaxWidth = 320 };
     public string TitleText => title.Text ?? "";
     public string BodyText => text.Text ?? "";
 
     public ToastWindow()
     {
-        Title = "Ilmenyx · Aviso"; WindowDecorations = WindowDecorations.None; Topmost = true; ShowInTaskbar = false; ShowActivated = false; CanResize = false; Focusable = false;
+        Icon = AppIcon.Window; Title = "Ilmenyx · Aviso"; WindowDecorations = WindowDecorations.None; Topmost = true; ShowInTaskbar = false; ShowActivated = false; CanResize = false; Focusable = false;
         Background = Brushes.Transparent; TransparencyLevelHint = [WindowTransparencyLevel.Transparent]; SizeToContent = SizeToContent.WidthAndHeight;
-        Content = new Border { Background = Brush.Parse("#EE17131C"), BorderBrush = Brush.Parse("#3D3646"), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(12), Padding = new Thickness(16, 12), Child = new StackPanel { Spacing = 2, Children = { title, text } } };
+        Content = new Border { Background = Brush.Parse("#EE1E2022"), BorderBrush = Brush.Parse("#424750"), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(12), Padding = new Thickness(16, 12), Child = new StackPanel { Spacing = 2, Children = { title, text } } };
         SizeChanged += (_, _) => Place();
         hide.Tick += (_, _) => { hide.Stop(); Hide(); };
         Closed += (_, _) => hide.Stop();

@@ -36,7 +36,7 @@ public sealed class AppsPage : StackPanel
         this.installer = installer; this.flatpakAvailable = flatpakAvailable; this.owner = owner; this.lifetime = lifetime; Spacing = 4;
         install.HorizontalAlignment = HorizontalAlignment.Right; install.VerticalAlignment = VerticalAlignment.Top; install.Click += async (_, _) => await InstallAsync();
         var header = new Grid { Margin = new Thickness(0, 4, 0, 20) };
-        header.Children.Add(new StackPanel { Margin = new Thickness(0, 0, 220, 0), Children = { new TextBlock { Text = "Instalar apps", FontSize = 26, FontWeight = FontWeight.Bold }, new TextBlock { Text = "Os essenciais depois de instalar o sistema · Flatpak do Flathub, instalação por usuário (sem root)", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap } } });
+        header.Children.Add(new StackPanel { Margin = new Thickness(0, 0, 220, 0), Children = { new TextBlock { Text = "Instalar apps", FontSize = 32, FontWeight = FontWeight.Bold }, new TextBlock { Text = "Os essenciais depois de instalar o sistema · Flatpak do Flathub, instalação por usuário (sem root)", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap } } });
         header.Children.Add(install);
         track.Children.Add(progress); track.SizeChanged += (_, _) => progress.Width = track.Bounds.Width * fraction;
         var all = new Button { Name = "BtnAppsAll", Content = "MARCAR TODOS", Padding = new Thickness(10, 4), FontSize = 11 }; var none = new Button { Name = "BtnAppsNone", Content = "DESMARCAR", Padding = new Thickness(10, 4), FontSize = 11 };

@@ -30,18 +30,18 @@ public sealed class GpuInfoPage : Grid
     {
         this.lifetime = lifetime; RowDefinitions = new("Auto,Auto,*");
         var header = new Grid { Margin = new Thickness(0, 4, 0, 18) };
-        header.Children.Add(new StackPanel { Children = { new TextBlock { Text = "Placa de vídeo", FontSize = 26, FontWeight = FontWeight.Bold }, new TextBlock { Text = "Especificações completas e sensores em tempo real", Foreground = Palette.Muted } } });
+        header.Children.Add(new StackPanel { Children = { new TextBlock { Text = "Placa de vídeo", FontSize = 32, FontWeight = FontWeight.Bold }, new TextBlock { Text = "Especificações completas e sensores em tempo real", Foreground = Palette.Muted } } });
         header.Children.Add(chips);
         var highlight = new Border
         {
-            Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(16), Padding = new Thickness(24, 20), Margin = new Thickness(0, 0, 0, 14),
+            Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), Padding = new Thickness(24, 20), Margin = new Thickness(0, 0, 0, 14),
             Child = new StackPanel
             {
                 Spacing = 10,
                 Children =
                 {
                     new Grid { Children = { new StackPanel { Children = { name, subtitle } }, vendor } },
-                    new Border { HorizontalAlignment = HorizontalAlignment.Left, Background = Palette.WarnBg, CornerRadius = new CornerRadius(6), Padding = new Thickness(10, 6), Child = new TextBlock { Name = "GpuValidationNotice", Text = ValidationNotices.AmdNvidia, Foreground = Palette.Warn, TextWrapping = TextWrapping.Wrap, FontSize = 13 } },
+                    new Border { HorizontalAlignment = HorizontalAlignment.Left, Background = Palette.WarnBg, CornerRadius = new CornerRadius(IlmenyxTheme.ControlRadius), Padding = new Thickness(10, 6), Child = new TextBlock { Name = "GpuValidationNotice", Text = ValidationNotices.AmdNvidia, Foreground = Palette.Warn, TextWrapping = TextWrapping.Wrap, FontSize = 13 } },
                     status
                 }
             }
@@ -51,7 +51,7 @@ public sealed class GpuInfoPage : Grid
         body.Children.Add(new ScrollViewer { Name = "GpuSectionsScroll", Content = sections, Padding = new Thickness(0, 0, 6, 0) });
         var side = new Border
         {
-            Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(16), Padding = new Thickness(20, 16, 12, 12),
+            Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), Padding = new Thickness(20, 16, 12, 12),
             Child = new ScrollViewer { Content = new StackPanel { Children = { new TextBlock { Text = "SENSORES AO VIVO", FontSize = 11, FontWeight = FontWeight.Bold, Foreground = Palette.Faint, Margin = new Thickness(0, 0, 0, 6) }, extras, live } } }
         };
         Grid.SetColumn(side, 2); body.Children.Add(side);
@@ -99,7 +99,7 @@ public sealed class GpuInfoPage : Grid
                 var value = new TextBlock { Text = row.Value, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 5) }; Grid.SetColumn(value, 1); g.Children.Add(value);
                 rows.Children.Add(new Border { BorderBrush = Palette.Line, BorderThickness = new Thickness(0, 1, 0, 0), Child = g });
             }
-            sections.Children.Add(new Border { Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(16), Padding = new Thickness(22, 16, 22, 10), Margin = new Thickness(0, 0, 0, 14), Child = new StackPanel { Children = { new TextBlock { Text = section.Header, FontSize = 11, FontWeight = FontWeight.Bold, Foreground = Palette.Faint }, rows } } });
+            sections.Children.Add(new Border { Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), Padding = new Thickness(22, 16, 22, 10), Margin = new Thickness(0, 0, 0, 14), Child = new StackPanel { Children = { new TextBlock { Text = section.Header, FontSize = 11, FontWeight = FontWeight.Bold, Foreground = Palette.Faint }, rows } } });
         }
         extras.Children.Clear(); live.Children.Clear();
     }

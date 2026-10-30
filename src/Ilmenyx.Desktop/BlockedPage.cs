@@ -22,7 +22,7 @@ public sealed class BlockedPage : StackPanel
     public BlockedPage(Func<MachineProbe> probe)
     {
         this.probe = probe; Spacing = 4;
-        Children.Add(new StackPanel { Margin = new Thickness(0, 4, 0, 14), Children = { new TextBlock { Text = "Bloqueados (!)", FontSize = 26, FontWeight = FontWeight.Bold }, new TextBlock { Text = "Funções do original que ainda não foram portadas ou validadas, e por quê · clique em (!) para ver o motivo", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap } } });
+        Children.Add(new StackPanel { Margin = new Thickness(0, 4, 0, 14), Children = { new TextBlock { Text = "Bloqueados (!)", FontSize = 32, FontWeight = FontWeight.Bold }, new TextBlock { Text = "Funções do original que ainda não foram portadas ou validadas, e por quê · clique em (!) para ver o motivo", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap } } });
         Children.Add(UiKit.Card(summary));
         Children.Add(list);
         Refresh();
@@ -42,7 +42,7 @@ public sealed class BlockedPage : StackPanel
     private static Control Card(BlockedFeature f, BlockedState state)
     {
         string chipText = state switch { BlockedState.TestAvailable => BlockedCatalog.TestAvailableText.ToUpperInvariant(), BlockedState.NotApplicable => "NÃO SE APLICA", _ => "BLOQUEADO" };
-        var chip = new Border { Name = "BlockedChip_" + f.Id, CornerRadius = new CornerRadius(10), Padding = new Thickness(10, 3), Background = state == BlockedState.TestAvailable ? Palette.Accent : Palette.Line, Child = new TextBlock { Text = (state == BlockedState.Blocked ? "🔒 " : "") + chipText, FontSize = 11, FontWeight = FontWeight.Bold, Foreground = state == BlockedState.TestAvailable ? Brushes.Black : Palette.Muted } };
+        var chip = new Border { Name = "BlockedChip_" + f.Id, CornerRadius = new CornerRadius(10), Padding = new Thickness(10, 3), Background = state == BlockedState.TestAvailable ? Palette.Accent : Palette.Line, Child = new TextBlock { Text = (state == BlockedState.Blocked ? "🔒 " : "") + chipText, FontSize = 11, FontWeight = FontWeight.Bold, Foreground = state == BlockedState.TestAvailable ? Palette.OnAccent : Palette.Muted } };
         var details = new StackPanel { Name = "BlockedDetails_" + f.Id, Spacing = 3, IsVisible = state == BlockedState.TestAvailable, Margin = new Thickness(0, 8, 0, 0) };
         details.Children.Add(new TextBlock { Text = f.KindLabel.ToUpperInvariant(), FontSize = 11, FontWeight = FontWeight.Bold, Foreground = Palette.Faint });
         details.Children.Add(new TextBlock { Text = f.Reason, TextWrapping = TextWrapping.Wrap });

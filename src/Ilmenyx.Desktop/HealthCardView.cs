@@ -26,6 +26,6 @@ public static class HealthCardView
             metrics.Children.Add(new Border { BorderBrush = Palette.Line, BorderThickness = new Thickness(0, 1, 0, 0), Padding = new Thickness(0, 8, 16, 8), Child = new StackPanel { Children = { new TextBlock { Text = key, Foreground = Palette.Muted, FontSize = 11 }, new TextBlock { Text = value, FontFamily = new FontFamily("monospace"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 0, 0) } } } });
         var body = new StackPanel { Children = { top, new TextBlock { Text = c.Reasons, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 12, 0, 12) }, metrics } };
         if (extra is not null) body.Children.Add(extra);
-        return new Border { Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(16), Padding = new Thickness(22, 18), Margin = new Thickness(0, 0, 0, 14), Child = body };
+        return new Border { Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), Padding = new Thickness(22, 18), Margin = new Thickness(0, 0, 0, 14), Child = body };
     }
 }

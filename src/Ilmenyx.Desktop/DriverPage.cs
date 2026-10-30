@@ -30,10 +30,10 @@ public sealed class DriverPage : StackPanel
     public DriverPage(Func<string, Task<string?>> destination, CancellationToken lifetime)
     {
         this.destination = destination; this.lifetime = lifetime; Spacing = 4;
-        var scan = new Button { Name = "BtnDrvScan", Content = "VERIFICAR TUDO", Background = Palette.Accent, Foreground = Brushes.Black, FontWeight = FontWeight.Bold, Padding = new Thickness(20, 9), HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top };
+        var scan = new Button { Name = "BtnDrvScan", Content = "VERIFICAR TUDO", Background = Palette.Accent, Foreground = Palette.OnAccent, FontWeight = FontWeight.Bold, Padding = new Thickness(20, 9), HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top };
         scan.Click += async (_, _) => await ScanAsync();
         var header = new Grid { Margin = new Thickness(0, 4, 0, 18) };
-        header.Children.Add(new StackPanel { Margin = new Thickness(0, 0, 190, 0), Children = { new TextBlock { Text = "Drivers", FontSize = 26, FontWeight = FontWeight.Bold }, new TextBlock { Text = "Inventário do kernel e dos módulos, versão da NVIDIA (consulta online só por clique), suporte do fabricante e firmware (fwupd). Nada é instalado pelo Ilmenyx.", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap } } });
+        header.Children.Add(new StackPanel { Margin = new Thickness(0, 0, 190, 0), Children = { new TextBlock { Text = "Drivers", FontSize = 32, FontWeight = FontWeight.Bold }, new TextBlock { Text = "Inventário do kernel e dos módulos, versão da NVIDIA (consulta online só por clique), suporte do fabricante e firmware (fwupd). Nada é instalado pelo Ilmenyx.", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap } } });
         header.Children.Add(scan);
         Children.Add(header); Children.Add(status);
         Children.Add(Card("PLACA DE VÍDEO", gpuList));
@@ -52,7 +52,7 @@ public sealed class DriverPage : StackPanel
     private static TextBlock Note(string text) => new() { Text = text, Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap };
     private static Border Card(string title, Control content) => new()
     {
-        Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(16), Padding = new Thickness(22, 18), Margin = new Thickness(0, 0, 0, 14),
+        Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), Padding = new Thickness(22, 18), Margin = new Thickness(0, 0, 0, 14),
         Child = new StackPanel { Children = { new TextBlock { Text = title, FontSize = 11, FontWeight = FontWeight.Bold, Foreground = Palette.Faint }, content } }
     };
 

@@ -36,7 +36,7 @@ public sealed class GamesFpsPage : StackPanel
     {
         this.api = api; this.settings = settings; this.settingsPath = settingsPath; this.owner = owner; this.hardware = hardware; this.lifetime = lifetime; Spacing = 4;
         var header = new Grid { Margin = new Thickness(0, 4, 0, 20) };
-        header.Children.Add(new StackPanel { Children = { new TextBlock { Text = "Estimativa de FPS", FontSize = 26, FontWeight = FontWeight.Bold }, sub } });
+        header.Children.Add(new StackPanel { Children = { new TextBlock { Text = "Estimativa de FPS", FontSize = 32, FontWeight = FontWeight.Bold }, sub } });
         search.HorizontalAlignment = HorizontalAlignment.Right; search.VerticalAlignment = VerticalAlignment.Center; search.TextChanged += (_, _) => Filter(); header.Children.Add(search);
         Children.Add(header);
         var resChips = new UiKit.ChipGroup<string>("GameResPanel", [("1080p", "1920x1080"), ("1440p", "2560x1440"), ("4K", "3840x2160")], res, v => { res = v; RefreshLocal(); });
@@ -123,7 +123,7 @@ public sealed class GamesFpsPage : StackPanel
             top.Children.Add(new TextBlock { Text = row.Rating, FontSize = 10, FontWeight = FontWeight.Bold, Foreground = Palette.Muted, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center });
             var meta = new Grid(); meta.Children.Add(new TextBlock { Text = row.LowText, Foreground = Palette.Muted, FontSize = 11 }); meta.Children.Add(new TextBlock { Text = row.Source, Foreground = Palette.Faint, FontSize = 11, HorizontalAlignment = HorizontalAlignment.Right });
             var body = new StackPanel { Children = { new TextBlock { Text = row.Name, FontWeight = FontWeight.SemiBold, FontSize = 14, TextTrimming = TextTrimming.CharacterEllipsis }, new TextBlock { Text = row.Genre, Foreground = Palette.Muted, FontSize = 11 }, top, bar, meta, new TextBlock { Text = row.Detail, Foreground = Palette.Faint, FontSize = 11, Margin = new Thickness(0, 3, 0, 0), TextTrimming = TextTrimming.CharacterEllipsis } } };
-            cards.Children.Add(new Border { Name = "Game_" + LauncherPage.SafeName(row.Name), Width = 222, Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(16), Padding = new Thickness(16, 14), Margin = new Thickness(0, 0, 10, 10), Child = body });
+            cards.Children.Add(new Border { Name = "Game_" + LauncherPage.SafeName(row.Name), Width = 222, Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), Padding = new Thickness(16, 14), Margin = new Thickness(0, 0, 10, 10), Child = body });
         }
     }
 }

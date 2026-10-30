@@ -19,6 +19,7 @@ for directory in cli desktop; do
   done
 done
 [[ -x $bundle/cli/ilmenyx && -x $bundle/desktop/Ilmenyx.Desktop ]]
+[[ -f $bundle/linux/io.github.bismuth_technology.Ilmenyx.desktop && -x $bundle/linux/install-user.sh && -f $bundle/linux/hicolor/scalable/apps/io.github.bismuth_technology.Ilmenyx.svg ]]
 "$bundle/cli/ilmenyx" --help > "$output/help.txt"
 "$bundle/cli/ilmenyx" info --json --output "$output/info.json" > "$output/info-stdout.json"
 jq -e -s 'length == 2 and .[0] == .[1] and .[0].schemaVersion == "1.3"' "$output/info.json" "$output/info-stdout.json" >/dev/null

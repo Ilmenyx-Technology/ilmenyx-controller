@@ -135,6 +135,9 @@ as regras de arquitetura Linux, benchmarks, testes, licenças e segurança anter
 - Registrar IMPLEMENTADO, NÃO TESTADO, PENDENTE DE REVISÃO e BLOQUEADO com evidências reais.
 - Solução atual Ilmenyx.slnx, src/Ilmenyx.*, tests/Ilmenyx.Tests e tools/Ilmenyx.UiSmoke. Formatos silex-* e evidências anteriores permanecem históricos/compatíveis.
 - ILMENYX_DISPLAY_BACKEND é atual; SILEX_DISPLAY_BACKEND continua alias legado, com precedência do nome atual.
+- Atualização 2026-10-29: o mantenedor aprovou a identidade visual do Ilmenyx (docs/branding/MANUAL-ILMENYX.md). A regra de não inventar
+  logo/paleta/ícones passa a significar: usar os ativos e tokens aprovados (Palette.cs, IlmenyxTheme.cs, AppIcon.cs/Assets, packaging/linux);
+  mudanças de identidade exigem nova aprovação. Continua sem presunção de registro de marca.
 
 
 ## Decisão permanente posterior — monetização e diretório

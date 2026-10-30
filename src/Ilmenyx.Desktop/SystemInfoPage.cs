@@ -33,7 +33,7 @@ public sealed class SystemInfoPage : Grid
         this.hardware = hardware; this.destination = destination; this.lifetime = lifetime;
         RowDefinitions = new("Auto,*");
         var header = new Grid { Margin = new Thickness(0, 0, 0, 18) };
-        header.Children.Add(new StackPanel { Margin = new Thickness(0, 0, 360, 0), Children = { new TextBlock { Text = "Sistema", FontSize = 26, FontWeight = FontWeight.Bold }, new TextBlock { Name = "SysSub", Text = "Hardware e software detectados", Foreground = Palette.Muted } } });
+        header.Children.Add(new StackPanel { Margin = new Thickness(0, 0, 360, 0), Children = { new TextBlock { Text = "Sistema", FontSize = 32, FontWeight = FontWeight.Bold }, new TextBlock { Name = "SysSub", Text = "Hardware e software detectados", Foreground = Palette.Muted } } });
         var export = new Button { Name = "SysExportJson", Content = "Exportar JSON" };
         var exportHtml = new Button { Name = "SysExportHtml", Content = "Exportar relatório HTML" };
         var refresh = new Button { Name = "SysRefresh", Content = "Atualizar" };
@@ -49,7 +49,7 @@ public sealed class SystemInfoPage : Grid
         body.Children.Add(categories);
         var card = new Border
         {
-            Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(16), Padding = new Thickness(26, 8, 26, 22),
+            Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), Padding = new Thickness(26, 8, 26, 22),
             Child = new ScrollViewer { Name = "SysInfoScroll", Content = new StackPanel { Children = { title, sub, importBox, drives, details } } }
         };
         Grid.SetColumn(card, 2); body.Children.Add(card);

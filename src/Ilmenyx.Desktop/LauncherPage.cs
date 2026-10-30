@@ -31,7 +31,7 @@ public sealed class LauncherPage : Grid
     private readonly StackPanel list = new() { Name = "LGameList", Spacing = 2 };
     private readonly TextBlock empty = new() { Name = "LEmpty", Text = "Escolha um jogo na lista.", Foreground = Palette.Muted };
     private readonly ScrollViewer detail = new() { Name = "LDetail", IsVisible = false };
-    private readonly TextBlock title = new() { Name = "LTitle", FontSize = 26, FontWeight = FontWeight.Bold, TextWrapping = TextWrapping.Wrap };
+    private readonly TextBlock title = new() { Name = "LTitle", FontSize = 32, FontWeight = FontWeight.Bold, TextWrapping = TextWrapping.Wrap };
     private readonly TextBlock sub = new() { Name = "LSub", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap };
     private readonly Button play = UiKit.Primary("BtnPlay", "JOGAR", 40, 14);
     private readonly TextBlock status = new() { Name = "LStatus", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 16) };
@@ -81,7 +81,7 @@ public sealed class LauncherPage : Grid
             addStatus.Text = "Adicionado."; await ScanAsync(); Select(games.FirstOrDefault(g => g.Store == "Manual" && g.Id == path));
         };
         addBox.Children.Add(addPath); addBox.Children.Add(confirm); addBox.Children.Add(addStatus);
-        var head = new StackPanel { Margin = new Thickness(0, 4, 0, 14), Children = { new TextBlock { Text = "Jogos", FontSize = 26, FontWeight = FontWeight.Bold }, count } };
+        var head = new StackPanel { Margin = new Thickness(0, 4, 0, 14), Children = { new TextBlock { Text = "Jogos", FontSize = 32, FontWeight = FontWeight.Bold }, count } };
         var tools = new StackPanel { Margin = new Thickness(0, 0, 0, 10), Spacing = 8, Children = { search, new WrapPanel { ItemSpacing = 8, LineSpacing = 6, Children = { scan, add } }, addBox } };
         var left = new Grid { RowDefinitions = new("Auto,Auto,*") };
         Grid.SetRow(tools, 1); var scroll = new ScrollViewer { Name = "LGameScroll", Content = list }; Grid.SetRow(scroll, 2);
@@ -127,7 +127,7 @@ public sealed class LauncherPage : Grid
             b.Click += (_, _) => { if (!(extra.Text ?? "").Contains(token, StringComparison.OrdinalIgnoreCase)) extra.Text = ((extra.Text ?? "").Trim() + " " + token).Trim(); };
             presets.Children.Add(b);
         }
-        var steamApply = new Button { Name = "BtnSteamApply", Content = "APLICAR NAS OPÇÕES DA STEAM", Background = Palette.Accent, Foreground = Brushes.Black, FontWeight = FontWeight.Bold, Padding = new Thickness(20, 9), HorizontalAlignment = HorizontalAlignment.Left };
+        var steamApply = new Button { Name = "BtnSteamApply", Content = "APLICAR NAS OPÇÕES DA STEAM", Background = Palette.Accent, Foreground = Palette.OnAccent, FontWeight = FontWeight.Bold, Padding = new Thickness(20, 9), HorizontalAlignment = HorizontalAlignment.Left };
         steamApply.Click += async (_, _) => await ApplySteamAsync(steamApply);
         steamBox.Children.Add(steamNow); steamBox.Children.Add(steamApply);
         Control Row(string label, Control chips) => new StackPanel { Margin = new Thickness(0, 8, 0, 0), Children = { new TextBlock { Text = label, Foreground = Palette.Muted, FontSize = 12 }, new Border { Height = 4 }, chips } };

@@ -23,7 +23,7 @@ public sealed class ReportPage : StackPanel
     public ReportPage(Func<CancellationToken, Task<ReportData>> gather, Func<string, Task<string?>> destination, CancellationToken lifetime)
     {
         this.gather = gather; this.destination = destination; this.lifetime = lifetime; Spacing = 4;
-        Children.Add(new StackPanel { Margin = new Thickness(0, 4, 0, 20), Children = { new TextBlock { Text = "Relatório", FontSize = 26, FontWeight = FontWeight.Bold }, new TextBlock { Text = "Um único arquivo com tudo o que o Ilmenyx lê da máquina", Foreground = Palette.Muted } } });
+        Children.Add(new StackPanel { Margin = new Thickness(0, 4, 0, 20), Children = { new TextBlock { Text = "Relatório", FontSize = 32, FontWeight = FontWeight.Bold }, new TextBlock { Text = "Um único arquivo com tudo o que o Ilmenyx lê da máquina", Foreground = Palette.Muted } } });
         AutomationProperties.SetName(html, "Exportar relatório em HTML"); AutomationProperties.SetName(json, "Exportar relatório em JSON");
         html.Click += async (_, _) => await ExportAsync(true); json.Click += async (_, _) => await ExportAsync(false);
         Children.Add(UiKit.Card(new StackPanel { Spacing = 10, Children = {

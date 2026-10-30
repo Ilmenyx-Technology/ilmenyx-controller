@@ -51,7 +51,7 @@ public sealed class StressPage : StackPanel
     public StressPage(IStressEngine engine, UsageViewModel usage, Func<Window?> owner, Func<long> availableMemory, CancellationToken lifetime, IGpuStressEngine? gpuEngine = null, Func<double?>? gpuTemperature = null)
     {
         this.gpuEngine = gpuEngine; this.gpuTemperature = gpuTemperature; this.engine = engine; this.usage = usage; this.owner = owner; this.availableMemory = availableMemory; this.lifetime = lifetime; Spacing = 4;
-        Children.Add(new StackPanel { Margin = new Thickness(0, 4, 0, 20), Children = { new TextBlock { Text = "Stress test", FontSize = 26, FontWeight = FontWeight.Bold }, new TextBlock { Text = "Carga máxima com corte automático por temperatura", Foreground = Palette.Muted } } });
+        Children.Add(new StackPanel { Margin = new Thickness(0, 4, 0, 20), Children = { new TextBlock { Text = "Stress test", FontSize = 32, FontWeight = FontWeight.Bold }, new TextBlock { Text = "Carga máxima com corte automático por temperatura", Foreground = Palette.Muted } } });
 
         ramChips = new("RamFractionPanel", [("40%", 0.4), ("60%", 0.6), ("80%", 0.8)], 0.6, v => ramFraction = v);
         ramChips.Panel.IsEnabled = false;
@@ -78,9 +78,9 @@ public sealed class StressPage : StackPanel
         Border Stat(string label, params Control[] parts)
         {
             var inner = new StackPanel(); inner.Children.Add(UiKit.Label(label)); foreach (var part in parts) inner.Children.Add(part);
-            return new Border { Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(16), Padding = new Thickness(14), Margin = new Thickness(4, 0), Child = inner };
+            return new Border { Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), Padding = new Thickness(14), Margin = new Thickness(4, 0), Child = inner };
         }
-        statusCard.Background = Palette.Card; statusCard.BorderBrush = Palette.Line; statusCard.BorderThickness = new Thickness(1); statusCard.CornerRadius = new CornerRadius(16); statusCard.Padding = new Thickness(14); statusCard.Margin = new Thickness(4, 0); statusCard.Child = new StackPanel { Children = { UiKit.Label("STATUS"), stStatus } };
+        statusCard.Background = Palette.Card; statusCard.BorderBrush = Palette.Line; statusCard.BorderThickness = new Thickness(1); statusCard.CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius); statusCard.Padding = new Thickness(14); statusCard.Margin = new Thickness(4, 0); statusCard.Child = new StackPanel { Children = { UiKit.Label("STATUS"), stStatus } };
         var stats = new UniformGrid { Columns = 5, Margin = new Thickness(-4, 0, -4, 14) };
         stats.Children.Add(statusCard); stats.Children.Add(Stat("TEMP. CPU", stTemp, stTempMax)); stats.Children.Add(Stat("CARGA CPU", stLoad, new TextBlock { Text = "uso total", FontSize = 11, Foreground = Palette.Muted }));
         stats.Children.Add(Stat("TEMP. / FPS GPU", stGpu, new TextBlock { Text = "Vulkan · offscreen", FontSize = 11, Foreground = Palette.Muted }));

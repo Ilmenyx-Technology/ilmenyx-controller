@@ -37,7 +37,7 @@ internal static class Program
 
 public sealed class UiSmokeApp : Application
 {
-    public override void Initialize() { Styles.Add(new FluentTheme()); RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Dark; }
+    public override void Initialize() { Styles.Add(IlmenyxTheme.Create()); RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Dark; }
     public override void OnFrameworkInitializationCompleted()
     {
         var desktop = (IClassicDesktopStyleApplicationLifetime)ApplicationLifetime!;

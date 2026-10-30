@@ -22,17 +22,17 @@ public sealed class StartupPage : StackPanel
     public StartupPage(LinuxStartupManager manager, Func<Window?> owner, CancellationToken lifetime)
     {
         this.manager = manager; this.owner = owner; this.lifetime = lifetime; Spacing = 4;
-        var scan = new Button { Name = "BtnStartupScan", Content = "ATUALIZAR", Background = Palette.Accent, Foreground = Brushes.Black, FontWeight = FontWeight.Bold, Padding = new Thickness(20, 9), HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top };
+        var scan = new Button { Name = "BtnStartupScan", Content = "ATUALIZAR", Background = Palette.Accent, Foreground = Palette.OnAccent, FontWeight = FontWeight.Bold, Padding = new Thickness(20, 9), HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top };
         scan.Click += async (_, _) => { result.Text = ""; await ScanAsync(); };
         var header = new Grid { Margin = new Thickness(0, 4, 0, 20) };
-        header.Children.Add(new StackPanel { Margin = new Thickness(0, 0, 190, 0), Children = { new TextBlock { Text = "Inicialização", FontSize = 26, FontWeight = FontWeight.Bold }, new TextBlock { Text = "Programas que abrem junto com a sua sessão · desative ou remova o que não precisa", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap } } });
+        header.Children.Add(new StackPanel { Margin = new Thickness(0, 0, 190, 0), Children = { new TextBlock { Text = "Inicialização", FontSize = 32, FontWeight = FontWeight.Bold }, new TextBlock { Text = "Programas que abrem junto com a sua sessão · desative ou remova o que não precisa", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap } } });
         header.Children.Add(scan);
         restore.Click += async (_, _) => await RestoreAsync();
         var top = new Grid { Margin = new Thickness(0, 0, 0, 6) }; top.Children.Add(summary); top.Children.Add(restore);
         Children.Add(header);
         Children.Add(new Border
         {
-            Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(16), Padding = new Thickness(22, 18),
+            Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), Padding = new Thickness(22, 18),
             Child = new StackPanel
             {
                 Children =

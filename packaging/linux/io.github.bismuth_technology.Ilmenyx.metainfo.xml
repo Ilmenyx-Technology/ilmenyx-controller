@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- New Ilmenyx additions: see LICENSING.md. AppStream metadata for software centers. -->
+<component type="desktop-application">
+  <id>io.github.bismuth_technology.Ilmenyx</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT AND LicenseRef-Ilmenyx</project_license>
+  <name>Ilmenyx</name>
+  <summary>Hardware diagnostics, monitoring and benchmarking for Linux</summary>
+  <summary xml:lang="pt_BR">Diagnóstico, monitoramento e benchmarking de hardware para Linux</summary>
+  <developer id="io.github.bismuth_technology">
+    <name>Bismuth Technology</name>
+  </developer>
+  <description>
+    <p>Ilmenyx shows what is inside your computer — CPU, memory, GPU, disks, sensors, battery and network — and measures its performance.</p>
+    <p>Read-only by default, no telemetry, no hidden sudo, and no invented data: when a sensor does not exist, Ilmenyx says so.</p>
+    <p>An independent, unofficial Linux adaptation of RESET EXPLODE by Gustavo (GustavoReset); not affiliated with or endorsed by the RESET team.</p>
+  </description>
+  <launchable type="desktop-id">io.github.bismuth_technology.Ilmenyx.desktop</launchable>
+  <url type="homepage">https://github.com/Bismuth-Technology</url>
+  <categories>
+    <category>System</category>
+    <category>Monitor</category>
+  </categories>
+  <content_rating type="oars-1.1"/>
+  <branding>
+    <color type="primary" scheme_preference="light">#D5E3FE</color>
+    <color type="primary" scheme_preference="dark">#1442B5</color>
+  </branding>
+</component>

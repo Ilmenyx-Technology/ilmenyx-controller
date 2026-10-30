@@ -20,7 +20,7 @@ public sealed class DashboardWindow : Window
     private readonly CancellationTokenSource stop = new();
     public DashboardWindow()
     {
-        Title = ProductIdentity.Name; Width = 1060; Height = 780; MinWidth = 640; MinHeight = 480;
+        Icon = AppIcon.Window; Title = ProductIdentity.Name; Width = 1060; Height = 780; MinWidth = 640; MinHeight = 480;
         Background = Palette.Bg; DataContext = vm;
         var refresh = new Button { Name = "RefreshHardware", Content = "Atualizar" };
         var export = new Button { Name = "ExportHardware", Content = "Exportar hardware JSON" };
@@ -83,7 +83,7 @@ public sealed class DashboardWindow : Window
                     new Border
                     {
                         HorizontalAlignment = HorizontalAlignment.Left,
-                        Background = Palette.WarnBg, CornerRadius = new CornerRadius(6),
+                        Background = Palette.WarnBg, CornerRadius = new CornerRadius(IlmenyxTheme.ControlRadius),
                         Padding = new Thickness(10, 6),
                         Child = new TextBlock
                         {

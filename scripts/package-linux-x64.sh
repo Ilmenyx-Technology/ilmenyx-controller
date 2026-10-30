@@ -32,6 +32,9 @@ cp -r -- "$components_cache/out" "$bundle/components"
 mkdir -p -- "$bundle/licenses/components"
 cp -- "$bundle/components/mangohud/LICENSE" "$bundle/licenses/components/MangoHud-LICENSE-MIT.txt"
 cp -- "$bundle/components/openrgb/LICENSE" "$bundle/licenses/components/OpenRGB-LICENSE-GPL-2.0.txt"
+# Desktop integration (app ID io.github.bismuth_technology.Ilmenyx): .desktop, hicolor icons, AppStream and the
+# opt-in per-user installer. Copied only; nothing is installed by this script.
+cp -r -- "$repo/packaging/linux" "$bundle/linux"
 for file in LICENSE NOTICE.md LICENSING.md LICENSE-ILMENYX.md THIRD-PARTY-NOTICES.md; do
   cp -- "$repo/$file" "$bundle/$file"
 done
@@ -69,6 +72,7 @@ O RID linux-x64 deste bundle nao suporta Alpine/musl.
 CLI: ./cli/ilmenyx --help ; ./cli/ilmenyx info --json
 UI X11: ILMENYX_DISPLAY_BACKEND=x11 ./desktop/Ilmenyx.Desktop
 UI Wayland: env -u DISPLAY ILMENYX_DISPLAY_BACKEND=wayland ./desktop/Ilmenyx.Desktop
+Menu e icone (opcional, so para o seu usuario, sem sudo): bash linux/install-user.sh ; para remover: bash linux/uninstall-user.sh
 Nao inclui SDK, smartctl, drivers, instalador ou garantias de portabilidade.
 MangoHud (overlay) e OpenRGB (iluminacao) acompanham o pacote em components/ e o GameMode tem versao embutida no app; os do sistema, quando existem, tem prioridade.
 Flatpak (pagina Apps) depende do sistema e nao e embutivel: o app indica quando falta e mostra o comando.

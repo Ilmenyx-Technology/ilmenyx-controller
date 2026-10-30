@@ -58,7 +58,7 @@ public sealed class LightingPage : StackPanel
     public LightingPage(LightingServices services, UsageViewModel usage, Func<Window?> owner, CancellationToken lifetime)
     {
         this.services = services; this.usage = usage; this.owner = owner; this.lifetime = lifetime; Spacing = 4;
-        Children.Add(new StackPanel { Margin = new Thickness(0, 4, 0, 20), Children = { new TextBlock { Text = "Integração", FontSize = 26, FontWeight = FontWeight.Bold }, new TextBlock { Text = "Iluminação RGB e efeitos pelo OpenRGB (servidor SDK local) · nada conecta sozinho", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap } } });
+        Children.Add(new StackPanel { Margin = new Thickness(0, 4, 0, 20), Children = { new TextBlock { Text = "Integração", FontSize = 32, FontWeight = FontWeight.Bold }, new TextBlock { Text = "Iluminação RGB e efeitos pelo OpenRGB (servidor SDK local) · nada conecta sozinho", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap } } });
         AutomationProperties.SetName(port, "Porta do servidor SDK do OpenRGB");
         connect.Click += async (_, _) => await ConnectAsync();
         openSite.Click += async (_, _) => { try { await services.OpenUrl("https://openrgb.org/", lifetime); Log("Site do OpenRGB aberto no navegador."); } catch (Exception e) when (e is IOException or TimeoutException or FileNotFoundException or ArgumentException) { Log("Não foi possível abrir o navegador: " + e.Message); } };

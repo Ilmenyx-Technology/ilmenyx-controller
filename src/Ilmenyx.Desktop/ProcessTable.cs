@@ -42,6 +42,6 @@ public sealed class ProcessTable : Border
         var scroll = new ScrollViewer { Name = "ProcessScroll", Content = rows }; Grid.SetRow(scroll, 3);
         layout.Children.Add(new TextBlock { Text = "PROCESSOS", FontSize = 11, FontWeight = FontWeight.Bold, Foreground = Palette.Faint });
         layout.Children.Add(summary); layout.Children.Add(table); layout.Children.Add(scroll);
-        Name = "ProcessPanel"; Background = Palette.Card; BorderBrush = Palette.Line; BorderThickness = new Thickness(1); CornerRadius = new CornerRadius(16); Padding = new Thickness(20); Child = layout;
+        Name = "ProcessPanel"; Background = Palette.Card; BorderBrush = Palette.Line; BorderThickness = new Thickness(1); CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius); Padding = new Thickness(20); Child = layout;
     }
 }
