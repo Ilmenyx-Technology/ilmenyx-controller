@@ -24,10 +24,19 @@ public sealed unsafe class VulkanContext : IDisposable
     public PhysicalDeviceMemoryProperties Memory { get; private set; }
     public string AdapterName { get; private set; } = "";
     public string DeviceType { get; private set; } = "";
+    /// <summary>True when the device was created with VK_KHR_acceleration_structure + VK_KHR_ray_query (inline ray tracing in compute shaders).</summary>
+    public bool RayQuery { get; }
+    /// <summary>Valid bits of the queue's timestamps (0 = no GPU timestamps) and nanoseconds per tick.</summary>
+    public uint TimestampValidBits { get; private set; }
+    public float TimestampPeriod { get; private set; }
     private bool disposed;
 
-    public VulkanContext(int adapterIndex)
+    /// <summary>Extensions enabled when <c>rayQuery</c> is requested (deferred host operations is required by acceleration structures).</summary>
+    public static readonly string[] RayQueryExtensions = ["VK_KHR_acceleration_structure", "VK_KHR_ray_query", "VK_KHR_deferred_host_operations"];
+
+    public VulkanContext(int adapterIndex, bool rayQuery = false)
     {
+        RayQuery = rayQuery;
         try { Api = Vk.GetApi(); }
         catch (Exception e) when (e is DllNotFoundException or FileNotFoundException or EntryPointNotFoundException or Silk.NET.Core.Loader.SymbolLoadingException) { throw new VulkanException("Biblioteca Vulkan (libvulkan.so.1) não encontrada. Instale o loader Vulkan da sua distribuição (vulkan-icd-loader, libvulkan1 ou vulkan-loader) e o driver da GPU."); }
         try { Create(adapterIndex); }
@@ -48,19 +57,32 @@ public sealed unsafe class VulkanContext : IDisposable
         Physical = devices[adapterIndex];
         Api.GetPhysicalDeviceProperties(Physical, out var props);
         if (props.ApiVersion < Vk.Version13) throw new VulkanException($"A GPU só oferece Vulkan {VulkanDevices.VersionText(props.ApiVersion)}; é preciso 1.3 (renderização dinâmica). Atualize o driver.");
-        AdapterName = Marshal.PtrToStringUTF8((nint)props.DeviceName) ?? "?"; DeviceType = props.DeviceType.ToString();
+        AdapterName = Marshal.PtrToStringUTF8((nint)props.DeviceName) ?? "?"; DeviceType = props.DeviceType.ToString(); TimestampPeriod = props.Limits.TimestampPeriod;
         Api.GetPhysicalDeviceMemoryProperties(Physical, out var mem); Memory = mem;
         uint families = 0; Api.GetPhysicalDeviceQueueFamilyProperties(Physical, ref families, null);
         var qf = new QueueFamilyProperties[families];
         fixed (QueueFamilyProperties* q = qf) Api.GetPhysicalDeviceQueueFamilyProperties(Physical, ref families, q);
-        int family = Array.FindIndex(qf, f => (f.QueueFlags & QueueFlags.GraphicsBit) != 0);
-        if (family < 0) throw new VulkanException("A GPU não oferece fila gráfica.");
-        QueueFamily = (uint)family;
+        var wanted = RayQuery ? QueueFlags.GraphicsBit | QueueFlags.ComputeBit : QueueFlags.GraphicsBit;
+        int family = Array.FindIndex(qf, f => (f.QueueFlags & wanted) == wanted);
+        if (family < 0) throw new VulkanException(RayQuery ? "A GPU não oferece fila gráfica com computação." : "A GPU não oferece fila gráfica.");
+        QueueFamily = (uint)family; TimestampValidBits = qf[family].TimestampValidBits;
         float priority = 1f;
         var qci = new DeviceQueueCreateInfo { SType = StructureType.DeviceQueueCreateInfo, QueueFamilyIndex = QueueFamily, QueueCount = 1, PQueuePriorities = &priority };
-        var f13 = new PhysicalDeviceVulkan13Features { SType = StructureType.PhysicalDeviceVulkan13Features, DynamicRendering = true };
-        var dci = new DeviceCreateInfo { SType = StructureType.DeviceCreateInfo, PNext = &f13, QueueCreateInfoCount = 1, PQueueCreateInfos = &qci };
-        Check(Api.CreateDevice(Physical, in dci, null, out var device), "Criar o dispositivo Vulkan"); Device = device;
+        var rq = new PhysicalDeviceRayQueryFeaturesKHR { SType = StructureType.PhysicalDeviceRayQueryFeaturesKhr, RayQuery = true };
+        var accel = new PhysicalDeviceAccelerationStructureFeaturesKHR { SType = StructureType.PhysicalDeviceAccelerationStructureFeaturesKhr, PNext = &rq, AccelerationStructure = true };
+        var f12 = new PhysicalDeviceVulkan12Features { SType = StructureType.PhysicalDeviceVulkan12Features, PNext = &accel, BufferDeviceAddress = true };
+        var f13 = new PhysicalDeviceVulkan13Features { SType = StructureType.PhysicalDeviceVulkan13Features, PNext = RayQuery ? &f12 : null, DynamicRendering = true };
+        var names = RayQuery ? SilkMarshal.StringArrayToPtr(RayQueryExtensions) : 0;
+        try
+        {
+            var dci = new DeviceCreateInfo
+            {
+                SType = StructureType.DeviceCreateInfo, PNext = &f13, QueueCreateInfoCount = 1, PQueueCreateInfos = &qci,
+                EnabledExtensionCount = RayQuery ? (uint)RayQueryExtensions.Length : 0, PpEnabledExtensionNames = (byte**)names
+            };
+            Check(Api.CreateDevice(Physical, in dci, null, out var device), RayQuery ? "Criar o dispositivo Vulkan com ray tracing (ray query)" : "Criar o dispositivo Vulkan"); Device = device;
+        }
+        finally { if (names != 0) SilkMarshal.Free(names); }
         Api.GetDeviceQueue(Device, QueueFamily, 0, out var queue); Queue = queue;
         var pci = new CommandPoolCreateInfo { SType = StructureType.CommandPoolCreateInfo, QueueFamilyIndex = QueueFamily, Flags = CommandPoolCreateFlags.ResetCommandBufferBit };
         Check(Api.CreateCommandPool(Device, in pci, null, out var pool), "Criar o pool de comandos"); Pool = pool;
@@ -111,13 +133,22 @@ public sealed unsafe class VulkanContext : IDisposable
     /// <summary>Buffer with its memory; caller owns and must destroy both. Host-visible buffers are returned unmapped.</summary>
     public (Silk.NET.Vulkan.Buffer Buffer, DeviceMemory Memory) CreateBuffer(ulong size, BufferUsageFlags usage, MemoryPropertyFlags properties)
     {
+        bool address = (usage & BufferUsageFlags.ShaderDeviceAddressBit) != 0;
         var info = new BufferCreateInfo { SType = StructureType.BufferCreateInfo, Size = size, Usage = usage, SharingMode = SharingMode.Exclusive };
         Check(Api.CreateBuffer(Device, in info, null, out var buffer), "Criar o buffer");
         Api.GetBufferMemoryRequirements(Device, buffer, out var req);
-        var alloc = new MemoryAllocateInfo { SType = StructureType.MemoryAllocateInfo, AllocationSize = req.Size, MemoryTypeIndex = FindMemoryType(req.MemoryTypeBits, properties) };
+        var flags = new MemoryAllocateFlagsInfo { SType = StructureType.MemoryAllocateFlagsInfo, Flags = MemoryAllocateFlags.DeviceAddressBit };
+        var alloc = new MemoryAllocateInfo { SType = StructureType.MemoryAllocateInfo, PNext = address ? &flags : null, AllocationSize = req.Size, MemoryTypeIndex = FindMemoryType(req.MemoryTypeBits, properties) };
         Check(Api.AllocateMemory(Device, in alloc, null, out var memory), "Alocar a memória do buffer");
         Check(Api.BindBufferMemory(Device, buffer, memory, 0), "Associar a memória do buffer");
         return (buffer, memory);
+    }
+
+    /// <summary>GPU address of a buffer created with ShaderDeviceAddressBit (ray query device only).</summary>
+    public ulong Address(Silk.NET.Vulkan.Buffer buffer)
+    {
+        var info = new BufferDeviceAddressInfo { SType = StructureType.BufferDeviceAddressInfo, Buffer = buffer };
+        return Api.GetBufferDeviceAddress(Device, in info);
     }
 
     public void Dispose()
