@@ -250,6 +250,13 @@ public static class CompatMatcher
         return (models, codes);
     }
 
+    /// <summary>Same GPU model, series or chip codename (used to keep older reports of this machine's GPU when the index is built).</summary>
+    public static bool SameGpu(CompatHardware hw, string? reportGpu)
+    {
+        var (mine, mineCodes) = Tokens(hw.GpuText); var (theirs, theirCodes) = Tokens(reportGpu);
+        return mine.Overlaps(theirs) || mineCodes.Overlaps(theirCodes);
+    }
+
     public static string DistroFamily(string? os)
     {
         string o = (os ?? "").ToLowerInvariant();

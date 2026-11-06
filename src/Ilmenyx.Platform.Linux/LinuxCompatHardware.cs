@@ -13,7 +13,9 @@ public static class LinuxCompatHardware
         var first = gpus.FirstOrDefault();
         string chip = first.Card?.Sections.FirstOrDefault(s => s.Header == "IDENTIFICAÇÃO")?.Children.FirstOrDefault(c => c.Header == "Chip")?.Value ?? "";
         string vendor = first.Card?.Vendor ?? "";
-        string text = string.Join(" ", new[] { vendor, first.Raw?.Name, chip == "—" ? null : chip, vulkanName }.Where(s => !string.IsNullOrWhiteSpace(s)));
+        var parts = new[] { vendor, first.Raw?.Name, chip == "—" ? null : chip, vulkanName }.Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s!).ToList();
+        // "Mendocino" is already inside "Mendocino (iGPU · Radeon 610M)": keep each name once.
+        string text = string.Join(" ", parts.Where((p, i) => !parts.Where((_, j) => j > i).Any(later => later.Contains(p, StringComparison.OrdinalIgnoreCase))));
         bool nvidia = gpus.Any(g => g.Raw.Driver == "nvidia");
         return new(text, OsName(etc), nvidia);
     }

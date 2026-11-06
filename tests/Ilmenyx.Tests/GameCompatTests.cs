@@ -148,6 +148,20 @@ public sealed class GameCompatTests : IDisposable
         Assert.Equal(2, new CompatDatabase(folder).ReadMeta()!.Apps); // a failed rebuild keeps the previous index
     }
 
+    [Fact]
+    public async Task IndexKeepsOlderReportsOfThisMachinesGpu()
+    {
+        string old610 = ReportRx7900.Replace("AMD Radeon RX 7900 XT (radeonsi, navi31, LLVM 17.0.6, DRM 3.56)", "AMD Radeon 610M (radeonsi, raphael_mendocino)").Replace("1793000000", "1500000000");
+        var newer = Enumerable.Range(0, CompatDatabase.MaxReportsPerApp).Select(i => ReportRx7900.Replace("1793000000", (1700000000 + i).ToString()));
+        string json = "[" + string.Join(",", newer.Prepend(old610)) + "]";
+        var hw = new CompatHardware("AMD Mendocino (iGPU · Radeon 610M)", "Linux Mint 22.3", false);
+        await using (var s = new MemoryStream(TarGz(json))) await CompatDatabase.BuildAsync(s, Path.Combine(dir, "plain"), new CompatDumpInfo("t", 1, "", "", null));
+        await using (var s = new MemoryStream(TarGz(json))) await CompatDatabase.BuildAsync(s, Path.Combine(dir, "mine"), new CompatDumpInfo("t", 1, "", "", null), machine: hw);
+        Assert.DoesNotContain(new CompatDatabase(Path.Combine(dir, "plain")).Reports("1091500"), r => r.Timestamp == 1500000000); // pushed out by 80 newer reports
+        var mine = new CompatDatabase(Path.Combine(dir, "mine")).Reports("1091500");
+        Assert.Equal(CompatDatabase.MaxReportsPerApp + 1, mine.Count); Assert.Contains(mine, r => r.Timestamp == 1500000000 && CompatMatcher.SameGpu(hw, r.Gpu));
+    }
+
     private sealed class FakeHandler(Func<HttpRequestMessage, HttpResponseMessage> respond) : HttpMessageHandler
     {
         public List<string> Urls { get; } = [];

@@ -32,7 +32,7 @@ public static class CompatCommand
                 if (!network) { await o.WriteLineAsync("A atualização usa a rede (api.github.com e raw.githubusercontent.com, ~70 MB). Repita com --allow-network."); return 2; }
                 try
                 {
-                    var meta = await new CompatOnline(CompatPaths.Folder()).UpdateDatabaseAsync(db, new Progress<string>(s => Console.Error.WriteLine(s)), ct);
+                    var meta = await new CompatOnline(CompatPaths.Folder()).UpdateDatabaseAsync(db, new Progress<string>(s => Console.Error.WriteLine(s)), ct, LinuxCompatHardware.Detect());
                     await o.WriteLineAsync($"Base pronta: {meta.Apps:N0} jogos, {meta.Reports:N0} relatos (até {meta.Newest:dd/MM/yyyy}).");
                     return 0;
                 }
@@ -40,7 +40,7 @@ public static class CompatCommand
             case ["build-from", var file]:
                 await using (var s = File.OpenRead(file))
                 {
-                    var meta = await CompatDatabase.BuildAsync(s, db.Folder, new CompatDumpInfo(Path.GetFileName(file) + " (arquivo local, hash não conferido)", new FileInfo(file).Length, "", "", null), new Progress<int>(n => Console.Error.WriteLine($"{n:N0} relatos lidos")), ct);
+                    var meta = await CompatDatabase.BuildAsync(s, db.Folder, new CompatDumpInfo(Path.GetFileName(file) + " (arquivo local, hash não conferido)", new FileInfo(file).Length, "", "", null), new Progress<int>(n => Console.Error.WriteLine($"{n:N0} relatos lidos")), ct, LinuxCompatHardware.Detect());
                     await o.WriteLineAsync($"Base pronta: {meta.Apps:N0} jogos, {meta.Reports:N0} relatos.");
                 }
                 return 0;
@@ -77,7 +77,8 @@ public static class CompatCommand
         var ranked = CompatMatcher.RankAll(reports, hw, DateTimeOffset.UtcNow);
         var (options, protons) = CompatMatcher.Suggest(ranked);
         int works = reports.Count(r => r.Works);
-        await o.WriteLineAsync($"Relatos locais: {reports.Count} ({works} funcionando) · com hardware parecido: {ranked.Count(r => r.Score >= 5)}");
+        int same = reports.Count(r => CompatMatcher.SameGpu(hw, r.Gpu));
+        await o.WriteLineAsync($"Relatos locais: {reports.Count} ({works} funcionando) · com a mesma GPU, série ou chip: {same}");
         if (options.Count > 0) await o.WriteLineAsync("Opções mais usadas por quem tem hardware parecido e conseguiu jogar: " + string.Join(" · ", options.Select(x => $"{x.Option} ({x.Count}/{x.Of})")));
         if (protons.Count > 0) await o.WriteLineAsync("Versões do Proton que funcionaram: " + string.Join(" · ", protons.Select(x => $"{x.Option} ({x.Count}/{x.Of})")));
         foreach (var x in ranked.Take(5))

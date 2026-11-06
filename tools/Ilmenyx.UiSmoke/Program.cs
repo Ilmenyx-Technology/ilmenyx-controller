@@ -515,6 +515,7 @@ public sealed class UiSmokeApp : Application
         await NetworkAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await OptimizeAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await FpsAsync(shell, desktop);
+        if (OperatingSystem.IsLinux()) await CompatAsync(desktop, Program.OutputDirectory);
         if (OperatingSystem.IsLinux()) await AppsAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await BenchAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await OcAsync(shell, desktop);
@@ -1093,6 +1094,96 @@ public sealed class UiSmokeApp : Application
         await Until(() => shell.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnFpsQuery" && !b.IsEnabled || b.Name == "BtnApiKey"));
         Console.WriteLine("PASS fps page: local estimate from catalog tables, option chips recompute, API query only after key + confirmation naming the endpoint, fake handler results shown; real service never contacted");
     }
+    private sealed class CompatFakeHttp(Func<HttpRequestMessage, HttpResponseMessage> respond) : HttpMessageHandler
+    {
+        public List<string> Hosts { get; } = [];
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) { lock (Hosts) Hosts.Add(request.RequestUri!.Host); return Task.FromResult(respond(request)); }
+    }
+
+    private static byte[] CompatExport(params string[] reports)
+    {
+        using var ms = new MemoryStream();
+        using (var gz = new System.IO.Compression.GZipStream(ms, System.IO.Compression.CompressionLevel.Fastest, leaveOpen: true))
+        using (var tar = new System.Formats.Tar.TarWriter(gz, System.Formats.Tar.TarEntryFormat.Pax, leaveOpen: true))
+            tar.WriteEntry(new System.Formats.Tar.PaxTarEntry(System.Formats.Tar.TarEntryType.RegularFile, "reports_piiremoved.json") { DataStream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("[" + string.Join(",", reports) + "]")) });
+        return ms.ToArray();
+    }
+
+    private static async Task CompatAsync(IClassicDesktopStyleApplicationLifetime desktop, string output)
+    {
+        // Fake HTTP (no network), a synthetic ProtonDB export and an in-memory Steam: nothing real is contacted or written.
+        static string Report(long ts, string gpu, string os, string verdict, string options, string fault) =>
+            "{\"app\":{\"steam\":{\"appId\":\"1091500\"},\"title\":\"Cyberpunk 2077\"},\"responses\":{\"verdict\":\"" + verdict + "\",\"customProtonVersion\":\"GE-Proton10-29\",\"" + fault + "\":\"yes\",\"launchOptions\":" + JsonSerializer.Serialize(options)
+            + ",\"notes\":{\"" + fault + "\":\"Fixed with the launch options below\"},\"concludingNotes\":\"Saves in /home/someone/Games\"},\"timestamp\":" + ts + ",\"systemInfo\":{\"gpu\":\"" + gpu + "\",\"gpuDriver\":\"Mesa 25.0\",\"os\":\"" + os + "\",\"kernel\":\"6.14\"}}";
+        byte[] export = CompatExport(
+            Report(1793000000, "AMD Radeon 610M (radeonsi, raphael_mendocino)", "Linux Mint 22.3", "yes", "PROTON_ENABLE_WAYLAND=1 gamemoderun %command%", "stabilityFaults"),
+            Report(1792000000, "NVIDIA GeForce RTX 4070", "Fedora 41", "no", "rm -rf ~; %command%", "graphicalFaults"));
+        string sha = Convert.ToHexStringLower(System.Security.Cryptography.SHA1.HashData([.. System.Text.Encoding.ASCII.GetBytes($"blob {export.Length}\0"), .. export]));
+        string listing = JsonSerializer.Serialize(new[] { new { name = "reports_nov1_2026.tar.gz", size = (long)export.Length, sha, download_url = "https://raw.githubusercontent.com/bdefore/protondb-data/master/reports/reports_nov1_2026.tar.gz" } });
+        var http = new CompatFakeHttp(req => req.RequestUri!.Host switch
+        {
+            "www.protondb.com" => new(System.Net.HttpStatusCode.OK) { Content = new StringContent("{\"tier\":\"gold\",\"trendingTier\":\"platinum\",\"confidence\":\"strong\",\"score\":0.8,\"total\":2792}") },
+            "store.steampowered.com" => new(System.Net.HttpStatusCode.OK) { Content = new StringContent("{\"success\":1,\"results\":{\"resolved_category\":3,\"resolved_items\":[{\"loc_token\":\"#SteamDeckVerified_TestResult_DefaultConfigurationIsPerformant\"}]}}") },
+            "api.github.com" => new(System.Net.HttpStatusCode.OK) { Content = new StringContent(listing) },
+            _ when req.RequestUri!.AbsolutePath.EndsWith("games.json", StringComparison.Ordinal) => new(System.Net.HttpStatusCode.OK) { Content = new StringContent("[]") },
+            _ => new(System.Net.HttpStatusCode.OK) { Content = new ByteArrayContent(export) },
+        });
+        string folder = Path.Combine(output, "compat-fixture");
+        var db = new CompatDatabase(Path.Combine(folder, "index"));
+        await using (var s = new MemoryStream(export)) await CompatDatabase.BuildAsync(s, db.Folder, new CompatDumpInfo("fixture", export.Length, "", "", null));
+        var steam = new Dictionary<string, string>(StringComparer.Ordinal) { ["1091500"] = "-skipStartScreen" }; int opened = 0;
+        var services = new CompatServices(db, new CompatOnline(folder, http), () => new CompatHardware("AMD Mendocino (iGPU · Radeon 610M)", "Linux Mint 22.3", false),
+            _ => Task.FromResult<IReadOnlyList<LibGame>>([new LibGame("Steam", "1091500", "Cyberpunk 2077", "/nonexistent")]),
+            id => steam.GetValueOrDefault(id), (id, o) => { if (o.Length == 0) steam.Remove(id); else steam[id] = o; return null; }, (_, _) => { opened++; return Task.CompletedTask; });
+        Window? host = null; var page = new CompatPage(services, () => host, CancellationToken.None);
+        host = new Window { Width = 1180, Height = 900, Content = new ScrollViewer { Content = page } }; host.Show();
+        await Until(() => host.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "CompatLib1091500"));
+        if (!Find<TextBlock>(host, "CompatDbStatus").Text!.Contains("1 jogo ·")) throw new InvalidOperationException("Index status missing: " + Find<TextBlock>(host, "CompatDbStatus").Text);
+        Find<TextBox>(host, "CompatSearch").Text = "cyberpunk-2077";
+        await Until(() => host.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "CompatHit1091500"));
+        Click(host, "CompatHit1091500");
+        await Until(() => host.GetVisualDescendants().OfType<StackPanel>().Any(p => p.Name == "CompatReports" && p.Children.Count == 2));
+        if (http.Hosts.Count != 0) throw new InvalidOperationException("Opening a game must not use the network.");
+        if (!Find<TextBlock>(host, "CompatCounts").Text!.Contains("1 com a mesma GPU")) throw new InvalidOperationException("Same-GPU report not counted: " + Find<TextBlock>(host, "CompatCounts").Text);
+        var first = host.GetVisualDescendants().OfType<SelectableTextBlock>().Single(t => t.Name == "CompatOptions0");
+        if (first.Text != "PROTON_ENABLE_WAYLAND=1 gamemoderun %command%") throw new InvalidOperationException("The same-GPU report must rank first.");
+        if (Find<Button>(host, "CompatApply1").IsEnabled) throw new InvalidOperationException("An unsafe launch option must not be applicable.");
+        if (host.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text?.Contains("/home/someone") == true)) throw new InvalidOperationException("Home folder leaked from a report.");
+
+        Click(host, "CompatOnlineQuery"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        var no = desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible); Click(no, "ConfirmNo"); await Until(() => !no.IsVisible); await Task.Delay(100);
+        if (http.Hosts.Count != 0 || Find<TextBlock>(host, "CompatTier").Text != "—") throw new InvalidOperationException("Declined query used the network.");
+        Click(host, "CompatOnlineQuery"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        Click(desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible), "ConfirmYes");
+        await Until(() => Find<TextBlock>(host, "CompatTier").Text == "Ouro" && Find<TextBlock>(host, "CompatDeck").Text == "Verificado" && Find<TextBlock>(host, "CompatAntiCheat").Text == "Não listado");
+        if (http.Hosts.Any(h => !CompatOnline.Hosts.Contains(h))) throw new InvalidOperationException("Unexpected host: " + string.Join(",", http.Hosts));
+
+        Click(host, "CompatApply0"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        var apply = desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible);
+        if (!Find<TextBlock>(apply, "ConfirmText").Text!.Contains("-skipStartScreen")) throw new InvalidOperationException("Confirmation must show the current options.");
+        Click(apply, "ConfirmYes"); await Until(() => steam.GetValueOrDefault("1091500") == "PROTON_ENABLE_WAYLAND=1 gamemoderun %command%" && Find<Button>(host, "CompatUndo0").IsVisible);
+        Click(host, "CompatUndo0"); await Until(() => steam.GetValueOrDefault("1091500") == "-skipStartScreen");
+        await Task.Delay(200); Capture(host, "compat.png");
+
+        Click(host, "CompatDbUpdate"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        Click(desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible), "ConfirmYes");
+        await Until(() => Find<TextBlock>(host, "CompatDbStatus").Text!.Contains("reports_nov1_2026.tar.gz"));
+        if (opened != 0) throw new InvalidOperationException("No link was clicked, nothing may be opened.");
+        host.Close();
+        // Opt-in look at the real local index (offline: the online query is never clicked here).
+        if (Environment.GetEnvironmentVariable("ILMENYX_SMOKE_REAL_COMPAT") is { Length: > 0 } realApp && realApp.All(char.IsAsciiDigit))
+        {
+            var realDb = new CompatDatabase(CompatPaths.Folder());
+            var realServices = services with { Db = realDb, Hardware = () => Ilmenyx.Platform.Linux.LinuxCompatHardware.Detect(), Library = _ => Task.FromResult<IReadOnlyList<LibGame>>([]) };
+            Window? realHost = null; var realPage = new CompatPage(realServices, () => realHost, CancellationToken.None);
+            realHost = new Window { Width = 1180, Height = 2400, Background = Palette.Bg, Content = new ScrollViewer { Content = realPage } }; realHost.Show();
+            await realPage.ShowAsync(realApp, realDb.Title(realApp) ?? realApp); await Task.Delay(400);
+            Capture(realHost, "compat-real.png"); realHost.Close();
+            if (http.Hosts.Any(h => h != "www.protondb.com" && h != "store.steampowered.com" && h != "raw.githubusercontent.com" && h != "api.github.com")) throw new InvalidOperationException("Unexpected host.");
+        }
+        Console.WriteLine("PASS compat page: offline index search and similar-hardware ranking, unsafe options locked, home paths hidden, online query only after confirmation (fixed hosts), apply/undo on a fake Steam config, verified export update (fake HTTP; no network)");
+    }
+
     private static async Task AppsAsync(ShellWindow shell, IClassicDesktopStyleApplicationLifetime desktop)
     {
         // A fake runner stands in for flatpak: nothing is installed and Flathub is never contacted.

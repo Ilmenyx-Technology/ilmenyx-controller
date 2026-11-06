@@ -482,3 +482,16 @@ PCI 1002:1506, RDNA 2, 2 CUs), amdgpu, Mesa/RADV 25.0.7, kernel 6.14, Linux Mint
   13. SMK-01: ver a linha da tabela (corrida no smoke, não defeito do app).
 - Aviso mudado por decisão do mantenedor (2026-11-06) para "GPUs dedicadas AMD/NVIDIA · Testes não realizados em hardware real".
 - NÃO TESTADO: KWin/GNOME Shell Wayland reais (só Muffin aninhado), escala fracionária no Wayland, Wayland com GPU NVIDIA.
+
+## Compatibilidade de jogos e paridade com o original (2026-11-06)
+
+- Paridade com o RESET EXPLODE: o submódulo está no último commit do original (ce1d9b30, 16/10/2026). Pelas notas da v0.16 faltavam e foram portados:
+  atalho `-allow_third_party_software` (CS2, com aviso do Trust Factor) e as métricas de overlay tensão da GPU, limitador NVIDIA, temperatura da VRAM
+  e clock máximo de núcleo. Continua pendente o benchmark de ray tracing (`-high` foi omitido de propósito: exige privilégio no Linux).
+- Nova página **Compatibilidade** (JOGOS) e `ilmenyx compat`: nota do ProtonDB, Steam Deck, anti-cheat (AreWeAntiCheatYet) e relatos do dump ODbL do ProtonDB,
+  ordenados pela semelhança com o hardware; opções e versões de Proton que funcionaram; aplicar/desfazer opções na Steam.
+  - Real, nesta máquina: download do dump de nov/2026 com hash git conferido e índice montado em ~25 s (34.769 jogos, 259.576 relatos, 30 MB);
+    consultas reais de ProtonDB/Steam Deck/anti-cheat para Apex (Negado, Hyperion/EAC), Cyberpunk (Ouro, Deck Verificado) e CS2.
+  - Testes: 24 unitários e smoke X11 com serviços falsos (sem rede; confirmação recusada não usa rede; opção perigosa bloqueada; aplicar/desfazer).
+- NÃO TESTADO: "Aplicar na Steam" num localconfig.vdf real (a Steam não está instalada nesta máquina; o gravador é o mesmo do Launcher, já testado com fixture);
+  limite de consultas do ProtonDB sob uso intenso; jogos não-Steam (o ProtonDB só indexa IDs Steam).

@@ -29,7 +29,7 @@ public static class CompatPaths
 /// <summary>Local index of ProtonDB reports: 256 gzip JSON-lines shards by app id, a title list and a metadata file.</summary>
 public sealed class CompatDatabase(string folder)
 {
-    public const int MaxReportsPerApp = 80;
+    public const int MaxReportsPerApp = 80, MaxSameGpuPerApp = 40;
     public const string Attribution = "Relatos: ProtonDB (protondb.com), Open Database License 1.0, via github.com/bdefore/protondb-data";
     private static readonly JsonSerializerOptions Json = new() { DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull };
     private Dictionary<string, string>? titles;
@@ -105,9 +105,17 @@ public sealed class CompatDatabase(string folder)
     /// Builds the index from the export (.tar.gz holding one JSON array) into a new folder, then swaps it in. Keeps the newest
     /// <see cref="MaxReportsPerApp"/> reports per game. Reads the array element by element: memory stays bounded by the kept reports.
     /// </summary>
-    public static async Task<CompatMeta> BuildAsync(Stream tarGz, string folder, CompatDumpInfo source, IProgress<int>? progress = null, CancellationToken ct = default)
+    /// <param name="machine">When given, up to <see cref="MaxSameGpuPerApp"/> older reports with this machine's GPU model, series or chip are kept too.</param>
+    public static async Task<CompatMeta> BuildAsync(Stream tarGz, string folder, CompatDumpInfo source, IProgress<int>? progress = null, CancellationToken ct = default, CompatHardware? machine = null)
     {
         var byApp = new Dictionary<string, List<CompatReport>>(StringComparer.Ordinal);
+        var sameGpu = new Dictionary<string, List<CompatReport>>(StringComparer.Ordinal);
+        static void Keep(Dictionary<string, List<CompatReport>> map, CompatReport r, int max)
+        {
+            if (!map.TryGetValue(r.AppId, out var list)) map[r.AppId] = list = [];
+            list.Add(r);
+            if (list.Count > max * 2) { list.Sort((x, y) => y.Timestamp.CompareTo(x.Timestamp)); list.RemoveRange(max, list.Count - max); }
+        }
         int seen = 0;
         await using (var gz = new GZipStream(tarGz, CompressionMode.Decompress, leaveOpen: true))
         await using (var tar = new TarReader(gz, leaveOpen: true))
@@ -120,9 +128,8 @@ public sealed class CompatDatabase(string folder)
                 {
                     if (++seen % 20_000 == 0) progress?.Report(seen);
                     if (CompatReport.FromDump(element) is not { } r) continue;
-                    if (!byApp.TryGetValue(r.AppId, out var list)) byApp[r.AppId] = list = [];
-                    list.Add(r);
-                    if (list.Count > MaxReportsPerApp * 2) { list.Sort((x, y) => y.Timestamp.CompareTo(x.Timestamp)); list.RemoveRange(MaxReportsPerApp, list.Count - MaxReportsPerApp); }
+                    Keep(byApp, r, MaxReportsPerApp);
+                    if (machine is not null && CompatMatcher.SameGpu(machine, r.Gpu)) Keep(sameGpu, r, MaxSameGpuPerApp);
                 }
                 break;
             }
@@ -142,7 +149,9 @@ public sealed class CompatDatabase(string folder)
                 foreach (var (app, list) in byApp)
                 {
                     ct.ThrowIfCancellationRequested();
-                    var keep = list.OrderByDescending(r => r.Timestamp).Take(MaxReportsPerApp).ToList();
+                    var recent = list.OrderByDescending(r => r.Timestamp).Take(MaxReportsPerApp);
+                    var mine = sameGpu.TryGetValue(app, out var s) ? s.OrderByDescending(r => r.Timestamp).Take(MaxSameGpuPerApp) : [];
+                    var keep = recent.Concat(mine).DistinctBy(r => (r.Timestamp, r.Gpu, r.LaunchOptions, r.Os)).OrderByDescending(r => r.Timestamp).ToList();
                     if (keep.FirstOrDefault(r => r.Title is not null)?.Title is { } t) titleMap[app] = t;
                     string name = Shard(app);
                     if (!shards.TryGetValue(name, out var w))
@@ -309,7 +318,7 @@ public sealed class CompatOnline
     }
 
     /// <summary>Latest export → verified download → index → the downloaded file is deleted.</summary>
-    public async Task<CompatMeta> UpdateDatabaseAsync(CompatDatabase db, IProgress<string>? status = null, CancellationToken ct = default)
+    public async Task<CompatMeta> UpdateDatabaseAsync(CompatDatabase db, IProgress<string>? status = null, CancellationToken ct = default, CompatHardware? machine = null)
     {
         status?.Report("Procurando o arquivo de relatos mais recente…");
         var dump = await LatestDumpAsync(ct);
@@ -320,7 +329,7 @@ public sealed class CompatOnline
             await DownloadDumpAsync(dump, file, new Progress<(long Done, long Total)>(p => status?.Report($"Baixando {dump.Name}: {p.Done >> 20} de {p.Total >> 20} MB")), ct);
             status?.Report("Hash conferido. Montando o índice local (pode levar alguns minutos)…");
             await using var stream = File.OpenRead(file);
-            return await CompatDatabase.BuildAsync(stream, db.Folder, dump, new Progress<int>(n => status?.Report($"Montando o índice: {n:N0} relatos lidos")), ct);
+            return await CompatDatabase.BuildAsync(stream, db.Folder, dump, new Progress<int>(n => status?.Report($"Montando o índice: {n:N0} relatos lidos")), ct, machine);
         }
         finally { try { File.Delete(file); } catch (IOException) { } }
     }
