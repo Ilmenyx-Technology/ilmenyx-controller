@@ -42,3 +42,10 @@ Complementa o [MANUAL-ILMENYX.md](MANUAL-ILMENYX.md); símbolo, nome e acento n�
 - Preservar todos os `Name` de controles, textos verificados pelo smoke e o comportamento. Mudança visual não muda regra de negócio.
 - Nada de bibliotecas novas. Avalonia sem XAML (UI em C#).
 - Validar: `dotnet build` sem avisos, `dotnet test`, smoke (`tools/Ilmenyx.UiSmoke`) e capturas em X11 e Wayland.
+
+## Tema claro (referência "White Theme", 2026-11-06)
+- Fundo quase branco frio (`#F4F5F8`) com luz ambiente quase imperceptível; cartões brancos sem borda visível (`Card`), sombra só nos destaques.
+- Campos e ações redondas do topo em cinza-claro preenchido (`Palette.Field`, `#E9EBF0`), sem borda.
+- Item ativo do menu: além do traço e do texto no acento, uma cápsula clara tingida do acento (só no tema claro).
+- Destaque (`FeatureCard`): pastel pêssego → rosa → azul claro, texto escuro; a ação (`UiKit.Translucent`) vira botão sólido no acento.
+- Heros sem imagem em pastel com texto `Fg`; heros com imagem continuam escuros e vibrantes (overlay de legibilidade).

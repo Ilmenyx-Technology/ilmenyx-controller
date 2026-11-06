@@ -48,6 +48,7 @@ public sealed partial class ShellWindow : Window
         theme.Click += (_, _) =>
         {
             Palette.Apply(!Palette.IsLight); appSettings.ThemeLight = Palette.IsLight; RebuildAmbient();
+            foreach (var (k, button) in nav) Style(k, button, k == CurrentPage);
             UiKit.SetAction(theme, Palette.IsLight ? Icons.Moon : Icons.Sun, Palette.IsLight ? "Tema escuro" : "Tema claro");
             try { appSettings.Save(settingsPath); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
         };
@@ -112,7 +113,9 @@ public sealed partial class ShellWindow : Window
     /// <summary>Active item: a small accent bar at the left edge, accent text and icon. No filled capsule.</summary>
     private void Style(string key, Button b, bool on)
     {
-        b.Background = Brushes.Transparent;
+        // Dark: only the bar and accent text. Light (white reference): also a pale accent capsule.
+        var a = ((ISolidColorBrush)Palette.Accent).Color;
+        b.Background = on && Palette.IsLight ? new SolidColorBrush(Color.FromArgb(0x1C, a.R, a.G, a.B)) : Brushes.Transparent;
         if (!navParts.TryGetValue(key, out var p)) return;
         p.Label.Foreground = on ? Palette.AccentText : Palette.Muted; p.Label.FontWeight = on ? FontWeight.SemiBold : FontWeight.Medium;
         p.Icon.Fill = on ? Palette.AccentText : Palette.Faint; p.Bar.Opacity = on ? 1 : 0;

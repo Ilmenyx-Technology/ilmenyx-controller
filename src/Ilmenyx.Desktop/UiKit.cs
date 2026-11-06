@@ -94,13 +94,13 @@ public static class UiKit
         {
             var a = ((ISolidColorBrush)Palette.Accent).Color;
             var fill = new LinearGradientBrush { StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative), EndPoint = new RelativePoint(1, 1, RelativeUnit.Relative) };
-            foreach (var (c, o) in Palette.IsLight ? new[] { ("#F4E3C8", 0.0), ("#EBCFD6", 0.5), ("#D3DFFB", 1.0) } : new[] { ("#7A6233", 0.0), ("#5E2A2E", 0.45), ("#2B1B3F", 1.0) })
+            foreach (var (c, o) in Palette.IsLight ? new[] { ("#FFF4E9", 0.0), ("#FCE4E2", 0.55), ("#E6ECFD", 1.0) } : new[] { ("#7A6233", 0.0), ("#5E2A2E", 0.45), ("#2B1B3F", 1.0) })
                 fill.GradientStops.Add(new GradientStop(Color.Parse(c), o));
             glowLayer.Background = new RadialGradientBrush
             {
                 Center = new RelativePoint(0.92, 0.78, RelativeUnit.Relative), GradientOrigin = new RelativePoint(0.92, 0.78, RelativeUnit.Relative),
                 RadiusX = new RelativeScalar(0.7, RelativeUnit.Relative), RadiusY = new RelativeScalar(0.7, RelativeUnit.Relative),
-                GradientStops = { new GradientStop(Color.FromArgb((byte)(Palette.IsLight ? 0x50 : 0x99), a.R, a.G, a.B), 0), new GradientStop(Color.FromArgb(0, a.R, a.G, a.B), 1) },
+                GradientStops = { new GradientStop(Color.FromArgb((byte)(Palette.IsLight ? 0x2C : 0x99), a.R, a.G, a.B), 0), new GradientStop(Color.FromArgb(0, a.R, a.G, a.B), 1) },
             };
             card.Background = fill; card.BoxShadow = IlmenyxTheme.SoftShadow;
         }
@@ -128,19 +128,28 @@ public static class UiKit
         Padding = new Thickness(padX, padY), CornerRadius = new CornerRadius(IlmenyxTheme.ControlRadius),
     };
 
-    /// <summary>Dark translucent action, for use over heroes and gradient cards (the reference's "Available now").</summary>
-    public static Button Translucent(string name, string text) => new()
+    /// <summary>
+    /// Action over heroes and gradient cards (the reference's "Available now"): dark translucent in the dark theme,
+    /// solid accent in the light theme (as in the white-theme reference). Follows a theme switch.
+    /// </summary>
+    public static Button Translucent(string name, string text)
     {
-        Name = name, Content = text, Background = new SolidColorBrush(Color.FromArgb(0x55, 0x10, 0x0E, 0x14)), Foreground = Brushes.White, FontWeight = FontWeight.SemiBold,
-        Padding = new Thickness(20, 9), CornerRadius = new CornerRadius(IlmenyxTheme.ControlRadius),
-    };
+        var b = new Button { Name = name, Content = text, FontWeight = FontWeight.SemiBold, Padding = new Thickness(20, 9), CornerRadius = new CornerRadius(IlmenyxTheme.ControlRadius) };
+        void Paint()
+        {
+            b.Background = Palette.IsLight ? Palette.Accent : new SolidColorBrush(Color.FromArgb(0x55, 0x10, 0x0E, 0x14));
+            b.Foreground = Palette.IsLight ? Palette.OnAccent : Brushes.White;
+        }
+        Paint(); b.ActualThemeVariantChanged += (_, _) => Paint();
+        return b;
+    }
 
     /// <summary>Round icon action of the header (bell, theme, pause). The accessible name is the action, the icon is decoration.</summary>
     public static Button IconButton(string name, string icon, string accessibleName, double size = 36)
     {
         var b = new Button
         {
-            Name = name, Width = size, Height = size, Padding = new Thickness(0), CornerRadius = new CornerRadius(size / 2), Background = Palette.Card,
+            Name = name, Width = size, Height = size, Padding = new Thickness(0), CornerRadius = new CornerRadius(size / 2), Background = Palette.Field,
             HorizontalContentAlignment = HorizontalAlignment.Center, VerticalContentAlignment = VerticalAlignment.Center, Content = Icon(icon, 17, Palette.Muted),
         };
         SetAction(b, icon, accessibleName);

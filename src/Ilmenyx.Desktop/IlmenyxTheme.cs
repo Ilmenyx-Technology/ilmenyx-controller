@@ -49,7 +49,7 @@ public static class IlmenyxTheme
         // Translucent fields with an almost invisible border, as in the reference search box.
         theme.Add(new Style(x => x.OfType<TextBox>())
         {
-            Setters = { new Setter(TemplatedControl.BackgroundProperty, Palette.Card), new Setter(TemplatedControl.BorderBrushProperty, Palette.Line) }
+            Setters = { new Setter(TemplatedControl.BackgroundProperty, Palette.Field), new Setter(TemplatedControl.BorderBrushProperty, Palette.Line) }
         });
         return theme;
     }
@@ -63,7 +63,7 @@ public static class IlmenyxTheme
         bool light = Palette.IsLight;
         var accent = ((ISolidColorBrush)Palette.Accent).Color;
         var basis = new LinearGradientBrush { StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative), EndPoint = new RelativePoint(1, 1, RelativeUnit.Relative) };
-        foreach (var (c, o) in light ? new[] { ("#FBF8F9", 0.0), ("#F6F7FB", 0.48), ("#EEF3FA", 1.0) } : new[] { ("#19171C", 0.0), ("#15171D", 0.48), ("#101922", 1.0) })
+        foreach (var (c, o) in light ? new[] { ("#F6F6F9", 0.0), ("#F4F5F8", 0.5), ("#F0F2F7", 1.0) } : new[] { ("#19171C", 0.0), ("#15171D", 0.48), ("#101922", 1.0) })
             basis.GradientStops.Add(new GradientStop(Color.Parse(c), o));
         RadialGradientBrush Glow(double x, double y, double rx, double ry, Color color) => new()
         {
@@ -71,8 +71,9 @@ public static class IlmenyxTheme
             RadiusX = new RelativeScalar(rx, RelativeUnit.Relative), RadiusY = new RelativeScalar(ry, RelativeUnit.Relative),
             GradientStops = { new GradientStop(color, 0), new GradientStop(Color.FromArgb((byte)(color.A * 0.45), color.R, color.G, color.B), 0.38), new GradientStop(Color.FromArgb(0, color.R, color.G, color.B), 1) },
         };
-        var warm = light ? Color.FromArgb(0x2A, 0xE8, 0x9A, 0xA4) : Color.FromArgb(0x4A, 0x6F, 0x1C, 0x2A);
-        var cool = light ? Color.FromArgb(0x24, accent.R, accent.G, accent.B) : Color.FromArgb(0x4D, 0x1E, 0x31, 0x4D);
+        // Light: the white reference has almost no ambient colour, only a hint of warmth and of the accent.
+        var warm = light ? Color.FromArgb(0x14, 0xF2, 0xB8, 0xA8) : Color.FromArgb(0x4A, 0x6F, 0x1C, 0x2A);
+        var cool = light ? Color.FromArgb(0x10, accent.R, accent.G, accent.B) : Color.FromArgb(0x4D, 0x1E, 0x31, 0x4D);
         return
         [
             new Border { Name = "AmbientBase", Background = basis, IsHitTestVisible = false },

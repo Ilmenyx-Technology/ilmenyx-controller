@@ -18,11 +18,12 @@ public static class Palette
     [
         // Cinematic ambient dark (2026-11-06, maintainer decision: reference atmosphere + Ilmenyx blue accent).
         // Surfaces are translucent over the ambient light (wine top, blue bottom right); borders almost invisible.
-        ("#15171D", "#F6F7FB"),   // Bg
-        ("#191B22", "#EEF0F5"),   // Panel (solid elevated: dialogs, menus)
-        ("#0BFFFFFF", "#B3FFFFFF"), // Card (subtle translucent surface)
-        ("#14FFFFFF", "#14000000"), // Hover
-        ("#10FFFFFF", "#14000000"), // Line
+        // Light column follows the white-theme reference: cool near-white background, white cards without visible borders.
+        ("#15171D", "#F4F5F8"),   // Bg
+        ("#191B22", "#FFFFFF"),   // Panel (solid elevated: dialogs, menus)
+        ("#0BFFFFFF", "#F2FFFFFF"), // Card (subtle translucent surface)
+        ("#14FFFFFF", "#0F1A2340"), // Hover
+        ("#10FFFFFF", "#0C1A2340"), // Line
         ("#F4F4F6", "#1D1F24"),   // Fg
         ("#A9A9B1", "#545A64"),   // Muted
         ("#777984", "#7B808B"),   // Faint
@@ -43,11 +44,12 @@ public static class Palette
         ("#E4A339", "#9A6A15"),
         ("#68CA80", "#118B41"),
         ("#FD8C7B", "#C04637"),
-        ("#E6191B22", "#E6FFFFFF")  // Glass
+        ("#E6191B22", "#E6FFFFFF"), // Glass
+        ("#0DFFFFFF", "#E9EBF0")    // Field (search, round header actions)
     ];
     private static readonly SolidColorBrush[] Brushes_ = Colors.Select(c => new SolidColorBrush(Color.Parse(c.Dark))).ToArray();
 
-    public static readonly IBrush Bg = Brushes_[0], Panel = Brushes_[1], Card = Brushes_[2], Hover = Brushes_[3], Line = Brushes_[4], Fg = Brushes_[5], Muted = Brushes_[6], Faint = Brushes_[7], Accent = Brushes_[8], Warn = Brushes_[9], OnFg = Brushes_[10], AccentText = Brushes_[11], WarnBg = Brushes_[12], OnAccent = Brushes_[13], AccentContainer = Brushes_[14], OnAccentContainer = Brushes_[15], Success = Brushes_[16], Error = Brushes_[17], Energy = Brushes_[18], DataCpu = Brushes_[19], DataGpu = Brushes_[20], DataMemory = Brushes_[21], DataDisk = Brushes_[22], DataNetwork = Brushes_[23], DataTemperature = Brushes_[24], Glass = Brushes_[25];
+    public static readonly IBrush Bg = Brushes_[0], Panel = Brushes_[1], Card = Brushes_[2], Hover = Brushes_[3], Line = Brushes_[4], Fg = Brushes_[5], Muted = Brushes_[6], Faint = Brushes_[7], Accent = Brushes_[8], Warn = Brushes_[9], OnFg = Brushes_[10], AccentText = Brushes_[11], WarnBg = Brushes_[12], OnAccent = Brushes_[13], AccentContainer = Brushes_[14], OnAccentContainer = Brushes_[15], Success = Brushes_[16], Error = Brushes_[17], Energy = Brushes_[18], DataCpu = Brushes_[19], DataGpu = Brushes_[20], DataMemory = Brushes_[21], DataDisk = Brushes_[22], DataNetwork = Brushes_[23], DataTemperature = Brushes_[24], Glass = Brushes_[25], Field = Brushes_[26];
 
     public static bool IsLight { get; private set; }
 
