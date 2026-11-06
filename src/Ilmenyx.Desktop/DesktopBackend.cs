@@ -34,6 +34,7 @@ public static class DesktopBackend
         if (backend != DisplayBackend.Auto && !OperatingSystem.IsLinux())
             throw new PlatformNotSupportedException("Seleção explícita X11/Wayland está disponível somente no Linux.");
         builder = builder.UsePlatformDetect() // Also configures Skia and font services.
+            .WithInterFont().With(new Avalonia.Media.FontManagerOptions { DefaultFamilyName = "fonts:Inter#Inter" }) // brand typeface (MANUAL-ILMENYX), bundled (OFL-1.1)
             .With(new X11PlatformOptions { WmClass = AppId })
             .With(new WaylandPlatformOptions { AppId = AppId });
         return backend switch

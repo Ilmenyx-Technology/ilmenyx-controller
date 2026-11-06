@@ -126,3 +126,8 @@ Inventário, hashes e avisos coletados não equivalem a liberação jurídica de
 - **AreWeAntiCheatYet** — `games.json`, licença MIT (Copyright © 2021 Starz0r, Curve).
 - **Steam Deck** — status de compatibilidade da loja Steam (Valve), consultado sob demanda. Steam e Steam Deck são marcas da Valve.
 - **SteamDB** — não usado como fonte de dados (o FAQ do site proíbe scraping); apenas link.
+
+## Ícones da interface
+
+- **Material Design Icons** (Pictogrammers, pacote `@mdi/js` 7.4.47): traçados SVG de cerca de 40 ícones copiados para
+  `src/Ilmenyx.Desktop/Icons.cs`, sob a Apache License 2.0 (Pictogrammers Free License: ícones Apache-2.0, código MIT).

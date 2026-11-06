@@ -16,14 +16,16 @@ public static class Palette
 {
     private static readonly (string Dark, string Light)[] Colors =
     [
-        ("#181A1C", "#F8F9FD"),
-        ("#1E2022", "#F2F4F7"),
-        ("#222427", "#ECEEF1"),
-        ("#35373B", "#E0E2E6"),
-        ("#424750", "#C7CCD6"),
-        ("#E6E8EC", "#26282B"),
-        ("#BCC1CB", "#4F555F"),
-        ("#858C98", "#767C89"),
+        // Cinematic ambient dark (2026-11-06, maintainer decision: reference atmosphere + Ilmenyx blue accent).
+        // Surfaces are translucent over the ambient light (wine top, blue bottom right); borders almost invisible.
+        ("#15171D", "#F6F7FB"),   // Bg
+        ("#191B22", "#EEF0F5"),   // Panel (solid elevated: dialogs, menus)
+        ("#0BFFFFFF", "#B3FFFFFF"), // Card (subtle translucent surface)
+        ("#14FFFFFF", "#14000000"), // Hover
+        ("#10FFFFFF", "#14000000"), // Line
+        ("#F4F4F6", "#1D1F24"),   // Fg
+        ("#A9A9B1", "#545A64"),   // Muted
+        ("#777984", "#7B808B"),   // Faint
         ("#A4C1FB", "#255EE9"),
         ("#E7B878", "#8C5D0B"),
         ("#181A1C", "#F8F9FD"),
@@ -41,7 +43,7 @@ public static class Palette
         ("#E4A339", "#9A6A15"),
         ("#68CA80", "#118B41"),
         ("#FD8C7B", "#C04637"),
-        ("#D91E2022", "#C7FFFFFF")
+        ("#E6191B22", "#E6FFFFFF")  // Glass
     ];
     private static readonly SolidColorBrush[] Brushes_ = Colors.Select(c => new SolidColorBrush(Color.Parse(c.Dark))).ToArray();
 

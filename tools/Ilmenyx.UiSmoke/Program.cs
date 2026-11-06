@@ -529,11 +529,11 @@ public sealed class UiSmokeApp : Application
         await ToastAsync(shell);
         Click(shell, "SortMemory"); await Until(() => Find<Button>(shell, "SortMemory").Content!.ToString()!.Contains('▼'));
         Click(shell, "ToggleMonitor");
-        await Until(() => Find<Button>(shell, "ToggleMonitor").Content!.ToString() == "Retomar monitor" && Find<TextBlock>(shell, "SideMonitor").Text == "monitor parado");
+        await Until(() => (Find<Button>(shell, "ToggleMonitor").Tag as string) == "Retomar monitor" && Find<TextBlock>(shell, "SideMonitor").Text == "monitor parado");
         var frozen = Find<TextBlock>(shell, "OverviewValue").Text; await Task.Delay(1500);
         if (Find<TextBlock>(shell, "OverviewValue").Text != frozen) throw new InvalidOperationException("Paused monitor kept sampling.");
         Click(shell, "ToggleMonitor");
-        await Until(() => Find<Button>(shell, "ToggleMonitor").Content!.ToString() == "Pausar monitor");
+        await Until(() => (Find<Button>(shell, "ToggleMonitor").Tag as string) == "Pausar monitor");
         Click(shell, "OpenClassic");
         await Until(() => desktop.Windows.OfType<DashboardWindow>().Count(w => w.IsVisible) == 2);
         desktop.Windows.OfType<DashboardWindow>().Single(w => w.IsVisible && w != desktop.MainWindow).Close();
@@ -1014,13 +1014,13 @@ public sealed class UiSmokeApp : Application
     {
         if (Palette.IsLight) throw new InvalidOperationException("Default theme must be dark.");
         Find<Button>(shell, "Navsystem").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        Click(shell, "ToggleTheme"); await Until(() => Palette.IsLight && Find<Button>(shell, "ToggleTheme").Content!.ToString() == "Tema escuro");
+        Click(shell, "ToggleTheme"); await Until(() => Palette.IsLight && (Find<Button>(shell, "ToggleTheme").Tag as string) == "Tema escuro");
         if (((Avalonia.Media.SolidColorBrush)Palette.Bg).Color.R < 200 || ((Avalonia.Media.SolidColorBrush)Palette.Fg).Color.R > 80) throw new InvalidOperationException("Light palette must have a light background and dark ink.");
         await Task.Delay(400); Capture(shell, "shell-light.png");
         string saved = File.ReadAllText(Path.Combine(Environment.GetEnvironmentVariable("XDG_CONFIG_HOME")!, "ilmenyx", "settings.json"));
         if (!saved.Contains("\"ThemeLight\": true")) throw new InvalidOperationException("Theme choice must be persisted.");
         foreach (var key in new[] { "stress", "oc", "disks" }) { Find<Button>(shell, "Nav" + key).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); await Task.Delay(500); Capture(shell, $"shell-light-{key}.png"); }
-        Click(shell, "ToggleTheme"); await Until(() => !Palette.IsLight && Find<Button>(shell, "ToggleTheme").Content!.ToString() == "Tema claro");
+        Click(shell, "ToggleTheme"); await Until(() => !Palette.IsLight && (Find<Button>(shell, "ToggleTheme").Tag as string) == "Tema claro");
         Console.WriteLine("PASS theme: light/dark toggle recolours the live window, choice persisted to the settings file (fixture directory), default is dark");
     }
     private static async Task ToastAsync(ShellWindow shell)

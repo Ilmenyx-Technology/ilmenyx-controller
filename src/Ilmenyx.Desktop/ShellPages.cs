@@ -116,7 +116,7 @@ public sealed partial class ShellWindow
         {
             var probe = await Task.Run(ReadMachineProbe);
             int n = BlockedCatalog.AvailableCount(probe);
-            if (nav.TryGetValue("blocked", out var b)) { b.Content = n > 0 ? $"Bloqueados (!) · {n} p/ testar" : "Bloqueados (!)"; Avalonia.Automation.AutomationProperties.SetName(b, n > 0 ? $"Bloqueados, {n} teste(s) disponível(is) nesta máquina" : "Bloqueados"); }
+            if (nav.TryGetValue("blocked", out var b)) { SetNavLabel("blocked", n > 0 ? $"Bloqueados (!) · {n} p/ testar" : "Bloqueados (!)"); Avalonia.Automation.AutomationProperties.SetName(b, n > 0 ? $"Bloqueados, {n} teste(s) disponível(is) nesta máquina" : "Bloqueados"); }
         }
         catch (Exception e) when (e is IOException or InvalidOperationException) { }
     }
