@@ -23,10 +23,10 @@ public sealed class ReportPage : StackPanel
     public ReportPage(Func<CancellationToken, Task<ReportData>> gather, Func<string, Task<string?>> destination, CancellationToken lifetime)
     {
         this.gather = gather; this.destination = destination; this.lifetime = lifetime; Spacing = 4;
-        Children.Add(new StackPanel { Margin = new Thickness(0, 4, 0, 20), Children = { new TextBlock { Text = "Relatório", FontSize = 32, FontWeight = FontWeight.Bold }, new TextBlock { Text = "Um único arquivo com tudo o que o Ilmenyx lê da máquina", Foreground = Palette.Muted } } });
+        Children.Add(UiKit.PageHeader("Relatório", "Um único arquivo com tudo o que o Ilmenyx lê da máquina"));
         AutomationProperties.SetName(html, "Exportar relatório em HTML"); AutomationProperties.SetName(json, "Exportar relatório em JSON");
         html.Click += async (_, _) => await ExportAsync(true); json.Click += async (_, _) => await ExportAsync(false);
-        Children.Add(UiKit.Card(new StackPanel { Spacing = 10, Children = {
+        Children.Add(UiKit.FeatureCard(new StackPanel { Spacing = 10, Children = {
             UiKit.Label("O QUE ENTRA"),
             new TextBlock { TextWrapping = TextWrapping.Wrap, Text = "Sistema (CPU, memória, placa-mãe, SO, rede), placas de vídeo, saúde dos discos, bateria e energia, sensores no momento da exportação, o último teste de rede desta sessão e o histórico local de benchmarks e verificações." },
             UiKit.Label("O QUE FICA DE FORA"),

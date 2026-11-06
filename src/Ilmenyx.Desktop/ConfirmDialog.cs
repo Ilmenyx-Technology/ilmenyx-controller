@@ -14,7 +14,8 @@ public sealed class ConfirmDialog : Window
     public ConfirmDialog(string title, string message, string yes = "Sim", string no = "Não")
     {
         Icon = AppIcon.Window; Title = title; Width = 520; MinWidth = 360; SizeToContent = SizeToContent.Height; CanResize = false; WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        Background = Palette.Panel; KeyboardNavigation.SetTabNavigation(this, KeyboardNavigationMode.Cycle);
+        Background = Palette.Panel; Foreground = Palette.Fg;
+        KeyboardNavigation.SetTabNavigation(this, KeyboardNavigationMode.Cycle);
         var text = new TextBlock { Name = "ConfirmText", Text = message, TextWrapping = TextWrapping.Wrap };
         AutomationProperties.SetName(text, message);
         var yesButton = new Button { Name = "ConfirmYes", Content = yes, IsDefault = false, Padding = new Thickness(20, 8) };
@@ -22,8 +23,8 @@ public sealed class ConfirmDialog : Window
         yesButton.Click += (_, _) => Close(true); noButton.Click += (_, _) => Close(false);
         Content = new StackPanel
         {
-            Margin = new Thickness(24), Spacing = 18,
-            Children = { new TextBlock { Text = title, FontSize = 18, FontWeight = FontWeight.Bold }, text, new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, HorizontalAlignment = HorizontalAlignment.Right, Children = { noButton, yesButton } } }
+            Background = IlmenyxTheme.Ambient(), Margin = new Thickness(24), Spacing = 18,
+            Children = { new TextBlock { Text = title, TextWrapping = TextWrapping.Wrap, FontSize = 18, FontWeight = FontWeight.Bold }, text, new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, HorizontalAlignment = HorizontalAlignment.Right, Children = { noButton, yesButton } } }
         };
         Opened += (_, _) => noButton.Focus();
     }

@@ -37,19 +37,27 @@ public sealed class OptimizePage : StackPanel
     {
         this.optimizer = optimizer; this.services = services; this.usage = usage; this.settingsPath = settingsPath; this.owner = owner; this.lifetime = lifetime; Spacing = 4;
         settings = IlmenyxSettings.Load(settingsPath);
-        Children.Add(new StackPanel { Margin = new Thickness(0, 4, 0, 20), Children = { new TextBlock { Text = "Otimiza", FontSize = 32, FontWeight = FontWeight.Bold }, new TextBlock { Text = "Fecha o que atrapalha e ajusta o sistema para jogos (somente o que não exige root)", Foreground = Palette.Muted } } });
+        Children.Add(UiKit.PageHeader("Otimiza", "Fecha o que atrapalha e ajusta o sistema para jogos (somente o que não exige root)"));
         optimize.Click += async (_, _) => await OptimizeAsync();
         var ram = new Grid { ColumnDefinitions = new("*,Auto") };
         var info = new StackPanel { Children = { new Grid { Children = { UiKit.Label("MEMÓRIA RAM"), ramText } }, new Border { Height = 6 }, ramMeter, result } };
         Grid.SetColumn(optimize, 1); optimize.VerticalAlignment = VerticalAlignment.Center; optimize.Margin = new Thickness(24, 0, 0, 0); ram.Children.Add(info); ram.Children.Add(optimize);
-        Children.Add(UiKit.Card(ram));
+        var memoryCard = UiKit.FeatureCard(ram);
+        memoryCard.Margin = new Thickness(0, 0, 0, 14); Children.Add(memoryCard);
         var refresh = new Button { Name = "BtnOptRefresh", Content = "ATUALIZAR", Padding = new Thickness(10, 4), FontSize = 11, HorizontalAlignment = HorizontalAlignment.Right };
         refresh.Click += async (_, _) => await RefreshAppsAsync();
-        var left = UiKit.Card(new StackPanel { Children = { new Grid { Children = { UiKit.Label("PROGRAMAS PARA FECHAR"), refresh } }, new Border { Height = 8 }, appList, new TextBlock { Text = "Só aparecem aplicativos instalados (entradas .desktop) e auxiliares sugeridos, do seu usuário. Fechar envia SIGTERM (como fechar a janela); nada é forçado nem encerrado à força.", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0) } } }, new Thickness(0, 0, 8, 14));
+        var left = UiKit.Card(new StackPanel { Children = { UiKit.SectionHeader("PROGRAMAS PARA FECHAR", refresh), new Border { Height = 8 }, appList, new TextBlock { Text = "Só aparecem aplicativos instalados (entradas .desktop) e auxiliares sugeridos, do seu usuário. Fechar envia SIGTERM (como fechar a janela); nada é forçado nem encerrado à força.", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0) } } }, new Thickness(0, 0, 8, 14));
         var restore = new Button { Name = "BtnTweaksRestore", Content = "RESTAURAR ORIGINAIS", Padding = new Thickness(10, 4), FontSize = 11, HorizontalAlignment = HorizontalAlignment.Right };
         restore.Click += async (_, _) => await RestoreAsync();
-        var right = UiKit.Card(new StackPanel { Children = { new Grid { Children = { UiKit.Label("AJUSTES DO SISTEMA PARA JOGOS"), restore } }, new Border { Height = 8 }, tweakList } }, new Thickness(8, 0, 0, 14));
-        var columns = new Grid { ColumnDefinitions = new("*,*") }; Grid.SetColumn(right, 1); columns.Children.Add(left); columns.Children.Add(right);
+        var right = UiKit.Card(new StackPanel { Children = { UiKit.SectionHeader("AJUSTES DO SISTEMA PARA JOGOS", restore), new Border { Height = 8 }, tweakList } }, new Thickness(8, 0, 0, 14));
+        var columns = new Grid { ColumnDefinitions = new("*,*"), RowDefinitions = new("Auto,Auto") }; columns.Children.Add(left); columns.Children.Add(right);
+        columns.SizeChanged += (_, _) =>
+        {
+            bool wide = columns.Bounds.Width >= 1000;
+            Grid.SetColumnSpan(left, wide ? 1 : 2); Grid.SetColumn(right, wide ? 1 : 0);
+            Grid.SetColumnSpan(right, wide ? 1 : 2); Grid.SetRow(right, wide ? 0 : 1);
+            left.Margin = new Thickness(0, 0, wide ? 8 : 0, 14); right.Margin = new Thickness(wide ? 8 : 0, 0, 0, 14);
+        };
         Children.Add(columns);
         Loaded += async (_, _) => { await RefreshAppsAsync(); await RefreshTweaksAsync(); };
         usage.Updated += UpdateRam; UpdateRam();
