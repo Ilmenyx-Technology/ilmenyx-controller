@@ -10,8 +10,7 @@ public sealed class GameSimValidationPanel : Border
 {
     public GameSimValidationPanel(GameSimValidationViewModel model, Func<string, Task<string?>> chooseDestination, CancellationToken lifetime)
     {
-        DataContext = model; Background = Palette.Card; CornerRadius = new CornerRadius(12);
-        Padding = new Thickness(20); Margin = new Thickness(0, 0, 12, 0);
+        DataContext = model; ValidationLook.Surface(this);
         var start = new Button { Name = "ValidateSim", Content = "Validar simulação (reduzida)", Margin = new Thickness(0, 0, 8, 8) };
         var cancel = new Button { Name = "CancelSim", Content = "Cancelar simulação", Margin = new Thickness(0, 0, 8, 8) };
         var export = new Button { Name = "ExportSim", Content = "Exportar simulação JSON", Margin = new Thickness(0, 0, 8, 8) };
@@ -42,8 +41,9 @@ public sealed class GameSimValidationPanel : Border
                 if (IsEffectivelyVisible && button.IsEffectivelyEnabled && !lifetime.IsCancellationRequested) button.Focus();
             }
         }
-        var status = new TextBlock { Name = "SimStatus", TextWrapping = TextWrapping.Wrap }; status.Bind(TextBlock.TextProperty, new Binding(nameof(model.Status)));
-        var summary = new TextBlock { Name = "SimSummary", TextWrapping = TextWrapping.Wrap, FontSize = 12 }; summary.Bind(TextBlock.TextProperty, new Binding(nameof(model.Summary)));
+        ValidationLook.Actions(start, cancel, export, exportHtml);
+        var status = new TextBlock { Name = "SimStatus", TextWrapping = TextWrapping.Wrap, FontSize = 12.5 }; status.Bind(TextBlock.TextProperty, new Binding(nameof(model.Status)));
+        var summary = new TextBlock { Name = "SimSummary", TextWrapping = TextWrapping.Wrap, FontSize = 12, Foreground = Palette.Muted }; summary.Bind(TextBlock.TextProperty, new Binding(nameof(model.Summary)));
         var preview = new GameSimPreview { Name = "SimPreview", Width = 220, Height = 220 };
         AutomationProperties.SetName(preview, "Estado final da simulação reduzida; contagens e hash no resumo textual");
         preview.Bind(GameSimPreview.StateProperty, new Binding(nameof(model.State)));
@@ -53,8 +53,8 @@ public sealed class GameSimValidationPanel : Border
             Spacing = 10,
             Children =
         {
-            new TextBlock { Text = "VALIDAÇÃO REDUZIDA · GAMESIM", TextWrapping = TextWrapping.Wrap, FontSize = 14, FontWeight = FontWeight.Bold },
-            new TextBlock { Text = "256 entidades · 16 passos fixos · 1 worker · sem aquecimento por tempo.\nSimulação sintética de física/IA. Não mede FPS de jogos, desempenho da GPU ou score.", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap },
+            ValidationLook.Title(Icons.Games, "VALIDAÇÃO REDUZIDA · GAMESIM"),
+            ValidationLook.Description("256 entidades · 16 passos fixos · 1 worker · sem aquecimento por tempo.\nSimulação sintética de física/IA. Não mede FPS de jogos, desempenho da GPU ou score."),
             new WrapPanel { Children = { start, cancel, export, exportHtml } }, preview, status, summary
         }
         };

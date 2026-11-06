@@ -392,11 +392,16 @@ public sealed partial class ShellWindow
 
     private Control ValidatePage()
     {
-        cpuPanel = new CpuValidationPanel(cpu, Destination("cpu"), stop.Token);
+        cpuPanel = new CpuValidationPanel(cpu, Destination("cpu"), stop.Token) { Margin = new Thickness(0, 0, 6, 0) };
+        var memoryPanel = new MemoryValidationPanel(memory, Destination("memory"), stop.Token) { Margin = new Thickness(6, 0, 0, 12) };
+        var simPanel = new GameSimValidationPanel(simulation, Destination("sim"), stop.Token) { Margin = new Thickness(6, 0, 0, 0) };
+        // Asymmetric grid: the CPU renderer (the main validation) takes the wider column; memory and GameSim stack beside it. Tab order stays CPU, memory, GameSim.
+        Grid.SetRowSpan(cpuPanel, 2); Grid.SetColumn(memoryPanel, 1); Grid.SetColumn(simPanel, 1); Grid.SetRow(simPanel, 1);
+        var grid = new Grid { ColumnDefinitions = new("1.35*,*"), RowDefinitions = new("Auto,*"), Children = { cpuPanel, memoryPanel, simPanel } };
         return Scroll("ValidateScroll", new StackPanel
         {
-            Spacing = 12,
-            Children = { cpuPanel, new MemoryValidationPanel(memory, Destination("memory"), stop.Token), new GameSimValidationPanel(simulation, Destination("sim"), stop.Token) }
+            Margin = new Thickness(0, 4, 8, 12),
+            Children = { UiKit.PageHeader("Validações reduzidas", "Execuções curtas e determinísticas que conferem os algoritmos do CPU, da memória e do GameSim · não medem desempenho nem saúde do hardware"), grid }
         });
     }
 

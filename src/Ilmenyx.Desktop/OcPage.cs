@@ -39,12 +39,12 @@ public sealed class OcPage : StackPanel
     private readonly TextBox tempLimit = new() { Name = "OcTempLimit", Text = "95", Width = 80 };
     private readonly Button start = UiKit.Primary("BtnOcCheck", "INICIAR VERIFICAÇÃO", 22, 11);
     private readonly TextBlock hint = new() { Name = "OcHint", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, FontSize = 12 };
-    private readonly TextBlock status = new() { Name = "OcStatus", Text = "Parado", FontSize = 15 };
-    private readonly ProgressBar bar = new() { Name = "OcProgress", Minimum = 0, Maximum = 1, Height = 8, Margin = new Thickness(0, 8, 0, 0) };
-    private readonly Border verdictCard = new() { Name = "OcVerdictCard", IsVisible = false, CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), Padding = new Thickness(18) };
+    private readonly TextBlock status = new() { Name = "OcStatus", Text = "Parado", FontSize = 26, FontWeight = FontWeight.Bold, TextWrapping = TextWrapping.Wrap };
+    private readonly ProgressBar bar = new() { Name = "OcProgress", Minimum = 0, Maximum = 1, Height = 6, MinHeight = 6, Margin = new Thickness(0, 12, 0, 0) };
+    private readonly Border verdictCard = new() { Name = "OcVerdictCard", IsVisible = false, CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), Padding = new Thickness(18, 14), Margin = new Thickness(0, 16, 0, 0), Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1) };
     private readonly TextBlock verdict = new() { Name = "OcVerdict", FontSize = 28, FontWeight = FontWeight.Bold };
     private readonly TextBlock verdictWhy = new() { Name = "OcVerdictWhy", TextWrapping = TextWrapping.Wrap };
-    private readonly TextBlock verdictRows = new() { Name = "OcResult", TextWrapping = TextWrapping.Wrap, FontFamily = new FontFamily("monospace"), FontSize = 12, Margin = new Thickness(0, 8, 0, 0) };
+    private readonly TextBlock verdictRows = new() { Name = "OcResult", TextWrapping = TextWrapping.Wrap, FontFamily = IlmenyxTheme.Mono, FontSize = 12, Margin = new Thickness(0, 8, 0, 0) };
     private readonly TextBlock recent = new() { Name = "OcRecentErrors", TextWrapping = TextWrapping.Wrap };
     private readonly StackPanel history = new() { Name = "OcHistory" };
     private readonly StackPanel guide = new() { Name = "OcGuide", Spacing = 8 };
@@ -64,8 +64,8 @@ public sealed class OcPage : StackPanel
         this.services = services; this.usage = usage; this.owner = owner; this.settingsPath = settingsPath; this.lifetime = lifetime; Spacing = 4;
         this.now = now ?? (() => DateTimeOffset.Now); this.delay = delay ?? Task.Delay;
         settings = IlmenyxSettings.Load(settingsPath);
-        Children.Add(new StackPanel { Margin = new Thickness(0, 4, 0, 20), Children = { new TextBlock { Text = "OC", FontSize = 32, FontWeight = FontWeight.Bold }, new TextBlock { Text = "Verificador de estabilidade, ajustes da GPU e guia de overclock na BIOS · o Ilmenyx não altera hardware nem BIOS", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap } } });
-        BuildGpuCard(); BuildVerifier(); BuildRecent(); BuildHistoryCard(); BuildGuide();
+        Children.Add(UiKit.PageHeader("OC", "Verificador de estabilidade, ajustes da GPU e guia de overclock na BIOS · o Ilmenyx não altera hardware nem BIOS"));
+        BuildVerifier(); BuildGpuCard(); BuildRecentAndHistory(); BuildGuide();
         _ = LoadAsync();
     }
 
@@ -77,7 +77,10 @@ public sealed class OcPage : StackPanel
         var chips = new UiKit.ChipGroup<uint?>("OcClockPanel", [("Sem teto", null)], null, v => clockCap = v);
         gen.Click += (_, _) => ShowCommands(false); reset.Click += (_, _) => ShowCommands(true);
         gen.IsEnabled = reset.IsEnabled = power.IsEnabled = false;
-        Children.Add(UiKit.Card(new StackPanel { Spacing = 8, Children = { UiKit.Label("GPU NVIDIA · LIMITE DE ENERGIA E TETO DE CLOCK"), gpuState,
+        foreach (var b in new[] { gen, reset }) { b.FontSize = 12; b.Padding = new Thickness(14, 7); b.Margin = new Thickness(0, 0, 8, 6); b.CornerRadius = new CornerRadius(IlmenyxTheme.ControlRadius); }
+        gpuState.FontSize = 12.5;
+        Children.Add(UiKit.SectionHeader("GPU NVIDIA · limite de energia e teto de clock"));
+        Children.Add(UiKit.Card(new StackPanel { Spacing = 10, Children = { gpuState,
             new WrapPanel { Children = { Field("LIMITE DE ENERGIA (W)", power), Field("TETO DE CLOCK", chips.Panel) } },
             new WrapPanel { Children = { gen, reset } }, commands, gpuResult } }));
         gpuChips = chips;
@@ -102,7 +105,7 @@ public sealed class OcPage : StackPanel
                 foreach (var (name, cut) in new[] { ("Leve", 300u), ("Equilibrado", 500u), ("Econômico", 800u) })
                 {
                     if (max <= cut + 300) continue;
-                    uint cap = max - cut; var b = new Button { Content = $"{name} · {cap} MHz", FontSize = 11, Padding = new Thickness(14, 5), CornerRadius = new CornerRadius(16), BorderBrush = Palette.Line, BorderThickness = new Thickness(1) };
+                    uint cap = max - cut; var b = new Button { Content = $"{name} · {cap} MHz", FontSize = 11, Padding = new Thickness(13, 5), CornerRadius = new CornerRadius(IlmenyxTheme.Pill), BorderBrush = Palette.Line, BorderThickness = new Thickness(1) };
                     UiKit.ChipStyle(b, false);
                     b.Click += (_, _) => { clockCap = cap; foreach (var other in panel.Children.OfType<Button>()) UiKit.ChipStyle(other, other == b); };
                     panel.Children.Add(b);
@@ -140,27 +143,45 @@ public sealed class OcPage : StackPanel
         var target = new UiKit.ChipGroup<string>("OcTargetPanel", choices, "cpu", t => targetChoice = t);
         if (!gpuUsable)
         {
-            var gpuChip = new Button { Name = "OcTargetGpu", Content = "GPU", FontSize = 11, Padding = new Thickness(14, 5), CornerRadius = new CornerRadius(16), BorderBrush = Palette.Line, BorderThickness = new Thickness(1), IsEnabled = false };
+            var gpuChip = new Button { Name = "OcTargetGpu", Content = "GPU", FontSize = 11, Padding = new Thickness(13, 5), CornerRadius = new CornerRadius(IlmenyxTheme.Pill), BorderBrush = Palette.Line, BorderThickness = new Thickness(1), IsEnabled = false };
             ToolTip.SetTip(gpuChip, "Teste de GPU indisponível: " + (services.Gpu?.UnavailableReason ?? "módulo Vulkan não carregado") + ".");
             target.Panel.Children.Add(gpuChip);
         }
         var dur = new UiKit.ChipGroup<int>("OcDurPanel", [("5 MIN", 5), ("15 MIN", 15), ("30 MIN", 30), ("60 MIN", 60)], 15, m => duration = TimeSpan.FromMinutes(m));
         AutomationProperties.SetName(label, "Descrição da configuração testada"); AutomationProperties.SetName(tempLimit, "Limite de temperatura da CPU");
+        label.HorizontalAlignment = tempLimit.HorizontalAlignment = power.HorizontalAlignment = HorizontalAlignment.Left;
         start.Click += async (_, _) => { if (cts is not null) cts.Cancel(); else await StartAsync(); };
-        verdictCard.Child = new StackPanel { Children = { verdict, verdictWhy, verdictRows } };
-        Children.Add(UiKit.Card(new StackPanel { Spacing = 8, Children = { UiKit.Label("VERIFICADOR DE ESTABILIDADE"),
-            new WrapPanel { Children = { Field("TESTAR", target.Panel), Field("DURAÇÃO", dur.Panel), Field("DESCRIÇÃO", label), Field("LIMITE °C", tempLimit) } },
-            new StackPanel { Orientation = Orientation.Horizontal, Spacing = 16, Children = { start, hint } }, status, bar, verdictCard } }));
+        verdictWhy.FontSize = 12.5; verdictWhy.Margin = new Thickness(0, 2, 0, 0);
+        verdictCard.Child = new StackPanel { Children = { UiKit.Label("VEREDITO"), verdict, verdictWhy, verdictRows } };
+        // Hero: the verifier state (stopped, running, stable/unstable) dominates; limits go to a compact card below.
+        start.MinWidth = 190; start.HorizontalContentAlignment = HorizontalAlignment.Center;
+        hint.MaxWidth = 240; hint.Margin = new Thickness(0, 8, 0, 0); hint.TextAlignment = TextAlignment.Right; hint.HorizontalAlignment = HorizontalAlignment.Right;
+        var state = new StackPanel { Spacing = 4, Children = {
+            new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { UiKit.Icon(Icons.Oc, 14, Palette.AccentText), UiKit.Label("VERIFICADOR DE ESTABILIDADE") } }, status,
+            new TextBlock { Text = "Mede a nota, roda stress pelo tempo escolhido e confere o log do kernel; para no primeiro erro ou no limite de temperatura.", FontSize = 12.5, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap },
+            bar, verdictCard } };
+        var action = new StackPanel { HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(18, 0, 0, 0), Children = { start, hint } };
+        var hero = new Grid { ColumnDefinitions = new("*,Auto") }; Grid.SetColumn(action, 1); hero.Children.Add(state); hero.Children.Add(action);
+        Children.Add(BenchPage.Themed(UiKit.Hero(hero, height: double.NaN, name: "OcHero")));
+        Children.Add(UiKit.SectionHeader("Teste e limites"));
+        Children.Add(UiKit.Card(new WrapPanel { Children = { Field("TESTAR", target.Panel), Field("DURAÇÃO", dur.Panel), Field("DESCRIÇÃO", label), Field("LIMITE °C", tempLimit) } }));
         Controls = [dur.Panel, target.Panel];
     }
 
     private Control[] Controls = [];
 
-    private void BuildRecent()
+    /// <summary>Recent kernel errors and the local history side by side (two equal columns, still readable at the 640 px minimum).</summary>
+    private void BuildRecentAndHistory()
     {
-        var refresh = new Button { Name = "BtnOcRefreshErrors", Content = "ATUALIZAR" };
+        var refresh = new Button { Name = "BtnOcRefreshErrors", Content = "ATUALIZAR", FontSize = 11.5, Padding = new Thickness(12, 5), Background = Palette.Card, Foreground = Palette.Muted, CornerRadius = new CornerRadius(IlmenyxTheme.ControlRadius), Margin = new Thickness(0, 4, 0, 0) };
         refresh.Click += async (_, _) => await RefreshRecentAsync();
-        Children.Add(UiKit.Card(new StackPanel { Spacing = 6, Children = { UiKit.Label("ERROS DE HARDWARE RECENTES (LOG DO KERNEL · 7 DIAS)"), recent, new TextBlock { Text = "Leitura somente do journal (journalctl -k). Conta linhas de MCE, EDAC, PCIe AER e reinícios de GPU; não prova a causa.", FontSize = 11, Foreground = Palette.Faint, TextWrapping = TextWrapping.Wrap }, refresh } }));
+        recent.FontSize = 13;
+        var errors = UiKit.Card(new StackPanel { Spacing = 6, Children = { UiKit.Label("ERROS DE HARDWARE RECENTES (LOG DO KERNEL · 7 DIAS)"), recent, new TextBlock { Text = "Leitura somente do journal (journalctl -k). Conta linhas de MCE, EDAC, PCIe AER e reinícios de GPU; não prova a causa.", FontSize = 11, Foreground = Palette.Faint, TextWrapping = TextWrapping.Wrap }, refresh } }, new Thickness(0, 0, 6, 0));
+        var past = UiKit.Card(new StackPanel { Spacing = 6, Children = { UiKit.Label("HISTÓRICO DE VERIFICAÇÕES (LOCAL)"), history } }, new Thickness(6, 0, 0, 0));
+        Grid.SetColumn(past, 1);
+        Children.Add(UiKit.SectionHeader("Saúde e histórico"));
+        Children.Add(new Grid { ColumnDefinitions = new("*,*"), Children = { errors, past } });
+        BuildHistory();
     }
 
     public async Task RefreshRecentAsync()
@@ -173,14 +194,20 @@ public sealed class OcPage : StackPanel
             : $"{e.Total} ocorrência(s): CPU/MCE {e.Cpu}, memória/EDAC {e.Memory}, PCIe {e.Pcie}, GPU {e.Gpu}. Última: {e.Last}";
     }
 
-    private void BuildHistoryCard() { Children.Add(UiKit.Card(new StackPanel { Spacing = 6, Children = { UiKit.Label("HISTÓRICO DE VERIFICAÇÕES (LOCAL)"), history } })); BuildHistory(); }
 
     private void BuildHistory()
     {
         history.Children.Clear();
         var runs = settings.BenchRuns.Where(r => r.Kind == "OC").Take(20).ToList();
         if (runs.Count == 0) { history.Children.Add(new TextBlock { Text = "Nenhuma verificação concluída ainda.", Foreground = Palette.Muted, FontSize = 12 }); return; }
-        foreach (var r in runs) history.Children.Add(new TextBlock { Text = $"{r.At.LocalDateTime.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture)}  {r.Summary}", FontFamily = new FontFamily("monospace"), FontSize = 12, TextWrapping = TextWrapping.Wrap });
+        bool first = true;
+        foreach (var r in runs)
+        {
+            history.Children.Add(new Border { BorderBrush = Palette.Line, BorderThickness = new Thickness(0, first ? 0 : 1, 0, 0), Padding = new Thickness(0, 6), Child = new StackPanel { Spacing = 1, Children = {
+                new TextBlock { Text = r.At.LocalDateTime.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture), FontSize = 11, Foreground = Palette.Faint },
+                new TextBlock { Text = r.Summary, FontSize = 12.5, TextWrapping = TextWrapping.Wrap, Foreground = r.Summary.StartsWith("INSTÁVEL", StringComparison.Ordinal) ? Palette.Error : Palette.Fg } } } });
+            first = false;
+        }
     }
 
     private void BuildGuide()
@@ -191,8 +218,10 @@ public sealed class OcPage : StackPanel
         foreach (var s in steps)
             guide.Children.Add(new Border { BorderBrush = Palette.Line, BorderThickness = new Thickness(0, 1, 0, 0), Padding = new Thickness(0, 8), Child = new StackPanel { Spacing = 2, Children = {
                 new TextBlock { Text = $"{s.Number} · {s.Title}", FontWeight = FontWeight.SemiBold },
-                new TextBlock { Text = s.Where, FontFamily = new FontFamily("monospace"), FontSize = 12, Foreground = Palette.AccentText, TextWrapping = TextWrapping.Wrap },
+                new TextBlock { Text = s.Where, FontFamily = IlmenyxTheme.Mono, FontSize = 12, Foreground = Palette.AccentText, TextWrapping = TextWrapping.Wrap },
                 new TextBlock { Text = s.Text, TextWrapping = TextWrapping.Wrap, Foreground = Palette.Muted, FontSize = 12 } } } });
+        guideIntro.FontSize = 12.5;
+        Children.Add(UiKit.SectionHeader("Guia de overclock na BIOS"));
         Children.Add(UiKit.Card(new StackPanel { Spacing = 6, Children = { guideTitle, guideIntro, guide } }));
     }
 
@@ -228,7 +257,8 @@ public sealed class OcPage : StackPanel
         status.Text = $"Concluído em {result.Elapsed:mm\\:ss}.";
         verdict.Text = stable ? "ESTÁVEL" : "INSTÁVEL";
         verdictWhy.Text = stable ? $"Nenhum erro em {options.Duration.TotalMinutes:0} min de stress. Para Curve Optimizer, use o PC normalmente por um dia e confira os erros recentes." : "Motivo: " + result.FailureReason + ". Volte um passo no ajuste e teste de novo.";
-        verdictCard.Background = stable ? Palette.Card : Palette.Fg; verdict.Foreground = verdictWhy.Foreground = verdictRows.Foreground = stable ? Palette.Fg : Palette.OnFg;
+        verdictCard.Background = stable ? Palette.Card : Palette.WarnBg; verdict.Foreground = stable ? Palette.Success : Palette.Error;
+        verdictWhy.Foreground = stable ? Palette.Muted : Palette.Fg; verdictRows.Foreground = Palette.Muted;
         var rows = new List<string> { "Configuração: " + (options.Label.Length > 0 ? options.Label : "sem descrição") };
         if (result.CpuScore is double score) rows.Add("Nota CPU (render): " + score.ToString("N0", CultureInfo.InvariantCulture) + " pts (experimental)");
         if (result.GpuScore is double gscore) rows.Add("Nota GPU (cena): " + gscore.ToString("N0", CultureInfo.InvariantCulture) + " pts (experimental)");
