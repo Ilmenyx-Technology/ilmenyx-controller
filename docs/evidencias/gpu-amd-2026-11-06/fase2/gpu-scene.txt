@@ -1,0 +1,13 @@
+{
+  "Status": 0,
+  "Adapter": "AMD Radeon 610M (RADV RAPHAEL_MENDOCINO)",
+  "Width": 1920,
+  "Height": 1080,
+  "Frames": 123,
+  "Seconds": 8.2084024,
+  "AverageFps": 14.984645489602213,
+  "Low1Fps": 14.350990792404305,
+  "Score": 149.84645489602212,
+  "Reason": null
+}
+exit=0

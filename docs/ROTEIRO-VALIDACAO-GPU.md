@@ -62,12 +62,22 @@ nunca são executados. Capture as telas para as evidências.
 
 ## 5. Carga curta de GPU (SOMENTE com autorização explícita do dono)
 
+O empacotador e o `validate-gpu-remote.sh` precisam de `jq` e `rg`. Sem eles no sistema (e sem sudo), baixe os binários oficiais para
+`/tmp/ilx-tools` conferindo o checksum publicado (jq 1.7.1 `jq-linux-amd64` + `sha256sum.txt`; ripgrep 14.1.1
+`x86_64-unknown-linux-musl` + `.sha256`) e use `export PATH=/tmp/ilx-tools:$PATH`.
+
 ```bash
+for p in Cli Desktop; do dotnet restore src/Ilmenyx.$p -r linux-x64 -p:IlmenyxBundleIcu=true; done   # sem isso: NETSDK1047
 bash scripts/package-linux-x64.sh /tmp/ilx-pacote     # pacote autocontido; usa .artifacts/components-cache
 bash scripts/test-linux-package.sh /tmp/ilx-pacote/Ilmenyx-linux-x64 /tmp/ilx-pacote-teste
 bash scripts/validate-gpu-remote.sh /tmp/ilx-pacote/Ilmenyx-linux-x64 /tmp/ilx-gpu-fase1
 bash scripts/validate-gpu-remote.sh /tmp/ilx-pacote/Ilmenyx-linux-x64 /tmp/ilx-gpu-fase2 --allow-gpu-load
 ```
+
+Durante a fase 2, registre uso, temperaturas e consumo a cada segundo (sysfs/`nvidia-smi`). Em 2026-11-06 a APU Radeon 610M
+fez 32,5 FPS no stress e 15,0 FPS (nota 150) na cena; serve de referência de plausibilidade, não de comparação.
+Teste também o MangoHud embutido se o sistema não tiver MangoHud: `MANGOHUD_CONFIG=output_folder=/tmp/mh,autostart_log=1,log_duration=3
+~/.local/share/ilmenyx/components/bin/mangohud vkcube` deve gravar um CSV.
 
 São cargas de cerca de 8 s, com corte por temperatura. Stress longo, overclock e alteração de driver continuam proibidos.
 

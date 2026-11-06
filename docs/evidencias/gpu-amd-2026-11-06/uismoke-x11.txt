@@ -17,7 +17,7 @@ PASS apps page: Flathub added only after confirmation (user scope), installed ap
 PASS bench page: every test needs a visible confirmation, declined/stopped/aborted runs publish nothing, temperature guard cuts the run, tmpfs folders refused, results kept in the local history; real load never started
 PASS oc page: GPU limits validated and shown as commands (never run), verifier needs confirmation, stable/unstable verdicts from temperature, memory and kernel-log errors, BIOS guide from DMI board; no real stress or journal read
 PASS oc GPU: GPU target appears only with a usable GPU engine, GPU-only verification never starts the CPU engine and publishes the GPU score (fake engines)
-PASS report page: real read-only collection exported to new HTML (12481 chars) and valid JSON, cancelled destination writes nothing, existing file is never overwritten, host name and scripts absent
+PASS report page: real read-only collection exported to new HTML (12429 chars) and valid JSON, cancelled destination writes nothing, existing file is never overwritten, host name and scripts absent
 PASS overlay page: item picker and presets persist, Ilmenyx overlay window shows/hides with FPS from the frame source, MangoHud config and launch option generated into Ilmenyx's own file (user MangoHud.conf untouched)
 PASS lighting page: nothing connects or is sent before the click, control needs confirmation, effect frames reach the OpenRGB server, every device is handed back to its original mode (fake loopback server; no real RGB hardware)
 PASS blocked page: one card per blocked feature, state chips, (!) toggles the reason, Windows-only items are not applicable
@@ -80,4 +80,4 @@ LAYOUT About heading origin=20, 20 bounds=440, 39 text=432,4319999999999x38,136
 LAYOUT about factor=2 actual=480, 360 renderScaling=1
 PASS requirements minimum layout factor=2 actual=480, 360
 PASS layout minimum sizes, text factors 1/1.5/2: dashboard buttons, save field/error/actions, About selector/text/close reachable; reading area >=120 DIP
-PASS /tmp/ilx-smoke-x11b/ilmenyx-ui-02ef3831599c43b29789a2f9fe463e73
+PASS /tmp/ilx-smoke-x11c/ilmenyx-ui-54c6a99114154f7d9bc3ce4812fe0358

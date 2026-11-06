@@ -1,0 +1,2 @@
+Quadro salvo em /tmp/ilx-gpu-fase2/cena.png (1920×1080) · AMD Radeon 610M (RADV RAPHAEL_MENDOCINO)
+exit=0

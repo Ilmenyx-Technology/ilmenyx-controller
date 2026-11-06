@@ -1,0 +1,9 @@
+	deviceName        = AMD Radeon 610M (RADV RAPHAEL_MENDOCINO)
+	VK_KHR_acceleration_structure                 : extension revision 13
+	VK_KHR_ray_query                              : extension revision 1
+	VK_KHR_ray_tracing_pipeline                   : extension revision 1
+	deviceName        = llvmpipe (LLVM 20.1.2, 256 bits)
+	VK_KHR_acceleration_structure                      : extension revision 13
+	VK_KHR_ray_query                                   : extension revision 1
+	VK_KHR_ray_tracing_pipeline                        : extension revision 1
+exit=0

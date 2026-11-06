@@ -7,7 +7,8 @@ namespace Ilmenyx.Platform.Linux;
 /// <summary>Runs one local program without a shell: fixed directories only, bounded output, hard timeout, never elevated.</summary>
 public static class BoundedProcess
 {
-    private static readonly string[] Directories = ["/usr/bin", "/usr/sbin", "/bin", "/sbin", "/usr/local/bin"];
+    // /usr/games: Debian/Ubuntu/Mint install gamemoderun there; without it the built-in fallback replaced the real GameMode (seen on Mint 22.3, 2026-11-06).
+    private static readonly string[] Directories = ["/usr/bin", "/usr/sbin", "/bin", "/sbin", "/usr/local/bin", "/usr/games"];
     public static string? FindSystem(string name) => name.Contains('/') ? null : Directories.Select(d => Path.Combine(d, name)).FirstOrDefault(File.Exists);
 
     /// <summary>System program first; for the integrated tools (mangohud, gamemoderun, openrgb) the copy that ships in the package is the fallback.</summary>

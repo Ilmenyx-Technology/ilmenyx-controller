@@ -16,9 +16,9 @@ mkdir -- "$2"; out=$(cd -- "$2" && pwd)
 run() { name=$1; shift; echo "== $name"; { timeout 120 "$@" > "$out/$name.txt" 2>&1; echo "exit=$?" >> "$out/$name.txt"; } || true; tail -3 "$out/$name.txt"; }
 { uname -sr; grep PRETTY_NAME /etc/os-release; } > "$out/ambiente.txt" 2>&1
 run gpu-list "$cli" bench gpu-list
-run sensors-gpu bash -c "\"$cli\" sensors --json | jq -c '[.readings[]|select(.device|startswith(\"gpu:\"))|{device,channel,unit,status}]'"
+run sensors-gpu bash -c "\"$cli\" sensors --json | jq -c '[.readings[]|select(.device|startswith(\"gpu:\"))|{device,channel,label,value:.reading.value,unit:.reading.unit,status:.reading.status,reason:.reading.reason}]'"
 run info-gpu bash -c "\"$cli\" info --json | jq -c '.gpus // .gpu // empty'"
-if command -v vulkaninfo >/dev/null; then run rt-extensions bash -c "vulkaninfo 2>/dev/null | grep -E 'VK_KHR_(ray_tracing_pipeline|acceleration_structure|ray_query)|deviceName' | sort -u"; fi
+if command -v vulkaninfo >/dev/null; then run rt-extensions bash -c "vulkaninfo 2>/dev/null | grep -E 'VK_KHR_(ray_tracing_pipeline|acceleration_structure|ray_query)|deviceName'"; fi  # kept in order: each extension stays under its device
 if [[ $allow == 1 ]]; then
   echo "FASE 2: cargas curtas de GPU (autorizadas por --allow-gpu-load)"
   run gpu-burn "$cli" bench gpu-burn --allow-gpu-load --seconds 8 --json

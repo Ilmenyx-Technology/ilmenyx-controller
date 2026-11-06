@@ -35,10 +35,15 @@ public class BundledComponentsTests : IDisposable
         string text = File.ReadAllText(script);
         Assert.Contains(Path.Combine(BundledComponents.MangoHudLibraryFolder(Root), "libMangoHud_shim.so"), text);
         Assert.Contains("MANGOHUD=1", text);
-        Assert.Contains("VK_ADD_IMPLICIT_LAYER_PATH", text);
-        string manifest = File.ReadAllText(Path.Combine(Data, "vulkan", "implicit_layer.d", "MangoHud.json"));
+        // Explicit layer by name: VK_ADD_IMPLICIT_LAYER_PATH is ignored by the Vulkan loader 1.3.275 of Ubuntu 24.04 / Mint 22 (overlay never loaded there).
+        Assert.DoesNotContain("VK_ADD_IMPLICIT_LAYER_PATH", text);
+        Assert.Contains("VK_ADD_LAYER_PATH=\"${VK_ADD_LAYER_PATH:+$VK_ADD_LAYER_PATH:}" + Path.Combine(Data, "vulkan", "explicit_layer.d") + "\"", text);
+        Assert.Contains("VK_INSTANCE_LAYERS=\"${VK_INSTANCE_LAYERS:+$VK_INSTANCE_LAYERS:}VK_LAYER_MANGOHUD_overlay_x86_64\"", text);
+        Assert.DoesNotContain("VK_LAYER_PATH=", text.Replace("VK_ADD_LAYER_PATH=", "")); // never replace the system layer search path
+        string manifest = File.ReadAllText(Path.Combine(Data, "vulkan", "explicit_layer.d", "MangoHud.json"));
         using var doc = System.Text.Json.JsonDocument.Parse(manifest);
         Assert.Equal(Path.Combine(BundledComponents.MangoHudLibraryFolder(Root), "libMangoHud.so"), doc.RootElement.GetProperty("layer").GetProperty("library_path").GetString());
+        Assert.Equal("VK_LAYER_MANGOHUD_overlay_x86_64", doc.RootElement.GetProperty("layer").GetProperty("name").GetString());
         Assert.Equal(script, BundledComponents.ResolveIn("mangohud", Root, Data));   // idempotent
     }
 
