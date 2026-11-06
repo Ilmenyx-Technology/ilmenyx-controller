@@ -1,0 +1,18 @@
+## stdout
+Ray tracing · Cancelled · AMD Radeon 610M (RADV RAPHAEL_MENDOCINO)
+Interrompido: nenhum valor é publicado.
+## stderr (progresso; \r convertido em linhas)
+Corte por temperatura: CPU a 90 °C (GPU integrada: vale a temperatura da CPU).
+Ray tracing · AMD Radeon 610M (RADV RAPHAEL_MENDOCINO) · Normal 1920×1080 · aquecimento 3 s + 3×10 s
+Aquecendo · 0 % · 0.0 FPS      
+Aquecendo · 4 % · 4.0 FPS      
+Aquecendo · 10 % · 4.2 FPS      
+Aquecendo · 15 % · 5.1 FPS      
+Aquecendo · 20 % · 4.9 FPS      
+Aquecendo · 26 % · 4.2 FPS      
+Passada 1 de 3 · 25 % · 0.0 FPS      
+Passada 1 de 3 · 27 % · 4.0 FPS      
+Passada 1 de 3 · 28 % · 3.9 FPS      
+Passada 1 de 3 · 29 % · 3.9 FPS      
+Passada 1 de 3 · 31 % · 4.0 FPS      
+Temperatura máxima lida (CPU): 56.1 °C

@@ -1,0 +1,32 @@
+{
+  "Status": 0,
+  "Adapter": "AMD Radeon 610M (RADV RAPHAEL_MENDOCINO)",
+  "Preset": "normal",
+  "Width": 1920,
+  "Height": 1080,
+  "Passes": [
+    {
+      "AvgFps": 4.485004597109326,
+      "Low1Fps": 3.8862830065902036,
+      "Frames": 22
+    },
+    {
+      "AvgFps": 4.47778913801928,
+      "Low1Fps": 3.8265284647034123,
+      "Frames": 22
+    },
+    {
+      "AvgFps": 4.482474089674866,
+      "Low1Fps": 3.9071297146748196,
+      "Frames": 22
+    }
+  ],
+  "GigaRaysPerSec": 0.11153829926819761,
+  "GpuTimestamps": true,
+  "Reason": null,
+  "MedianFps": 4.482474089674866,
+  "MedianLow1": 3.8862830065902036,
+  "VariationPct": 0.16097045840525462,
+  "Reliable": true,
+  "Score": 44.82474089674866
+}

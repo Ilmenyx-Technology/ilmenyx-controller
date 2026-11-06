@@ -1,0 +1,1 @@
+Aprovado!  – Com falha:     0, Aprovado:     1, Ignorado:     0, Total:     1, Duração: 3 s - Ilmenyx.Tests.dll (net10.0)

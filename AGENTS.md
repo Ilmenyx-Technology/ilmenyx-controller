@@ -281,7 +281,8 @@ as regras de arquitetura Linux, benchmarks, testes, licenças e segurança anter
 - Implementação independente em Silk.NET (MIT); não copia os shaders D3D do original. Shaders GLSL em Shaders/, SPIR-V gerado por scripts/build-gpu-shaders.sh e embutido.
 - Carga de GPU só com clique + confirmação (UI) ou --allow-gpu-load (CLI), com duração máxima, cancelamento, corte por temperatura quando houver sensor (CPU se a GPU divide o chip), timeout de fence (5 s) e liberação do dispositivo em finally.
 - Testes nunca criam dispositivo nem renderizam; o teste real é opt-in (ILMENYX_RUN_GPU_TESTS=1) e um "passou" sem a variável não prova nada sobre GPU.
-- Sem janela/swapchain: render offscreen. Ray tracing só com VK_KHR_ray_tracing_pipeline; sem o hardware, registrar BLOQUEADO.
+- Sem janela/swapchain: render offscreen. Ray tracing (bench gpu-rt) usa VK_KHR_acceleration_structure + VK_KHR_ray_query (equivalente ao RayQuery do DXR 1.1); sem o hardware, registrar BLOQUEADO.
+- Nunca escolher o adaptador CPU (llvmpipe, que também anuncia ray tracing) sem pedido explícito; o quadro de teste recusa configurações com quadro acima de 2 s.
 - Scores de GPU são experimentais e não comparáveis ao Windows.
 
 
