@@ -30,9 +30,9 @@ public static class BlockedCatalog
 
     public static IReadOnlyList<BlockedFeature> All { get; } =
     [
-        new("rt-bench", "Benchmark de GPU com ray tracing", BlockReason.Hardware,
-            "A GPU do autor (Intel Iris Xe) não tem VK_KHR_ray_tracing_pipeline; escrever o teste sem poder executá-lo nem uma vez seria código não verificado.",
-            "GPU AMD RX 6000+ ou NVIDIA RTX com driver Vulkan", "Dá para portar e validar o GpuRtBench aqui: rode `ilmenyx bench gpu-list` e confira 'ray tracing'.", p => p.RayTracingGpu, "Sem_teste.md · GPU-08"),
+        new("rt-bench", "Benchmark de ray tracing em GPU dedicada (AMD/NVIDIA)", BlockReason.Hardware,
+            "Portado para Vulkan (VK_KHR_acceleration_structure + VK_KHR_ray_query) e validado em 2026-11-06 só numa APU Radeon 610M (RDNA2, 2 CUs, RADV); faltam GPU dedicada AMD/NVIDIA, driver NVIDIA e a comparação com o Windows.",
+            "GPU AMD RX 6000+ ou NVIDIA RTX com driver Vulkan", "Rode `ilmenyx bench gpu-rt --allow-gpu-load --preset alta --resolution 1440p` (ou o tile RAY TRACING da página Benchmark) e anexe o resultado.", p => p.RayTracingGpu, "Sem_teste.md · GPU-08"),
         new("gpu-amd", "GPU AMD em hardware real (sensores, VRAM, stress, cena de jogo)", BlockReason.Hardware,
             "Leitura (inventário, sensores, VRAM reservada, consumo do pacote) validada numa APU Radeon 610M em 2026-11-06; GPU AMD dedicada e as cargas continuam só com fixtures.",
             "GPU AMD com driver amdgpu (de preferência dedicada)", "Rode scripts/validate-gpu-remote.sh com --allow-gpu-load e anexe o relatório.", p => p.AmdGpu, "Sem_teste.md · GPU-01, GPU-04"),

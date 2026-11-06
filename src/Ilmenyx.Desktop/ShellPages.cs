@@ -104,8 +104,8 @@ public sealed partial class ShellWindow
     private static MachineProbe ReadMachineProbe()
     {
         if (!OperatingSystem.IsLinux()) return new(false, false, false, false, false);
-        bool rt = false;
-        try { rt = Ilmenyx.Gpu.Vulkan.VulkanDevices.List().Adapters.Any(a => !a.IsSoftware && a.SupportsRayTracingPipeline); } catch (Exception e) when (e is IOException or InvalidOperationException or DllNotFoundException) { }
+        bool rt = false; // what is still blocked for the RT benchmark is a dedicated GPU (the APU path was validated)
+        try { rt = Ilmenyx.Gpu.Vulkan.VulkanDevices.List().Adapters.Any(a => !a.IsSoftware && a.SupportsRayQuery && a.Kind == "GPU dedicada"); } catch (Exception e) when (e is IOException or InvalidOperationException or DllNotFoundException) { }
         return MachineProbeReader.Read(rt, MachineProbeReader.HasGameLibrary());
     }
 
