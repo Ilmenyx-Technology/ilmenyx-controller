@@ -211,7 +211,7 @@ public sealed partial class ShellWindow : Window
     {
         var box = new AutoCompleteBox
         {
-            Name = "GlobalSearch", PlaceholderText = "Buscar no Ilmenyx (páginas e ferramentas)", MaxWidth = 460, HorizontalAlignment = HorizontalAlignment.Stretch, MinimumPrefixLength = 1,
+            Name = "GlobalSearch", PlaceholderText = "Buscar no Ilmenyx (páginas e ferramentas)", HorizontalAlignment = HorizontalAlignment.Stretch, MinimumPrefixLength = 1,
             FilterMode = AutoCompleteFilterMode.ContainsOrdinal, ItemsSource = pages.Select(p => p.Value.Title).OrderBy(t => t, StringComparer.CurrentCulture).ToList(), Padding = new Thickness(34, 7, 10, 7),
         };
         box.SelectionChanged += (_, _) =>
@@ -219,7 +219,8 @@ public sealed partial class ShellWindow : Window
             if (box.SelectedItem is string title && pages.FirstOrDefault(p => p.Value.Title == title).Key is { } key) { Select(key); box.Text = ""; }
         };
         var icon = UiKit.Icon(Icons.Search, 16, Palette.Faint); icon.HorizontalAlignment = HorizontalAlignment.Left; icon.Margin = new Thickness(12, 0, 0, 0); icon.IsHitTestVisible = false;
-        return new Grid { HorizontalAlignment = HorizontalAlignment.Left, MinWidth = 260, MaxWidth = 460, Width = 420, Children = { box, icon } };
+        // Flexible: shrinks with the window (at 900 px it must not run under the header actions), up to 460 px.
+        return new Grid { HorizontalAlignment = HorizontalAlignment.Stretch, MinWidth = 160, MaxWidth = 460, Children = { box, icon } };
     }
 
     /// <summary>Where the reference has the user profile: this machine (DMI product name, read-only). Opens the System page.</summary>

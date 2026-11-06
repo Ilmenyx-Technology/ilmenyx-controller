@@ -495,3 +495,12 @@ PCI 1002:1506, RDNA 2, 2 CUs), amdgpu, Mesa/RADV 25.0.7, kernel 6.14, Linux Mint
   - Testes: 24 unitários e smoke X11 com serviços falsos (sem rede; confirmação recusada não usa rede; opção perigosa bloqueada; aplicar/desfazer).
 - NÃO TESTADO: "Aplicar na Steam" num localconfig.vdf real (a Steam não está instalada nesta máquina; o gravador é o mesmo do Launcher, já testado com fixture);
   limite de consultas do ProtonDB sob uso intenso; jogos não-Steam (o ProtonDB só indexa IDs Steam).
+
+## Redesign "cinematic ambient dark" (2026-11-06)
+
+Direção aprovada pelo mantenedor: atmosfera da referência com o acento azul da marca (docs/branding/UI-CINEMATIC.md). Base (tokens, luz ambiente,
+sidebar integrada com ícones, header compacto, Inter, componentes do UiKit) e Visão geral feitas pelo lead; páginas de Diagnóstico, Jogos e
+Desempenho por agentes Claude e Ferramentas/Maker/diálogos pelo Codex, em worktrees separadas, integradas e validadas juntas:
+build 0 avisos, 887 testes, smoke X11 52/52 e Wayland nativo (Muffin) 52/52. Capturas em `docs/evidencias/ui-cinematic-2026-11-06/`.
+- NÃO TESTADO: escala fracionária/HiDPI, leitor de tela (Orca) com os novos cards-botão, KWin/GNOME reais, capas reais da Steam
+  (a máquina não tem Steam; o caminho foi visto só com arquivo falso), contraste medido (WCAG) dos textos sobre os gradientes.

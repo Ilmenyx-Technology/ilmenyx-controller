@@ -43,57 +43,70 @@ public static class UiKit
     /// Cinematic banner: a deep gradient (or an image when one is given) with a soft legibility overlay and content on top.
     /// Used as the dominant element of a page. No visible border.
     /// </summary>
+    /// <param name="height">Fixed height; <see cref="double.NaN"/> sizes to the content (use MinHeight on the result).</param>
     public static Border Hero(Control content, IBrush? background = null, IImage? image = null, double height = 250, string? name = null)
     {
         var layers = new Grid { ClipToBounds = true };
         if (image is not null) layers.Children.Add(new Image { Source = image, Stretch = Stretch.UniformToFill, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center });
-        layers.Children.Add(new Border { Background = Overlay(), IsHitTestVisible = false });
+        var overlay = new Border { Background = Overlay(image is not null), IsHitTestVisible = false };
+        layers.Children.Add(overlay);
         content.Margin = new Thickness(26, 22); layers.Children.Add(content);
-        return new Border { Name = name, Height = height, CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), ClipToBounds = true, Background = background ?? HeroBrush(), BoxShadow = IlmenyxTheme.SoftShadow, Child = layers };
+        var hero = new Border { Name = name, Height = height, CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), ClipToBounds = true, Background = background ?? HeroBrush(), BoxShadow = IlmenyxTheme.SoftShadow, Child = layers };
+        // Repaint on a theme switch (brushes are built per theme); a background given by the caller stays the caller's.
+        hero.ActualThemeVariantChanged += (_, _) =>
+        {
+            if (background is null) hero.Background = HeroBrush();
+            overlay.Background = Overlay(image is not null); hero.BoxShadow = IlmenyxTheme.SoftShadow;
+        };
+        return hero;
     }
 
-    /// <summary>Deep blue-to-wine banner fill in the brand accent, for heroes without imagery.</summary>
+    /// <summary>Deep blue-to-wine banner fill in the brand accent (light: pale blue to blush), for heroes without imagery.</summary>
     public static IBrush HeroBrush()
     {
-        var a = ((ISolidColorBrush)Palette.Accent).Color;
         var b = new LinearGradientBrush { StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative), EndPoint = new RelativePoint(1, 1, RelativeUnit.Relative) };
-        if (Palette.IsLight) { b.GradientStops.Add(new GradientStop(Color.Parse("#DCE6FD"), 0)); b.GradientStops.Add(new GradientStop(Color.Parse("#EFE3EA"), 1)); }
-        else
-        {
-            b.GradientStops.Add(new GradientStop(Color.Parse("#14284F"), 0)); b.GradientStops.Add(new GradientStop(Color.Parse("#1B1E3A"), 0.5));
-            b.GradientStops.Add(new GradientStop(Color.Parse("#3A1424"), 1));
-        }
-        _ = a; return b;
+        foreach (var (c, o) in Palette.IsLight ? new[] { ("#DCE6FD", 0.0), ("#E9E6F6", 0.5), ("#F3E2E8", 1.0) } : new[] { ("#14284F", 0.0), ("#1B1E3A", 0.5), ("#3A1424", 1.0) })
+            b.GradientStops.Add(new GradientStop(Color.Parse(c), o));
+        return b;
     }
 
-    /// <summary>Legibility overlay: darker at the left and bottom, never flattening the image.</summary>
-    private static IBrush Overlay() => new LinearGradientBrush
+    /// <summary>Legibility overlay: darker at the left (and bottom on images), never flattening the picture. None on light fills.</summary>
+    private static IBrush Overlay(bool image)
     {
-        StartPoint = new RelativePoint(0, 0.5, RelativeUnit.Relative), EndPoint = new RelativePoint(1, 0.5, RelativeUnit.Relative),
-        GradientStops = { new GradientStop(Color.FromArgb((byte)(Palette.IsLight ? 0x00 : 0x40), 0, 0, 0), 0), new GradientStop(Colors.Transparent, 0.6) },
-    };
+        byte left = (byte)(image ? 0x70 : Palette.IsLight ? 0x00 : 0x40);
+        return new LinearGradientBrush
+        {
+            StartPoint = new RelativePoint(0, 0.5, RelativeUnit.Relative), EndPoint = new RelativePoint(1, 0.5, RelativeUnit.Relative),
+            GradientStops = { new GradientStop(Color.FromArgb(left, 0, 0, 0), 0), new GradientStop(Colors.Transparent, 0.62) },
+        };
+    }
 
     /// <summary>
     /// Secondary highlight card: warm amber → wine → brand blue glow (the reference's gradient card, adapted to the Ilmenyx accent).
+    /// Text inside should use Palette.Fg/Muted: the card is dark in the dark theme and pale in the light theme, and follows a theme switch.
     /// </summary>
     public static Border FeatureCard(Control content, string? name = null)
     {
-        var a = ((ISolidColorBrush)Palette.Accent).Color;
-        var fill = new LinearGradientBrush { StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative), EndPoint = new RelativePoint(1, 1, RelativeUnit.Relative) };
-        foreach (var (c, o) in Palette.IsLight ? new[] { ("#F4E3C8", 0.0), ("#EBCFD6", 0.5), ("#D3DFFB", 1.0) } : new[] { ("#7A6233", 0.0), ("#5E2A2E", 0.45), ("#2B1B3F", 1.0) })
-            fill.GradientStops.Add(new GradientStop(Color.Parse(c), o));
-        var glow = new RadialGradientBrush
-        {
-            Center = new RelativePoint(0.92, 0.78, RelativeUnit.Relative), GradientOrigin = new RelativePoint(0.92, 0.78, RelativeUnit.Relative),
-            RadiusX = new RelativeScalar(0.7, RelativeUnit.Relative), RadiusY = new RelativeScalar(0.7, RelativeUnit.Relative),
-            GradientStops = { new GradientStop(Color.FromArgb((byte)(Palette.IsLight ? 0x50 : 0x99), a.R, a.G, a.B), 0), new GradientStop(Color.FromArgb(0, a.R, a.G, a.B), 1) },
-        };
+        var glowLayer = new Border { IsHitTestVisible = false };
         content.Margin = new Thickness(20, 18);
-        return new Border
+        var card = new Border { Name = name, CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), ClipToBounds = true, Child = new Grid { Children = { glowLayer, content } } };
+        void Paint()
         {
-            Name = name, CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), ClipToBounds = true, Background = fill, BoxShadow = IlmenyxTheme.SoftShadow,
-            Child = new Grid { Children = { new Border { Background = glow, IsHitTestVisible = false }, content } },
-        };
+            var a = ((ISolidColorBrush)Palette.Accent).Color;
+            var fill = new LinearGradientBrush { StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative), EndPoint = new RelativePoint(1, 1, RelativeUnit.Relative) };
+            foreach (var (c, o) in Palette.IsLight ? new[] { ("#F4E3C8", 0.0), ("#EBCFD6", 0.5), ("#D3DFFB", 1.0) } : new[] { ("#7A6233", 0.0), ("#5E2A2E", 0.45), ("#2B1B3F", 1.0) })
+                fill.GradientStops.Add(new GradientStop(Color.Parse(c), o));
+            glowLayer.Background = new RadialGradientBrush
+            {
+                Center = new RelativePoint(0.92, 0.78, RelativeUnit.Relative), GradientOrigin = new RelativePoint(0.92, 0.78, RelativeUnit.Relative),
+                RadiusX = new RelativeScalar(0.7, RelativeUnit.Relative), RadiusY = new RelativeScalar(0.7, RelativeUnit.Relative),
+                GradientStops = { new GradientStop(Color.FromArgb((byte)(Palette.IsLight ? 0x50 : 0x99), a.R, a.G, a.B), 0), new GradientStop(Color.FromArgb(0, a.R, a.G, a.B), 1) },
+            };
+            card.Background = fill; card.BoxShadow = IlmenyxTheme.SoftShadow;
+        }
+        Paint();
+        card.ActualThemeVariantChanged += (_, _) => Paint();
+        return card;
     }
 
     /// <summary>Compact metric tile: label, value and a short note (the reference's small thumbnails, as live readings).</summary>

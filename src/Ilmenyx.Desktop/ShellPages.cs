@@ -249,15 +249,15 @@ public sealed partial class ShellWindow
         {
             heroTags.Children.Clear();
             foreach (var t in new[] { gpuRaw?.Name is { } gn ? "GPU · " + gn : null, usage.MemorySub is { Length: > 0 } ms ? ms.Replace("Total", "RAM") : null, distro, kernel.Length > 0 ? "kernel " + kernel.Split('-')[0] : null })
-                if (t is not null) heroTags.Children.Add(UiKit.Tag(t, onImage: true));
+                if (t is not null) heroTags.Children.Add(UiKit.Tag(t, Palette.Fg));
         }
         HeroTags();
-        TextBlock Reading() => new() { FontSize = 13, FontWeight = FontWeight.SemiBold, Foreground = Brushes.White, VerticalAlignment = VerticalAlignment.Center };
+        TextBlock Reading() => new() { FontSize = 13, FontWeight = FontWeight.SemiBold, Foreground = Palette.Fg, VerticalAlignment = VerticalAlignment.Center };
         var heroCpu = Reading(); var heroGpu = Reading(); var heroRam = Reading();
         Border ReadingPill(string label, TextBlock value) => new()
         {
-            Background = new SolidColorBrush(Color.FromArgb(0x55, 0x10, 0x0E, 0x14)), CornerRadius = new CornerRadius(IlmenyxTheme.Pill), Padding = new Thickness(12, 5), Margin = new Thickness(0, 0, 8, 6),
-            Child = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { new TextBlock { Text = label, FontSize = 11, Foreground = new SolidColorBrush(Color.FromArgb(0xB3, 0xFF, 0xFF, 0xFF)), VerticalAlignment = VerticalAlignment.Center }, value } },
+            Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.Pill), Padding = new Thickness(12, 5), Margin = new Thickness(0, 0, 8, 6),
+            Child = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { new TextBlock { Text = label, FontSize = 11, Foreground = Palette.Muted, VerticalAlignment = VerticalAlignment.Center }, value } },
         };
         void HeroReadings()
         {
@@ -284,8 +284,7 @@ public sealed partial class ShellWindow
         Grid.SetRowSpan(heroArt, 4);
         heroContent.Children.Add(heroTags);
         var heroTitle = new StackPanel { Spacing = 4, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(0, 0, 0, 14), Children = {
-            new TextBlock { Name = "OverviewMachine", Text = model, FontSize = 28, FontWeight = FontWeight.Bold, Foreground = Brushes.White, TextWrapping = TextWrapping.Wrap }, cpuName } };
-        cpuName.Foreground = new SolidColorBrush(Color.FromArgb(0xC8, 0xFF, 0xFF, 0xFF));
+            new TextBlock { Name = "OverviewMachine", Text = model, FontSize = 28, FontWeight = FontWeight.Bold, Foreground = Palette.Fg, TextWrapping = TextWrapping.Wrap }, cpuName } };
         Grid.SetRow(heroTitle, 1); heroContent.Children.Add(heroTitle);
         var readings = new WrapPanel { Children = { ReadingPill("CPU", heroCpu), ReadingPill("GPU", heroGpu), ReadingPill("RAM", heroRam) } };
         Grid.SetRow(readings, 2); heroContent.Children.Add(readings);
