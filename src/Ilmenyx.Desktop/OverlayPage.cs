@@ -23,10 +23,11 @@ public sealed class OverlayPage : StackPanel
     private readonly CancellationToken lifetime;
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(1) };
     private readonly StackPanel items = new() { Name = "OvItemsPanel", Spacing = 2 };
-    private readonly TextBlock preview = new() { Name = "OverlayPreview", FontFamily = new FontFamily("monospace"), FontSize = 12, TextWrapping = TextWrapping.Wrap };
+    private readonly TextBlock preview = new() { Name = "OverlayPreview", FontFamily = IlmenyxTheme.Mono, FontSize = 12, TextWrapping = TextWrapping.Wrap, Foreground = Palette.Fg };
+    private readonly Border previewBox = new() { Background = Palette.Glass, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.ControlRadius), Padding = new Thickness(10, 8), Margin = new Thickness(12), MaxWidth = 260 };
     private readonly Button toggle = UiKit.Primary("BtnOverlayToggle", "MOSTRAR OVERLAY", 22, 11);
     private readonly TextBlock mangoState = new() { Name = "MangoState", TextWrapping = TextWrapping.Wrap, Foreground = Palette.Muted };
-    private readonly TextBox launch = new() { Name = "OvLaunchOption", IsReadOnly = true, IsVisible = false, TextWrapping = TextWrapping.Wrap, FontFamily = new FontFamily("monospace") };
+    private readonly TextBox launch = new() { Name = "OvLaunchOption", IsReadOnly = true, IsVisible = false, TextWrapping = TextWrapping.Wrap, FontFamily = IlmenyxTheme.Mono };
     private readonly TextBlock status = new() { Name = "OverlayStatus", TextWrapping = TextWrapping.Wrap, Foreground = Palette.Muted, FontSize = 12 };
     private HashSet<string> show;
     private OverlayWindow? window;
@@ -41,19 +42,40 @@ public sealed class OverlayPage : StackPanel
         this.services = services; this.usage = usage; this.settingsPath = settingsPath; this.lifetime = lifetime; Spacing = 4;
         settings = IlmenyxSettings.Load(settingsPath);
         show = OverlayMetrics.Sanitize(settings.OverlayItems).ToHashSet();
-        Children.Add(new StackPanel { Margin = new Thickness(0, 4, 0, 20), Children = { new TextBlock { Text = "Overlay", FontSize = 32, FontWeight = FontWeight.Bold }, new TextBlock { Text = "Métricas sobre a tela. A janela do Ilmenyx mostra o sistema; dentro do jogo, o MangoHud desenha com o mesmo conjunto.", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap } } });
+        Children.Add(UiKit.PageHeader("Overlay", "Métricas sobre a tela. A janela do Ilmenyx mostra o sistema; dentro do jogo, o MangoHud desenha com o mesmo conjunto."));
         BuildItems();
-        Button Preset(string name, string text, Func<HashSet<string>> keys) { var b = new Button { Name = name, Content = text }; b.Click += (_, _) => { show = keys(); Changed(); BuildItems(); }; return b; }
+        Button Preset(string name, string text, Func<HashSet<string>> keys)
+        {
+            var b = new Button { Name = name, Content = text, FontSize = 11, Padding = new Thickness(13, 5), Margin = new Thickness(6, 0, 0, 0), CornerRadius = new CornerRadius(IlmenyxTheme.Pill), Background = Palette.Card, Foreground = Palette.Muted, BorderBrush = Palette.Line, BorderThickness = new Thickness(1) };
+            b.Click += (_, _) => { show = keys(); Changed(); BuildItems(); }; return b;
+        }
         corners = new("OvCornerPanel", [("SUPERIOR ESQ.", "top-left"), ("SUPERIOR DIR.", "top-right"), ("INFERIOR ESQ.", "bottom-left"), ("INFERIOR DIR.", "bottom-right")], settings.OverlayCorner, c => { settings.OverlayCorner = c; Changed(); });
         scales = new("OvScalePanel", [("80%", 0.8), ("100%", 1.0), ("125%", 1.25), ("150%", 1.5)], NearestScale(settings.OverlayScale), v => { settings.OverlayScale = v; Changed(); });
-        Children.Add(UiKit.Card(new StackPanel { Spacing = 10, Children = { UiKit.Label("O QUE MOSTRAR"), items,
-            new WrapPanel { Children = { Preset("OvPresetDefault", "PADRÃO", OverlayMetrics.Defaults), Preset("OvPresetMin", "MÍNIMO", OverlayMetrics.Minimal), Preset("OvPresetAll", "TUDO", OverlayMetrics.Everything) } },
-            new WrapPanel { Children = { Field("CANTO", corners.Panel), Field("TAMANHO", scales.Panel) } } } }));
         toggle.Click += (_, _) => ToggleWindow();
-        Children.Add(UiKit.Card(new StackPanel { Spacing = 8, Children = { UiKit.Label("OVERLAY DO ILMENYX"), toggle, UiKit.Label("PRÉVIA"), preview,
-            new TextBlock { Text = "É uma janela comum do Ilmenyx, sem injeção em jogos. Se fica acima de um jogo em tela cheia, e se os cliques passam por ela, depende do gerenciador de janelas (no Wayland o compositor decide). Para o jogo, use o MangoHud abaixo. FPS só aparece para jogos iniciados com a configuração gerada abaixo.", FontSize = 11, Foreground = Palette.Faint, TextWrapping = TextWrapping.Wrap } } }));
-        var gen = new Button { Name = "BtnMangoConfig", Content = "GERAR CONFIGURAÇÃO DO MANGOHUD" }; gen.Click += (_, _) => { if (OperatingSystem.IsLinux()) WriteMango(); };
-        Children.Add(UiKit.Card(new StackPanel { Spacing = 8, Children = { UiKit.Label("MANGOHUD (OVERLAY DENTRO DO JOGO)"), mangoState, gen, launch, status } }));
+
+        // Hero: a live preview of the overlay on a mock screen, placed at the chosen corner and scale.
+        previewBox.Child = preview;
+        var screen = new Border { Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), MinHeight = 196, ClipToBounds = true, Child = previewBox };
+        var side = new DockPanel { Margin = new Thickness(0, 0, 20, 0), Width = 210 };
+        var intro = new StackPanel { Spacing = 6, Children = {
+            new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { UiKit.Icon(Icons.Overlay, 14, Palette.AccentText), UiKit.Label("OVERLAY DO ILMENYX") } },
+            new TextBlock { Text = "Prévia ao vivo", FontSize = 20, FontWeight = FontWeight.Bold },
+            new TextBlock { Text = "Os itens, o canto e o tamanho escolhidos abaixo valem para a janela do Ilmenyx e para a configuração do MangoHud.", FontSize = 12, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap } } };
+        DockPanel.SetDock(toggle, Dock.Bottom); toggle.HorizontalAlignment = HorizontalAlignment.Left; toggle.Margin = new Thickness(0, 14, 0, 0);
+        side.Children.Add(toggle); side.Children.Add(intro);
+        var heroGrid = new Grid { ColumnDefinitions = new("Auto,*") }; Grid.SetColumn(screen, 1); heroGrid.Children.Add(side); heroGrid.Children.Add(screen);
+        Children.Add(BenchPage.Themed(UiKit.Hero(heroGrid, height: double.NaN, name: "OverlayHero")));
+        Children.Add(new TextBlock { Text = "É uma janela comum do Ilmenyx, sem injeção em jogos. Se fica acima de um jogo em tela cheia, e se os cliques passam por ela, depende do gerenciador de janelas (no Wayland o compositor decide). Para o jogo, use o MangoHud abaixo. FPS só aparece para jogos iniciados com a configuração gerada abaixo.", FontSize = 11, Foreground = Palette.Faint, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(2, 10, 2, 0) });
+
+        var presets = new StackPanel { Orientation = Orientation.Horizontal, Children = { Preset("OvPresetDefault", "PADRÃO", OverlayMetrics.Defaults), Preset("OvPresetMin", "MÍNIMO", OverlayMetrics.Minimal), Preset("OvPresetAll", "TUDO", OverlayMetrics.Everything) } };
+        Children.Add(UiKit.SectionHeader("O que mostrar", presets));
+        Children.Add(UiKit.Card(items));
+        Children.Add(UiKit.SectionHeader("Posição e tamanho"));
+        Children.Add(UiKit.Card(new WrapPanel { Children = { Field("CANTO", corners.Panel), Field("TAMANHO", scales.Panel) } }));
+        var gen = new Button { Name = "BtnMangoConfig", Content = "GERAR CONFIGURAÇÃO DO MANGOHUD", FontSize = 12, Padding = new Thickness(14, 7), CornerRadius = new CornerRadius(IlmenyxTheme.ControlRadius) }; gen.Click += (_, _) => { if (OperatingSystem.IsLinux()) WriteMango(); };
+        Children.Add(UiKit.SectionHeader("MangoHud · overlay dentro do jogo"));
+        Children.Add(UiKit.Card(new StackPanel { Spacing = 10, Children = { mangoState, gen, launch, status } }));
+        PlacePreview();
         timer.Tick += async (_, _) => await TickAsync(); timer.Start();
         AttachedToVisualTree += (_, _) => { if (!timer.IsEnabled) timer.Start(); };
         lifetime.Register(() => Dispatcher.UIThread.Post(Shutdown));
@@ -66,18 +88,32 @@ public sealed class OverlayPage : StackPanel
     private void BuildItems()
     {
         items.Children.Clear();
+        bool firstGroup = true;
         foreach (var group in OverlayMetrics.All.GroupBy(m => m.Group))
         {
-            items.Children.Add(new TextBlock { Text = group.Key.ToUpperInvariant(), FontSize = 11, FontWeight = FontWeight.Bold, Foreground = Palette.Faint, Margin = new Thickness(0, 8, 0, 2) });
+            var head = UiKit.Label(group.Key.ToUpperInvariant()); head.Margin = new Thickness(0, firstGroup ? 0 : 10, 0, 6); firstGroup = false;
+            items.Children.Add(head);
             var wrap = new WrapPanel();
             foreach (var m in group)
             {
-                var cb = new CheckBox { Name = "Ov_" + m.Key, Content = m.Label, IsChecked = show.Contains(m.Key), Margin = new Thickness(0, 0, 18, 4) };
-                cb.IsCheckedChanged += (_, _) => { if (cb.IsChecked == true) show.Add(m.Key); else show.Remove(m.Key); Changed(); };
-                wrap.Children.Add(cb);
+                var cb = new CheckBox { Name = "Ov_" + m.Key, Content = m.Label, IsChecked = show.Contains(m.Key), FontSize = 12, MinHeight = 0, Padding = new Thickness(4, 0, 0, 0) };
+                var chip = new Border { CornerRadius = new CornerRadius(IlmenyxTheme.Pill), BorderThickness = new Thickness(1), Padding = new Thickness(8, 1, 12, 1), Margin = new Thickness(0, 0, 6, 6), Child = cb };
+                void Paint() { bool on = cb.IsChecked == true; chip.Background = on ? Palette.Hover : Palette.Card; chip.BorderBrush = on ? Palette.Accent : Palette.Line; cb.Foreground = on ? Palette.Fg : Palette.Muted; }
+                cb.IsCheckedChanged += (_, _) => { if (cb.IsChecked == true) show.Add(m.Key); else show.Remove(m.Key); Paint(); Changed(); };
+                Paint();
+                wrap.Children.Add(chip);
             }
             items.Children.Add(wrap);
         }
+    }
+
+    /// <summary>Places the preview box at the chosen corner of the mock screen, at the chosen scale.</summary>
+    private void PlacePreview()
+    {
+        string corner = settings.OverlayCorner ?? "top-left";
+        previewBox.HorizontalAlignment = corner.EndsWith("right", StringComparison.Ordinal) ? HorizontalAlignment.Right : HorizontalAlignment.Left;
+        previewBox.VerticalAlignment = corner.StartsWith("bottom", StringComparison.Ordinal) ? VerticalAlignment.Bottom : VerticalAlignment.Top;
+        preview.FontSize = 12 * Math.Clamp(settings.OverlayScale, 0.8, 1.5);
     }
 
     private void Changed()
@@ -122,6 +158,7 @@ public sealed class OverlayPage : StackPanel
         var frames = services.Frames(DateTimeOffset.UtcNow);
         Lines = OverlayLines.Build(show, usage.Last, gpu, frames, null, DateTimeOffset.Now);
         preview.Text = Lines.Count == 0 ? "Nenhum item selecionado." : string.Join("\n", Lines.Select(l => (l.Label.Length > 0 ? l.Label.PadRight(5) : "") + l.Value));
+        PlacePreview();
         if (window is { IsVisible: true } w)
         {
             w.Corner = settings.OverlayCorner; w.SetScale(settings.OverlayScale);

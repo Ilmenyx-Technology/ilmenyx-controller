@@ -9,8 +9,7 @@ public sealed class MemoryValidationPanel : Border
 {
     public MemoryValidationPanel(MemoryValidationViewModel model, Func<string, Task<string?>> chooseDestination, CancellationToken lifetime)
     {
-        DataContext = model; Background = Palette.Card; CornerRadius = new CornerRadius(12);
-        Padding = new Thickness(20); Margin = new Thickness(0, 0, 12, 0);
+        DataContext = model; ValidationLook.Surface(this);
         var start = new Button { Name = "ValidateMemory", Content = "Validar memória (reduzido)", Margin = new Thickness(0, 0, 8, 8) };
         var cancel = new Button { Name = "CancelMemory", Content = "Cancelar memória", Margin = new Thickness(0, 0, 8, 8) };
         var export = new Button { Name = "ExportMemory", Content = "Exportar memória JSON", Margin = new Thickness(0, 0, 8, 8) };
@@ -41,15 +40,16 @@ public sealed class MemoryValidationPanel : Border
                 if (IsEffectivelyVisible && button.IsEffectivelyEnabled && !lifetime.IsCancellationRequested) button.Focus();
             }
         }
-        var status = new TextBlock { Name = "MemoryStatus", TextWrapping = TextWrapping.Wrap }; status.Bind(TextBlock.TextProperty, new Binding(nameof(model.Status)));
-        var summary = new TextBlock { Name = "MemorySummary", TextWrapping = TextWrapping.Wrap, FontSize = 12 }; summary.Bind(TextBlock.TextProperty, new Binding(nameof(model.Summary)));
+        ValidationLook.Actions(start, cancel, export, exportHtml);
+        var status = new TextBlock { Name = "MemoryStatus", TextWrapping = TextWrapping.Wrap, FontSize = 12.5 }; status.Bind(TextBlock.TextProperty, new Binding(nameof(model.Status)));
+        var summary = new TextBlock { Name = "MemorySummary", TextWrapping = TextWrapping.Wrap, FontSize = 12, Foreground = Palette.Muted }; summary.Bind(TextBlock.TextProperty, new Binding(nameof(model.Summary)));
         Child = new StackPanel
         {
             Spacing = 10,
             Children =
         {
-            new TextBlock { Text = "VALIDAÇÃO DE ALGORITMOS DE MEMÓRIA", TextWrapping = TextWrapping.Wrap, FontSize = 14, FontWeight = FontWeight.Bold },
-            new TextBlock { Text = "Cadeia de ponteiros, soma e cópia · buffers de 256 KiB · uma passada · 1 worker.\nNão mede latência, GB/s, estabilidade ou saúde da RAM. Não executa GameSim ou testes de disco.", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap },
+            ValidationLook.Title(Icons.Memory, "VALIDAÇÃO DE ALGORITMOS DE MEMÓRIA"),
+            ValidationLook.Description("Cadeia de ponteiros, soma e cópia · buffers de 256 KiB · uma passada · 1 worker.\nNão mede latência, GB/s, estabilidade ou saúde da RAM. Não executa GameSim ou testes de disco."),
             new WrapPanel { Children = { start, cancel, export, exportHtml } }, status, summary
         }
         };

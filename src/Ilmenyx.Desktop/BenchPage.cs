@@ -4,6 +4,8 @@ using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Templates;
+using Avalonia.Data;
 using Avalonia.Layout;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
@@ -37,14 +39,18 @@ public sealed class BenchPage : StackPanel
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromMilliseconds(250) };
     private readonly Button start = UiKit.Primary("BtnBench", "INICIAR", 24, 12);
     private readonly TextBlock hint = new() { Name = "BenchHint", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, FontSize = 12 };
-    private readonly TextBlock phase = new() { Name = "BenchPhase", Text = "Parado", FontSize = 16, FontWeight = FontWeight.SemiBold };
-    private readonly ProgressBar bar = new() { Name = "BenchProgress", Minimum = 0, Maximum = 1, Height = 8, Margin = new Thickness(0, 8, 0, 0) };
-    private readonly TextBlock headline = new() { Name = "BenchHeadline", Text = "—", FontSize = 30, FontWeight = FontWeight.Bold };
+    private readonly TextBlock phase = new() { Name = "BenchPhase", Text = "Parado", FontSize = 13, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap };
+    private readonly ProgressBar bar = new() { Name = "BenchProgress", Minimum = 0, Maximum = 1, Height = 6, MinHeight = 6, Margin = new Thickness(0, 8, 0, 0) };
+    private readonly TextBlock headline = new() { Name = "BenchHeadline", Text = "—", FontSize = 40, FontWeight = FontWeight.Bold, TextWrapping = TextWrapping.Wrap };
+    private readonly TextBlock lastRun = new() { FontSize = 12.5, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap };
+    private readonly TextBlock kindTag = new() { FontSize = 11, FontWeight = FontWeight.Medium, Foreground = Palette.Muted };
+    private readonly Border details = new();
     private readonly TextBlock result = new() { Name = "BenchResultText", TextWrapping = TextWrapping.Wrap, FontFamily = new FontFamily("monospace"), FontSize = 12 };
     private readonly TextBlock status = new() { Name = "BenchStatus", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, FontSize = 12 };
-    private readonly Image render = new() { Name = "BenchImage", MaxHeight = 270, Stretch = Stretch.Uniform, HorizontalAlignment = HorizontalAlignment.Left, IsVisible = false };
+    private readonly Image render = new() { Name = "BenchImage", MaxHeight = 270, Margin = new Thickness(0, 6, 0, 0), Stretch = Stretch.Uniform, HorizontalAlignment = HorizontalAlignment.Left, IsVisible = false };
     private readonly StackPanel options = new() { Name = "BenchOptions", Spacing = 10 };
     private readonly StackPanel historyRows = new() { Name = "BenchHistory" };
+    private StackPanel kindPanel = null!;
     private readonly TextBox tempLimit = new() { Name = "BenchTempLimit", Text = "95", Width = 80 };
     private readonly TextBox diskDirectory = new() { Name = "BenchDiskDir", MinWidth = 320 };
     private readonly TextBlock diskFs = new() { Name = "BenchDiskFs", Foreground = Palette.Muted, FontSize = 11 };
@@ -66,28 +72,113 @@ public sealed class BenchPage : StackPanel
     {
         this.services = services; this.usage = usage; this.owner = owner; this.settingsPath = settingsPath; this.lifetime = lifetime; Spacing = 4;
         settings = IlmenyxSettings.Load(settingsPath);
-        Children.Add(new StackPanel { Margin = new Thickness(0, 4, 0, 20), Children = { new TextBlock { Text = "Benchmark", FontSize = 32, FontWeight = FontWeight.Bold }, new TextBlock { Text = "CPU, memória, GameSim e disco · cada teste só começa após sua confirmação", Foreground = Palette.Muted } } });
+        Children.Add(UiKit.PageHeader("Benchmark", "CPU, memória, GameSim e disco · cada teste só começa após sua confirmação"));
 
-        var kinds = new UiKit.ChipGroup<Kind>("BenchKindPanel", [("CPU", Kind.Cpu), ("MEMÓRIA", Kind.Memory), ("GAMESIM", Kind.Sim), ("GPU", Kind.Gpu), ("DISCO", Kind.Disk)], Kind.Cpu, k => { kind = k; BuildOptions(); });
+        var kinds = new UiKit.ChipGroup<Kind>("BenchKindPanel", [("CPU", Kind.Cpu), ("MEMÓRIA", Kind.Memory), ("GAMESIM", Kind.Sim), ("GPU", Kind.Gpu), ("DISCO", Kind.Disk)], Kind.Cpu, k => { kind = k; StyleTiles(); BuildOptions(); });
         string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         diskDirectory.Text = home; AutomationProperties.SetName(diskDirectory, "Pasta autorizada para o arquivo temporário do teste de disco");
         AutomationProperties.SetName(tempLimit, "Limite de temperatura da CPU em graus Celsius");
+        tempLimit.HorizontalAlignment = diskDirectory.HorizontalAlignment = HorizontalAlignment.Left;
         diskDirectory.TextChanged += (_, _) => UpdateFs();
-        start.MinWidth = 160; start.Click += async (_, _) => { if (cts is not null) cts.Cancel(); else await StartAsync(); };
-        Children.Add(UiKit.Card(new StackPanel { Spacing = 12, Children = { UiKit.Label("TESTE"), kinds.Panel, options, new StackPanel { Orientation = Orientation.Horizontal, Spacing = 16, Children = { start, hint } } } }));
-        Children.Add(UiKit.Card(new StackPanel { Children = { UiKit.Label("ANDAMENTO"), new Border { Height = 4 }, phase, bar } }));
-        Children.Add(UiKit.Card(new StackPanel { Spacing = 8, Children = { UiKit.Label("RESULTADO"), headline, result, status, render } }));
-        var clear = new Button { Name = "BtnClearBenchHistory", Content = "Limpar histórico" };
+        start.MinWidth = 160; start.HorizontalContentAlignment = HorizontalAlignment.Center; start.Click += async (_, _) => { if (cts is not null) cts.Cancel(); else await StartAsync(); };
+
+        // Hero: the latest score dominates; progress and the single start/stop action sit with it.
+        hint.MaxWidth = 220; hint.Margin = new Thickness(0, 8, 0, 0); hint.TextAlignment = TextAlignment.Right; hint.HorizontalAlignment = HorizontalAlignment.Right;
+        var tags = new WrapPanel { Children = { new Border { Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.Pill), Padding = new Thickness(11, 4), Margin = new Thickness(0, 0, 6, 6), Child = kindTag }, UiKit.Tag("EXPERIMENTAL") } };
+        var score = new StackPanel { Spacing = 2, Children = { tags, new Border { Height = 4 }, UiKit.Label("ÚLTIMO RESULTADO"), headline, lastRun, status } };
+        var action = new StackPanel { VerticalAlignment = VerticalAlignment.Top, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(16, 0, 0, 0), Children = { start, hint } };
+        var progress = new StackPanel { Margin = new Thickness(0, 18, 0, 0), Children = { phase, bar } };
+        var heroGrid = new Grid { ColumnDefinitions = new("*,Auto"), RowDefinitions = new("*,Auto") };
+        Grid.SetColumn(action, 1); Grid.SetRow(progress, 1); Grid.SetColumnSpan(progress, 2);
+        heroGrid.Children.Add(score); heroGrid.Children.Add(action); heroGrid.Children.Add(progress);
+        Children.Add(Themed(UiKit.Hero(heroGrid, height: double.NaN, name: "BenchHero")));
+
+        // Tests: an asymmetric row of tiles (the main CPU test is wider), same chip group and names as before.
+        kindPanel = kinds.Panel; kindPanel.Spacing = 10;
+        foreach (var b in kindPanel.Children.OfType<Button>()) MakeTile(b);
+        var tilesHost = new Border { Child = kindPanel };
+        tilesHost.SizeChanged += (_, e) => SizeTiles(e.NewSize.Width);
+        Children.Add(UiKit.SectionHeader("Testes"));
+        Children.Add(tilesHost);
+        StyleTiles();
+
+        Children.Add(UiKit.SectionHeader("Opções"));
+        Children.Add(UiKit.Card(options));
+        details.Child = UiKit.Card(new StackPanel { Spacing = 4, Children = { UiKit.Label("DETALHES DO RESULTADO"), result, render } }, new Thickness(0, 12, 0, 0));
+        details.IsVisible = false;
+        result.PropertyChanged += (_, e) => { if (e.Property == TextBlock.TextProperty) details.IsVisible = !string.IsNullOrEmpty(result.Text); };
+        Children.Add(details);
+
+        var clear = new Button { Name = "BtnClearBenchHistory", Content = "Limpar histórico", FontSize = 11.5, Padding = new Thickness(10, 3), VerticalAlignment = VerticalAlignment.Center, Background = Palette.Card, Foreground = Palette.Muted, CornerRadius = new CornerRadius(IlmenyxTheme.ControlRadius) };
         clear.Click += async (_, _) =>
         {
             if (owner() is not { } w || settings.BenchRuns.Count == 0) return;
             if (!await ConfirmDialog.AskAsync(w, "Limpar histórico", "Apaga somente a lista local de benchmarks deste aplicativo. Continuar?", "Limpar", "Cancelar")) return;
             settings.BenchRuns.Clear(); Save(); BuildHistory();
         };
-        Children.Add(UiKit.Card(new StackPanel { Spacing = 6, Children = { UiKit.Label("HISTÓRICO LOCAL (NUNCA ENVIADO)"), historyRows, clear } }));
+        Children.Add(UiKit.SectionHeader("Histórico local", clear));
+        Children.Add(UiKit.Card(new StackPanel { Spacing = 6, Children = { new TextBlock { Text = "Fica só neste computador; nunca é enviado.", FontSize = 11.5, Foreground = Palette.Faint }, historyRows } }));
         timer.Tick += (_, _) => Tick();
         BuildOptions(); BuildHistory(); UpdateFs();
         lifetime.Register(() => Dispatcher.UIThread.Post(() => cts?.Cancel()));
+    }
+
+    /// <summary>
+    /// UiKit.HeroBrush is computed once for the current theme; this re-fills the hero when the theme is toggled on a page that is already built.
+    /// Candidate for UiKit.Hero itself (shared by the Benchmark, OC, Stress and Overlay heroes).
+    /// </summary>
+    internal static Border Themed(Border hero)
+    {
+        hero.ActualThemeVariantChanged += (_, _) => hero.Background = UiKit.HeroBrush();
+        return hero;
+    }
+
+    private static readonly Dictionary<string, (string Icon, string Note)> Tiles = new()
+    {
+        ["CPU"] = (Icons.Cpu, "Render path tracing multi-core e single-core · teste principal"),
+        ["MEMÓRIA"] = (Icons.Memory, "Latência e banda"),
+        ["GAMESIM"] = (Icons.Games, "Simulação de jogo · FPS"),
+        ["GPU"] = (Icons.Gpu, "Cena Vulkan 1080p"),
+        ["DISCO"] = (Icons.Disks, "Sequencial e 4K"),
+    };
+
+    /// <summary>Turns a chip of the kind group into a test tile. Content stays the plain label (the smoke test and the chip group use it).</summary>
+    private static void MakeTile(Button b)
+    {
+        b.CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius); b.Padding = new Thickness(14, 12); b.MinHeight = 96;
+        b.VerticalAlignment = VerticalAlignment.Stretch; b.HorizontalContentAlignment = HorizontalAlignment.Stretch; b.VerticalContentAlignment = VerticalAlignment.Top;
+        b.ContentTemplate = new FuncDataTemplate<string>((text, _) =>
+        {
+            var (icon, note) = Tiles.TryGetValue(text ?? "", out var t) ? t : (Icons.Bench, "");
+            var glyph = UiKit.Icon(icon, 20); glyph.HorizontalAlignment = HorizontalAlignment.Left;
+            glyph.Bind(Avalonia.Controls.Shapes.Shape.FillProperty, new Binding(nameof(Button.Foreground)) { Source = b });
+            return new StackPanel { Spacing = 6, Children = {
+                glyph,
+                new TextBlock { Text = text, FontSize = 12.5, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) },
+                new TextBlock { Text = note, FontSize = 11, Foreground = Palette.Faint, TextWrapping = TextWrapping.Wrap } } };
+        });
+    }
+
+    private void StyleTiles()
+    {
+        foreach (var b in kindPanel.Children.OfType<Button>())
+        {
+            bool on = (b.Content as string) == KindLabel(kind);
+            b.Background = on ? Palette.Hover : Palette.Card; b.Foreground = on ? Palette.AccentText : Palette.Muted;
+            b.BorderBrush = on ? Palette.Accent : Palette.Line; b.BorderThickness = new Thickness(1);
+        }
+        kindTag.Text = KindLabel(kind);
+    }
+
+    private static string KindLabel(Kind k) => k switch { Kind.Cpu => "CPU", Kind.Memory => "MEMÓRIA", Kind.Sim => "GAMESIM", Kind.Gpu => "GPU", _ => "DISCO" };
+
+    /// <summary>Asymmetric widths (first tile ~1.9x the others), recomputed with the page width.</summary>
+    private void SizeTiles(double width)
+    {
+        var tiles = kindPanel.Children.OfType<Button>().ToList();
+        if (tiles.Count == 0 || width <= 0) return;
+        double unit = Math.Max(80, (width - kindPanel.Spacing * (tiles.Count - 1)) / (tiles.Count + 0.9));
+        for (int i = 0; i < tiles.Count; i++) tiles[i].Width = Math.Floor(i == 0 ? unit * 1.9 : unit);
     }
 
     private static Control Field(string label, Control c) => new StackPanel { Margin = new Thickness(0, 0, 28, 4), Children = { UiKit.Label(label), new Border { Height = 4 }, c } };
@@ -318,8 +409,21 @@ public sealed class BenchPage : StackPanel
     private void BuildHistory()
     {
         historyRows.Children.Clear();
+        var latest = settings.BenchRuns.FirstOrDefault(r => r.Kind != "OC");
+        lastRun.Text = latest is null ? "Nenhum teste concluído ainda. Escolha um teste abaixo e clique em INICIAR." : $"{latest.Kind} · {latest.At.LocalDateTime.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture)} · {latest.Summary}";
+        if (latest is not null && cts is null && headline.Text == "—") headline.Text = latest.Kind == "CPU" && latest.Score is double sc ? N(sc, "N0") + " pts" : latest.Summary.Split(" · ")[0];
         if (settings.BenchRuns.Count == 0) { historyRows.Children.Add(new TextBlock { Text = "Nenhum teste concluído ainda.", Foreground = Palette.Muted, FontSize = 12 }); return; }
+        bool first = true;
         foreach (var run in settings.BenchRuns.Take(20))
-            historyRows.Children.Add(new TextBlock { Text = $"{run.At.LocalDateTime.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture)}  {run.Kind,-8}  {run.Summary}", FontFamily = new FontFamily("monospace"), FontSize = 12, TextWrapping = TextWrapping.Wrap });
+        {
+            var row = new Grid { ColumnDefinitions = new("118,84,*") };
+            var date = new TextBlock { Text = run.At.LocalDateTime.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture), FontSize = 12, Foreground = Palette.Faint, VerticalAlignment = VerticalAlignment.Center };
+            var kindText = new TextBlock { Text = run.Kind, FontSize = 12, FontWeight = FontWeight.SemiBold, Foreground = Palette.Muted, VerticalAlignment = VerticalAlignment.Center };
+            var summary = new TextBlock { Text = run.Summary, FontSize = 12.5, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center };
+            Grid.SetColumn(kindText, 1); Grid.SetColumn(summary, 2);
+            row.Children.Add(date); row.Children.Add(kindText); row.Children.Add(summary);
+            historyRows.Children.Add(new Border { BorderBrush = Palette.Line, BorderThickness = new Thickness(0, first ? 0 : 1, 0, 0), Padding = new Thickness(0, 8), Child = row });
+            first = false;
+        }
     }
 }

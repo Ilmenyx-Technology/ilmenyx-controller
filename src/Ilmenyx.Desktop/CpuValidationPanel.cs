@@ -16,7 +16,8 @@ namespace Ilmenyx.Desktop;
 public sealed class CpuValidationPanel : Border, IDisposable
 {
     private readonly CpuValidationViewModel model;
-    private readonly Image preview = new() { Name = "CpuPreview", Width = 256, Height = 144, Stretch = Stretch.Fill, IsVisible = false };
+    private readonly Image preview = new() { Name = "CpuPreview", Width = 256, Height = 144, HorizontalAlignment = HorizontalAlignment.Left, Stretch = Stretch.Fill, IsVisible = false };
+    private readonly Border placeholder = new() { Width = 256, Height = 144, HorizontalAlignment = HorizontalAlignment.Left, Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.ControlRadius) };
     private WriteableBitmap? bitmap;
     private CpuRenderOutput? displayed;
 
@@ -24,10 +25,7 @@ public sealed class CpuValidationPanel : Border, IDisposable
     {
         this.model = model;
         DataContext = model;
-        Background = Palette.Card;
-        CornerRadius = new CornerRadius(12);
-        Padding = new Thickness(20);
-        Margin = new Thickness(0, 0, 12, 0);
+        ValidationLook.Surface(this);
         var start = new Button { Name = "ValidateCpu", Content = "Validar CPU (reduzido)", Margin = new Thickness(0, 0, 8, 8) };
         var cancel = new Button { Name = "CancelCpu", Content = "Cancelar CPU", Margin = new Thickness(0, 0, 8, 8) };
         var export = new Button { Name = "ExportCpu", Content = "Exportar CPU JSON", Margin = new Thickness(0, 0, 8, 8) };
@@ -61,25 +59,27 @@ public sealed class CpuValidationPanel : Border, IDisposable
                 if (IsEffectivelyVisible && button.IsEffectivelyEnabled && !lifetime.IsCancellationRequested) button.Focus();
             }
         }
-        var status = new TextBlock { Name = "CpuStatus", TextWrapping = TextWrapping.Wrap };
+        ValidationLook.Actions(start, cancel, export, exportHtml);
+        var status = new TextBlock { Name = "CpuStatus", TextWrapping = TextWrapping.Wrap, FontSize = 12.5 };
         status.Bind(TextBlock.TextProperty, new Binding(nameof(model.Status)));
-        var summary = new TextBlock { Name = "CpuSummary", TextWrapping = TextWrapping.Wrap, FontSize = 12 };
+        var summary = new TextBlock { Name = "CpuSummary", TextWrapping = TextWrapping.Wrap, FontSize = 12, Foreground = Palette.Muted };
         summary.Bind(TextBlock.TextProperty, new Binding(nameof(model.Summary)));
-        var progress = new ProgressBar { Minimum = 0, Maximum = CpuValidationViewModel.MaximumSamples, Height = 5 };
+        var progress = new ProgressBar { Minimum = 0, Maximum = CpuValidationViewModel.MaximumSamples, Height = 5, MinHeight = 5 };
         progress.Bind(ProgressBar.ValueProperty, new Binding(nameof(model.CompletedSamples)));
         progress.Bind(IsVisibleProperty, new Binding(nameof(model.IsRunning)));
         AutomationProperties.SetName(progress, "Amostras concluídas da validação CPU");
         AutomationProperties.SetName(preview, "Imagem final da validação CPU reduzida; contagens e hash no resumo textual");
         RenderOptions.SetBitmapInterpolationMode(preview, BitmapInterpolationMode.None);
+        placeholder.Child = new TextBlock { Text = "A imagem final aparece aqui depois da validação.", FontSize = 11.5, Foreground = Palette.Faint, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(16) };
         Child = new StackPanel
         {
             Spacing = 10,
             Children =
             {
-                new TextBlock { Text = "VALIDAÇÃO DO RENDERIZADOR CPU", TextWrapping = TextWrapping.Wrap, FontSize = 14, FontWeight = FontWeight.Bold },
-                new TextBlock { Text = "32×18 pixels · 8 amostras/pixel · uma passada · sem score.\nA imagem é calculada ao clicar. Este modo não mede desempenho nem saúde do hardware.", TextWrapping = TextWrapping.Wrap, Foreground = Palette.Muted },
+                ValidationLook.Title(Icons.Cpu, "VALIDAÇÃO DO RENDERIZADOR CPU"),
+                ValidationLook.Description("32×18 pixels · 8 amostras/pixel · uma passada · sem score.\nA imagem é calculada ao clicar. Este modo não mede desempenho nem saúde do hardware."),
                 new WrapPanel { Orientation = Orientation.Horizontal, Children = { start, cancel, export, exportHtml } },
-                progress, status, preview, summary
+                progress, status, preview, placeholder, summary
             }
         };
         model.PropertyChanged += ModelChanged;
@@ -93,6 +93,7 @@ public sealed class CpuValidationPanel : Border, IDisposable
         bitmap = null;
         preview.Source = null;
         preview.IsVisible = displayed is not null;
+        placeholder.IsVisible = displayed is null;
         if (displayed is { } output)
         {
             var size = output.Result.Workload;
@@ -114,5 +115,35 @@ public sealed class CpuValidationPanel : Border, IDisposable
         preview.Source = null;
         bitmap?.Dispose();
         bitmap = null;
+    }
+}
+
+/// <summary>
+/// Shared look of the reduced validation panels (cinematic ambient dark): translucent card surface, icon title, compact secondary text,
+/// the start action in the brand accent and the other actions as quiet buttons. Appearance only; names, texts and order are untouched.
+/// </summary>
+internal static class ValidationLook
+{
+    public static void Surface(Border panel)
+    {
+        panel.Background = Palette.Card; panel.BorderBrush = Palette.Line; panel.BorderThickness = new Thickness(1);
+        panel.CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius); panel.Padding = new Thickness(20, 16); panel.Margin = new Thickness(0, 0, 12, 0);
+    }
+
+    public static Control Title(string icon, string text)
+    {
+        var glyph = UiKit.Icon(icon, 16, Palette.AccentText); glyph.VerticalAlignment = VerticalAlignment.Top; glyph.Margin = new Thickness(0, 1, 8, 0);
+        var title = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, FontSize = 14, FontWeight = FontWeight.SemiBold };
+        Grid.SetColumn(title, 1);
+        return new Grid { ColumnDefinitions = new("Auto,*"), Children = { glyph, title } };
+    }
+
+    public static TextBlock Description(string text) => new() { Text = text, TextWrapping = TextWrapping.Wrap, FontSize = 12, Foreground = Palette.Muted };
+
+    public static void Actions(Button start, params Button[] others)
+    {
+        foreach (var b in others.Prepend(start)) { b.FontSize = 12; b.Padding = new Thickness(13, 6); b.CornerRadius = new CornerRadius(IlmenyxTheme.ControlRadius); }
+        start.Background = Palette.Accent; start.Foreground = Palette.OnAccent; start.FontWeight = FontWeight.SemiBold;
+        foreach (var b in others) { b.Background = Palette.Card; b.Foreground = Palette.Muted; }
     }
 }
