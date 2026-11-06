@@ -185,9 +185,9 @@ public sealed partial class ShellWindow : Window
         readout.Children.Add(cpuIcon); Grid.SetColumn(temp, 1); readout.Children.Add(temp); Grid.SetColumn(load, 2); readout.Children.Add(load);
         Grid.SetRow(state, 1); Grid.SetColumnSpan(state, 3); state.Margin = new Thickness(0, 4, 0, 0); readout.Children.Add(state);
         // The original shows the reason and a CORRIGIR button when CPU temperature/power are missing; here: reason + command (never run).
-        var help = new Button { Name = "SensorHelp", Content = "Por que não aparece?", FontSize = 11, Foreground = Palette.AccentText, Background = Brushes.Transparent, Padding = new Thickness(0, 6, 0, 0), IsVisible = false };
+        var help = new Button { Name = "SensorHelp", Content = "Liberar sensores da CPU", FontSize = 11, Foreground = Palette.AccentText, Background = Brushes.Transparent, Padding = new Thickness(0, 6, 0, 0), IsVisible = false };
         AutomationProperties.SetName(help, "Por que a temperatura ou o consumo da CPU não aparecem");
-        help.Click += async (_, _) => await new SensorHelpDialog(CurrentFixes()).ShowDialog(this);
+        help.Click += async (_, _) => await new SensorHelpDialog(CurrentFixes(), PrivilegedFix.Available ? script => PrivilegedFix.RunAsync(script, stop.Token) : null).ShowDialog(this);
         usage.Updated += () => help.IsVisible = CurrentFixes().Count > 0;
         Grid.SetRow(help, 2); Grid.SetColumnSpan(help, 3); readout.RowDefinitions.Add(new RowDefinition(GridLength.Auto)); readout.Children.Add(help);
         var footer = new StackPanel

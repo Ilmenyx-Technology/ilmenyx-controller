@@ -290,3 +290,9 @@ as regras de arquitetura Linux, benchmarks, testes, licenças e segurança anter
 - Programa do sistema tem prioridade (`BoundedProcess.Find`); o embutido é reserva. Wrappers são gerados na pasta de dados do Ilmenyx, nunca em locais do sistema, sem root.
 - O servidor OpenRGB só inicia por clique (ou `ilmenyx components --check-openrgb`), em 127.0.0.1, e é encerrado ao sair. Regras udev/grupo i2c exigem root: comando exibido, nunca executado.
 - Flatpak não é embutível (serviço do sistema): o app mostra o comando da distribuição.
+
+## Correções de sensores com um clique (decisão do mantenedor, 2026-11-06)
+- Os usuários não devem precisar digitar comandos. Para os sensores da CPU (módulo k10temp/coretemp e leitura do RAPL), o app oferece um botão
+  que roda um script **fixo**, montado só com valores de lista permitida, via polkit (`pkexec`): o sistema pede a senha na janela dele e o
+  Ilmenyx nunca a vê. Sempre por clique com confirmação, com Desfazer, e com o comando visível para técnicos. Isso substitui, só para esses
+  casos, a regra "root = comando exibido". Nenhum outro script, texto livre ou valor vindo de relatórios/rede pode chegar ao `pkexec`.

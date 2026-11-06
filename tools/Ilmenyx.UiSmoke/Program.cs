@@ -516,6 +516,7 @@ public sealed class UiSmokeApp : Application
         if (OperatingSystem.IsLinux()) await OptimizeAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await FpsAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await CompatAsync(desktop, Program.OutputDirectory);
+        if (OperatingSystem.IsLinux()) await SensorHelpAsync(desktop);
         if (OperatingSystem.IsLinux()) await AppsAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await BenchAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await OcAsync(shell, desktop);
@@ -1182,6 +1183,29 @@ public sealed class UiSmokeApp : Application
             if (http.Hosts.Any(h => h != "www.protondb.com" && h != "store.steampowered.com" && h != "raw.githubusercontent.com" && h != "api.github.com")) throw new InvalidOperationException("Unexpected host.");
         }
         Console.WriteLine("PASS compat page: offline index search and similar-hardware ranking, unsafe options locked, home paths hidden, online query only after confirmation (fixed hosts), apply/undo on a fake Steam config, verified export update (fake HTTP; no network)");
+    }
+
+    private static async Task SensorHelpAsync(IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        // Fake runner: pkexec is never started by the smoke.
+        var scripts = new List<string>();
+        var fixes = SensorHelp.Build(false, CpuPowerAccess.NoPermission, "AMD Ryzen 5", "/sys/class/powercap/intel-rapl:0", false);
+        var owner = new Window { Width = 300, Height = 200 }; owner.Show();
+        var dialog = new SensorHelpDialog(fixes, script => { scripts.Add(script); return Task.FromResult((true, "Pronto.")); });
+        var shown = dialog.ShowDialog(owner);
+        await Until(() => dialog.IsVisible);
+        if (Find<SelectableTextBlock>(dialog, "SensorFixCommand0").IsEffectivelyVisible) throw new InvalidOperationException("Commands must start folded when one click can fix it.");
+        Click(dialog, "SensorFixApply0"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        var no = desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible); Click(no, "ConfirmNo"); await Until(() => !no.IsVisible); await Task.Delay(60);
+        if (scripts.Count != 0) throw new InvalidOperationException("Declined fix must not run anything.");
+        Click(dialog, "SensorFixApply0"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        Click(desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible), "ConfirmYes");
+        await Until(() => scripts.Count == 1 && Find<Button>(dialog, "SensorFixUndo0").IsVisible);
+        if (!scripts[0].StartsWith("chmod o+r /sys/class/powercap/intel-rapl:0/energy_uj", StringComparison.Ordinal)) throw new InvalidOperationException("Unexpected fix script.");
+        Click(dialog, "SensorFixUndo0"); await Until(() => scripts.Count == 2 && Find<Button>(dialog, "SensorFixApply0").IsEnabled);
+        Click(dialog, "SensorFixShowCommands0"); await Until(() => Find<SelectableTextBlock>(dialog, "SensorFixCommand0").IsEffectivelyVisible);
+        Click(dialog, "CloseSensorHelp"); await shown; owner.Close();
+        Console.WriteLine("PASS sensor help: one-click fix only after confirmation (fake polkit runner), undo, commands folded for technicians");
     }
 
     private static async Task AppsAsync(ShellWindow shell, IClassicDesktopStyleApplicationLifetime desktop)

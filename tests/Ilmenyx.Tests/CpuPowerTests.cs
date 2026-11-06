@@ -60,6 +60,19 @@ public sealed class CpuPowerTests : IDisposable
     }
 
     [Fact]
+    public void OneClickScriptsUseOnlyWhitelistedValues()
+    {
+        var rapl = SensorHelp.Build(false, CpuPowerAccess.NoPermission, "AMD", "/sys/class/powercap/intel-rapl:0", false).Single();
+        Assert.StartsWith("chmod o+r /sys/class/powercap/intel-rapl:0/energy_uj && ", rapl.Apply);
+        Assert.Contains("/etc/udev/rules.d/90-ilmenyx-rapl.rules", rapl.Apply); Assert.Contains("rm -f /etc/udev/rules.d/90-ilmenyx-rapl.rules", rapl.Undo);
+        var evil = SensorHelp.Build(false, CpuPowerAccess.NoPermission, "AMD", "/sys/class/powercap/intel-rapl:0; rm -rf /", false).Single();
+        Assert.DoesNotContain("rm -rf /", evil.Apply); Assert.Contains("/sys/class/powercap/intel-rapl:0/energy_uj", evil.Apply); // falls back to the default zone
+        var temp = SensorHelp.Build(true, CpuPowerAccess.Available, "Intel(R) Core(TM) i5; reboot", null, false).Single();
+        Assert.Equal("modprobe coretemp && printf '%s\\n' coretemp > /etc/modules-load.d/ilmenyx-coretemp.conf", temp.Apply); // CPU text never reaches the script
+        Assert.Null(SensorHelp.Build(true, CpuPowerAccess.Available, "AMD", null, true).Single().Apply); // VM: nothing to run
+    }
+
+    [Fact]
     public void MangoHudConfigUsesTheOriginalOverlayShortcut() =>
         Assert.Contains("toggle_hud=Control_L+Shift_L+o", MangoHudConfig.Build(new HashSet<string> { "fps" }, "top-left", 1.0, null).Split('\n'));
 }
