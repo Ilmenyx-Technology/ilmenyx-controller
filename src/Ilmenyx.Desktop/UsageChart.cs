@@ -9,8 +9,8 @@ namespace Ilmenyx.Desktop;
 public sealed class UsageChart : Control
 {
     public const int Window = 60; // default visible points (1 s each)
-    private static readonly IBrush Back = Palette.Panel, Fill = Palette.DataCpu; // série de CPU da paleta; segue o tema
-    private static readonly IPen Grid = new Pen(Palette.Line, 1), Line = new Pen(Palette.AccentText, 1.4);
+    private static readonly IBrush Back = Palette.Card, Fill = Palette.DataCpu; // série de CPU da paleta; segue o tema
+    private static readonly IPen Grid = new Pen(Palette.Line, 1), Line = new Pen(Palette.AccentText, 1.6, lineJoin: PenLineJoin.Round);
     private static readonly IPen SecondLine = new Pen(Palette.Warn, 1.4);
     private double[] values = [], second = [];
     private double max = 1;
@@ -35,8 +35,7 @@ public sealed class UsageChart : Control
     public override void Render(DrawingContext context)
     {
         var rect = new Rect(Bounds.Size);
-        context.DrawRectangle(Back, null, rect, 6, 6);
-        for (int i = 1; i < 6; i++) context.DrawLine(Grid, new Point(rect.Width * i / 6, 0), new Point(rect.Width * i / 6, rect.Height));
+        context.DrawRectangle(Back, null, rect, IlmenyxTheme.ControlRadius, IlmenyxTheme.ControlRadius);
         for (int i = 1; i < 4; i++) context.DrawLine(Grid, new Point(0, rect.Height * i / 4), new Point(rect.Width, rect.Height * i / 4));
         if (values.Length < 2 || rect.Width < 2 || rect.Height < 2) return;
         double step = rect.Width / (Points - 1), left = rect.Width - step * (values.Length - 1);
@@ -48,7 +47,14 @@ public sealed class UsageChart : Control
             for (int i = 0; i < values.Length; i++) g.LineTo(P(i));
             g.LineTo(new Point(left + step * (values.Length - 1), rect.Height)); g.EndFigure(true);
         }
-        using (context.PushOpacity(0.55)) context.DrawGeometry(Fill, null, area);
+        // Soft vertical fade of the series colour (rebuilt per frame so it follows theme switches).
+        var c = ((ISolidColorBrush)Fill).Color;
+        var fade = new LinearGradientBrush
+        {
+            StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative), EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
+            GradientStops = { new GradientStop(Color.FromArgb(0x70, c.R, c.G, c.B), 0), new GradientStop(Color.FromArgb(0x08, c.R, c.G, c.B), 1) },
+        };
+        context.DrawGeometry(fade, null, area);
         var line = new StreamGeometry();
         using (var g = line.Open())
         {
