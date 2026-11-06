@@ -150,7 +150,7 @@ public sealed partial class ShellWindow
     {
         Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), Padding = padding ?? new Thickness(22, 18), Child = child
     };
-    private static TextBlock Label(string text) => new() { Text = text, FontSize = 11, FontWeight = FontWeight.Bold, Foreground = Palette.Faint, TextWrapping = TextWrapping.Wrap };
+    private static TextBlock Label(string text) => UiKit.Label(text);
     private static TextBlock Wrapped(string name, string text, double size = 14, IBrush? brush = null)
     {
         var t = new TextBlock { Name = name, Text = text, FontSize = size, TextWrapping = TextWrapping.Wrap };
@@ -158,16 +158,16 @@ public sealed partial class ShellWindow
         return t;
     }
     private static ScrollViewer Scroll(string name, Control content) => new() { Name = name, Content = content };
-    private static Button Primary(string name, string text) => new() { Name = name, Content = text, Background = Palette.Accent, Foreground = Palette.OnAccent, FontWeight = FontWeight.Bold, Padding = new Thickness(20, 12), HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Center, CornerRadius = new CornerRadius(IlmenyxTheme.Pill) };
+    private static Button Primary(string name, string text) { var b = UiKit.Primary(name, text, 20, 10); b.HorizontalAlignment = HorizontalAlignment.Stretch; b.HorizontalContentAlignment = HorizontalAlignment.Center; return b; }
 
-    private static void ChipStyle(Button b, bool on) { b.Background = on ? Palette.Fg : Brushes.Transparent; b.Foreground = on ? Palette.OnFg : Palette.Muted; }
+    private static void ChipStyle(Button b, bool on) => UiKit.ChipStyle(b, on);
     private static StackPanel Chips<T>(string name, (string Label, T Value)[] options, T initial, Action<T> chosen)
     {
         var panel = new StackPanel { Name = name, Orientation = Orientation.Horizontal, Spacing = 6 };
         var buttons = new List<Button>();
         foreach (var (label, value) in options)
         {
-            var b = new Button { Content = label, FontSize = 11, Padding = new Thickness(14, 5), CornerRadius = new CornerRadius(16), BorderBrush = Palette.Line, BorderThickness = new Thickness(1) };
+            var b = new Button { Content = label, FontSize = 11, Padding = new Thickness(13, 5), CornerRadius = new CornerRadius(IlmenyxTheme.Pill), BorderBrush = Palette.Line, BorderThickness = new Thickness(1) };
             ChipStyle(b, EqualityComparer<T>.Default.Equals(value, initial)); buttons.Add(b);
             var chosenValue = value;
             b.Click += (_, _) => { foreach (var o in buttons) ChipStyle(o, ReferenceEquals(o, b)); chosen(chosenValue); };
@@ -181,9 +181,9 @@ public sealed partial class ShellWindow
         int range = 300; string metric = "load";
         var chart = new UsageChart { Name = "OverviewChart", Height = 210, HorizontalAlignment = HorizontalAlignment.Stretch };
         var chartLabel = Label("CPU · CARGA");
-        var hero = new TextBlock { Name = "OverviewValue", Text = "—", FontSize = 44, FontWeight = FontWeight.Bold, FontFamily = new FontFamily("monospace") };
+        var hero = new TextBlock { Name = "OverviewValue", Text = "—", FontSize = 34, FontWeight = FontWeight.Bold };
         GpuRaw? gpuRaw = null; GpuTelemetry? gpuLast = null;
-        var gpuLoad = new List<double>(); var gpuValue = new TextBlock { Name = "OverviewGpuValue", Text = "—", FontSize = 22, Foreground = Palette.Muted, HorizontalAlignment = HorizontalAlignment.Right };
+        var gpuLoad = new List<double>(); var gpuValue = new TextBlock { Name = "OverviewGpuValue", Text = "—", FontSize = 20, FontWeight = FontWeight.SemiBold, Foreground = Palette.Muted, HorizontalAlignment = HorizontalAlignment.Right };
         var gpuLegend = new TextBlock { Name = "OverviewLegendGpu", Text = "GPU: sem contadores de uso neste monitor", FontSize = 11, Foreground = Palette.Muted };
         void Refresh()
         {
@@ -204,20 +204,21 @@ public sealed partial class ShellWindow
         var gpuTag = new StackPanel { HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Bottom, Children = { Label("GPU"), gpuValue } };
         var top = new Grid { Children = { new StackPanel { Children = { chartLabel, hero } }, gpuTag } };
         var legend = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 8, 0, 0), Spacing = 6, Children = { new Border { Width = 14, Height = 2, Background = Palette.Accent, VerticalAlignment = VerticalAlignment.Center }, new TextBlock { Text = "CPU", FontSize = 11, Foreground = Palette.Muted }, new Border { Width = 14, Height = 2, Background = Palette.Warn, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 0, 0) }, gpuLegend } };
-        var chartCard = CardBox(new StackPanel { Children = { top, chips, chart, legend } }, new Thickness(24, 20));
+        var chartCard = CardBox(new StackPanel { Children = { top, chips, chart, legend } }, new Thickness(22, 18));
 
-        // Right card: performance from the local benchmark history, like the benchmark card of the original (experimental scores).
-        var open = Primary("OpenBench", "ABRIR BENCHMARK");
+        // Featured row (reference composition): a cinematic hero of this PC and, beside it, the performance highlight card with two small tiles.
+        var open = UiKit.Translucent("OpenBench", "ABRIR BENCHMARK");
         open.Click += (_, _) => Select("bench");
-        var openValidations = new Button { Name = "OpenValidations", Content = "Validações reduzidas", Margin = new Thickness(0, 8, 0, 0), HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Center };
+        var openValidations = new Button { Name = "OpenValidations", Content = "Validações reduzidas", Background = Brushes.Transparent, Foreground = Palette.Fg, FontSize = 12, Padding = new Thickness(10, 8) };
         openValidations.Click += (_, _) => Select("validate");
-        var notice = new Border { HorizontalAlignment = HorizontalAlignment.Left, Background = Palette.WarnBg, CornerRadius = new CornerRadius(IlmenyxTheme.ControlRadius), Padding = new Thickness(10, 6), Margin = new Thickness(0, 10, 0, 0), Child = new TextBlock { Name = "OverviewGpuNotice", Text = ValidationNotices.AmdNvidia, Foreground = Palette.Warn, TextWrapping = TextWrapping.Wrap, FontSize = 12 } };
-        var memoryRow = Wrapped("OverviewMemory", "—", 13, Palette.Muted); var procRow = Wrapped("OverviewProcesses", "—", 13, Palette.Muted); var cpuName = Wrapped("OverviewCpuName", "—", 12, Palette.Muted);
+        var notice = new Border { HorizontalAlignment = HorizontalAlignment.Left, Background = Palette.WarnBg, CornerRadius = new CornerRadius(IlmenyxTheme.Pill), Padding = new Thickness(11, 4), Child = new TextBlock { Name = "OverviewGpuNotice", Text = ValidationNotices.AmdNvidia, Foreground = Palette.Warn, TextWrapping = TextWrapping.Wrap, FontSize = 11, FontWeight = FontWeight.Medium } };
+        var memoryRow = Wrapped("OverviewMemory", "—", 12.5, Palette.Fg); var procRow = Wrapped("OverviewProcesses", "—", 12.5, Palette.Fg);
+        var cpuName = new TextBlock { Name = "OverviewCpuName", Text = "—", FontSize = 13, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap };
         usage.Updated += () => { memoryRow.Text = usage.MemoryLine; procRow.Text = usage.ProcessSummary; cpuName.Text = usage.CpuModel; };
-        var score = new TextBlock { Name = "OverviewScore", Text = "—", FontSize = 30, FontWeight = FontWeight.Bold, Margin = new Thickness(0, 6, 0, 0) };
-        var scoreDelta = new TextBlock { Name = "OverviewScoreDelta", FontSize = 13, Foreground = Palette.Muted };
-        var scoreSub = Wrapped("OverviewScoreSub", "rode o Benchmark para ter uma nota", 11, Palette.Faint);
-        var scoreRows = new StackPanel { Name = "OverviewScores", Margin = new Thickness(0, 8, 0, 0) };
+        var score = new TextBlock { Name = "OverviewScore", Text = "—", FontSize = 30, FontWeight = FontWeight.Bold, Margin = new Thickness(0, 2, 0, 0) };
+        var scoreDelta = new TextBlock { Name = "OverviewScoreDelta", FontSize = 12.5, Foreground = Palette.Fg, Opacity = 0.85 };
+        var scoreSub = Wrapped("OverviewScoreSub", "rode o Benchmark para ter uma nota", 11, Palette.Fg); scoreSub.Opacity = 0.7;
+        var scoreRows = new StackPanel { Name = "OverviewScores", Margin = new Thickness(0, 8, 0, 0), Spacing = 2 };
         void RefreshScores()
         {
             var summary = PerformanceSummary.From(IlmenyxSettings.Load(IlmenyxSettings.DefaultPath()).BenchRuns);
@@ -226,59 +227,153 @@ public sealed partial class ShellWindow
             scoreSub.Text = summary.CpuSubtitle + (summary.CpuScore is null ? "" : " · experimental, não comparável ao Windows");
             scoreRows.Children.Clear();
             foreach (var kv in summary.Others)
-                scoreRows.Children.Add(new Grid { ColumnDefinitions = new("*,Auto"), Children = { new TextBlock { Text = kv.Key, FontSize = 12, Foreground = Palette.Muted }, new TextBlock { Text = kv.Value, FontSize = 12, FontFamily = new FontFamily("monospace"), [Grid.ColumnProperty] = 1 } } });
+                scoreRows.Children.Add(new Grid { ColumnDefinitions = new("*,Auto"), Children = { new TextBlock { Text = kv.Key, FontSize = 11.5, Foreground = Palette.Fg, Opacity = 0.75 }, new TextBlock { Text = kv.Value, FontSize = 11.5, FontFamily = IlmenyxTheme.Mono, [Grid.ColumnProperty] = 1 } } });
         }
         overviewRefresh += RefreshScores; RefreshScores();
-        var side = CardBox(new StackPanel
-        {
-            Children =
-            {
-                Label("DESEMPENHO"), score, scoreDelta, scoreSub, scoreRows,
-                new Border { Height = 1, Background = Palette.Line, Margin = new Thickness(0, 14) }, Label("MEMÓRIA"), memoryRow, new Border { Height = 8 }, Label("PROCESSOS"), procRow, notice,
-                new Border { Height = 14 }, open, openValidations
-            }
-        }, new Thickness(22, 20));
-        var row1 = new Grid { ColumnDefinitions = new("*,16,330"), Margin = new Thickness(0, 6, 0, 16) };
-        Grid.SetColumn(side, 2); row1.Children.Add(chartCard); row1.Children.Add(side);
 
-        // Component table: COMPONENTE | TEMPERATURA | CARGA | CLOCK | CONSUMO / USO | VER
-        var rows = new StackPanel { Name = "DashComponents" };
-        var head = new Grid { ColumnDefinitions = new("2.2*,*,*,*,1.6*,56"), Margin = new Thickness(0, 4, 0, 10) };
-        string[] titles = ["COMPONENTE", "TEMPERATURA", "CARGA", "CLOCK", "CONSUMO / USO", "VER"];
-        for (int i = 0; i < titles.Length; i++) { var l = Label(titles[i]); Grid.SetColumn(l, i); if (i == 5) l.HorizontalAlignment = HorizontalAlignment.Right; head.Children.Add(l); }
+        string model = "Este PC", distro = LinuxCompatHardware.OsName() ?? "Linux", kernel = "";
+        try
+        {
+            if (File.Exists("/sys/class/dmi/id/product_name") && File.ReadAllText("/sys/class/dmi/id/product_name").Trim() is { Length: > 0 and < 80 } pm) model = pm.Split('_')[0];
+            kernel = File.Exists("/proc/sys/kernel/osrelease") ? File.ReadAllText("/proc/sys/kernel/osrelease").Trim() : "";
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+        var heroTags = new WrapPanel { Name = "OverviewHeroTags" };
+        void HeroTags()
+        {
+            heroTags.Children.Clear();
+            foreach (var t in new[] { gpuRaw?.Name is { } gn ? "GPU · " + gn : null, usage.MemorySub is { Length: > 0 } ms ? ms.Replace("Total", "RAM") : null, distro, kernel.Length > 0 ? "kernel " + kernel.Split('-')[0] : null })
+                if (t is not null) heroTags.Children.Add(UiKit.Tag(t, onImage: true));
+        }
+        HeroTags();
+        TextBlock Reading() => new() { FontSize = 13, FontWeight = FontWeight.SemiBold, Foreground = Brushes.White, VerticalAlignment = VerticalAlignment.Center };
+        var heroCpu = Reading(); var heroGpu = Reading(); var heroRam = Reading();
+        Border ReadingPill(string label, TextBlock value) => new()
+        {
+            Background = new SolidColorBrush(Color.FromArgb(0x55, 0x10, 0x0E, 0x14)), CornerRadius = new CornerRadius(IlmenyxTheme.Pill), Padding = new Thickness(12, 5), Margin = new Thickness(0, 0, 8, 6),
+            Child = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { new TextBlock { Text = label, FontSize = 11, Foreground = new SolidColorBrush(Color.FromArgb(0xB3, 0xFF, 0xFF, 0xFF)), VerticalAlignment = VerticalAlignment.Center }, value } },
+        };
+        void HeroReadings()
+        {
+            var u = usage.Last;
+            heroCpu.Text = (u?.CpuTempC is { } t ? t.ToString("0", CultureInfo.InvariantCulture) + " °C · " : "") + UsageViewModel.Pct(u?.CpuPercent);
+            heroGpu.Text = (gpuLast?.TempC is { } gt ? gt.ToString("0", CultureInfo.InvariantCulture) + " °C · " : "") + UsageViewModel.Pct(gpuLast?.LoadPercent);
+            heroRam.Text = u is { MemoryTotal: > 0, MemoryUsed: { } mu } ? UsageViewModel.Pct(100.0 * mu / u.MemoryTotal.Value) : "—";
+        }
+        usage.Updated += HeroReadings;
+        // Hero light: a soft accent glow on the right instead of a picture (this page has no imagery of its own).
+        var accentColor = ((ISolidColorBrush)Palette.Accent).Color;
+        var heroArt = new Border
+        {
+            Margin = new Thickness(-26, -22), IsHitTestVisible = false,
+            Background = new RadialGradientBrush
+            {
+                Center = new RelativePoint(0.82, 0.35, RelativeUnit.Relative), GradientOrigin = new RelativePoint(0.82, 0.35, RelativeUnit.Relative),
+                RadiusX = new RelativeScalar(0.45, RelativeUnit.Relative), RadiusY = new RelativeScalar(0.8, RelativeUnit.Relative),
+                GradientStops = { new GradientStop(Color.FromArgb(0x55, accentColor.R, accentColor.G, accentColor.B), 0), new GradientStop(Color.FromArgb(0, accentColor.R, accentColor.G, accentColor.B), 1) },
+            },
+            Child = new Image { Source = AppIcon.Symbol, Width = 120, Height = 120, Opacity = 0.18, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 34, 56, 0) },
+        };
+        var heroContent = new Grid { RowDefinitions = new("Auto,*,Auto,Auto"), Children = { heroArt } };
+        Grid.SetRowSpan(heroArt, 4);
+        heroContent.Children.Add(heroTags);
+        var heroTitle = new StackPanel { Spacing = 4, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(0, 0, 0, 14), Children = {
+            new TextBlock { Name = "OverviewMachine", Text = model, FontSize = 28, FontWeight = FontWeight.Bold, Foreground = Brushes.White, TextWrapping = TextWrapping.Wrap }, cpuName } };
+        cpuName.Foreground = new SolidColorBrush(Color.FromArgb(0xC8, 0xFF, 0xFF, 0xFF));
+        Grid.SetRow(heroTitle, 1); heroContent.Children.Add(heroTitle);
+        var readings = new WrapPanel { Children = { ReadingPill("CPU", heroCpu), ReadingPill("GPU", heroGpu), ReadingPill("RAM", heroRam) } };
+        Grid.SetRow(readings, 2); heroContent.Children.Add(readings);
+        Grid.SetRow(notice, 3); notice.Margin = new Thickness(0, 4, 0, 0); heroContent.Children.Add(notice);
+        var heroCard = UiKit.Hero(heroContent, height: double.NaN, name: "OverviewHero"); heroCard.MinHeight = 250; heroCard.VerticalAlignment = VerticalAlignment.Stretch;
+
+        var feature = UiKit.FeatureCard(new StackPanel { Children = {
+            new TextBlock { Text = "DESEMPENHO", FontSize = 11, FontWeight = FontWeight.SemiBold, LetterSpacing = 0.6, Foreground = Palette.Fg, Opacity = 0.75 }, score, scoreDelta, scoreSub, scoreRows,
+            new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Margin = new Thickness(0, 14, 0, 0), Children = { open, openValidations } } } }, "OverviewPerformance");
+        Border SmallTile(string label, string icon, TextBlock value) => UiKit.Card(new StackPanel { Spacing = 6, Children = {
+            new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { UiKit.Icon(icon, 14, Palette.Faint), UiKit.Label(label) } }, value } }, new Thickness(0));
+        var tiles = new Grid { ColumnDefinitions = new("*,10,*"), Margin = new Thickness(0, 10, 0, 0) };
+        var memTile = SmallTile("MEMÓRIA", Icons.Memory, memoryRow); var procTile = SmallTile("PROCESSOS", Icons.Processes, procRow);
+        Grid.SetColumn(procTile, 2); tiles.Children.Add(memTile); tiles.Children.Add(procTile);
+        var side = new StackPanel { Children = { feature, tiles } };
+        var row1 = new Grid { ColumnDefinitions = new("1.9*,14,*"), Margin = new Thickness(0, 0, 0, 4) };
+        Grid.SetColumn(side, 2); row1.Children.Add(heroCard); row1.Children.Add(side);
+
+        // Components: asymmetric grid of cards (CPU larger), built once; values update in place every sample.
+        var components = new Grid { Name = "DashComponents" };
+        var cards = new Dictionary<string, (TextBlock Model, TextBlock Big, TextBlock Line, TextBlock Use)>();
+        Button ComponentCard(string name, string icon, IBrush tint, string target, string goName)
+        {
+            TextBlock T(double size, IBrush brush, FontWeight weight = FontWeight.Normal) => new() { FontSize = size, Foreground = brush, FontWeight = weight, TextTrimming = TextTrimming.CharacterEllipsis };
+            var modelText = T(11, Palette.Faint); var big = T(24, Palette.Fg, FontWeight.SemiBold); var line = T(12, Palette.Muted); var useText = T(11.5, Palette.Faint);
+            big.FontFamily = IlmenyxTheme.Mono; big.FontSize = 22; big.Text = "—"; line.Text = ""; useText.Text = "";
+            cards[name] = (modelText, big, line, useText);
+            var head = new Grid { ColumnDefinitions = new("Auto,*,Auto"), Children = { UiKit.Icon(icon, 16, tint) } };
+            var title = new TextBlock { Text = name, FontSize = 13, FontWeight = FontWeight.SemiBold, Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+            var chevron = UiKit.Icon(Icons.ChevronRight, 14, Palette.Faint);
+            Grid.SetColumn(title, 1); Grid.SetColumn(chevron, 2); head.Children.Add(title); head.Children.Add(chevron);
+            var b = new Button
+            {
+                Name = goName, Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), Padding = new Thickness(16, 14),
+                HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Top,
+                Content = new StackPanel { Spacing = 4, Children = { head, modelText, new Border { Height = 6 }, big, line, useText } },
+            };
+            AutomationPropertiesName(b, "Abrir " + name);
+            b.Click += (_, _) => Select(target);
+            return b;
+        }
+        var componentCards = new[]
+        {
+            ComponentCard("CPU", Icons.Cpu, Palette.DataCpu, "system", "GoCpu"), ComponentCard("GPU", Icons.Gpu, Palette.DataGpu, "gpu", "GoGpu"),
+            ComponentCard("Memória", Icons.Memory, Palette.DataMemory, "system", "GoMemory"), ComponentCard("Discos", Icons.Disks, Palette.DataDisk, "disks", "GoDisk"),
+            ComponentCard("Rede", Icons.Network, Palette.DataNetwork, "net", "GoNet"),
+        };
+        foreach (var c in componentCards) components.Children.Add(c);
+        bool? wideComponents = null;
+        void FitComponents(double width)
+        {
+            bool wide = width >= 980;
+            if (wideComponents == wide) return; wideComponents = wide;
+            components.ColumnDefinitions.Clear(); components.RowDefinitions.Clear();
+            if (wide)
+            {
+                // 1.9 : 1 : 1 : 1 : 1, one row (the reference's asymmetric offers row).
+                foreach (var w in new[] { 1.9, 0, 1, 0, 1, 0, 1, 0, 1 }) components.ColumnDefinitions.Add(w == 0 ? new ColumnDefinition(10, GridUnitType.Pixel) : new ColumnDefinition(w, GridUnitType.Star));
+                for (int i = 0; i < componentCards.Length; i++) { Grid.SetColumn(componentCards[i], i * 2); Grid.SetRow(componentCards[i], 0); Grid.SetColumnSpan(componentCards[i], 1); }
+            }
+            else
+            {
+                // Narrow window: CPU wide + GPU + memory on top, disks and network below.
+                foreach (var w in new[] { 1.6, 0, 1, 0, 1 }) components.ColumnDefinitions.Add(w == 0 ? new ColumnDefinition(10, GridUnitType.Pixel) : new ColumnDefinition(w, GridUnitType.Star));
+                components.RowDefinitions.Add(new RowDefinition(GridLength.Auto)); components.RowDefinitions.Add(new RowDefinition(10, GridUnitType.Pixel)); components.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+                (int Col, int Row, int Span)[] at = [(0, 0, 1), (2, 0, 1), (4, 0, 1), (0, 2, 1), (2, 2, 3)];
+                for (int i = 0; i < componentCards.Length; i++) { Grid.SetColumn(componentCards[i], at[i].Col); Grid.SetRow(componentCards[i], at[i].Row); Grid.SetColumnSpan(componentCards[i], at[i].Span); }
+            }
+        }
+        components.SizeChanged += (_, e) => FitComponents(e.NewSize.Width);
+        FitComponents(1200);
+        void Set(string name, string model, string big, string line, string use)
+        {
+            var c = cards[name]; c.Model.Text = model; c.Big.Text = big; c.Line.Text = line; c.Use.Text = use;
+        }
         void Components()
         {
-            rows.Children.Clear();
             var s = usage.Last;
             string mhz = s?.CpuMhz is { } m ? m.ToString("0", CultureInfo.InvariantCulture) + " MHz" : "—";
             string tmp = s?.CpuTempC is { } t ? t.ToString("0.0", CultureInfo.InvariantCulture) + " °C" : "—";
-            AddRow("CPU", s?.CpuModel ?? "", tmp, UsageViewModel.Pct(s?.CpuPercent), mhz, "—", "system", "GoCpu");
-            // GPU row from the same read-only telemetry as the load line; each missing counter stays "—" (never zero).
+            Set("CPU", s?.CpuModel ?? "", UsageViewModel.Pct(s?.CpuPercent), $"{tmp} · {mhz}", s?.BusiestCore is { } bc ? "mais ocupado: " + bc : "");
+            // GPU card from the same read-only telemetry as the load line; each missing counter stays "—" (never zero).
             var g = gpuLast;
             string gUse = g?.PowerW is { } gw ? gw.ToString("0.0", CultureInfo.InvariantCulture) + " W" + (g.PowerIsPackage ? " (pacote CPU+GPU)" : "")
                 : g?.VramUsed is { } vu && g.VramTotal is > 0 ? $"{vu >> 20:N0} / {g.VramTotal.Value >> 20:N0} MB".Replace(",", ".")
                 : "sem contadores";
-            AddRow("GPU", gpuRaw?.Name ?? "Inventário DRM/PCI", g?.TempC is { } gt ? gt.ToString("0.0", CultureInfo.InvariantCulture) + " °C" : "—", UsageViewModel.Pct(g?.LoadPercent),
-                g?.CoreMHz is { } gm ? gm.ToString("0", CultureInfo.InvariantCulture) + " MHz" : "—", gUse, "gpu", "GoGpu");
-            AddRow("Memória", usage.MemorySub, "—", s is { MemoryTotal: > 0, MemoryUsed: { } u } ? UsageViewModel.Pct(100.0 * u / s.MemoryTotal.Value) : "—", "—", usage.MemoryLine, "system", "GoMemory");
-            AddRow("Discos", "Dispositivos inteiros", "—", "—", "—", usage.DiskLine, "disks", "GoDisk");
-            AddRow("Rede", usage.NetSub, "—", "—", "—", usage.NetLine, "net", "GoNet");
-        }
-        void AddRow(string name, string model, string temp, string load, string clock, string use, string target, string goName)
-        {
-            var g = new Grid { ColumnDefinitions = new("2.2*,*,*,*,1.6*,56") };
-            var title = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Children = { new TextBlock { Text = name, FontSize = 13 }, new TextBlock { Text = model, FontSize = 11, Foreground = Palette.Faint, TextTrimming = TextTrimming.CharacterEllipsis } } };
-            g.Children.Add(title);
-            void Cell(int col, string text, bool muted) { var t = new TextBlock { Text = text, FontFamily = new FontFamily("monospace"), FontSize = 12, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis }; if (muted) t.Foreground = Palette.Muted; Grid.SetColumn(t, col); g.Children.Add(t); }
-            Cell(1, temp, false); Cell(2, load, false); Cell(3, clock, true); Cell(4, use, true);
-            var go = new Button { Name = goName, Content = "›", Width = 30, Height = 30, Padding = new Thickness(0), HorizontalAlignment = HorizontalAlignment.Right, HorizontalContentAlignment = HorizontalAlignment.Center, Background = Brushes.Transparent };
-            AutomationPropertiesName(go, "Abrir " + name);
-            go.Click += (_, _) => Select(target);
-            Grid.SetColumn(go, 5); g.Children.Add(go);
-            rows.Children.Add(new Border { BorderBrush = Palette.Line, BorderThickness = new Thickness(0, 1, 0, 0), Padding = new Thickness(0, 9), Child = g });
+            Set("GPU", gpuRaw?.Name ?? "Inventário DRM/PCI", UsageViewModel.Pct(g?.LoadPercent),
+                (g?.TempC is { } gt ? gt.ToString("0.0", CultureInfo.InvariantCulture) + " °C" : "—") + " · " + (g?.CoreMHz is { } gm ? gm.ToString("0", CultureInfo.InvariantCulture) + " MHz" : "—"), gUse);
+            Set("Memória", usage.MemorySub, s is { MemoryTotal: > 0, MemoryUsed: { } u } ? UsageViewModel.Pct(100.0 * u / s.MemoryTotal.Value) : "—", usage.MemoryLine, "");
+            Set("Discos", "Dispositivos inteiros", "E/S", usage.DiskLine, "");
+            Set("Rede", usage.NetSub, "Tráfego", usage.NetLine, "");
+            HeroReadings();
         }
         usage.Updated += Components; Components();
-        var table = CardBox(new StackPanel { Children = { head, rows } }, new Thickness(22, 14, 22, 8));
         // Health checklist, recent events and occupancy rings.
         var healthList = new StackPanel { Name = "OverviewHealth", Spacing = 6 };
         var healthStatus = new TextBlock { Name = "OverviewHealthStatus", FontSize = 11, Foreground = Palette.Faint };
@@ -323,12 +418,12 @@ public sealed partial class ShellWindow
         }
         overviewRefresh += () => { RefreshEvents(); RefreshRings(); };
         overviewRefresh += () => { if (healthList.Children.Count == 0) _ = RefreshHealthAsync(); };
-        var lower = new Grid { ColumnDefinitions = new("*,16,*"), Margin = new Thickness(0, 16, 0, 0) };
+        var lower = new Grid { ColumnDefinitions = new("*,16,*"), Margin = new Thickness(0, 14, 0, 0) };
         var healthCard = CardBox(new StackPanel { Spacing = 10, Children = { Label("SAÚDE DO PC"), healthList, healthStatus, refreshHealth } }, new Thickness(22, 18));
         var eventsCard = CardBox(new StackPanel { Spacing = 10, Children = { Label("EVENTOS RECENTES"), eventsList } }, new Thickness(22, 18));
         Grid.SetColumn(eventsCard, 2); lower.Children.Add(healthCard); lower.Children.Add(eventsCard);
-        var ringCard = CardBox(new StackPanel { Spacing = 8, Children = { Label("OCUPAÇÃO"), rings } }, new Thickness(22, 18)); ringCard.Margin = new Thickness(0, 16, 0, 0);
-        var content = new StackPanel { Margin = new Thickness(0, 0, 8, 12), Children = { row1, table, lower, ringCard } };
+        var ringCard = CardBox(new StackPanel { Spacing = 8, Children = { Label("OCUPAÇÃO"), rings } }, new Thickness(22, 18)); ringCard.Margin = new Thickness(0, 14, 0, 0);
+        var content = new StackPanel { Margin = new Thickness(0, 0, 8, 12), Children = { row1, UiKit.SectionHeader("Atividade"), chartCard, UiKit.SectionHeader("Componentes"), components, lower, ringCard } };
         var scroll = Scroll("OverviewScroll", content);
         scroll.AttachedToVisualTree += (_, _) => overviewRefresh?.Invoke();
         var refreshTimer = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(20) };
@@ -342,7 +437,7 @@ public sealed partial class ShellWindow
             gpuBusy = true;
             try
             {
-                if (!gpuResolved) { gpuRaw = await Task.Run(() => new LinuxGpuCollector().Collect(PciIds.Load()).FirstOrDefault().Raw); gpuResolved = true; }
+                if (!gpuResolved) { gpuRaw = await Task.Run(() => new LinuxGpuCollector().Collect(PciIds.Load()).FirstOrDefault().Raw); gpuResolved = true; HeroTags(); }
                 var t = gpuRaw is null ? null : await new LinuxGpuCollector().TelemetryAsync(gpuRaw, stop.Token);
                 if (t is not null) { gpuLast = t; Components(); }
                 if (t?.LoadPercent is double load) { gpuLoad.Add(load); if (gpuLoad.Count > UsageViewModel.MaxHistory) gpuLoad.RemoveAt(0); gpuValue.Text = load.ToString("0.0", CultureInfo.InvariantCulture) + "%"; gpuLegend.Text = "GPU"; Refresh(); }
