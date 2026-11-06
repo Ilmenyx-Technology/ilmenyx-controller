@@ -14,6 +14,7 @@ public sealed class JsonSaveDialog : Window
     {
         if (extension is not (".json" or ".html")) throw new ArgumentException("Formato de relatório não suportado.", nameof(extension));
         Icon = AppIcon.Window; Title = extension == ".html" ? "Salvar relatório HTML" : "Salvar relatório JSON"; Width = 660; Height = 390; MinHeight = 360; MinWidth = 440;
+        Background = Palette.Panel; Foreground = Palette.Fg;
         KeyboardNavigation.SetTabNavigation(this, KeyboardNavigationMode.Cycle);
         CanResize = true; WindowStartupLocation = WindowStartupLocation.CenterOwner;
         string directory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
@@ -23,7 +24,7 @@ public sealed class JsonSaveDialog : Window
         AutomationProperties.SetName(destination, "Caminho completo do arquivo de relatório");
         AutomationProperties.SetLabeledBy(destination, label);
         AutomationProperties.SetHelpText(destination, "Informe um caminho completo para um arquivo novo com extensão " + extension + ". Arquivos existentes serão preservados.");
-        var error = new TextBlock { Name = "DestinationError", TextWrapping = TextWrapping.Wrap, Foreground = Brushes.OrangeRed };
+        var error = new TextBlock { Name = "DestinationError", TextWrapping = TextWrapping.Wrap, Foreground = Palette.Error };
         AutomationProperties.SetLiveSetting(error, AutomationLiveSetting.Polite);
         var save = new Button { Name = "SaveJson", Content = "Salvar", IsDefault = true };
         var cancel = new Button { Name = "CancelSaveJson", Content = "Cancelar", IsCancel = true };
@@ -63,7 +64,7 @@ public sealed class JsonSaveDialog : Window
         };
         Content = new ScrollViewer
         {
-            Name = "SaveDialogScroll", Content = content, IsTabStop = false,
+            Name = "SaveDialogScroll", Background = IlmenyxTheme.Ambient(), Content = content, IsTabStop = false,
             HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
             VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto
         };

@@ -20,7 +20,7 @@ public sealed class AppsPage : StackPanel
     private readonly TextBlock status = new() { Name = "AppsStatus", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 16) };
     private readonly Button install = UiKit.Primary("BtnAppsInstall", "INSTALAR SELECIONADOS");
     private readonly Button flathub = new() { Name = "BtnAppsFlathub", Content = "ADICIONAR FLATHUB (SOMENTE PARA O SEU USUÁRIO)", IsVisible = false, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 14, 0, 0) };
-    private readonly Border progress = new() { Name = "AppsProgress", Background = Palette.Fg, HorizontalAlignment = HorizontalAlignment.Left, Height = 3 };
+    private readonly Border progress = new() { Name = "AppsProgress", Background = Palette.Accent, HorizontalAlignment = HorizontalAlignment.Left, Height = 3 };
     private readonly Grid track = new() { Height = 3, Margin = new Thickness(0, 0, 0, 8), Background = Palette.Line };
     private bool busy, stopRequested; private double fraction;
     public IReadOnlyList<InstallableApp> Apps => apps;
@@ -35,8 +35,9 @@ public sealed class AppsPage : StackPanel
     {
         this.installer = installer; this.flatpakAvailable = flatpakAvailable; this.owner = owner; this.lifetime = lifetime; Spacing = 4;
         install.HorizontalAlignment = HorizontalAlignment.Right; install.VerticalAlignment = VerticalAlignment.Top; install.Click += async (_, _) => await InstallAsync();
-        var header = new Grid { Margin = new Thickness(0, 4, 0, 20) };
-        header.Children.Add(new StackPanel { Margin = new Thickness(0, 0, 220, 0), Children = { new TextBlock { Text = "Instalar apps", FontSize = 32, FontWeight = FontWeight.Bold }, new TextBlock { Text = "Os essenciais depois de instalar o sistema · Flatpak do Flathub, instalação por usuário (sem root)", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap } } });
+        var header = UiKit.PageHeader("Instalar apps", "Os essenciais depois de instalar o sistema · Flatpak do Flathub, instalação por usuário (sem root)");
+        header.RowDefinitions = new("Auto,Auto");
+        Grid.SetRow(install, 1); install.Margin = new Thickness(0, 10, 0, 0);
         header.Children.Add(install);
         track.Children.Add(progress); track.SizeChanged += (_, _) => progress.Width = track.Bounds.Width * fraction;
         var all = new Button { Name = "BtnAppsAll", Content = "MARCAR TODOS", Padding = new Thickness(10, 4), FontSize = 11 }; var none = new Button { Name = "BtnAppsNone", Content = "DESMARCAR", Padding = new Thickness(10, 4), FontSize = 11 };
@@ -74,7 +75,7 @@ public sealed class AppsPage : StackPanel
             AutomationProperties.SetName(check, "Instalar " + app.Name); check.IsCheckedChanged += (_, _) => app.Selected = check.IsChecked == true;
             var body = new StackPanel { Children = { new TextBlock { Text = app.Name + (app.Installed ? "  ·  JÁ INSTALADO" : ""), FontWeight = FontWeight.SemiBold }, new TextBlock { Text = app.Description, Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap }, new TextBlock { Name = "AppStatus_" + app.FlatpakId.Replace('.', '_'), Text = app.Status, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 0) } } };
             var row = new Grid { ColumnDefinitions = new("Auto,*"), Margin = new Thickness(0, 0, 0, 10) }; Grid.SetColumn(body, 1); row.Children.Add(check); row.Children.Add(body);
-            list.Children.Add(new Border { BorderBrush = Palette.Line, BorderThickness = new Thickness(0, 1, 0, 0), Padding = new Thickness(0, 10, 0, 0), Child = row });
+            list.Children.Add(UiKit.Card(row, new Thickness(0, 0, 0, 8)));
         }
     }
 

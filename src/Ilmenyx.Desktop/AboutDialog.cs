@@ -14,6 +14,7 @@ public sealed class AboutDialog : Window
     {
         Icon = AppIcon.Window; Title = "Ilmenyx — Licenças e créditos"; Width = 740; Height = 560;
         MinWidth = 480; MinHeight = 360; WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        Background = Palette.Panel; Foreground = Palette.Fg;
         KeyboardNavigation.SetTabNavigation(this, KeyboardNavigationMode.Cycle);
         var close = new Button { Name = "CloseAbout", Content = "Fechar", IsCancel = true, HorizontalAlignment = HorizontalAlignment.Right };
         close.Click += (_, _) => Close();
@@ -55,7 +56,7 @@ public sealed class AboutDialog : Window
         var navigation = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), Margin = new Thickness(0, 0, 0, 8) };
         Grid.SetColumn(selector, 1); navigation.Children.Add(label); navigation.Children.Add(selector);
         DockPanel.SetDock(navigation, Dock.Top); panel.Children.Add(navigation);
-        panel.Children.Add(content); Content = panel;
+        panel.Children.Add(content); Content = new Border { Background = IlmenyxTheme.Ambient(), Child = panel };
         Opened += (_, _) => selector.Focus();
     }
     private static string Read(string file)

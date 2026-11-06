@@ -58,15 +58,19 @@ public sealed class LightingPage : StackPanel
     public LightingPage(LightingServices services, UsageViewModel usage, Func<Window?> owner, CancellationToken lifetime)
     {
         this.services = services; this.usage = usage; this.owner = owner; this.lifetime = lifetime; Spacing = 4;
-        Children.Add(new StackPanel { Margin = new Thickness(0, 4, 0, 20), Children = { new TextBlock { Text = "Integração", FontSize = 32, FontWeight = FontWeight.Bold }, new TextBlock { Text = "Iluminação RGB e efeitos pelo OpenRGB (servidor SDK local) · nada conecta sozinho", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap } } });
+        Children.Add(UiKit.PageHeader("Integração", "Iluminação RGB e efeitos pelo OpenRGB (servidor SDK local) · nada conecta sozinho"));
         AutomationProperties.SetName(port, "Porta do servidor SDK do OpenRGB");
         connect.Click += async (_, _) => await ConnectAsync();
         openSite.Click += async (_, _) => { try { await services.OpenUrl("https://openrgb.org/", lifetime); Log("Site do OpenRGB aberto no navegador."); } catch (Exception e) when (e is IOException or TimeoutException or FileNotFoundException or ArgumentException) { Log("Não foi possível abrir o navegador: " + e.Message); } };
         Children.Add(UiKit.Card(new StackPanel { Spacing = 8, Children = { UiKit.Label("OPENRGB"),
             new TextBlock { TextWrapping = TextWrapping.Wrap, Text = "O OpenRGB controla as luzes de placas-mãe, memórias, ventoinhas, teclados e mouses de várias marcas (incluindo Corsair e Razer). O OpenRGB acompanha o Ilmenyx: INICIAR SERVIDOR sobe o servidor SDK embutido (ou o do sistema, se existir) só em 127.0.0.1 e o fecha ao sair. Se o seu OpenRGB já está com o servidor ativo, basta CONECTAR." },
-            new WrapPanel { Children = { Field("PORTA", port), new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Bottom, Children = { startServer, connect, openSite } } } }, status } }));
+            new WrapPanel { Children = { Field("PORTA", port), new WrapPanel { ItemSpacing = 8, LineSpacing = 8, VerticalAlignment = VerticalAlignment.Bottom, Children = { startServer, connect, openSite } } } }, status } }));
         Children.Add(UiKit.Card(new StackPanel { Spacing = 6, Children = { UiKit.Label("DISPOSITIVOS"), list } }));
         var fx = new UiKit.ChipGroup<string>("LightFxPanel", [("ESTÁTICO", "static"), ("RESPIRAR", "breath"), ("ARCO-ÍRIS", "rainbow"), ("TEMP. CPU", "cpu"), ("TEMP. GPU", "gpu"), ("CARGA CPU", "load"), ("APAGAR", "off")], "static", v => { effect = v; smooth = double.NaN; last.Clear(); });
+        // Keep buttons as direct children: the UI smoke and keyboard traversal rely on this panel.
+        fx.Panel.Orientation = Orientation.Vertical;
+        foreach (var button in fx.Panel.Children) button.HorizontalAlignment = HorizontalAlignment.Left;
+        Grid.SetRow(hint, 1); hint.Margin = new Thickness(0, 8, 0, 0);
         foreach (var s in new[] { r, g, b, bright, speed }) s.PropertyChanged += (_, e) => { if (e.Property == RangeBase.ValueProperty) { RefreshPreview(); last.Clear(); } };
         var swatches = new WrapPanel();
         foreach (var (name, cr, cg, cb) in new[] { ("Branco", 255, 255, 255), ("Vermelho", 255, 0, 0), ("Laranja", 255, 110, 0), ("Amarelo", 255, 210, 0), ("Verde", 0, 255, 60), ("Ciano", 0, 220, 255), ("Azul", 0, 80, 255), ("Roxo", 150, 0, 255), ("Rosa", 255, 0, 160) })
@@ -81,7 +85,7 @@ public sealed class LightingPage : StackPanel
         run.Click += async (_, _) => { if (running) await StopAsync(true); else await StartAsync(); };
         Children.Add(UiKit.Card(new StackPanel { Spacing = 8, Children = { UiKit.Label("EFEITO"), fx.Panel,
             new WrapPanel { Children = { Field("VERMELHO", r), Field("VERDE", g), Field("AZUL", b), Field("BRILHO %", bright), Field("VELOCIDADE", speed), Field("COR", preview) } }, swatches,
-            new StackPanel { Orientation = Orientation.Horizontal, Spacing = 16, Children = { run, hint } }, live } }));
+            new Grid { RowDefinitions = new("Auto,Auto"), Children = { run, hint } }, live } }));
         Children.Add(UiKit.Card(new StackPanel { Children = { UiKit.Label("DIAGNÓSTICO"), diag } }));
         timer.Tick += async (_, _) => await TickAsync();
         lifetime.Register(() => Dispatcher.UIThread.Post(async () => await ShutdownAsync()));

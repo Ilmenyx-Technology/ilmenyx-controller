@@ -32,13 +32,25 @@ public sealed class DriverPage : StackPanel
         this.destination = destination; this.lifetime = lifetime; Spacing = 4;
         var scan = new Button { Name = "BtnDrvScan", Content = "VERIFICAR TUDO", Background = Palette.Accent, Foreground = Palette.OnAccent, FontWeight = FontWeight.Bold, Padding = new Thickness(20, 9), HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top };
         scan.Click += async (_, _) => await ScanAsync();
-        var header = new Grid { Margin = new Thickness(0, 4, 0, 18) };
-        header.Children.Add(new StackPanel { Margin = new Thickness(0, 0, 190, 0), Children = { new TextBlock { Text = "Drivers", FontSize = 32, FontWeight = FontWeight.Bold }, new TextBlock { Text = "Inventário do kernel e dos módulos, versão da NVIDIA (consulta online só por clique), suporte do fabricante e firmware (fwupd). Nada é instalado pelo Ilmenyx.", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap } } });
+        var header = UiKit.PageHeader("Drivers", "Inventário do kernel e dos módulos, versão da NVIDIA (consulta online só por clique), suporte do fabricante e firmware (fwupd). Nada é instalado pelo Ilmenyx.");
+        header.RowDefinitions = new("Auto,Auto");
+        Grid.SetRow(scan, 1); scan.Margin = new Thickness(0, 10, 0, 0);
         header.Children.Add(scan);
         Children.Add(header); Children.Add(status);
-        Children.Add(Card("PLACA DE VÍDEO", gpuList));
+        var gpuCard = UiKit.FeatureCard(new StackPanel { Spacing = 8, Children = { UiKit.Label("PLACA DE VÍDEO"), gpuList } });
+        gpuCard.Margin = new Thickness(0, 0, 0, 14);
         boardPage.Click += async (_, _) => await OpenAsync(boardInfo.SupportUrl);
-        Children.Add(Card("PLACA-MÃE / FABRICANTE", new StackPanel { Children = { board, boardPage, Note("Fabricantes de placa-mãe não têm API pública de versões. Abrimos o suporte oficial do fabricante detectado (chipset, áudio, rede, BIOS). Se a página não abrir no seu modelo, digite o modelo mostrado acima na busca do site.") } }));
+        var boardCard = Card("PLACA-MÃE / FABRICANTE", new StackPanel { Children = { board, boardPage, Note("Fabricantes de placa-mãe não têm API pública de versões. Abrimos o suporte oficial do fabricante detectado (chipset, áudio, rede, BIOS). Se a página não abrir no seu modelo, digite o modelo mostrado acima na busca do site.") } });
+        var featured = new Grid { ColumnDefinitions = new("1.4*,16,*"), RowDefinitions = new("Auto,Auto") };
+        featured.Children.Add(gpuCard); featured.Children.Add(boardCard);
+        featured.SizeChanged += (_, _) =>
+        {
+            bool wide = featured.Bounds.Width >= 920;
+            Grid.SetColumnSpan(gpuCard, wide ? 1 : 3);
+            Grid.SetColumn(boardCard, wide ? 2 : 0); Grid.SetColumnSpan(boardCard, wide ? 1 : 3);
+            Grid.SetRow(boardCard, wide ? 0 : 1);
+        };
+        Children.Add(featured);
         var fw = new Button { Name = "BtnDrvFwupd", Content = "PROCURAR FIRMWARE (fwupd)", Margin = new Thickness(0, 14, 0, 8) };
         fw.Click += async (_, _) => await FirmwareAsync(fw);
         Children.Add(Card("FIRMWARE (LVFS / FWUPD)", new StackPanel { Children = { fwList, fw, Note("Lista os dispositivos atualizáveis e suas versões (somente leitura). Para atualizar execute `fwupdmgr update` no terminal; o Ilmenyx não instala firmware nem pede privilégios.") } }));

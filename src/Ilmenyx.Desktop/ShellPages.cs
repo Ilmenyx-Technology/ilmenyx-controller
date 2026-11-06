@@ -518,7 +518,7 @@ public sealed partial class ShellWindow
         return Scroll("ToolsScroll", new StackPanel
         {
             Spacing = 12,
-            Children = { CardBox(new StackPanel { Spacing = 12, Children = { Label("FERRAMENTAS"), new WrapPanel { ItemSpacing = 10, LineSpacing = 8, Children = { requirements, about, classicButton } }, toastToggle,
+            Children = { UiKit.PageHeader("Requisitos e sobre"), UiKit.Card(new StackPanel { Spacing = 12, Children = { UiKit.Label("FERRAMENTAS"), new WrapPanel { ItemSpacing = 10, LineSpacing = 8, Children = { requirements, about, classicButton } }, toastToggle,
                 Wrapped("ToolsNote", ProductIdentity.Attribution, 12, Palette.Faint) } }) }
         });
     }

@@ -23,6 +23,7 @@ public sealed class RequirementsDialog : Window
             !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WAYLAND_DISPLAY")));
         Icon = AppIcon.Window; Title = "Ilmenyx — Requisitos"; Width = 740; Height = 560;
         MinWidth = 480; MinHeight = 360; WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        Background = Palette.Panel; Foreground = Palette.Fg;
         KeyboardNavigation.SetTabNavigation(this, KeyboardNavigationMode.Cycle);
         var verify = new Button { Name = "VerifyRequirements", Content = "Verificar" };
         var close = new Button { Name = "CloseRequirements", Content = "Fechar", IsCancel = true };
@@ -59,7 +60,7 @@ public sealed class RequirementsDialog : Window
         DockPanel.SetDock(actions, Dock.Bottom); panel.Children.Add(actions);
         var heading = new TextBlock { Text = "Requisitos · Ilmenyx", FontSize = 14, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8) };
         DockPanel.SetDock(heading, Dock.Top); panel.Children.Add(heading);
-        panel.Children.Add(report); Content = panel;
+        panel.Children.Add(report); Content = new Border { Background = IlmenyxTheme.Ambient(), Child = panel };
         Opened += (_, _) => verify.Focus();
     }
 }

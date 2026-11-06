@@ -24,11 +24,12 @@ public sealed class StartupPage : StackPanel
         this.manager = manager; this.owner = owner; this.lifetime = lifetime; Spacing = 4;
         var scan = new Button { Name = "BtnStartupScan", Content = "ATUALIZAR", Background = Palette.Accent, Foreground = Palette.OnAccent, FontWeight = FontWeight.Bold, Padding = new Thickness(20, 9), HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top };
         scan.Click += async (_, _) => { result.Text = ""; await ScanAsync(); };
-        var header = new Grid { Margin = new Thickness(0, 4, 0, 20) };
-        header.Children.Add(new StackPanel { Margin = new Thickness(0, 0, 190, 0), Children = { new TextBlock { Text = "Inicialização", FontSize = 32, FontWeight = FontWeight.Bold }, new TextBlock { Text = "Programas que abrem junto com a sua sessão · desative ou remova o que não precisa", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap } } });
+        var header = UiKit.PageHeader("Inicialização", "Programas que abrem junto com a sua sessão · desative ou remova o que não precisa");
+        header.RowDefinitions = new("Auto,Auto");
+        Grid.SetRow(scan, 1); scan.Margin = new Thickness(0, 10, 0, 0);
         header.Children.Add(scan);
         restore.Click += async (_, _) => await RestoreAsync();
-        var top = new Grid { Margin = new Thickness(0, 0, 0, 6) }; top.Children.Add(summary); top.Children.Add(restore);
+        var top = new StackPanel { Spacing = 8, Margin = new Thickness(0, 0, 0, 10), Children = { summary, restore } };
         Children.Add(header);
         Children.Add(new Border
         {
@@ -86,7 +87,7 @@ public sealed class StartupPage : StackPanel
             remove.Click += async (_, _) => await RemoveAsync(e);
             Grid.SetColumn(remove, 2); grid.Children.Add(remove);
         }
-        return new Border { BorderBrush = Palette.Line, BorderThickness = new Thickness(0, 1, 0, 0), Padding = new Thickness(0, 10), Child = grid };
+        return UiKit.Card(grid, new Thickness(0, 0, 0, 8));
     }
 
     private async Task RemoveAsync(StartupEntry e)
