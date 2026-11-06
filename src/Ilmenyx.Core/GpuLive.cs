@@ -4,9 +4,11 @@ using System.Globalization;
 namespace Ilmenyx.Core;
 
 /// <summary>One live reading set; null means the driver/sysfs does not expose it (never zero by assumption).</summary>
+/// <param name="Integrated">The GPU shares the chip and memory with the CPU: VRAM is the firmware carve-out (UMA), not dedicated memory.</param>
+/// <param name="PowerIsPackage">PowerW is the whole package (CPU+GPU), as amdgpu reports power1 on APUs, not the GPU alone.</param>
 public sealed record GpuTelemetry(double? LoadPercent, double? TempC, double? TempHotspotC, double? TempMemC, double? CoreMHz, double? MemMHz,
     ulong? VramUsed, ulong? VramTotal, double? PowerW, double? PowerLimitW, double? FanPercent, double? FanRpm, string? PState, ulong? ThrottleMask,
-    double? MemControllerPercent, double? EncoderPercent, double? DecoderPercent, int? PcieGen, int? PcieWidth);
+    double? MemControllerPercent, double? EncoderPercent, double? DecoderPercent, int? PcieGen, int? PcieWidth, bool Integrated = false, bool PowerIsPackage = false);
 
 public sealed record LiveRow(string Category, string Name, string Value);
 
@@ -38,10 +40,11 @@ public static class GpuLive
         Add("Temperatura · ", "Memória", t.TempMemC is { } m ? F1(m) + " °C" : null);
         Add("Clock · ", "Núcleo", t.CoreMHz is { } cc ? F0(cc) + " MHz" : null);
         Add("Clock · ", "Memória", t.MemMHz is { } mm ? F0(mm) + " MHz" : null);
-        Add("VRAM · ", "Usada", t.VramUsed is { } u ? (u / 1048576.0).ToString("N0", CultureInfo.InvariantCulture).Replace(",", ".") + " MB" : null);
-        Add("VRAM · ", "Total", t.VramTotal is { } tt ? (tt / 1048576.0).ToString("N0", CultureInfo.InvariantCulture).Replace(",", ".") + " MB" : null);
-        Add("VRAM · ", "Ocupação", t.VramUsed is { } uu && t.VramTotal is > 0 ? F0(100.0 * uu / t.VramTotal.Value) + " %" : null);
-        Add("Energia · ", "Consumo", t.PowerW is { } p ? F1(p) + " W" : null);
+        string vram = t.Integrated ? "VRAM reservada · " : "VRAM · ";
+        Add(vram, "Usada", t.VramUsed is { } u ? (u / 1048576.0).ToString("N0", CultureInfo.InvariantCulture).Replace(",", ".") + " MB" : null);
+        Add(vram, "Total", t.VramTotal is { } tt ? (tt / 1048576.0).ToString("N0", CultureInfo.InvariantCulture).Replace(",", ".") + " MB" : null);
+        Add(vram, "Ocupação", t.VramUsed is { } uu && t.VramTotal is > 0 ? F0(100.0 * uu / t.VramTotal.Value) + " %" : null);
+        Add("Energia · ", t.PowerIsPackage ? "Pacote (CPU+GPU)" : "Consumo", t.PowerW is { } p ? F1(p) + " W" : null);
         Add("Ventoinha · ", "Velocidade", t.FanPercent is { } f ? F0(f) + " %" : t.FanRpm is { } rpm ? F0(rpm) + " RPM" : null);
         return rows;
     }

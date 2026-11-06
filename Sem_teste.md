@@ -12,7 +12,7 @@ Não marcar como concluído sem evidência. Casos implementados parcialmente sã
 | SIM-01 | GameSim completo: 30.000 entidades, warmup 2 s e medição | Runner completo experimental implementado em 0.9.0; testado controle/estatística com fixtures, não carga real. Execução sustentada permanece fora da autorização anterior de desenvolvimento sem stress | Plano revisável em `bench sim-plan`; runner em `bench sim-full --allow-cpu-load`. Ver docs/gamesim-completo.md. Obter autorização explícita para carga curta; testar cancelamento/timeout, FPS/recíproco p99/score e JSON. A preparação não é execução. |
 | SIM-02 | Comparação GameSim Linux/Windows | Falta SIM-01 e ambiente Windows equivalente | Mesma revisão/workload/runtime/configuração registrados em ambos; warmup por relógio pode produzir estados diferentes. Não afirmar comparabilidade antecipadamente. |
 | CPU-01 | Perfil CPU full e score experimental | Implementado com opt-in, porém carga pesada não executada | Autorização específica e máquina adequada; usar perfil full explícito documentado no README, verificar duração/timeout/cancelamento. Não colocar na suíte automática. |
-| GPU-01 | AMD real: identificação, carga e VRAM | Nenhuma GPU AMD disponível | Máquina AMD/Linux com amdgpu e fontes DRM/sysfs; conferir leituras e ausência/falha. Fixtures existentes não certificam hardware. |
+| GPU-01 | AMD real: identificação, carga e VRAM — **PARCIAL (APU) em 2026-11-06** | Validado numa APU Radeon 610M (Mendocino, amdgpu, Mint 22.3): IDs DRM/PCI, `gpu_busy_percent`, VRAM reservada/usada, GTT e ausências (hotspot, ventoinha) conferidos com o sysfs; ver `docs/evidencias/gpu-amd-2026-11-06/`. Falta GPU AMD **dedicada** (VRAM GDDR, ventoinha, junction, limite de potência) | GPU AMD dedicada com amdgpu: conferir VRAM, ventoinha, junction e power1_cap; carga curta com autorização. |
 | GPU-02 | NVIDIA real: identificação | Nenhuma GPU NVIDIA disponível | Máquina NVIDIA/Linux; verificar IDs DRM/PCI. Telemetria vendor NVIDIA não implementada. |
 | GPU-03 | Intel: telemetria e outros modelos | Somente IDs PCI do modelo do host verificados; telemetria não implementada | Adaptador validado e hardware correspondente. Não inferir VRAM compartilhada de iGPU. |
 | SMART-01 | Consulta app sem elevação com sucesso, SATA e outros controladores | Neste host a consulta sem privilégio falha. Relatório NVMe obtido pelo usuário foi validado pelo parser | Permissão já existente e disco autorizado; `smart --device NOME --allow-device-query --json`, leitura apenas. Não executar sudo no app. USB/RAID e outros transportes não implementados. |
@@ -35,7 +35,7 @@ Um item só sai daqui com evidência real (comando, ambiente, data). Fixture, bu
 
 | ID | Item | Por que não foi testado | Condição para testar |
 |---|---|---|---|
-| GPU-04 | Ficha e telemetria de GPU AMD/NVIDIA (sysfs amdgpu, `nvidia-smi`, PRIME) | O host só tem Intel Iris Xe; `nvidia-smi` não existe e não há amdgpu. O código foi escrito contra o formato documentado e coberto só por fixtures | Máquina com GPU AMD ou NVIDIA e driver; comparar a página GPU com GPU-Z/`nvidia-smi`/`radeontop` |
+| GPU-04 | Ficha e telemetria de GPU AMD/NVIDIA (sysfs amdgpu, `nvidia-smi`, PRIME) — **AMD APU PARCIAL em 2026-11-06** | AMD: página GPU, sensores e CLI conferidos numa Radeon 610M real; 4 defeitos corrigidos (APU tratada como dedicada, consumo do pacote rotulado como da GPU, clock da memória ausente, chip fora do banco); ver `docs/evidencias/gpu-amd-2026-11-06/`. NVIDIA (`nvidia-smi`) e PRIME continuam só com fixtures | Máquina com GPU AMD ou NVIDIA e driver; comparar a página GPU com GPU-Z/`nvidia-smi`/`radeontop` |
 | GPU-05 | Carga e VRAM de iGPU Intel | O i915/xe só expõe carga com privilégios (perf) ou `intel_gpu_top`; sem root o app mostra só clock | Rodar com permissão (CAP_PERFMON) ou instalar `intel_gpu_top`; decidir se o app deve depender dele |
 | SMART-02 | Métricas SMART (temperatura, desgaste, erros) em disco real | `smartctl` sem privilégio falha neste host; o relatório NVMe real do usuário foi gerado só com `--health` e não contém atributos | `sudo smartctl -a -j /dev/nvme0n1 > arq.json` e importar na página Discos; ou dar acesso de leitura ao dispositivo |
 | DISK-01 | Temperatura do disco por hwmon (NVMe, drivetemp) | Este kernel não expõe `/sys/block/*/device/hwmon` para o NVMe/SATA do host | Carregar `drivetemp` (root) ou usar outro host/kernel |
@@ -80,7 +80,7 @@ Um item só sai daqui com evidência real (comando, ambiente, data). Fixture, bu
 | RGB-03 | Corsair iCUE e Razer Synapse diretamente | Os SDKs são de Windows e não se aplicam ao Linux; o suporte a esses fabricantes vem do OpenRGB | Não aplicável; validar pelo OpenRGB com um dispositivo Corsair/Razer |
 | CHR-01 | Tema claro em todas as páginas e em outros DPI/fontes | Em 2026-10-22 foram revisadas por captura só 4 páginas (Stress, Discos, Sistema e OC vazias, sem dados variáveis); páginas com resultados (verdicts, gráficos, cartões de alerta) e o Painel clássico não foram inspecionadas visualmente no tema claro | Navegar por todas as páginas no tema claro com dados reais e revisar contraste |
 | CHR-02 | Avisos de pendrive/USB com dispositivo real e em Wayland/GNOME | O smoke usa fonte de dispositivos falsa para não depender de plugar hardware; a leitura real de /sys foi exercida só como baseline (sem mudanças). A posição bottom-right depende do compositor (como o overlay) | Conectar/remover um pendrive e um mouse com o app aberto, em X11 e Wayland |
-| OVW-01 | Linha de carga da GPU na Visão geral | A iGPU Intel deste host não expõe contador de uso sem privilégios, então a linha nunca apareceu; o caminho com carga real (AMD sysfs `gpu_busy_percent`, NVIDIA `nvidia-smi`) só existe por fixtures de telemetria | GPU AMD ou NVIDIA com a Visão geral aberta durante carga |
+| OVW-01 | Linha de carga da GPU na Visão geral — **AMD PARCIAL em 2026-11-06** | Na Radeon 610M a linha aparece com o `gpu_busy_percent` real (0 % em repouso) e a linha GPU da tabela, que estava fixa em "sem contadores", passou a mostrar temperatura/carga/clock/consumo reais. Não foi observada sob carga (exige autorização) nem com NVIDIA | GPU AMD ou NVIDIA com a Visão geral aberta durante carga |
 | OVW-02 | Consumo (W) da CPU/GPU na Visão geral e no Overlay | Leitura de RAPL exige privilégio nos kernels atuais e nenhuma fonte pública foi acordada com o usuário; o botão Consumo fica desativado com explicação | Decidir com o usuário uma forma autorizada (ex.: grupo/udev para `energy_uj`) e testar em Intel e AMD |
 | OVW-03 | Checklist de saúde com problemas reais (erros de hardware, discos com aviso) | O host está saudável, sem erros no journal e com discos sem alerta; os caminhos negativos só foram exercitados com fixtures | Máquina com MCE/EDAC no log e disco com SMART em aviso |
 | BENCH-03 | Disco: SSD NVMe e outros sistemas de arquivos (btrfs, xfs, f2fs, NTFS-3G/FUSE) | Só um HDD SATA ext4 foi usado (2026-10-22: 64 MB, fases de 1 s, via CLI: 75 MB/s leitura, 14 MB/s escrita, ~130 IOPS 4K; resultado só prova que o caminho O_DIRECT funciona e limpa o arquivo, não valida o valor). O NVMe do host é o disco do sistema e não foi usado; FUSE/NTFS podem recusar O_DIRECT | Executar `bench disk` em NVMe e em btrfs/xfs; comparar com `fio --direct=1` |
@@ -440,3 +440,24 @@ Fase 3 — Instalar apps: página no layout do original (INSTALAR SELECIONADOS, 
 Achado nas VMs: formatação de percentual dependia da cultura ("25 %" na cultura invariante de Debian/Ubuntu sem LANG); padronizada.
 NÃO TESTADO: instalação real de Flatpaks, Flathub real, rede/espaço em disco, flatpak system-wide, Snap/AppImage.
 Validação 0.27.0 nas VMs (pacote do commit "bump 0.27.0"): validate-linux-machine PASS e smoke X11 (38 PASS) nas três distros; suíte 677/677 no Fedora e 676/677 em Debian/Ubuntu (teste de cultura, corrigido depois).
+
+## Validação em hardware AMD real — APU Radeon 610M (2026-11-06)
+
+Ambiente: ASUS Vivobook Go E1504FA, CPU que o firmware informa como "AMD Ryzen 5 40 with Radeon Graphics" (pela família Mendocino, provavelmente Ryzen 5 7520U; não confirmado), Radeon 610M (Mendocino,
+PCI 1002:1506, RDNA 2, 2 CUs), amdgpu, Mesa/RADV 25.0.7, kernel 6.14, Linux Mint 22.3, Cinnamon X11, 7 GiB de RAM. Evidências em
+`docs/evidencias/gpu-amd-2026-11-06/` (ambiente, build, testes, smoke, JSON da CLI, capturas antes/depois).
+
+- Build 0 avisos/0 erros; testes 850/850 (838 antes e 12 novos); smoke X11 51/51 antes e depois das correções.
+- CLI `bench gpu-list`, `info --json` e `sensors --json` conferidos com o sysfs (`gpu_busy_percent`, `mem_info_*`, hwmon `temp1/power1/freq1`, `pp_dpm_mclk`).
+- Defeitos reais corrigidos, com teste que usa os valores lidos nesta máquina:
+  1. APU AMD era tratada como GPU dedicada (`Integrated` só valia para Intel). Agora vale o banco de especificações e, para GPU fora dele, o formato da tabela `gpu_metrics` (2/3 = APU).
+  2. Em APU, o `power1` do amdgpu é o consumo do pacote (CPU+GPU), conforme a documentação do kernel. Antes aparecia como "Consumo" da GPU; agora o rótulo é "Pacote (CPU+GPU)". O ID do canal (`power1`) foi mantido.
+  3. Clock da memória aparecia indisponível; agora vem do nível ativo de `pp_dpm_mclk` quando não há `freq2_input`.
+  4. Mendocino fora do banco (todas as linhas com "—"); entrada adicionada. Transistores não publicados aparecem como "—", nunca como 0.
+  5. Linha GPU da Visão geral estava fixa em "sem contadores"; agora usa a mesma telemetria da linha de carga.
+  6. O link PCIe da APU ("PCIe 4.0 x16") é marcado como ligação interna do chip, não como slot.
+  7. A página Bloqueados apontava para IDs errados do Sem_teste (AMD → GPU-05, NVIDIA → GPU-06, RT → GPU-04).
+- O clock do núcleo oscila entre 400 e 1900 MHz em repouso; é o valor do `freq1_input` no instante, não um defeito.
+- O aviso "AMD/NVIDIA · Testes não realizados em hardware real" **foi mantido**: só GPU integrada AMD foi vista, sem carga, e a retirada exige aprovação do mantenedor.
+- NÃO TESTADO nesta máquina: smoke Wayland (sessão Cinnamon X11, sem compositor Wayland instalado); pacote autocontido e `validate-gpu-remote.sh` (faltam `jq` e `rg` no sistema);
+  carga de GPU/cena/ray tracing, CMP-01 (MangoHud embutido; o sistema não tem MangoHud) e STRESS-02 (corte por temperatura com k10temp), que dependem de autorização de carga.

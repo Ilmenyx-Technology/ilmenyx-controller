@@ -38,8 +38,10 @@ public sealed class GpuTelemetrySensors(Func<CancellationToken, Task<IReadOnlyLi
                 }
                 Add("load", "Uso da GPU", t.LoadPercent, "%"); Add("temp1", "Temperatura do núcleo", t.TempC, "°C"); Add("temp2", "Temperatura hotspot", t.TempHotspotC, "°C"); Add("temp3", "Temperatura da memória", t.TempMemC, "°C");
                 Add("freq1", "Clock do núcleo", t.CoreMHz, "MHz"); Add("freq2", "Clock da memória", t.MemMHz, "MHz");
-                Add("power1", "Consumo", t.PowerW, "W"); Add("fan1", "Ventoinha", t.FanRpm, "RPM"); Add("fan_pct", "Ventoinha (%)", t.FanPercent, "%");
-                Add("vram_used", "VRAM usada", t.VramUsed is ulong u ? u / 1048576.0 : null, "MiB"); Add("vram_total", "VRAM total", t.VramTotal is ulong tt ? tt / 1048576.0 : null, "MiB");
+                // Channel ids stay stable for exported files; only the labels say when power is the package and VRAM is the UMA carve-out.
+                Add("power1", t.PowerIsPackage ? "Consumo do pacote (CPU+GPU)" : "Consumo", t.PowerW, "W"); Add("fan1", "Ventoinha", t.FanRpm, "RPM"); Add("fan_pct", "Ventoinha (%)", t.FanPercent, "%");
+                string vram = t.Integrated ? "VRAM reservada" : "VRAM";
+                Add("vram_used", vram + " usada", t.VramUsed is ulong u ? u / 1048576.0 : null, "MiB"); Add("vram_total", vram + " total", t.VramTotal is ulong tt ? tt / 1048576.0 : null, "MiB");
             }
             string status = list.Count == 0 ? "unavailable" : list.Any(m => m.Reading.Status != "available") ? "partial" : "available";
             return new("1.1", now, status, list.Count == 0 ? "Nenhuma GPU PCI listada." : null, list, limitations);

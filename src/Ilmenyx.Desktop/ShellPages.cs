@@ -173,6 +173,7 @@ public sealed partial class ShellWindow
         var chart = new UsageChart { Name = "OverviewChart", Height = 210, HorizontalAlignment = HorizontalAlignment.Stretch };
         var chartLabel = Label("CPU · CARGA");
         var hero = new TextBlock { Name = "OverviewValue", Text = "—", FontSize = 44, FontWeight = FontWeight.Bold, FontFamily = new FontFamily("monospace") };
+        GpuRaw? gpuRaw = null; GpuTelemetry? gpuLast = null;
         var gpuLoad = new List<double>(); var gpuValue = new TextBlock { Name = "OverviewGpuValue", Text = "—", FontSize = 22, Foreground = Palette.Muted, HorizontalAlignment = HorizontalAlignment.Right };
         var gpuLegend = new TextBlock { Name = "OverviewLegendGpu", Text = "GPU: sem contadores de uso neste monitor", FontSize = 11, Foreground = Palette.Muted };
         void Refresh()
@@ -243,7 +244,13 @@ public sealed partial class ShellWindow
             string mhz = s?.CpuMhz is { } m ? m.ToString("0", CultureInfo.InvariantCulture) + " MHz" : "—";
             string tmp = s?.CpuTempC is { } t ? t.ToString("0.0", CultureInfo.InvariantCulture) + " °C" : "—";
             AddRow("CPU", s?.CpuModel ?? "", tmp, UsageViewModel.Pct(s?.CpuPercent), mhz, "—", "system", "GoCpu");
-            AddRow("GPU", "Inventário DRM/PCI", "—", "—", "—", "sem contadores", "gpu", "GoGpu");
+            // GPU row from the same read-only telemetry as the load line; each missing counter stays "—" (never zero).
+            var g = gpuLast;
+            string gUse = g?.PowerW is { } gw ? gw.ToString("0.0", CultureInfo.InvariantCulture) + " W" + (g.PowerIsPackage ? " (pacote CPU+GPU)" : "")
+                : g?.VramUsed is { } vu && g.VramTotal is > 0 ? $"{vu >> 20:N0} / {g.VramTotal.Value >> 20:N0} MB".Replace(",", ".")
+                : "sem contadores";
+            AddRow("GPU", gpuRaw?.Name ?? "Inventário DRM/PCI", g?.TempC is { } gt ? gt.ToString("0.0", CultureInfo.InvariantCulture) + " °C" : "—", UsageViewModel.Pct(g?.LoadPercent),
+                g?.CoreMHz is { } gm ? gm.ToString("0", CultureInfo.InvariantCulture) + " MHz" : "—", gUse, "gpu", "GoGpu");
             AddRow("Memória", usage.MemorySub, "—", s is { MemoryTotal: > 0, MemoryUsed: { } u } ? UsageViewModel.Pct(100.0 * u / s.MemoryTotal.Value) : "—", "—", usage.MemoryLine, "system", "GoMemory");
             AddRow("Discos", "Dispositivos inteiros", "—", "—", "—", usage.DiskLine, "disks", "GoDisk");
             AddRow("Rede", usage.NetSub, "—", "—", "—", usage.NetLine, "net", "GoNet");
@@ -319,7 +326,7 @@ public sealed partial class ShellWindow
         refreshTimer.Tick += (_, _) => { if (scroll.IsEffectivelyVisible) { RefreshScores(); RefreshEvents(); RefreshRings(); } };
         refreshTimer.Start(); stop.Token.Register(() => Avalonia.Threading.Dispatcher.UIThread.Post(refreshTimer.Stop));
         // GPU load line: read-only telemetry every 2 s, only while the Overview is on screen (nvidia-smi is spawned only for NVIDIA cards).
-        var gpuTimer = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(2) }; bool gpuBusy = false; GpuRaw? gpuRaw = null; bool gpuResolved = false;
+        var gpuTimer = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(2) }; bool gpuBusy = false; bool gpuResolved = false;
         gpuTimer.Tick += async (_, _) =>
         {
             if (gpuBusy || !scroll.IsEffectivelyVisible || !OperatingSystem.IsLinux()) return;
@@ -328,6 +335,7 @@ public sealed partial class ShellWindow
             {
                 if (!gpuResolved) { gpuRaw = await Task.Run(() => new LinuxGpuCollector().Collect(PciIds.Load()).FirstOrDefault().Raw); gpuResolved = true; }
                 var t = gpuRaw is null ? null : await new LinuxGpuCollector().TelemetryAsync(gpuRaw, stop.Token);
+                if (t is not null) { gpuLast = t; Components(); }
                 if (t?.LoadPercent is double load) { gpuLoad.Add(load); if (gpuLoad.Count > UsageViewModel.MaxHistory) gpuLoad.RemoveAt(0); gpuValue.Text = load.ToString("0.0", CultureInfo.InvariantCulture) + "%"; gpuLegend.Text = "GPU"; Refresh(); }
             }
             catch (Exception e) when (e is IOException or TimeoutException or OperationCanceledException) { }

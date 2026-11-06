@@ -55,8 +55,9 @@ public static class GpuCardBuilder
         id.Add("Fabricante da placa", subVen.Length > 0 && subVen != "0000" ? GpuSpecDb.SubvendorName(subVen) : "—");
         id.Add("Device ID", $"{ven} {dev} · {subVen} {subDev}".Trim(' ', '·'));
         id.Add("Processo", spec?.Process ?? "—");
-        id.Add("Área do die", spec != null ? $"{spec.DieMm2} mm²" : "—");
-        id.Add("Transistores", spec != null ? spec.TransistorsBi.ToString("0.#", CultureInfo.InvariantCulture) + " bilhões" : "—");
+        // 0 in the reference table means "not published": shown as unknown, never as 0.
+        id.Add("Área do die", spec is { DieMm2: > 0 } ? $"{spec.DieMm2} mm²" : "—");
+        id.Add("Transistores", spec is { TransistorsBi: > 0 } ? spec.TransistorsBi.ToString("0.#", CultureInfo.InvariantCulture) + " bilhões" : "—");
         id.Add("Lançamento", spec?.Release ?? "—");
 
         var units = Section("UNIDADES DE PROCESSAMENTO");
@@ -97,7 +98,8 @@ public static class GpuCardBuilder
         if (clk.Children.Count == 0) clk.Add("Sem dados", "—");
 
         var pcie = Section("BARRAMENTO");
-        if (r.MaxGen is int mg && r.MaxWidth is int mw) pcie.Add("Interface", $"{PcieName(mg)} x{mw}");
+        // An APU reports the link to its own GPU block: it is internal to the chip, not a slot (seen on a real Radeon 610M: "PCIe 4.0 x16").
+        if (r.MaxGen is int mg && r.MaxWidth is int mw) pcie.Add("Interface", $"{PcieName(mg)} x{mw}" + (igpu ? " (ligação interna do chip, não é um slot)" : ""));
         if (r.CurGen is int cg && r.CurWidth is int cw) pcie.Add("Em uso agora", $"{PcieName(cg)} x{cw}" + (r.MaxGen > r.CurGen ? " (economia de energia em repouso)" : ""));
         if (r.PciAddress.Length > 0) pcie.Add("Localização", "PCI " + r.PciAddress);
         if (pcie.Children.Count == 0) pcie.Add("Sem dados", "—");

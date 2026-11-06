@@ -1,0 +1,4 @@
+Execução de teste para ~/Ilmenyx/tests/Ilmenyx.Tests/bin/Release/net10.0/Ilmenyx.Tests.dll (.NETCoreApp,Version=v10.0)
+1 arquivos de teste no total corresponderam ao padrão especificado.
+
+Aprovado!  – Com falha:     0, Aprovado:   850, Ignorado:     0, Total:   850, Duração: 5 s - Ilmenyx.Tests.dll (net10.0)
