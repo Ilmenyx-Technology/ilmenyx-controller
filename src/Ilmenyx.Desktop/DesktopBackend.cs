@@ -20,8 +20,17 @@ public static class DesktopBackend
         "wayland" => DisplayBackend.Wayland,
         _ => throw new ArgumentException("ILMENYX_DISPLAY_BACKEND deve ser auto, x11 ou wayland.")
     };
+    /// <summary>
+    /// What "auto" means for a session: X11 whenever DISPLAY exists (the decided default, also under XWayland); native Wayland when only
+    /// WAYLAND_DISPLAY exists. Without this, a Wayland-only session (no XWayland) aborted with "XOpenDisplay failed" (seen 2026-11-06).
+    /// </summary>
+    public static DisplayBackend ForSession(DisplayBackend requested, string? display, string? waylandDisplay) =>
+        requested == DisplayBackend.Auto && string.IsNullOrEmpty(display) && !string.IsNullOrEmpty(waylandDisplay) ? DisplayBackend.Wayland : requested;
+
     public static AppBuilder Configure(AppBuilder builder, DisplayBackend backend)
     {
+        if (OperatingSystem.IsLinux())
+            backend = ForSession(backend, Environment.GetEnvironmentVariable("DISPLAY"), Environment.GetEnvironmentVariable("WAYLAND_DISPLAY"));
         if (backend != DisplayBackend.Auto && !OperatingSystem.IsLinux())
             throw new PlatformNotSupportedException("Seleção explícita X11/Wayland está disponível somente no Linux.");
         builder = builder.UsePlatformDetect() // Also configures Skia and font services.

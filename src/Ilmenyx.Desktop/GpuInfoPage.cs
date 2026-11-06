@@ -24,6 +24,11 @@ public sealed class GpuInfoPage : Grid
     private IReadOnlyList<(GpuRaw Raw, GpuCard Card)> gpus = [];
     private int selected;
     private CancellationTokenSource? poll;
+    // Responsive widths: at the window minimum (900 px) the fixed 330 + 200 columns left ~70 px for values (seen in a 900 px Wayland window, 2026-11-06).
+    public const double NarrowBodyWidth = 760;
+    private readonly ColumnDefinition sideColumn = new(330, GridUnitType.Pixel);
+    private readonly List<ColumnDefinition> labelColumns = [];
+    private double labelWidth = 200;
     public IReadOnlyList<GpuCard> Cards => gpus.Select(g => g.Card).ToList();
 
     public GpuInfoPage(CancellationToken lifetime)
@@ -47,12 +52,13 @@ public sealed class GpuInfoPage : Grid
             }
         };
         Grid.SetRow(highlight, 1);
-        var body = new Grid { ColumnDefinitions = new("*,16,330") };
+        var body = new Grid { Name = "GpuBody", ColumnDefinitions = { new ColumnDefinition(1, GridUnitType.Star), new ColumnDefinition(16, GridUnitType.Pixel), sideColumn } };
+        body.SizeChanged += (_, e) => Fit(e.NewSize.Width);
         body.Children.Add(new ScrollViewer { Name = "GpuSectionsScroll", Content = sections, Padding = new Thickness(0, 0, 6, 0) });
         var side = new Border
         {
             Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), Padding = new Thickness(20, 16, 12, 12),
-            Child = new ScrollViewer { Content = new StackPanel { Children = { new TextBlock { Text = "SENSORES AO VIVO", FontSize = 11, FontWeight = FontWeight.Bold, Foreground = Palette.Faint, Margin = new Thickness(0, 0, 0, 6) }, extras, live } } }
+            Child = new ScrollViewer { Content = new StackPanel { Margin = new Thickness(0, 0, 10, 0), Children = { new TextBlock { Text = "SENSORES AO VIVO", FontSize = 11, FontWeight = FontWeight.Bold, Foreground = Palette.Faint, Margin = new Thickness(0, 0, 0, 6) }, extras, live } } }
         };
         Grid.SetColumn(side, 2); body.Children.Add(side);
         Grid.SetRow(body, 2);
@@ -88,13 +94,14 @@ public sealed class GpuInfoPage : Grid
         selected = index; var card = gpus[index].Card;
         name.Text = card.Name; subtitle.Text = card.Subtitle; vendor.Text = card.Vendor.ToUpperInvariant();
         for (int i = 0; i < chips.Children.Count; i++) if (chips.Children[i] is Button b) { b.Background = i == index ? Palette.Fg : Brushes.Transparent; b.Foreground = i == index ? Palette.OnFg : Palette.Muted; }
-        sections.Children.Clear();
+        sections.Children.Clear(); labelColumns.Clear();
         foreach (var section in card.Sections)
         {
             var rows = new StackPanel { Margin = new Thickness(0, 6, 0, 0) };
             foreach (var row in section.Children)
             {
-                var g = new Grid { ColumnDefinitions = new("200,*") };
+                var labelColumn = new ColumnDefinition(labelWidth, GridUnitType.Pixel); labelColumns.Add(labelColumn);
+                var g = new Grid { ColumnDefinitions = { labelColumn, new ColumnDefinition(1, GridUnitType.Star) } };
                 g.Children.Add(new TextBlock { Text = row.Header, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 5, 10, 5) });
                 var value = new TextBlock { Text = row.Value, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 5) }; Grid.SetColumn(value, 1); g.Children.Add(value);
                 rows.Children.Add(new Border { BorderBrush = Palette.Line, BorderThickness = new Thickness(0, 1, 0, 0), Child = g });
@@ -102,6 +109,15 @@ public sealed class GpuInfoPage : Grid
             sections.Children.Add(new Border { Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), Padding = new Thickness(22, 16, 22, 10), Margin = new Thickness(0, 0, 0, 14), Child = new StackPanel { Children = { new TextBlock { Text = section.Header, FontSize = 11, FontWeight = FontWeight.Bold, Foreground = Palette.Faint }, rows } } });
         }
         extras.Children.Clear(); live.Children.Clear();
+    }
+
+    /// <summary>Narrow body: thinner sensor column and label column, so section values keep a readable width.</summary>
+    private void Fit(double bodyWidth)
+    {
+        bool narrow = bodyWidth < NarrowBodyWidth;
+        sideColumn.Width = new GridLength(narrow ? 250 : 330);
+        labelWidth = narrow ? 130 : 200;
+        foreach (var c in labelColumns) c.Width = new GridLength(labelWidth);
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -138,8 +154,9 @@ public sealed class GpuInfoPage : Grid
         extras.Children.Clear(); live.Children.Clear();
         foreach (var (k, v) in GpuLive.Extras(t))
         {
-            var g = new Grid { Margin = new Thickness(0, 5) }; g.Children.Add(new TextBlock { Text = k, Foreground = Palette.Muted });
-            g.Children.Add(new TextBlock { Text = v, FontFamily = new FontFamily("monospace"), HorizontalAlignment = HorizontalAlignment.Right }); extras.Children.Add(g);
+            var g = new Grid { Margin = new Thickness(0, 5), ColumnDefinitions = new("*,Auto") }; g.Children.Add(new TextBlock { Text = k, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap });
+            var value = new TextBlock { Text = v, FontFamily = new FontFamily("monospace"), HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(8, 0, 0, 0) };
+            Grid.SetColumn(value, 1); g.Children.Add(value); extras.Children.Add(g);
         }
         var rows = GpuLive.Rows(t);
         if (rows.Count == 0 && GpuLive.Extras(t).Count == 0)
@@ -147,8 +164,11 @@ public sealed class GpuInfoPage : Grid
         foreach (var r in rows)
         {
             var label = new TextBlock(); label.Inlines!.Add(new Avalonia.Controls.Documents.Run(r.Category) { Foreground = Palette.Faint }); label.Inlines.Add(new Avalonia.Controls.Documents.Run(r.Name) { Foreground = Palette.Muted });
-            var g = new Grid(); g.Children.Add(label);
-            g.Children.Add(new TextBlock { Text = r.Value, FontFamily = new FontFamily("monospace"), HorizontalAlignment = HorizontalAlignment.Right });
+            // Real columns: a long label ("VRAM reservada · Ocupação") wraps instead of running under the value.
+            label.TextWrapping = TextWrapping.Wrap;
+            var g = new Grid { ColumnDefinitions = new("*,Auto") }; g.Children.Add(label);
+            var value = new TextBlock { Text = r.Value, FontFamily = new FontFamily("monospace"), HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(8, 0, 0, 0) };
+            Grid.SetColumn(value, 1); g.Children.Add(value);
             live.Children.Add(new Border { BorderBrush = Palette.Line, BorderThickness = new Thickness(0, 1, 0, 0), Padding = new Thickness(0, 6), Child = g });
         }
     }

@@ -3,7 +3,7 @@ PASS system page: category list, drive rings, offline dmidecode import (relative
 PASS disks page: verdict cards, bounded SMART query without privilege, offline SMART import raises the verdict with raw metrics
 PASS energy page: power card always present, battery cards when the kernel reports batteries
 PASS driver page: offline inventory, GPU/board cards, never-executed install hint, read-only fwupd listing (network and browser actions not clicked)
-PASS gpu page: chips, highlight card, 8 GPU-Z style sections, live sensors poll or honest 'no counters' text, AMD/NVIDIA notice kept
+PASS gpu page: chips, highlight card, 8 GPU-Z style sections, live sensors poll or honest 'no counters' text, notice kept; readable at the 900x560 minimum
 PASS bottleneck page: balance, live verdict and meters, timed session produces a distribution and advice (FPS honestly unavailable)
 PASS startup page: system entry disabled by user override (system file untouched), declined removal keeps entry, confirmed removal + restore round trip; real list read-only
 PASS maker pages: serial ports listed (or honest empty state) without opening any port; chip family modules, environment checks and official pages (not opened)
@@ -31,7 +31,7 @@ PASS requirements: idle on open; explicit real probe equals doctor; read-only; k
 PASS Ilmenyx identity, by Bismuth Technology, live About/attribution/MIT/dependency documents and close
 ACTUAL WINDOW IMPLEMENTATION Avalonia.X11.X11Window
 DISPLAY BACKEND requested=auto; handle=XID
-PASS visible AMD/NVIDIA notice: Testes não realizados em hardware real
+PASS visible notice: GPUs dedicadas AMD/NVIDIA · Testes não realizados em hardware real
 PASS hardware UI export and overwrite refusal
 PASS HTML UI export, same snapshot, cancel, extension validation and overwrite refusal
 PASS CPU cancel control
@@ -80,4 +80,4 @@ LAYOUT About heading origin=20, 20 bounds=440, 39 text=432,4319999999999x38,136
 LAYOUT about factor=2 actual=480, 360 renderScaling=1
 PASS requirements minimum layout factor=2 actual=480, 360
 PASS layout minimum sizes, text factors 1/1.5/2: dashboard buttons, save field/error/actions, About selector/text/close reachable; reading area >=120 DIP
-PASS /tmp/ilx-smoke-x11c/ilmenyx-ui-54c6a99114154f7d9bc3ce4812fe0358
+PASS /tmp/ilx-x11g/ilmenyx-ui-da7a6d7f9fb64e2fbe5028d9bb6a6c73
