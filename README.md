@@ -19,6 +19,7 @@ rede) e mede o desempenho dele. Tem um **aplicativo desktop** e uma **linha de c
 
 - [O que ele faz](#o-que-ele-faz)
 - [Princípios](#princípios)
+- [Como usar](#como-usar)
 - [Começando](#começando)
 - [Usando a linha de comando](#usando-a-linha-de-comando)
 - [Benchmarks](#benchmarks)
@@ -35,7 +36,7 @@ rede) e mede o desempenho dele. Tem um **aplicativo desktop** e uma **linha de c
 | Área | O que você encontra |
 |---|---|
 | **Diagnóstico** | Visão geral ao vivo, sistema, sensores, GPU, discos (com SMART importado), energia/bateria, rede e processos |
-| **Jogos** | Biblioteca (Steam, Lutris, Heroic), estimativa de FPS e análise de gargalo |
+| **Jogos** | Biblioteca (Steam, Lutris, Heroic), compatibilidade (ProtonDB, Steam Deck, anti-cheat e relatos de quem tem hardware parecido), estimativa de FPS e análise de gargalo |
 | **Desempenho** | Benchmarks de CPU, memória, GPU (Vulkan) e disco; verificador de overclock; overlay; testes de estresse |
 | **Maker** | Portas seriais e drivers de placas (CH340, CP210x, FTDI) |
 | **Ferramentas** | Otimizações reversíveis, RGB via OpenRGB, apps de inicialização, instalação de apps (Flatpak), relatórios HTML/JSON |
@@ -47,8 +48,27 @@ O app tem tema claro e escuro, e todos os relatórios são gerados localmente.
 - **Somente leitura por padrão.** Lê `/proc`, `/sys` e `/etc`; não altera o sistema ao abrir.
 - **Carga só com o seu clique.** Benchmarks e stress pedem confirmação, têm limites e cortam por temperatura.
 - **Sem `sudo` escondido.** O que exige root aparece como um comando para você copiar e executar.
-- **Sem telemetria.** Nenhum dado sai da sua máquina.
+- **Sem telemetria.** Nenhum dado sai da sua máquina sem você pedir.
 - **Sem dados inventados.** Se um sensor não existe, o Ilmenyx diz isso em vez de estimar.
+- **Sem rede escondida.** A internet só é usada quando você confirma (ex.: consulta de compatibilidade, base do ProtonDB).
+
+## Como usar
+
+1. Baixe e extraia o pacote `Ilmenyx-linux-x64` (não precisa instalar o .NET: ele vem dentro). Rode `desktop/Ilmenyx.Desktop`.
+   Para ter o ícone no menu do sistema, rode `packaging/linux/install-user.sh` (só no seu usuário, sem root).
+2. **Não precisa de root nem de driver extra.** As temperaturas vêm dos módulos do próprio kernel (`k10temp` na AMD, `coretemp` na Intel).
+3. **Temperatura ou consumo da CPU não aparecem?** O menu lateral mostra **"Por que não aparece?"**, com o motivo e o comando que
+   resolve (o Linux esconde o consumo da CPU — RAPL — do usuário comum desde 2020). O Ilmenyx só mostra e copia o comando; quem roda é você.
+4. **Overlay de FPS:** ligue na página Overlay e inicie o jogo pelo Ilmenyx (ou use a opção de inicialização gerada). No jogo, **Ctrl + Shift + O**
+   liga e desliga o overlay (MangoHud, incluído no pacote).
+5. **Stress e benchmarks:** sempre com o limite de temperatura ligado e boa ventilação; tudo pede confirmação e pode ser cancelado.
+6. **Funciona em X11 e Wayland.** O app escolhe sozinho; para forçar, use `ILMENYX_DISPLAY_BACKEND=x11` ou `wayland`.
+
+Onde ficam os dados (nada vai junto com o programa): configurações e histórico em `~/.config/ilmenyx/`, caches (compatibilidade,
+componentes) em `~/.cache/ilmenyx/` e `~/.local/share/ilmenyx/`. Para começar do zero, apague essas pastas.
+
+> **GPU:** placas NVIDIA mostram mais detalhes (VBIOS, limites de energia, CUDA) com o driver proprietário e o `nvidia-smi`.
+> Em AMD os dados vêm do `amdgpu`. GPUs dedicadas AMD/NVIDIA ainda não foram testadas em hardware real (aviso no app).
 
 ## Começando
 

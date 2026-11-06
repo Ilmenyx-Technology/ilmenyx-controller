@@ -185,20 +185,26 @@ public sealed partial class ShellWindow
         GpuRaw? gpuRaw = null; GpuTelemetry? gpuLast = null;
         var gpuLoad = new List<double>(); var gpuValue = new TextBlock { Name = "OverviewGpuValue", Text = "—", FontSize = 20, FontWeight = FontWeight.SemiBold, Foreground = Palette.Muted, HorizontalAlignment = HorizontalAlignment.Right };
         var gpuLegend = new TextBlock { Name = "OverviewLegendGpu", Text = "GPU: sem contadores de uso neste monitor", FontSize = 11, Foreground = Palette.Muted };
+        Button? powerChip = null;
         void Refresh()
         {
-            bool temp = metric == "temp";
-            chart.SetValues(temp ? usage.TempSeries : usage.CpuSeries, temp ? null : 100, range);
-            chart.SetSecond(!temp && gpuLoad.Count > 0 ? gpuLoad : []);
-            chartLabel.Text = temp ? "CPU · TEMPERATURA" : "CPU · CARGA";
-            hero.Text = temp ? (usage.Last?.CpuTempC is { } t ? t.ToString("0.0", CultureInfo.InvariantCulture) + " °C" : "—") : UsageViewModel.Pct(usage.Last?.CpuPercent);
+            bool temp = metric == "temp", watts = metric == "power";
+            if (powerChip is { IsEnabled: true }) ChipStyle(powerChip, watts);
+            chart.SetValues(temp ? usage.TempSeries : watts ? usage.PowerSeries : usage.CpuSeries, temp || watts ? null : 100, range);
+            chart.SetSecond(!temp && !watts && gpuLoad.Count > 0 ? gpuLoad : []);
+            chartLabel.Text = temp ? "CPU · TEMPERATURA" : watts ? "CPU · CONSUMO (RAPL)" : "CPU · CARGA";
+            hero.Text = temp ? (usage.Last?.CpuTempC is { } t ? t.ToString("0.0", CultureInfo.InvariantCulture) + " °C" : "—")
+                : watts ? (usage.Last?.CpuPowerW is { } w ? w.ToString("0.0", CultureInfo.InvariantCulture) + " W" : "—") : UsageViewModel.Pct(usage.Last?.CpuPercent);
         }
         usage.Updated += Refresh;
         var ranges = Chips("DashRange", [("1 MIN", 60), ("5 MIN", 300), ("15 MIN", 900)], 300, v => { range = v; Refresh(); });
         var metrics = Chips("DashMetric", [("Temperatura", "temp"), ("Carga", "load")], "load", v => { metric = v; Refresh(); });
-        var power = new Button { Name = "DashMetricPower", Content = "Consumo", FontSize = 11, Padding = new Thickness(14, 5), CornerRadius = new CornerRadius(16), IsEnabled = false };
-        ToolTip.SetTip(power, "Indisponível: consumo da CPU (RAPL) ainda não é lido no Linux.");
-        metrics.Children.Add(power);
+        // CPU power (RAPL): enabled once a sample arrives; otherwise the tooltip says why (absent counter or root-only file).
+        var power = new Button { Name = "DashMetricPower", Content = "Consumo", FontSize = 11, Padding = new Thickness(13, 5), CornerRadius = new CornerRadius(IlmenyxTheme.Pill), IsEnabled = false, BorderBrush = Palette.Line, BorderThickness = new Thickness(1) };
+        ToolTip.SetTip(power, "Indisponível: o kernel não deixa ler o consumo da CPU (RAPL) sem permissão. Veja \"Por que não aparece?\" no menu lateral.");
+        power.Click += (_, _) => { metric = "power"; foreach (var c in metrics.Children.OfType<Button>()) ChipStyle(c, ReferenceEquals(c, power)); Refresh(); };
+        usage.Updated += () => { if (!power.IsEnabled && usage.Last?.CpuPowerW is not null) { power.IsEnabled = true; ToolTip.SetTip(power, "Consumo do pacote da CPU (RAPL), em watts."); ChipStyle(power, false); } };
+        powerChip = power; metrics.Children.Add(power);
         var chips = new Grid { Margin = new Thickness(0, 16, 0, 8) };
         metrics.HorizontalAlignment = HorizontalAlignment.Right; chips.Children.Add(ranges); chips.Children.Add(metrics);
         var gpuTag = new StackPanel { HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Bottom, Children = { Label("GPU"), gpuValue } };
@@ -360,7 +366,7 @@ public sealed partial class ShellWindow
             var s = usage.Last;
             string mhz = s?.CpuMhz is { } m ? m.ToString("0", CultureInfo.InvariantCulture) + " MHz" : "—";
             string tmp = s?.CpuTempC is { } t ? t.ToString("0.0", CultureInfo.InvariantCulture) + " °C" : "—";
-            Set("CPU", s?.CpuModel ?? "", UsageViewModel.Pct(s?.CpuPercent), $"{tmp} · {mhz}", s?.BusiestCore is { } bc ? "mais ocupado: " + bc : "");
+            Set("CPU", s?.CpuModel ?? "", UsageViewModel.Pct(s?.CpuPercent), $"{tmp} · {mhz}", s?.CpuPowerW is { } cw ? cw.ToString("0.0", CultureInfo.InvariantCulture) + " W (RAPL)" : s?.BusiestCore is { } bc ? "mais ocupado: " + bc : "");
             // GPU card from the same read-only telemetry as the load line; each missing counter stays "—" (never zero).
             var g = gpuLast;
             string gUse = g?.PowerW is { } gw ? gw.ToString("0.0", CultureInfo.InvariantCulture) + " W" + (g.PowerIsPackage ? " (pacote CPU+GPU)" : "")

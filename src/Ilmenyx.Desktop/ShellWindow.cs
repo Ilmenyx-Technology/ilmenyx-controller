@@ -15,7 +15,8 @@ namespace Ilmenyx.Desktop;
 
 public sealed partial class ShellWindow : Window
 {
-    private readonly UsageViewModel usage = new(new LinuxUsageProvider());
+    private static readonly LinuxUsageProvider usageProvider = new();
+    private readonly UsageViewModel usage = new(usageProvider);
     private readonly DashboardViewModel hardware = new(LinuxPlatform.CreateHardwareProvider());
     private readonly SensorMonitorViewModel sensors = new(LinuxPlatform.CreateSensorProvider());
     private readonly CpuValidationViewModel cpu = new(LinuxPlatform.CreateHardwareProvider(), new CpuBenchmarkRunner());
@@ -183,6 +184,12 @@ public sealed partial class ShellWindow : Window
         var cpuIcon = UiKit.Icon(Icons.Cpu, 15, Palette.Faint); cpuIcon.Margin = new Thickness(0, 0, 8, 0);
         readout.Children.Add(cpuIcon); Grid.SetColumn(temp, 1); readout.Children.Add(temp); Grid.SetColumn(load, 2); readout.Children.Add(load);
         Grid.SetRow(state, 1); Grid.SetColumnSpan(state, 3); state.Margin = new Thickness(0, 4, 0, 0); readout.Children.Add(state);
+        // The original shows the reason and a CORRIGIR button when CPU temperature/power are missing; here: reason + command (never run).
+        var help = new Button { Name = "SensorHelp", Content = "Por que não aparece?", FontSize = 11, Foreground = Palette.AccentText, Background = Brushes.Transparent, Padding = new Thickness(0, 6, 0, 0), IsVisible = false };
+        AutomationProperties.SetName(help, "Por que a temperatura ou o consumo da CPU não aparecem");
+        help.Click += async (_, _) => await new SensorHelpDialog(CurrentFixes()).ShowDialog(this);
+        usage.Updated += () => help.IsVisible = CurrentFixes().Count > 0;
+        Grid.SetRow(help, 2); Grid.SetColumnSpan(help, 3); readout.RowDefinitions.Add(new RowDefinition(GridLength.Auto)); readout.Children.Add(help);
         var footer = new StackPanel
         {
             Margin = new Thickness(14, 6, 14, 18),
@@ -230,6 +237,13 @@ public sealed partial class ShellWindow : Window
         AutomationProperties.SetName(chip, "Este computador: " + model + " — abrir Sistema");
         chip.Click += (_, _) => Select("system");
         return chip;
+    }
+
+    private IReadOnlyList<SensorFix> CurrentFixes()
+    {
+        var access = usageProvider.CpuPowerState switch { RaplState.Available => CpuPowerAccess.Available, RaplState.NoPermission => CpuPowerAccess.NoPermission, RaplState.NotPresent => CpuPowerAccess.NotPresent, _ => CpuPowerAccess.Unknown };
+        bool vm = File.Exists("/sys/class/dmi/id/sys_vendor") && SysfsText.Read("/sys/class/dmi/id/sys_vendor", 128) is var v && (v.Contains("QEMU") || v.Contains("VMware") || v.Contains("innotek") || v.Contains("Microsoft Corporation") || v.Contains("Xen"));
+        return SensorHelp.Build(usage.Last is { } l && l.CpuTempC is null, access, usage.Last?.CpuModel, usageProvider.CpuPowerZone, vm);
     }
 
     private void RebuildAmbient()

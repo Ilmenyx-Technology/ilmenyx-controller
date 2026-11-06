@@ -21,6 +21,10 @@ public sealed partial class LinuxUsageProvider(string procRoot = "/proc", string
     private (double At, long Rx, long Tx)? netBefore;
     private (double At, Dictionary<(int, long), long> Ticks) processBefore = (0, []);
     private bool hasProcessBefore;
+    private readonly RaplPowerReader rapl = new(sysRoot);
+    /// <summary>Why CPU power is (not) available: RAPL present, missing or root-only (the kernel default).</summary>
+    public RaplState CpuPowerState => rapl.State;
+    public string? CpuPowerZone => rapl.ZonePath ?? rapl.FindPackageZone();
 
     [GeneratedRegex("^(sd[a-z]+|vd[a-z]+|xvd[a-z]+|nvme[0-9]+n[0-9]+|mmcblk[0-9]+)\\z", RegexOptions.CultureInvariant)]
     private static partial Regex WholeDisk();
@@ -41,7 +45,7 @@ public sealed partial class LinuxUsageProvider(string procRoot = "/proc", string
         var (rx, tx, iface) = Net(netdev, now);
         var (processes, count) = await Processes(now, Math.Max(1, logical), ct);
         return new(DateTimeOffset.UtcNow, Field(cpuinfo, "model name"), cpu, AverageMhz(cpuinfo), Temperature(),
-            memory.total, memory.used, read, write, rx, tx, iface, count, processes, maxCore, busiest, MaxMhz(cpuinfo));
+            memory.total, memory.used, read, write, rx, tx, iface, count, processes, maxCore, busiest, MaxMhz(cpuinfo), rapl.Sample(now));
     }
 
     private async Task<string> Read(string relative, CancellationToken ct)

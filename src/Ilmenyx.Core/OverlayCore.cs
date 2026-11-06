@@ -74,7 +74,7 @@ public static class OverlayLines
         if (show.Contains("cpu_temp")) cpu.Add(T(usage?.CpuTempC));
         if (show.Contains("cpu_clock")) cpu.Add(usage?.CpuMhz is double mhz ? (mhz / 1000).ToString("0.00", CultureInfo.InvariantCulture) + " GHz" : "— GHz");
         if (show.Contains("cpu_clockmax")) cpu.Add(usage?.CpuMaxMhz is double mxz ? "máx " + (mxz / 1000).ToString("0.00", CultureInfo.InvariantCulture) + " GHz" : "máx —");
-        if (show.Contains("cpu_power")) cpu.Add("— W"); // RAPL needs privileges on current kernels; never guessed
+        if (show.Contains("cpu_power")) cpu.Add(usage?.CpuPowerW is double cw ? cw.ToString("0", CultureInfo.InvariantCulture) + " W" : "— W"); // RAPL, only when the kernel lets this user read it
         Line("CPU", cpu);
 
         var ram = new List<string>();
@@ -118,6 +118,8 @@ public static class MangoHudConfig
         }
         Flag(show.Contains("ram_used") || show.Contains("ram_pct"), "ram"); Flag(show.Contains("clock"), "time");
         Flag(!show.Contains("game"), "hide_engine_names"); // keeps the layout compact; the game name is shown by the Ilmenyx overlay
+        // Same toggle as the original overlay (Ctrl+Shift+O). MangoHud reads it through X11, which covers XWayland/Proton games.
+        sb.Append("toggle_hud=").Append(ToggleKeys).Append('\n');
         if (logFolder is not null)
         {
             if (!Path.IsPathRooted(logFolder) || logFolder.Contains('\n') || logFolder.Contains('\r')) throw new ArgumentException("Pasta de log inválida.", nameof(logFolder));
@@ -125,6 +127,8 @@ public static class MangoHudConfig
         }
         return sb.ToString();
     }
+
+    public const string ToggleKeys = "Control_L+Shift_L+o", ToggleLabel = "Ctrl + Shift + O";
 
     public static string LaunchOption(string configPath) => $"MANGOHUD_CONFIGFILE={configPath} mangohud %command%";
 }
