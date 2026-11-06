@@ -121,9 +121,12 @@ public sealed class LauncherPage : Grid
         styleChips = new("LStylePanel", [("Source / CS2", "source"), ("Unity", "unity"), ("Unreal", "unreal")], "source", v => Chosen(p => p.Style = v));
         extra.TextChanged += (_, _) => SaveFromControls();
         var presets = new WrapPanel { Name = "LExtraPresets", Margin = new Thickness(0, 0, 0, 12) };
-        foreach (var (label, token) in new[] { ("Pular intro (-novid)", "-novid"), ("Sem limite de FPS (+fps_max 0)", "+fps_max 0"), ("Sem joystick (-nojoy)", "-nojoy"), ("Abrir console (-console)", "-console") })
+        foreach (var (label, token, hint) in new (string, string, string?)[] { ("Pular intro (-novid)", "-novid", null), ("Sem limite de FPS (+fps_max 0)", "+fps_max 0", null), ("Sem joystick (-nojoy)", "-nojoy", null), ("Abrir console (-console)", "-console", null),
+            ("Programas de terceiros (-allow_third_party_software)", "-allow_third_party_software",
+             "CS2: libera programas que o modo confiável bloqueia, como a captura de jogo do OBS, ReShade e alguns overlays.\nAtenção: a Valve diz que usar esta opção pode reduzir o seu Fator de Confiança (Trust Factor) no matchmaking.") })
         {
             var b = new Button { Content = label, FontSize = 11, Padding = new Thickness(10, 4), Margin = new Thickness(0, 0, 6, 6) };
+            if (hint is not null) ToolTip.SetTip(b, hint);
             b.Click += (_, _) => { if (!(extra.Text ?? "").Contains(token, StringComparison.OrdinalIgnoreCase)) extra.Text = ((extra.Text ?? "").Trim() + " " + token).Trim(); };
             presets.Children.Add(b);
         }

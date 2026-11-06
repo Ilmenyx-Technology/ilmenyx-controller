@@ -106,7 +106,7 @@ public sealed class GpuTests : IDisposable
         });
         File.WriteAllBytes(Path.Combine(d, "gpu_metrics"), MendocinoGpuMetricsHeader.Concat(new byte[116]).ToArray());
         string hw = Path.Combine(d, "hwmon/hwmon6"); Directory.CreateDirectory(hw);
-        foreach (var (f, v) in new[] { ("temp1_input", "41000"), ("temp1_label", "edge"), ("power1_input", "3167000"), ("power1_label", "PPT"), ("freq1_input", "1900000000"), ("freq1_label", "sclk") })
+        foreach (var (f, v) in new[] { ("temp1_input", "41000"), ("temp1_label", "edge"), ("power1_input", "3167000"), ("power1_label", "PPT"), ("freq1_input", "1900000000"), ("freq1_label", "sclk"), ("in0_input", "810"), ("in0_label", "vddgfx") })
             File.WriteAllText(Path.Combine(hw, f), v + "\n");
         return d;
     }
@@ -128,6 +128,7 @@ public sealed class GpuTests : IDisposable
         var t = await collector.TelemetryAsync(raw);
         Assert.True(t.Integrated); Assert.True(t.PowerIsPackage);
         Assert.Equal(3.167, t.PowerW); Assert.Equal(800, t.MemMHz); Assert.Equal(1900, t.CoreMHz); Assert.Equal(41, t.TempC); Assert.Equal(0, t.LoadPercent);
+        Assert.Equal(0.81, t.CoreVoltageV);
         Assert.Null(t.TempHotspotC); Assert.Null(t.FanRpm); Assert.Null(t.FanPercent); // an APU has no GPU fan or junction sensor: unavailable, not zero
         var rows = GpuLive.Rows(t);
         Assert.Contains(rows, r => r.Name == "Pacote (CPU+GPU)" && r.Value == "3.2 W"); Assert.DoesNotContain(rows, r => r.Name == "Consumo");

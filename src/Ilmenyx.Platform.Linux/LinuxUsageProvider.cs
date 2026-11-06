@@ -41,7 +41,7 @@ public sealed partial class LinuxUsageProvider(string procRoot = "/proc", string
         var (rx, tx, iface) = Net(netdev, now);
         var (processes, count) = await Processes(now, Math.Max(1, logical), ct);
         return new(DateTimeOffset.UtcNow, Field(cpuinfo, "model name"), cpu, AverageMhz(cpuinfo), Temperature(),
-            memory.total, memory.used, read, write, rx, tx, iface, count, processes, maxCore, busiest);
+            memory.total, memory.used, read, write, rx, tx, iface, count, processes, maxCore, busiest, MaxMhz(cpuinfo));
     }
 
     private async Task<string> Read(string relative, CancellationToken ct)
@@ -159,13 +159,15 @@ public sealed partial class LinuxUsageProvider(string procRoot = "/proc", string
         return null;
     }
 
-    internal static double? AverageMhz(string cpuinfo)
-    {
-        var values = cpuinfo.Split('\n').Where(l => l.StartsWith("cpu MHz", StringComparison.Ordinal)).Select(l => l[(l.IndexOf(':') + 1)..].Trim())
+    internal static double? AverageMhz(string cpuinfo) => CoreMhz(cpuinfo) is { Length: > 0 } v ? v.Average() : null;
+
+    /// <summary>Fastest core right now ("Clock máximo (núcleo)" of the original overlay); null when cpuinfo has no MHz lines.</summary>
+    internal static double? MaxMhz(string cpuinfo) => CoreMhz(cpuinfo) is { Length: > 0 } v ? v.Max() : null;
+
+    private static double[] CoreMhz(string cpuinfo) =>
+        cpuinfo.Split('\n').Where(l => l.StartsWith("cpu MHz", StringComparison.Ordinal)).Select(l => l[(l.IndexOf(':') + 1)..].Trim())
             .Select(v => double.TryParse(v, NumberStyles.Float, CultureInfo.InvariantCulture, out double d) && d > 0 && d < 20000 ? d : (double?)null)
             .Where(v => v is not null).Select(v => v!.Value).ToArray();
-        return values.Length == 0 ? null : values.Average();
-    }
 
     private double? Temperature()
     {
