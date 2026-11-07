@@ -85,7 +85,7 @@ public sealed partial class LinuxDriverInventory(string sysRoot = "/sys", string
                     bool proprietary = drv.StartsWith("nvidia", StringComparison.Ordinal); // nouveau must not inherit the proprietary module's version
                     var m = NvrmVersion().Match(proprietary && File.Exists(Path.Combine(procRoot, "driver/nvidia/version")) ? Safe(Path.Combine(procRoot, "driver/nvidia/version")) : "");
                     g.Installed = m.Success ? m.Groups[1].Value : proprietary ? Attr(Sys("module/nvidia/version"), 64) : "";
-                    if (g.Installed.Length == 0) g.Message = drv == "nouveau" ? "Driver livre nouveau em uso (sem o proprietário NVIDIA)." : "Driver proprietário NVIDIA não detectado.";
+                    if (g.Installed.Length == 0) g.Message = drv == "nouveau" ? GpuTelemetrySensors.NouveauReason : "Driver proprietário NVIDIA não detectado.";
                     break;
                 case "1002": g.Vendor = "AMD"; g.OfficialPage = "https://www.amd.com/en/support/download/drivers.html"; g.Installed = $"{g.Driver} · kernel {KernelRelease()}"; g.Message = "Driver amdgpu/Mesa acompanha o kernel e as atualizações da sua distribuição."; break;
                 case "8086": g.Vendor = "Intel"; g.OfficialPage = "https://www.intel.com/content/www/us/en/download-center/home.html"; g.Installed = $"{g.Driver} · kernel {KernelRelease()}"; g.Message = "Driver i915/xe e Mesa acompanham o kernel e as atualizações da sua distribuição."; break;

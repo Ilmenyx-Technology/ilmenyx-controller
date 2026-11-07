@@ -11,7 +11,9 @@ namespace Ilmenyx.Desktop;
 
 public sealed class DriverPage : StackPanel
 {
-    private readonly LinuxDriverInventory inventory = new();
+    private readonly LinuxDriverInventory inventory;
+    private readonly Action<DriverTools.DriverManager> launchManager;
+    private readonly Func<string, string?> findManager;
     private readonly PciIds pciIds = PciIds.Load();
     private readonly Func<string, Task<string?>> destination;
     private readonly CancellationToken lifetime;
@@ -27,8 +29,11 @@ public sealed class DriverPage : StackPanel
     private bool busy;
     public IReadOnlyList<DriverRow> Rows => rows;
 
-    public DriverPage(Func<string, Task<string?>> destination, CancellationToken lifetime)
+    public DriverPage(Func<string, Task<string?>> destination, CancellationToken lifetime, LinuxDriverInventory? inventory = null, Action<DriverTools.DriverManager>? launchManager = null, Func<string, string?>? findManager = null)
     {
+        this.inventory = inventory ?? new();
+        this.launchManager = launchManager ?? DriverTools.LaunchDriverManager;
+        this.findManager = findManager ?? BoundedProcess.FindSystem;
         this.destination = destination; this.lifetime = lifetime; Spacing = 4;
         var scan = new Button { Name = "BtnDrvScan", Content = "VERIFICAR TUDO", Background = Palette.Accent, Foreground = Palette.OnAccent, FontWeight = FontWeight.Bold, Padding = new Thickness(20, 9), HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top };
         scan.Click += async (_, _) => await ScanAsync();
@@ -90,6 +95,22 @@ public sealed class DriverPage : StackPanel
         if (gpus.Count == 0) gpuList.Children.Add(new TextBlock { Text = "Nenhuma GPU PCI encontrada.", Foreground = Palette.Muted, Margin = new Thickness(0, 10, 0, 0) });
         foreach (var g in gpus)
         {
+            if (g.Vendor == "NVIDIA" && g.Driver == "nouveau")
+            {
+                var manager = DriverTools.FindDriverManager(distro.Id, distro.IdLike, findManager);
+                var open = new Button { Name = "BtnDrvManager", Content = "ABRIR GERENCIADOR DE DRIVERS", IsEnabled = manager is not null, HorizontalAlignment = HorizontalAlignment.Left };
+                open.Click += (_, _) =>
+                {
+                    if (lifetime.IsCancellationRequested || manager is null) return;
+                    try { launchManager(manager); status.Text = "Gerenciador de drivers aberto. Escolha o driver recomendado pela distribuição."; }
+                    catch (Exception e) when (e is IOException or System.ComponentModel.Win32Exception or ArgumentException or UnauthorizedAccessException) { status.Text = "Não foi possível abrir o gerenciador: " + e.Message; }
+                };
+                gpuList.Children.Add(Card("Driver NVIDIA recomendado", new StackPanel { Spacing = 8, Children =
+                {
+                    Note(GpuTelemetrySensors.NouveauReason), open,
+                    Note(manager is null ? DriverInstallHints.For(distro.Id, distro.IdLike, g.Vendor) : "Abre a ferramenta da distribuição; o Ilmenyx não instala nem eleva privilégios.")
+                } }));
+            }
             var info = new TextBlock { Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap };
             void Refresh() => info.Text = $"Instalado: {(g.Installed.Length > 0 ? g.Installed : "—")}  ·  Mais recente: {(g.Latest.Length > 0 ? g.Latest : "não consultado")}  ·  Driver: {g.Driver}";
             Refresh();

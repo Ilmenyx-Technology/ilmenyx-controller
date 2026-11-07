@@ -12,6 +12,10 @@ public sealed class GpuTelemetrySensors(Func<CancellationToken, Task<IReadOnlyLi
 {
     private readonly Func<CancellationToken, Task<IReadOnlyList<(GpuRaw Raw, GpuTelemetry Telemetry)>>> read = read ?? ReadReal;
 
+    public const string NouveauReason = "O driver livre (nouveau) não informa carga, clocks, VRAM e consumo nesta geração. O driver NVIDIA libera esses contadores; veja a página Drivers.";
+    public static string MissingReason(GpuRaw raw) => raw.VendorId == "10de" && raw.Driver == "nouveau"
+        ? NouveauReason : "Contador não exposto por este driver/GPU.";
+
     private static async Task<IReadOnlyList<(GpuRaw, GpuTelemetry)>> ReadReal(CancellationToken ct)
     {
         var collector = new LinuxGpuCollector();
@@ -30,10 +34,10 @@ public sealed class GpuTelemetrySensors(Func<CancellationToken, Task<IReadOnlyLi
             var now = DateTimeOffset.UtcNow; var list = new List<SensorMeasurement>();
             foreach (var (raw, t) in gpus)
             {
-                string device = "gpu:" + raw.PciAddress, source = raw.VendorId == "10de" ? "nvidia-smi" : "sysfs (" + (raw.Driver.Length > 0 ? raw.Driver : "drm") + ")";
+                string device = "gpu:" + raw.PciAddress, source = raw.VendorId == "10de" && raw.Driver != "nouveau" ? "nvidia-smi" : "sysfs (" + (raw.Driver.Length > 0 ? raw.Driver : "drm") + ")";
                 void Add(string channel, string label, double? value, string unit)
                 {
-                    var reading = value is double v ? Reading<double?>.Available(v, unit, source) : Reading<double?>.Missing(unit, source, "Contador não exposto por este driver/GPU.");
+                    var reading = value is double v ? Reading<double?>.Available(v, unit, source) : Reading<double?>.Missing(unit, source, MissingReason(raw));
                     list.Add(new(device, raw.Name, channel, label, now, "driver", reading));
                 }
                 Add("load", "Uso da GPU", t.LoadPercent, "%"); Add("temp1", "Temperatura do núcleo", t.TempC, "°C"); Add("temp2", "Temperatura hotspot", t.TempHotspotC, "°C"); Add("temp3", "Temperatura da memória", t.TempMemC, "°C");

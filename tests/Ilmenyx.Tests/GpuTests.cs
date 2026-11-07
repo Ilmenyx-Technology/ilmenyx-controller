@@ -25,6 +25,27 @@ public sealed class GpuTests : IDisposable
         return d;
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task NouveauReadsGpuCoreVoltageAndOnlyExistingTemperature(bool temperature)
+    {
+        string sys = Path.Combine(root, "nouveau");
+        string dir = Gpu(sys, "0000:01:00.0", "0x10de", "0x2204", "nouveau", new()
+        {
+            ["hwmon/hwmon0/in0_label"] = "GPU core", ["hwmon/hwmon0/in0_input"] = "900"
+        });
+        if (temperature) File.WriteAllText(Path.Combine(dir, "hwmon/hwmon0/temp1_input"), "45000");
+        var collector = new LinuxGpuCollector(sys, Path.Combine(root, "proc"), []);
+        var raw = collector.Collect(Ids).Single().Raw;
+        var live = await collector.TelemetryAsync(raw);
+        Assert.Equal(0.9, live.CoreVoltageV);
+        Assert.Equal(temperature ? 45.0 : (double?)null, live.TempC);
+        Assert.Null(live.LoadPercent); Assert.Null(live.PowerW); Assert.Null(live.VramUsed);
+        File.WriteAllText(Path.Combine(dir, "hwmon/hwmon0/in0_label"), "unrelated rail");
+        Assert.Null((await collector.TelemetryAsync(raw)).CoreVoltageV);
+    }
+
     private const string SmiCsv = "0, 00000000:01:00.0, NVIDIA GeForce RTX 3090, 550.54.14, 24576, 1200, 37, 12, 0, 0, 52, 60, 1695, 9751, 2100, 9751, 1950, 120.50, 350.00, 350.00, 100.00, 390.00, 41, P2, 0x0000000000000004, 4, 4, 16, 16, 94.02.4B.00.A4, 8.6";
 
     [Fact]

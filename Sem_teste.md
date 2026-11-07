@@ -504,3 +504,11 @@ Desempenho por agentes Claude e Ferramentas/Maker/diálogos pelo Codex, em workt
 build 0 avisos, 887 testes, smoke X11 52/52 e Wayland nativo (Muffin) 52/52. Capturas em `docs/evidencias/ui-cinematic-2026-11-06/`.
 - NÃO TESTADO: escala fracionária/HiDPI, leitor de tela (Orca) com os novos cards-botão, KWin/GNOME reais, capas reais da Steam
   (a máquina não tem Steam; o caminho foi visto só com arquivo falso), contraste medido (WCAG) dos textos sobre os gradientes.
+
+## UX nouveau / gerenciador de drivers — 2026-11-07
+
+- IMPLEMENTADO: motivo específico NVIDIA/nouveau, tensão hwmon `GPU core`, temperatura somente quando exposta, recomendação e launcher injetável da ferramenta Mint/Ubuntu. Ver `docs/validacao-nouveau-ux.md`.
+- NÃO TESTADO: testes unitários deste incremento. VSTest abortou antes dos casos por `System.Net.Sockets.SocketException (13): Permission denied` ao criar o socket de comunicação no sandbox. Retestar fora do sandbox com `dotnet test Ilmenyx.slnx -c Release --no-build --no-restore`.
+- NÃO TESTADO: abrir gerenciador real por clique e sensores reais na GeForce 940MX/nouveau; fixtures não certificam hardware. Retestar na sessão gráfica do mantenedor com o driver ainda ligado a nouveau, sem instalar/trocar driver como parte do teste. Temperatura ausente deve continuar indisponível; tensão esperada somente se hwmon ainda informar 900 mV.
+- Aceite humano PENDENTE DE REVISÃO; nenhuma instalação, carga ou mudança de driver realizada.
+- NÃO TESTADO: smoke/capturas X11 e Wayland deste incremento. O harness compilou com 0 avisos/erros, mas a inicialização X11 falhou com `XOpenDisplay failed` (saída 134) no sandbox antes dos casos. Repetir o smoke em sessão gráfica acessível, incluindo o novo caso `nouveau driver recommendation` com launcher falso; não clicar no gerenciador real em testes automáticos.
