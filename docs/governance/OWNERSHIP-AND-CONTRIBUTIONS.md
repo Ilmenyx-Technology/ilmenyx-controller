@@ -4,7 +4,7 @@ Atualizado em 2026-11-07 (decisões do mantenedor em docs/legal/RELATORIO-LICENC
 
 - Gustavo (GustavoReset) é o autor do RESET EXPLODE; o copyright MIT dele está preservado em
   LICENSES/MIT.txt, NOTICE.md, na tela Sobre e nos cabeçalhos dos arquivos adaptados.
-- O titular do código próprio do Ilmenyx é o mantenedor, pessoa física: Flávio (mantido como Bismuth
+- O titular do código próprio do Ilmenyx é o mantenedor, pessoa física: Flávio Henrique Meira Roque (mantido como Bismuth
   Technology). Bismuth Technology é uma identidade e uma organização GitHub, não pessoa jurídica; a
   organização GitHub controla permissões do repositório, não a titularidade autoral.
 - "Silex Audit contributors" eram só o mantenedor. Nenhuma cópia do código saiu do controle dele, por
