@@ -569,3 +569,10 @@ três processos .NET reais gravando 300 atualizações cada no mesmo arquivo (90
   AMD (RAPL/k10temp) e o módulo de temperatura.
 - Tela de permissões na primeira execução: todos os sensores bloqueados juntos, uma senha (script combinado testado em `sh`; tela no smoke com
   runner falso). NÃO TESTADO: a senha real nesta tela (precisa de uma máquina com sensores bloqueados ou de Desfazer antes).
+
+## Flatpak (2026-11-07)
+- Bundle `.flatpak` (scripts/package-flatpak.sh) instalado e aberto de verdade no Dell (Mint 22.3): Visão geral, GPU (nvidia-smi pela ponte
+  `flatpak-spawn --host`), Sensores, Processos do sistema, RAPL, Driver NVIDIA, Drivers, Otimiza e Jogos iguais ao nativo
+  (`docs/evidencias/flatpak-2026-11-07/`). Achados corrigidos: /sys/module ausente no sandbox, travamento em Jogos, grupos 65534.
+- NÃO TESTADO no Flatpak: senha do pkexec pela ponte, jogos reais/MangoHud/PRIME/GameMode, OpenRGB, benchmarks Vulkan, Wayland nativo,
+  instalação --system e outras distros. Ver `docs/flatpak.md`.

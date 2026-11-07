@@ -22,7 +22,7 @@ public static class LinuxCompatHardware
 
     public static string? OsName(string etc = "/etc")
     {
-        foreach (var file in new[] { Path.Combine(etc, "os-release"), "/usr/lib/os-release" })
+        foreach (var file in new[] { HostSpawn.HostPath(Path.Combine(etc, "os-release")), HostSpawn.HostPath("/usr/lib/os-release") })
         {
             string text = SysfsText.Read(file, 8192);
             foreach (var key in new[] { "PRETTY_NAME=", "NAME=" })

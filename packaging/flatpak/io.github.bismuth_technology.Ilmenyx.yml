@@ -1,0 +1,49 @@
+# New Ilmenyx additions: see LICENSING.md.
+# Flatpak of the PREBUILT self-contained linux-x64 bundle (scripts/package-linux-x64.sh output): .NET 10 and ICU ship inside, so the
+# runtime only provides the graphics stack (X11/Wayland, fontconfig, Vulkan loader). Built by scripts/package-flatpak.sh, which places
+# the bundle next to this file as ./bundle. Permissions and what degrades in the sandbox: docs/flatpak.md.
+app-id: io.github.bismuth_technology.Ilmenyx
+runtime: org.freedesktop.Platform
+runtime-version: '25.08'
+sdk: org.freedesktop.Sdk
+command: ilmenyx-desktop
+finish-args:
+  # Window: X11 (default when DISPLAY exists, as the native app) and Wayland; MIT-SHM needs IPC.
+  - --share=ipc
+  - --socket=x11
+  - --socket=wayland
+  # GPUs (/dev/dri, /dev/nvidia*), i2c/USB for OpenRGB, serial ports (Maker pages), disks for SMART through the host.
+  - --device=all
+  # ProtonDB/Steam compatibility lookups and the NVIDIA "latest version" check, only after a click.
+  - --share=network
+  # Host programs (nvidia-smi, lspci, dpkg-query, pkexec, smartctl, steam, powerprofilesctl...) are found under /run/host and run on the
+  # host with flatpak-spawn --host (src/Ilmenyx.Platform.Linux/HostSpawn.cs); host /etc for os-release, groups and package configs.
+  - --filesystem=host-os:ro
+  - --filesystem=host-etc:ro
+  - --talk-name=org.freedesktop.Flatpak
+  # Steam and game libraries, Heroic/Lutris folders, MangoHud logs and exported reports.
+  - --filesystem=home
+modules:
+  - name: ilmenyx
+    buildsystem: simple
+    build-commands:
+      - mkdir -p /app/lib/ilmenyx /app/bin
+      - cp -a desktop cli components licenses /app/lib/ilmenyx/
+      - cp LICENSE NOTICE.md LICENSING.md LICENSE-ILMENYX.md THIRD-PARTY-NOTICES.md package.json /app/lib/ilmenyx/
+      - install -Dm755 ilmenyx-desktop.sh /app/bin/ilmenyx-desktop
+      - install -Dm755 ilmenyx-cli.sh /app/bin/ilmenyx
+      - install -Dm644 linux/io.github.bismuth_technology.Ilmenyx.desktop /app/share/applications/io.github.bismuth_technology.Ilmenyx.desktop
+      - sed -i 's|^Exec=.*|Exec=ilmenyx-desktop|' /app/share/applications/io.github.bismuth_technology.Ilmenyx.desktop
+      - install -Dm644 linux/io.github.bismuth_technology.Ilmenyx.metainfo.xml /app/share/metainfo/io.github.bismuth_technology.Ilmenyx.metainfo.xml
+      - cp -r linux/hicolor /app/share/icons/
+    sources:
+      - type: dir
+        path: bundle
+      - type: script
+        dest-filename: ilmenyx-desktop.sh
+        commands:
+          - exec /app/lib/ilmenyx/desktop/Ilmenyx.Desktop "$@"
+      - type: script
+        dest-filename: ilmenyx-cli.sh
+        commands:
+          - exec /app/lib/ilmenyx/cli/ilmenyx "$@"

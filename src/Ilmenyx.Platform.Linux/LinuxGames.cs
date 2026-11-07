@@ -192,6 +192,7 @@ public sealed class SteamInfo(string home, string procRoot = "/proc")
     {
         get
         {
+            if (HostProcesses.Active(procRoot)) return HostProcesses.Parse(HostProcesses.StatDump()).Any(p => p.Comm == "steam");
             try { foreach (var d in Directory.EnumerateDirectories(procRoot).Where(d => char.IsAsciiDigit(Path.GetFileName(d)[0])).Take(4096)) if (SysfsText.Read(Path.Combine(d, "comm"), 32) == "steam") return true; }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
             return false;
@@ -275,6 +276,34 @@ public static class GameProcesses
         return pids;
     }
 
+    /// <summary>
+    /// Flatpak: the sandbox /proc only lists the sandbox, so the game is found in the host's <c>ps -e e -ww -o pid=,args=</c> output
+    /// (the "e" flag appends each process environment to its command line, where Steam's SteamGameId/SteamAppId appear). Pure, for tests.
+    /// </summary>
+    public static IReadOnlyList<int> FindInPs(string psOutput, LibGame g, string? exe)
+    {
+        var pids = new List<int>();
+        foreach (var raw in psOutput.Split('\n').Take(8192))
+        {
+            var line = raw.Trim(); int space = line.IndexOf(' ');
+            if (space <= 0 || !int.TryParse(line.AsSpan(0, space), out int pid)) continue;
+            string cmd = line[(space + 1)..];
+            bool hit = g.IsSteam
+                ? cmd.Split(' ').Any(t => t == $"SteamGameId={g.Id}" || t == $"SteamAppId={g.Id}")
+                : (g.InstallDir.Length > 3 && cmd.Contains(g.InstallDir.TrimEnd('/') + "/", StringComparison.Ordinal)) || (exe is { Length: > 3 } && cmd.Contains(exe, StringComparison.Ordinal));
+            if (hit) pids.Add(pid);
+        }
+        return pids;
+    }
+
+    /// <summary>Host processes of the game: /proc natively; in Flatpak the host's ps through <see cref="HostSpawn"/>.</summary>
+    public static async Task<IReadOnlyList<int>> FindAsync(string procRoot, LibGame g, string? exe, CancellationToken ct)
+    {
+        if (!HostSpawn.InFlatpak || procRoot != "/proc") return Find(procRoot, g, exe);
+        try { var (code, output) = await BoundedProcess.RunAsync("ps", ["-e", "e", "-ww", "-o", "pid=,args="], TimeSpan.FromSeconds(5), 8 * 1024 * 1024, ct); return code == 0 ? FindInPs(output, g, exe) : []; }
+        catch (Exception e) when (e is IOException or FileNotFoundException or TimeoutException or System.ComponentModel.Win32Exception) { return []; }
+    }
+
     private static string ReadRaw(string path, int max)
     {
         try { using var s = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 1, false); var b = new byte[max]; int n = s.Read(b, 0, b.Length); return System.Text.Encoding.UTF8.GetString(b, 0, n); }
@@ -339,8 +368,7 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
                 status($"Abrindo {Path.GetFileName(h.Path)}…");
                 try
                 {
-                    var psi = new ProcessStartInfo(h.Path) { UseShellExecute = false, WorkingDirectory = Path.GetDirectoryName(h.Path) ?? "" };
-                    foreach (var a in GameLaunchOptions.SplitArguments(h.Args)) psi.ArgumentList.Add(a);
+                    var psi = HostSpawn.Start(h.Path, GameLaunchOptions.SplitArguments(h.Args).ToList(), workingDirectory: Path.GetDirectoryName(h.Path) ?? "", redirect: false);
                     if (Process.Start(psi) is { } proc) helpers.Add((proc, h.CloseWithGame));
                 }
                 catch (Exception e) when (e is IOException or System.ComponentModel.Win32Exception or FormatException) { status("Não consegui abrir " + h.Path + ": " + e.Message); }
@@ -358,11 +386,11 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
             else throw new InvalidOperationException("Não achei o executável deste jogo. Escolha o arquivo na seção Desempenho.");
 
             IReadOnlyList<int> running = [];
-            for (int i = 0; i < 120 && running.Count == 0; i++) { await Task.Delay(1500, ct); running = GameProcesses.Find(procRoot, g, p.ExePath ?? g.ExePath); }
+            for (int i = 0; i < 120 && running.Count == 0; i++) { await Task.Delay(1500, ct); running = await GameProcesses.FindAsync(procRoot, g, p.ExePath ?? g.ExePath, ct); }
             if (running.Count == 0) { status("Não detectei o processo do jogo (ele pode ter demorado a abrir). Os ajustes continuam aplicados."); return null; }
             status($"{g.Name} em execução" + (p.HighPerfPlan ? " · perfil Alto desempenho" : "") + ".");
             int quiet = 0;
-            while (quiet < 6) { await Task.Delay(1000, ct); running = GameProcesses.Find(procRoot, g, p.ExePath ?? g.ExePath); quiet = running.Count == 0 ? quiet + 1 : 0; }
+            while (quiet < 6) { await Task.Delay(1000, ct); running = await GameProcesses.FindAsync(procRoot, g, p.ExePath ?? g.ExePath, ct); quiet = running.Count == 0 ? quiet + 1 : 0; }
             if (!p.MangoHud) { status($"{g.Name} encerrado. Ajustes temporários desfeitos."); return null; }
             var session = MangoHudSession.ToSession(MangoHudLogReader.ReadSession(MangoHudLogReader.DefaultFolder(), started), g.Name, DateTimeOffset.UtcNow, p.Res);
             status(session is null
@@ -383,19 +411,22 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
     private static async Task StartAsync(string program, IReadOnlyList<string> args, IReadOnlyList<KeyValuePair<string, string>> env, CancellationToken ct, string? workDir = null)
     {
         string path = program.StartsWith('/') ? program : BoundedProcess.Find(program) ?? throw new FileNotFoundException($"{program} não encontrado.");
-        var psi = new ProcessStartInfo(path) { UseShellExecute = false, WorkingDirectory = workDir ?? "" };
-        foreach (var a in args) psi.ArgumentList.Add(a);
-        foreach (var (k, v) in env) psi.Environment[k] = v;
+        var psi = HostSpawn.Start(path, args, env.Count == 0 ? null : env.ToDictionary(e => e.Key, e => e.Value), workDir, redirect: false);
         using var process = Process.Start(psi) ?? throw new IOException("Não foi possível iniciar " + program);
         await Task.Delay(200, ct);
     }
+
+    [System.Runtime.InteropServices.DllImport("libc", EntryPoint = "kill", SetLastError = true)]
+    private static extern int Kill(int pid, int signal);
 
     private static async Task CloseAsync(Process proc)
     {
         try
         {
             if (proc.HasExited) return;
-            try { await BoundedProcess.RunAsync("kill", ["-TERM", proc.Id.ToString(System.Globalization.CultureInfo.InvariantCulture)], TimeSpan.FromSeconds(2), 128); } catch (Exception e) when (e is IOException or FileNotFoundException or TimeoutException or System.ComponentModel.Win32Exception) { }
+            // Flatpak: proc is the sandbox's flatpak-spawn, which forwards SIGTERM to the host program; a host "kill" would get the wrong pid namespace.
+            if (HostSpawn.InFlatpak) { if (Kill(proc.Id, 15) != 0) proc.Kill(); }
+            else try { await BoundedProcess.RunAsync("kill", ["-TERM", proc.Id.ToString(System.Globalization.CultureInfo.InvariantCulture)], TimeSpan.FromSeconds(2), 128); } catch (Exception e) when (e is IOException or FileNotFoundException or TimeoutException or System.ComponentModel.Win32Exception) { }
             if (!proc.WaitForExit(1500)) proc.Kill();
         }
         catch (Exception e) when (e is InvalidOperationException or System.ComponentModel.Win32Exception) { }

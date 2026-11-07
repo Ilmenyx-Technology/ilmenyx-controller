@@ -9,6 +9,7 @@ public static class SysfsText
 {
     public static string Read(string path, int maxCharacters = 256)
     {
+        if (HostSysfs.Hidden(path)) return HostSysfs.Read(path, maxCharacters); // Flatpak: /sys/module, /sys/firmware live on the host only
         try
         {
             using var reader = new StreamReader(new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 1, false));

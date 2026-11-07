@@ -27,8 +27,7 @@ public static class DriverTools
         string name = Path.GetFileName(manager.Program);
         if (name is not ("mintdrivers" or "software-properties-gtk")) throw new ArgumentException("Gerenciador não permitido.");
         string path = BoundedProcess.FindSystem(name) ?? throw new FileNotFoundException("Gerenciador de drivers não encontrado.");
-        var start = new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = false };
-        if (name == "software-properties-gtk") start.ArgumentList.Add("--open-tab=4");
+        var start = HostSpawn.Start(path, name == "software-properties-gtk" ? ["--open-tab=4"] : [], redirect: false);
         using var process = System.Diagnostics.Process.Start(start) ?? throw new IOException("Não foi possível abrir o gerenciador.");
     }
 

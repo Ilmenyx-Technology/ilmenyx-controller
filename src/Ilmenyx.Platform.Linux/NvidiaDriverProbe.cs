@@ -18,9 +18,10 @@ public sealed class NvidiaDriverProbe
 
     public NvidiaDriverProbe(string root = "/", ReadOnlyRunner? runner = null, Func<string, bool>? hasProgram = null, PciIds? ids = null)
     {
-        sys = Path.Combine(root, "sys"); etc = Path.Combine(root, "etc"); proc = Path.Combine(root, "proc");
-        modules = Directory.Exists(Path.Combine(root, "lib/modules")) ? Path.Combine(root, "lib/modules") : Path.Combine(root, "usr/lib/modules");
-        usrSrc = Path.Combine(root, "usr/src"); boot = Path.Combine(root, "boot");
+        // Flatpak: the host's /etc, /usr and /lib are under /run/host (HostSpawn.HostPath); /boot is not shared (kernels come from /lib/modules and packages).
+        sys = Path.Combine(root, "sys"); etc = HostSpawn.HostPath(Path.Combine(root, "etc")); proc = Path.Combine(root, "proc");
+        modules = Directory.Exists(HostSpawn.HostPath(Path.Combine(root, "lib/modules"))) ? HostSpawn.HostPath(Path.Combine(root, "lib/modules")) : HostSpawn.HostPath(Path.Combine(root, "usr/lib/modules"));
+        usrSrc = HostSpawn.HostPath(Path.Combine(root, "usr/src")); boot = Path.Combine(root, "boot");
         run = runner ?? ((p, a, t, ct) => BoundedProcess.FindSystem(p) is null ? throw new FileNotFoundException(p) : BoundedProcess.RunAsync(p, a, t, 1 << 20, ct));
         this.hasProgram = hasProgram ?? (p => BoundedProcess.FindSystem(p) is not null);
         this.ids = ids;
@@ -28,7 +29,7 @@ public sealed class NvidiaDriverProbe
 
     private static string Read(string path, int max = 4096)
     {
-        try { return File.Exists(path) ? SysfsText.Read(path, max).Trim() : ""; }
+        try { return HostSysfs.Hidden(path) || File.Exists(path) ? SysfsText.Read(path, max).Trim() : ""; }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return ""; }
     }
 
@@ -118,8 +119,9 @@ public sealed class NvidiaDriverProbe
     private SecureBootState SecureBootFromEfi()
     {
         string efi = Path.Combine(sys, "firmware/efi");
-        if (!Directory.Exists(efi)) return Directory.Exists(sys) ? SecureBootState.NotUefi : SecureBootState.Unknown;
+        if (!(HostSysfs.Hidden(efi) ? HostSysfs.DirectoryExists(efi) : Directory.Exists(efi))) return Directory.Exists(sys) ? SecureBootState.NotUefi : SecureBootState.Unknown;
         string var = Path.Combine(efi, "efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c");
+        if (HostSysfs.Hidden(var)) return HostSysfs.ReadBytes(var, 5) is { Length: >= 5 } hb ? hb[4] == 1 ? SecureBootState.Enabled : SecureBootState.Disabled : SecureBootState.Unknown;
         try { if (File.Exists(var)) { var b = File.ReadAllBytes(var); if (b.Length >= 5) return b[4] == 1 ? SecureBootState.Enabled : SecureBootState.Disabled; } }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
         return SecureBootState.Unknown;
@@ -173,8 +175,7 @@ public static class NvidiaDriverRunner
     {
         string? pkexec = BoundedProcess.FindSystem("pkexec");
         if (pkexec is null) return (false, "O pedido de senha do sistema (pkexec/polkit) não está instalado.");
-        var start = new System.Diagnostics.ProcessStartInfo(pkexec) { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true };
-        start.ArgumentList.Add("/bin/sh"); start.ArgumentList.Add("-c"); start.ArgumentList.Add(script);
+        var start = HostSpawn.Start(pkexec, ["/bin/sh", "-c", script]);
         using var process = new System.Diagnostics.Process { StartInfo = start };
         using var stop = CancellationTokenSource.CreateLinkedTokenSource(ct); stop.CancelAfter(TimeSpan.FromMinutes(40));
         try
