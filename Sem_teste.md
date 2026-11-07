@@ -587,3 +587,4 @@ três processos .NET reais gravando 300 atualizações cada no mesmo arquivo (90
   com o MKX (sem ela o X11 travou duas vezes; com ela, 16 min em tela cheia sem travar). NÃO TESTADO: outros jogos, DX12 (VKD3D).
 - "Instalar jogo de Windows" (fast exec: instalador num prefixo descartável, destino como D:, limpeza): testes de unidade e de
   interface ok. NÃO TESTADO: um instalador real até o fim.
+- Tour de boas-vindas e Central de ajuda (`docs/tutorial.md`): textos em `HelpContent`, testes unitários e smoke com eventos no processo. NÃO TESTADO: primeira execução real (permissões + boas-vindas em sequência numa instalação limpa), teclado físico e leitor de tela (Orca).

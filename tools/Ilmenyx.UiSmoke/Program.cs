@@ -570,6 +570,7 @@ public sealed class UiSmokeApp : Application
         if (OperatingSystem.IsLinux()) await LightingAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await BlockedAsync(shell);
         if (OperatingSystem.IsLinux()) await OverviewSummaryAsync(shell);
+        await TourAndHelpAsync(shell, desktop);
         await ThemeAsync(shell);
         await ToastAsync(shell);
         Click(shell, "SortMemory"); await Until(() => Find<Button>(shell, "SortMemory").Content!.ToString()!.Contains('▼'));
@@ -1078,6 +1079,90 @@ public sealed class UiSmokeApp : Application
         Find<Button>(shell, "Navlighting").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await Until(() => shell.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnLightConnect"));
         Console.WriteLine("PASS lighting page: nothing connects or is sent before the click, control needs confirmation, effect frames reach the OpenRGB server, every device is handed back to its original mode (fake loopback server; no real RGB hardware)");
+    }
+    /// <summary>Welcome dialog, guided tour (forward/back, Enter, Esc, Pular, flag saved) and the Help Center with the context "?" and search.</summary>
+    private static async Task TourAndHelpAsync(ShellWindow shell, IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        var text = HelpContent.For();
+        foreach (var key in shell.PageKeys) if (text.Section(key) is null) throw new InvalidOperationException("Page without a help section: " + key);
+        if (!ShellWindow.TourSuppressed) throw new InvalidOperationException("The smoke must suppress the automatic welcome tour.");
+        if (await shell.OfferTourAsync()) throw new InvalidOperationException("Suppressed welcome must not open by itself.");
+        string settingsFile = Path.Combine(Environment.GetEnvironmentVariable("XDG_CONFIG_HOME")!, "ilmenyx", "settings.json");
+        async Task<WelcomeTourDialog> Welcome()
+        {
+            await Until(() => desktop.Windows.OfType<WelcomeTourDialog>().Any(w => w.IsVisible));
+            var w = desktop.Windows.OfType<WelcomeTourDialog>().Single(x => x.IsVisible); await Task.Delay(150); return w;
+        }
+        // Accept: the tour opens on the first step; the flag is saved before the dialog shows.
+        var offer = shell.OfferTourAsync(force: true);
+        var welcome = await Welcome();
+        if (!File.ReadAllText(settingsFile).Contains("\"TourOffered\": true")) throw new InvalidOperationException("TourOffered must be saved when the welcome is shown.");
+        Capture(welcome, "welcome-tour.png");
+        Click(welcome, "WelcomeStart");
+        if (!await offer || shell.TourStepIndex != 0 || !Find<Border>(shell, "TourCard").IsEffectivelyVisible) throw new InvalidOperationException("Tour did not start on step 1.");
+        if (shell.CurrentPage != text.Tour[0].PageKey || Find<TextBlock>(shell, "TourCounter").Text != $"Passo 1 de {text.Tour.Count}") throw new InvalidOperationException("Step 1 page/counter wrong.");
+        if (Find<Button>(shell, "TourBack").IsEnabled) throw new InvalidOperationException("Voltar must be disabled on step 1.");
+        Click(shell, "TourNext"); await Until(() => shell.TourStepIndex == 1);
+        Key(shell, Avalonia.Input.Key.Enter); await Until(() => shell.TourStepIndex == 2 && shell.CurrentPage == text.Tour[2].PageKey);
+        Click(shell, "TourBack"); await Until(() => shell.TourStepIndex == 1);
+        int games = text.Tour.ToList().FindIndex(t => t.PageKey == "launcher");
+        while (shell.TourStepIndex < games) { Click(shell, "TourNext"); await Task.Delay(60); }
+        await Until(() => shell.CurrentPage == "launcher" && Find<TextBlock>(shell, "TourTitle").Text == text.Tour[games].Title);
+        await Task.Delay(500);
+        void CardFits(string where)
+        {
+            var card = Find<Border>(shell, "TourCard"); var at = card.TranslatePoint(default, shell)!.Value;
+            if (at.X < 214 || at.Y < 0 || at.Y + card.Bounds.Height > shell.Bounds.Height + 0.5 || at.X + card.Bounds.Width > shell.Bounds.Width + 0.5)
+                throw new InvalidOperationException($"Tour card outside the window ({where}): {at} {card.Bounds.Size} in {shell.Bounds.Size}");
+            if (!shell.GetVisualDescendants().OfType<Border>().Any(b => b.Name == "TourRing" && b.IsEffectivelyVisible)) throw new InvalidOperationException("Tour step without a highlight: " + where);
+        }
+        CardFits("games step"); Capture(shell, "tour-step.png");
+        while (shell.TourStepIndex < text.Tour.Count - 1) { Click(shell, "TourNext"); await Task.Delay(60); }
+        await Until(() => shell.CurrentPage == "help" && (string?)Find<Button>(shell, "TourNext").Content == "Concluir");
+        await Task.Delay(300); CardFits("last step"); Capture(shell, "tour-step-last.png");
+        Click(shell, "TourBack"); await Until(() => shell.TourStepIndex == text.Tour.Count - 2);
+        Click(shell, "TourSkip"); await Until(() => shell.TourStepIndex == -1 && !Find<Canvas>(shell, "TourLayer").IsVisible);
+        // Esc closes; Concluir on the last step closes.
+        shell.StartTour(); await Until(() => shell.TourStepIndex == 0);
+        Key(shell, Avalonia.Input.Key.Escape); await Until(() => shell.TourStepIndex == -1);
+        // Agora não: no tour; without force the welcome is never shown again.
+        offer = shell.OfferTourAsync(force: true); welcome = await Welcome(); Click(welcome, "WelcomeLater");
+        if (await offer || shell.TourStepIndex != -1) throw new InvalidOperationException("Agora não must not start the tour.");
+        if (await shell.OfferTourAsync()) throw new InvalidOperationException("Welcome must be offered only once.");
+        Console.WriteLine($"PASS welcome tour: offered once (TourOffered saved), {text.Tour.Count} steps navigate pages with highlights, Próximo/Enter/Voltar, Pular and Esc close, Agora não runs nothing");
+
+        // Help Center: sidebar entry, context "?" scrolls to the current page's section, search opens a question's section, Refazer o tour.
+        Find<Button>(shell, "Navhelp").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => shell.CurrentPage == "help" && Find<ScrollViewer>(shell, "HelpScroll").IsEffectivelyVisible && !Find<Button>(shell, "PageHelp").IsVisible);
+        if (shell.GetVisualDescendants().OfType<Border>().Count(b => b.Name?.StartsWith("Help_", StringComparison.Ordinal) == true) != shell.PageKeys.Count) throw new InvalidOperationException("Help Center must have one card per page.");
+        await Task.Delay(300); Capture(shell, "help-center.png");
+        async Task ContextHelp(string key)
+        {
+            Find<Button>(shell, "Nav" + key).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            await Until(() => shell.CurrentPage == key && Find<Button>(shell, "PageHelp").IsVisible);
+            Click(shell, "PageHelp");
+            var scroll = Find<ScrollViewer>(shell, "HelpScroll");
+            await Until(() => shell.CurrentPage == "help" && Find<Border>(shell, "Help_" + key).TranslatePoint(default, scroll) is { } p && p.Y is > -2 and < 40);
+        }
+        await ContextHelp("launcher");
+        await ContextHelp("stress");
+        var faq = Find<Expander>(shell, "HelpFaq_stress_safe"); faq.IsExpanded = true; await Task.Delay(400);
+        Capture(shell, "help-center-stress.png");
+        Find<Button>(shell, "Navsystem").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Find<AutoCompleteBox>(shell, "GlobalSearch").SelectedItem = "Por que a temperatura da CPU não aparece?";
+        await Until(() => shell.CurrentPage == "help" && Find<Border>(shell, "Help_dash").TranslatePoint(default, Find<ScrollViewer>(shell, "HelpScroll")) is { } p && p.Y is > -2 and < 40);
+        Click(shell, "HelpRetour"); await Until(() => shell.TourStepIndex == 0); shell.EndTour();
+        // Minimum window and light theme: the card stays inside the window and readable.
+        double w = shell.Width, h = shell.Height;
+        shell.Width = 900; shell.Height = 560; await Task.Delay(400);
+        shell.StartTour(); while (shell.TourStepIndex < games) { shell.NextTourStep(); await Task.Delay(60); }
+        await Task.Delay(500); CardFits("900x560"); Capture(shell, "tour-step-min.png");
+        Click(shell, "ToggleTheme"); await Until(() => Palette.IsLight); await Task.Delay(400);
+        CardFits("light"); Capture(shell, "tour-step-light.png");
+        shell.EndTour(); shell.Width = w; shell.Height = h; await Task.Delay(300);
+        shell.OpenHelp("launcher"); await Task.Delay(500); Capture(shell, "help-center-light.png");
+        Click(shell, "ToggleTheme"); await Until(() => !Palette.IsLight);
+        Console.WriteLine("PASS help center: one section per page, sidebar entry, context ? scrolls to launcher and stress sections, search opens a question's section, Refazer o tour, tour card fits at 900x560 and in the light theme");
     }
     private static async Task ThemeAsync(ShellWindow shell)
     {

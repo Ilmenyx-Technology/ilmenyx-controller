@@ -66,6 +66,7 @@ public sealed partial class ShellWindow
         pages["report"] = ("Relatório", () => Scroll("ReportScroll", new ReportPage(GatherReportAsync, Destination("report"), stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["blocked"] = ("Bloqueados (!)", () => Scroll("BlockedScroll", new BlockedPage(ReadMachineProbe) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["tools"] = ("Requisitos e sobre", ToolsPage, null);
+        pages["help"] = (help[HelpKeys.HelpNav], HelpPage, null);
     }
 
     /// <summary>Local facts for the FPS page alerts: the GPU games are estimated for, a second (integrated) GPU, battery state and PRIME in the game profiles. Read-only.</summary>

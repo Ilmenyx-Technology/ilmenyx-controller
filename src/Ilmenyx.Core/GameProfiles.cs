@@ -177,6 +177,8 @@ public sealed class IlmenyxSettings
     public bool DeviceToasts { get; set; } = true;
     /// <summary>The first-run screen that offers every blocked sensor fix at once was already shown (accepted or not); later fixes stay in the sidebar button.</summary>
     public bool PermissionsAsked { get; set; }
+    /// <summary>The first-run welcome dialog that offers the guided tour was already shown (accepted or not); the tour stays in Ajuda › Refazer o tour.</summary>
+    public bool TourOffered { get; set; }
     /// <summary>FPS measured in game sessions started by the Launcher with MangoHud (newest first, at most <see cref="FpsSession.MaxEntries"/>). Never sent anywhere.</summary>
     public List<FpsSession> FpsSessions { get; set; } = [];
 
