@@ -15,6 +15,11 @@ rede) e mede o desempenho dele. Tem um **aplicativo desktop** e uma **linha de c
 
 ---
 
+## Downloads e verificação
+
+Releases em https://github.com/Bismuth-Technology/ilmenyx/releases. Cada arquivo tem `.sha256` e assinatura `.asc`;
+impressão digital da chave: `3D97 1657 2A39 8DCD D0CF  F0EE 733D 2EC7 8436 DCE8` (veja `docs/assinatura-gpg.md`).
+
 ## Sumário
 
 - [O que ele faz](#o-que-ele-faz)
@@ -85,7 +90,7 @@ Para checar o que falta na sua máquina depois de compilar, rode `ilmenyx doctor
 ### Compilar e testar
 
 ```bash
-git clone --recurse-submodules https://github.com/mr-henr/ilmenyx.git
+git clone --recurse-submodules https://github.com/Bismuth-Technology/ilmenyx.git
 cd ilmenyx
 
 export DOTNET_CLI_TELEMETRY_OPTOUT=1

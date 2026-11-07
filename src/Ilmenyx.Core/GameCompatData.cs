@@ -194,7 +194,7 @@ public sealed class CompatOnline
         this.cacheFolder = cacheFolder; this.utcNow = utcNow ?? (() => DateTime.UtcNow);
         http = handler is null ? new() : new(handler);
         http.Timeout = Timeout.InfiniteTimeSpan; // per call below; the dump download may take minutes
-        http.DefaultRequestHeaders.UserAgent.ParseAdd("Ilmenyx/0.30 (+https://github.com/mr-henr/ilmenyx)");
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("Ilmenyx/0.30 (+https://github.com/Bismuth-Technology/ilmenyx)");
     }
 
     private async Task<(HttpStatusCode Code, string Body)> GetCachedAsync(string key, string url, int maxChars, CancellationToken ct)
