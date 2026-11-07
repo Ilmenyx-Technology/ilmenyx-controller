@@ -345,6 +345,7 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
             // Windows game: Proton through umu-launcher (system copy first, else the one in the package), with a prefix per game.
             wrappers.Add(find("umu-run") ?? throw new InvalidOperationException("Este é um jogo de Windows e o umu-launcher (Proton fora da Steam) não foi encontrado."));
             proton.AddRange(ProtonEnvironment(exe, p.ProtonGameId, prefixRoot ?? DefaultPrefixRoot()));
+            if (GameLaunchOptions.GuardApplies(p, gpuVendor)) proton.Add(new(GameLaunchOptions.GuardVariable, GameLaunchOptions.GuardValue));
         }
         if (wrappers.Count > 0) { program = wrappers[0]; args.AddRange(wrappers.Skip(1)); args.Add(exe); }
         string graphics = GameLaunchOptions.BuildArgs(p);

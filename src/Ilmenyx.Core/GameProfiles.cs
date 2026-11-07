@@ -31,6 +31,11 @@ public sealed class GameProfile
     public string Extra { get; set; } = "";
     /// <summary>Steam AppID of a Windows game run with Proton outside Steam (umu GAMEID umu-&lt;id&gt;, so the known per-game fixes apply). Digits only; null = generic.</summary>
     public string? ProtonGameId { get; set; }
+    /// <summary>
+    /// Full-screen freeze guard (default on): with PRIME on a hybrid notebook, a Proton game in exclusive full screen without vsync made
+    /// the X server freeze for good (Intel modesetting "async flip" bug, Dell 7460, 2026-11-07). Forcing vsync in DXVK avoided it.
+    /// </summary>
+    public bool FullscreenGuard { get; set; } = true;
     public List<HelperProgram> Helpers { get; set; } = [];
 }
 
@@ -91,11 +96,17 @@ public static class GameLaunchOptions
         _ => []
     };
 
+    public const string GuardVariable = "DXVK_CONFIG", GuardValue = "dxgi.syncInterval = 1; d3d9.presentInterval = 1";
+
+    /// <summary>The full-screen freeze guard is used when the game renders on the NVIDIA GPU through PRIME (hybrid notebook) and the user kept it on.</summary>
+    public static bool GuardApplies(GameProfile p, string gpuVendor) => p.FullscreenGuard && p.GpuHigh && gpuVendor == "NVIDIA";
+
     /// <summary>Launch options for Steam: <c>ENV=… wrappers %command% args</c>. No shell metacharacters beyond what the user typed in Extra.</summary>
     public static string BuildSteamOptions(GameProfile p, string gpuVendor, string? mangoConfig = null)
     {
         var parts = new List<string>();
         if (p.GpuHigh) parts.AddRange(GpuEnvironment(gpuVendor).Select(kv => $"{kv.Key}={kv.Value}"));
+        if (GuardApplies(p, gpuVendor)) parts.Add(GuardVariable + "=" + ShellQuote(GuardValue)); // only Proton/DXVK reads it; native games ignore it
         if (p.MangoHud && mangoConfig is not null) parts.Add("MANGOHUD_CONFIGFILE=" + ShellQuote(mangoConfig));
         if (p.MangoHud) parts.Add("mangohud");
         if (p.GameMode) parts.Add("gamemoderun");

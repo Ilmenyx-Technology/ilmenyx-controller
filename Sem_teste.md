@@ -583,3 +583,7 @@ três processos .NET reais gravando 300 atualizações cada no mesmo arquivo (90
 - Proton fora da Steam (umu-launcher 1.4.4 embutido, zipapp + python3 do sistema): jogo de Windows real (MK10.exe, DX11) rodou
   com UMU-Proton 10.0-4, DXVK na GeForce 940MX (PRIME), 100% de GPU e 2,9 GB de VRAM, prefixo por jogo em ~/.local/share/ilmenyx/prefixes.
   NÃO TESTADO: abrir pela interface do Ilmenyx com MangoHud/FPS medido, outras distros (Arch/Fedora/Debian), sistema sem python3.
+- Proteção contra travamento em tela cheia (vsync forçado no DXVK para jogos com Proton na NVIDIA via PRIME): validada no Dell
+  com o MKX (sem ela o X11 travou duas vezes; com ela, 16 min em tela cheia sem travar). NÃO TESTADO: outros jogos, DX12 (VKD3D).
+- "Instalar jogo de Windows" (fast exec: instalador num prefixo descartável, destino como D:, limpeza): testes de unidade e de
+  interface ok. NÃO TESTADO: um instalador real até o fim.

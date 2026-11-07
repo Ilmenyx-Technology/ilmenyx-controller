@@ -44,6 +44,7 @@ public sealed class LauncherPage : Grid
     private readonly CheckBox chkGpu = new() { Name = "LChkGpu", Content = "Forçar a placa de vídeo dedicada (PRIME offload)" };
     private readonly CheckBox chkGameMode = new() { Name = "LChkGameMode", Content = "GameMode (gamemoderun)" };
     private readonly CheckBox chkMango = new() { Name = "LChkMango", Content = "MangoHud (overlay de desempenho)" };
+    private readonly CheckBox chkGuard = new() { Name = "LChkGuard", Content = "Proteção contra travamento em tela cheia (vsync)" };
     private readonly TextBlock exeText = new() { Name = "LExeText", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap };
     private readonly TextBox exePath = new() { Name = "LExePath", PlaceholderText = "/caminho/completo/do/executavel" };
     private readonly TextBox extra = new() { Name = "LExtra", PlaceholderText = "ex.: -novid -high +fps_max 0" };
@@ -90,6 +91,20 @@ public sealed class LauncherPage : Grid
         var scan = new Button { Name = "BtnScanGames", Content = "ATUALIZAR LISTA", Padding = new Thickness(14, 8), FontSize = 12 };
         var add = new Button { Name = "BtnAddExe", Content = "+ ADICIONAR EXECUTÁVEL", Padding = new Thickness(14, 8), FontSize = 12 };
         scan.Click += async (_, _) => await ScanAsync(); add.Click += (_, _) => addBox.IsVisible = !addBox.IsVisible;
+        // Fast exec: one disposable run of a Windows installer with Proton; the installed game can then be added here.
+        var installWin = new Button { Name = "BtnFastExec", Content = "INSTALAR JOGO DE WINDOWS", Padding = new Thickness(14, 8), FontSize = 12 };
+        installWin.Click += async (_, _) =>
+        {
+            if (owner() is not { } window) return;
+            await new FastExecDialog(async exe =>
+            {
+                if (settings.CustomGames.Any(c => c.Exe == exe)) return false;
+                void addIt(IlmenyxSettings st) { if (!st.CustomGames.Any(c => c.Exe == exe)) st.CustomGames.Add(new() { Name = GameNameFromFolder(exe), Exe = exe }); }
+                if (Save(addIt) is { } fresh) settings.CustomGames = fresh.CustomGames; else addIt(settings);
+                await ScanAsync(); Select(games.FirstOrDefault(g => g.Store == "Manual" && g.Id == exe));
+                return true;
+            }, BoundedProcess.Find).ShowDialog(window);
+        };
         search.TextChanged += (_, _) => Filter();
         var addPath = new TextBox { Name = "LAddPath", PlaceholderText = "/caminho/completo/do/jogo" };
         AutomationProperties.SetName(addPath, "Caminho completo do executável do jogo");
@@ -111,7 +126,7 @@ public sealed class LauncherPage : Grid
         addBox.Children.Add(addPath); addBox.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { browseAdd, confirm } }); addBox.Children.Add(addStatus);
 
         // Page header: title, library summary (live text) and the library actions.
-        var header = UiKit.PageHeader("Jogos", null, new WrapPanel { ItemSpacing = 8, LineSpacing = 6, HorizontalAlignment = HorizontalAlignment.Right, Children = { scan, add } });
+        var header = UiKit.PageHeader("Jogos", null, new WrapPanel { ItemSpacing = 8, LineSpacing = 6, HorizontalAlignment = HorizontalAlignment.Right, Children = { scan, add, installWin } });
         count.FontSize = 12.5; ((StackPanel)header.Children[0]).Children.Add(count);
         Grid.SetColumnSpan(header, 3); Children.Add(header);
 
@@ -169,7 +184,8 @@ public sealed class LauncherPage : Grid
         hero = UiKit.Hero(heroContent, height: 232, name: "LHero");
         if (hero.Child is Grid layers) layers.Children.Insert(0, heroScrim);
 
-        foreach (var c in new[] { chkPlan, chkGpu, chkGameMode, chkMango }) { c.Margin = new Thickness(0, 0, 0, 6); c.FontSize = 13; c.IsCheckedChanged += (_, _) => SaveFromControls(); }
+        ToolTip.SetTip(chkGuard, "Em notebooks com duas GPUs, jogos de Windows em tela cheia sem vsync podem travar a tela inteira (só reiniciando). Com a proteção, o Proton sincroniza os quadros com o monitor; o FPS fica limitado à taxa da tela. Vale quando o jogo usa a GPU dedicada NVIDIA.");
+        foreach (var c in new[] { chkPlan, chkGpu, chkGameMode, chkMango, chkGuard }) { c.Margin = new Thickness(0, 0, 0, 6); c.FontSize = 13; c.IsCheckedChanged += (_, _) => SaveFromControls(); }
         ToolTip.SetTip(chkGpu, multiGpu ? "Define as variáveis de PRIME offload para a GPU dedicada." : "Esta máquina tem uma única GPU: não há o que selecionar.");
         chkGpu.IsEnabled = multiGpu;
         bool hasGm = BoundedProcess.Find("gamemoderun") is not null, hasMango = BoundedProcess.Find("mangohud") is not null;
@@ -184,7 +200,7 @@ public sealed class LauncherPage : Grid
         {
             Children =
             {
-                CardTitle(Icons.Oc, "DESEMPENHO"), chkPlan, chkGpu, chkGameMode, chkMango, exeText, new Border { Height = 6 }, exePath, new Border { Height = 8 },
+                CardTitle(Icons.Oc, "DESEMPENHO"), chkPlan, chkGpu, chkGameMode, chkMango, chkGuard, exeText, new Border { Height = 6 }, exePath, new Border { Height = 8 },
                 new WrapPanel { ItemSpacing = 8, LineSpacing = 6, Children = { browseExe, setExe, recommended } }, protonBox,
                 new TextBlock { Text = "O perfil de energia vale só durante o jogo e volta ao anterior. Prioridade de processo elevada exige privilégios no Linux; o GameMode cuida disso quando instalado. O executável é descoberto sozinho; se errar, informe o caminho certo.", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0) }
             }
@@ -347,7 +363,7 @@ public sealed class LauncherPage : Grid
         var art = g.IsSteam ? GameArt.Steam(steamRoot, g.Id, hero: true) : null; heroArt = art is not null;
         hero.Background = art is null ? UiKit.HeroBrush() : new ImageBrush { Source = art, Stretch = Stretch.UniformToFill };
         heroScrim.IsVisible = heroArt; title.Foreground = heroArt ? Brushes.White : Palette.Fg; sub.Foreground = heroArt ? GameArt.OnImageMuted : Palette.Muted;
-        chkPlan.IsChecked = p.HighPerfPlan; chkGpu.IsChecked = p.GpuHigh && multiGpu; chkGameMode.IsChecked = p.GameMode; chkMango.IsChecked = p.MangoHud;
+        chkPlan.IsChecked = p.HighPerfPlan; chkGpu.IsChecked = p.GpuHigh && multiGpu; chkGameMode.IsChecked = p.GameMode; chkMango.IsChecked = p.MangoHud; chkGuard.IsChecked = p.FullscreenGuard; chkGuard.IsVisible = multiGpu && gpuVendor == "NVIDIA";
         modeChips!.Select(p.WinMode); resChips!.Select(p.Res); hzChips!.Select(p.Hz); styleChips!.Select(p.Style); extra.Text = p.Extra; exePath.Text = p.ExePath ?? "";
         protonBox.IsVisible = g.IsWindowsManual; protonId.Text = p.ProtonGameId ?? "";
         RebuildHelpers();
@@ -372,7 +388,7 @@ public sealed class LauncherPage : Grid
     private void SaveFromControls()
     {
         if (loading || profile is null) return;
-        profile.HighPerfPlan = chkPlan.IsChecked == true; profile.GpuHigh = chkGpu.IsChecked == true; profile.GameMode = chkGameMode.IsChecked == true; profile.MangoHud = chkMango.IsChecked == true;
+        profile.HighPerfPlan = chkPlan.IsChecked == true; profile.GpuHigh = chkGpu.IsChecked == true; profile.GameMode = chkGameMode.IsChecked == true; profile.MangoHud = chkMango.IsChecked == true; profile.FullscreenGuard = chkGuard.IsChecked == true;
         profile.Extra = (extra.Text ?? "").Trim();
         SaveProfile(current, profile); UpdatePreview();
     }
@@ -384,6 +400,20 @@ public sealed class LauncherPage : Grid
         if (profile is null) return;
         loading = true; chkPlan.IsChecked = true; chkGpu.IsChecked = multiGpu; chkGameMode.IsChecked = chkGameMode.IsEnabled; loading = false; SaveFromControls();
         status.Text = "Perfil para mais FPS ligado: Alto desempenho" + (multiGpu ? ", GPU dedicada" : "") + (chkGameMode.IsEnabled ? ", GameMode" : "") + ".";
+    }
+
+    /// <summary>Readable game name for an installed executable: its top game folder (".../Jogos/My Game/Binaries/Win64/x.exe" -> "My Game").</summary>
+    private static string GameNameFromFolder(string exe)
+    {
+        string? dir = Path.GetDirectoryName(exe);
+        string[] generic = ["binaries", "retail", "win64", "win32", "bin", "bin64", "x64", "x86", "game"];
+        for (int i = 0; i < 5 && dir is { Length: > 1 }; i++)
+        {
+            string n = Path.GetFileName(dir);
+            if (!generic.Contains(n.ToLowerInvariant())) return n;
+            dir = Path.GetDirectoryName(dir);
+        }
+        return Path.GetFileNameWithoutExtension(exe);
     }
 
     /// <summary>System file chooser for the game's executable (Linux program, AppImage, script or Windows .exe). Null when cancelled.</summary>

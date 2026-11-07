@@ -53,6 +53,19 @@ public sealed class ProtonLaunchTests
         Assert.Contains("umu-launcher", Assert.Throws<InvalidOperationException>(() => LinuxGameLauncher.BuildManual("/g/a.exe", new(), "", "AMD", _ => null)).Message);
 
     [Fact]
+    public void FullscreenGuardForcesVsyncOnlyForProtonOnTheNvidiaPrimeGpu()
+    {
+        var on = LinuxGameLauncher.BuildManual("/g/X/a.exe", new() { GpuHigh = true }, "", "NVIDIA", Find, prefixRoot: "/p");
+        Assert.Contains(new KeyValuePair<string, string>("DXVK_CONFIG", GameLaunchOptions.GuardValue), on.Environment);
+        Assert.DoesNotContain(LinuxGameLauncher.BuildManual("/g/X/a.exe", new() { GpuHigh = true, FullscreenGuard = false }, "", "NVIDIA", Find, prefixRoot: "/p").Environment, e => e.Key == "DXVK_CONFIG");
+        Assert.DoesNotContain(LinuxGameLauncher.BuildManual("/g/X/a.exe", new() { GpuHigh = false }, "", "NVIDIA", Find, prefixRoot: "/p").Environment, e => e.Key == "DXVK_CONFIG");
+        Assert.DoesNotContain(LinuxGameLauncher.BuildManual("/g/X/a.exe", new() { GpuHigh = true }, "", "AMD", Find, prefixRoot: "/p").Environment, e => e.Key == "DXVK_CONFIG");
+        Assert.DoesNotContain(LinuxGameLauncher.BuildManual("/g/game", new() { GpuHigh = true }, "", "NVIDIA", Find).Environment, e => e.Key == "DXVK_CONFIG"); // native game
+        Assert.Contains("DXVK_CONFIG='dxgi.syncInterval = 1; d3d9.presentInterval = 1' %command%", GameLaunchOptions.BuildSteamOptions(new() { GpuHigh = true }, "NVIDIA"));
+        Assert.DoesNotContain("DXVK_CONFIG", GameLaunchOptions.BuildSteamOptions(new() { GpuHigh = true, FullscreenGuard = false }, "NVIDIA"));
+    }
+
+    [Fact]
     public void NativeGamesAreUnchanged() => Assert.Equal("/g/game", LinuxGameLauncher.BuildManual("/g/game", new(), "", "AMD", Find).Program);
 
     [Fact]
