@@ -1,0 +1,58 @@
+// Ilmenyx — paleta oficial (Material 3 tonal). Gerado por Ilmenyx-identidade-visual/source/generate.py.
+// Proposta de substituição de src/Ilmenyx.Desktop/Palette.cs: mantém os nomes públicos existentes e acrescenta
+// papéis novos (OnAccent, AccentContainer, Success, Error, Energy e cores de séries de dados).
+using Avalonia;
+using Avalonia.Media;
+using Avalonia.Styling;
+
+namespace Ilmenyx.Desktop;
+
+/// <summary>
+/// Shared brushes. They are mutable <see cref="SolidColorBrush"/> instances, so switching the theme recolours every existing control at once.
+/// Each entry is (dark, light). Roles follow Material 3: Bg = surface, Card = surfaceContainer, Accent = primary, and so on.
+/// </summary>
+public static class Palette
+{
+    private static readonly (string Dark, string Light)[] Colors =
+    [
+        ("#181A1C", "#F8F9FD"),
+        ("#1E2022", "#F2F4F7"),
+        ("#222427", "#ECEEF1"),
+        ("#35373B", "#E0E2E6"),
+        ("#424750", "#C7CCD6"),
+        ("#E6E8EC", "#26282B"),
+        ("#BCC1CB", "#4F555F"),
+        ("#858C98", "#767C89"),
+        ("#A4C1FB", "#255EE9"),
+        ("#E7B878", "#8C5D0B"),
+        ("#181A1C", "#F8F9FD"),
+        ("#A4C1FB", "#255EE9"),
+        ("#613F03", "#FEE4C2"),
+        ("#052784", "#FFFFFF"),
+        ("#1442B5", "#D5E3FE"),
+        ("#DEE9FE", "#021F74"),
+        ("#88D5A6", "#107C4A"),
+        ("#FB9F9A", "#C12C36"),
+        ("#85D3F0", "#037997"),
+        ("#86B1FE", "#3D70D1"),
+        ("#BF9BFC", "#8459C3"),
+        ("#2EC9C9", "#1A8585"),
+        ("#E4A339", "#9A6A15"),
+        ("#68CA80", "#118B41"),
+        ("#FD8C7B", "#C04637"),
+        ("#D91E2022", "#C7FFFFFF")
+    ];
+    private static readonly SolidColorBrush[] Brushes_ = Colors.Select(c => new SolidColorBrush(Color.Parse(c.Dark))).ToArray();
+
+    public static readonly IBrush Bg = Brushes_[0], Panel = Brushes_[1], Card = Brushes_[2], Hover = Brushes_[3], Line = Brushes_[4], Fg = Brushes_[5], Muted = Brushes_[6], Faint = Brushes_[7], Accent = Brushes_[8], Warn = Brushes_[9], OnFg = Brushes_[10], AccentText = Brushes_[11], WarnBg = Brushes_[12], OnAccent = Brushes_[13], AccentContainer = Brushes_[14], OnAccentContainer = Brushes_[15], Success = Brushes_[16], Error = Brushes_[17], Energy = Brushes_[18], DataCpu = Brushes_[19], DataGpu = Brushes_[20], DataMemory = Brushes_[21], DataDisk = Brushes_[22], DataNetwork = Brushes_[23], DataTemperature = Brushes_[24], Glass = Brushes_[25];
+
+    public static bool IsLight { get; private set; }
+
+    /// <summary>Switches every shared brush and the Fluent theme variant (standard controls, scroll bars, text boxes).</summary>
+    public static void Apply(bool light)
+    {
+        IsLight = light;
+        for (int i = 0; i < Colors.Length; i++) Brushes_[i].Color = Color.Parse(light ? Colors[i].Light : Colors[i].Dark);
+        if (Application.Current is { } app) app.RequestedThemeVariant = light ? ThemeVariant.Light : ThemeVariant.Dark;
+    }
+}

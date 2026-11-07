@@ -34,8 +34,12 @@ cp -- "$cache/OpenRGB.AppImage" "$cache/out/openrgb/OpenRGB.AppImage"; chmod 755
 curl -fsSL --max-time 60 -o "$cache/out/openrgb/LICENSE" "$OPENRGB_LICENSE_URL"
 cat > "$cache/out/openrgb/SOURCE.txt" <<TEXT
 OpenRGB $OPENRGB_VERSION (GPL-2.0-only), unmodified official AppImage, bundled by Ilmenyx.
-Source code and license: https://codeberg.org/OpenRGB/OpenRGB (tag release_1.1).
-Ilmenyx runs it as a separate program (it does not link to it). Written offer: the corresponding source is available at the address above.
+Ilmenyx runs it as a separate program (it does not link to it).
+Corresponding source (GPL-2.0 section 3): the exact source of this build (commit 8e16de27858cf2be6af54a33ce003df74cb9fd3e, tag release_1.1)
+is published next to the binaries in every Ilmenyx release on GitHub, as OpenRGB-1.1-source.tar.gz
+(SHA-256 8b919ad446de7f0415e2271a1881f94cd4f14e384a3c59acfcb3f540125f0107). Upstream: https://codeberg.org/OpenRGB/OpenRGB
+Written offer, valid for at least three years from the release date: anyone may ask for a copy of that source, at no charge
+beyond the cost of the medium, by writing to meirafhenrique@gmail.com.
 TEXT
 cat > "$cache/out/mangohud/SOURCE.txt" <<TEXT
 MangoHud $MANGOHUD_VERSION (MIT), unmodified official release libraries (64-bit), bundled by Ilmenyx.

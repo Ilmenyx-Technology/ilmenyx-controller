@@ -1,0 +1,168 @@
+/* Ilmenyx — tokens de interface (Material 3 tonal + acabamento Apple). Gerado por source/generate.py */
+:root {
+  --ilx-radius-xs: 6px;
+  --ilx-radius-sm: 10px;
+  --ilx-radius-md: 14px;
+  --ilx-radius-lg: 20px;
+  --ilx-radius-xl: 28px;
+  --ilx-radius-full: 999px;
+  --ilx-font-ui: 'Inter', system-ui, sans-serif;
+  --ilx-font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --ilx-motion-easing: cubic-bezier(0.2, 0, 0, 1);
+  --ilx-glass-blur: 24px;
+}
+
+:root, [data-theme="claro"] {
+  --ilx-primary: #255EE9;
+  --ilx-onPrimary: #FFFFFF;
+  --ilx-primaryContainer: #D5E3FE;
+  --ilx-onPrimaryContainer: #021F74;
+  --ilx-secondary: #58637B;
+  --ilx-onSecondary: #FFFFFF;
+  --ilx-secondaryContainer: #DBE3F3;
+  --ilx-onSecondaryContainer: #252C3B;
+  --ilx-tertiary: #037997;
+  --ilx-onTertiary: #FFFFFF;
+  --ilx-tertiaryContainer: #BCEBFE;
+  --ilx-onTertiaryContainer: #013240;
+  --ilx-error: #C12C36;
+  --ilx-onError: #FFFFFF;
+  --ilx-errorContainer: #FEE0DE;
+  --ilx-onErrorContainer: #660813;
+  --ilx-surface: #F8F9FD;
+  --ilx-surfaceDim: #DBDDE1;
+  --ilx-surfaceBright: #F8F9FD;
+  --ilx-surfaceContainerLowest: #FFFFFF;
+  --ilx-surfaceContainerLow: #F2F4F7;
+  --ilx-surfaceContainer: #ECEEF1;
+  --ilx-surfaceContainerHigh: #E6E8EC;
+  --ilx-surfaceContainerHighest: #E0E2E6;
+  --ilx-onSurface: #26282B;
+  --ilx-onSurfaceVariant: #4F555F;
+  --ilx-outline: #767C89;
+  --ilx-outlineVariant: #C7CCD6;
+  --ilx-inverseSurface: #333538;
+  --ilx-inverseOnSurface: #EFF1F4;
+  --ilx-inversePrimary: #ACC7FB;
+  --ilx-scrim: #000000;
+  --ilx-success: #107C4A;
+  --ilx-successContainer: #BDF9D2;
+  --ilx-onSuccessContainer: #034024;
+  --ilx-warning: #8C5D0B;
+  --ilx-warningContainer: #FEE4C2;
+  --ilx-onWarningContainer: #492E02;
+  --ilx-info: #17738E;
+  --ilx-infoContainer: #C9F0FF;
+  --ilx-onInfoContainer: #063B4B;
+  --ilx-data-cpu: #3D70D1;
+  --ilx-data-gpu: #8459C3;
+  --ilx-data-memoria: #1A8585;
+  --ilx-data-disco: #9A6A15;
+  --ilx-data-rede: #118B41;
+  --ilx-data-temperatura: #C04637;
+}
+
+@media (prefers-color-scheme: dark) { :root:not([data-theme="claro"]) {
+  --ilx-primary: #A4C1FB;
+  --ilx-onPrimary: #052784;
+  --ilx-primaryContainer: #1442B5;
+  --ilx-onPrimaryContainer: #DEE9FE;
+  --ilx-secondary: #B8C1D5;
+  --ilx-onSecondary: #2D3545;
+  --ilx-secondaryContainer: #424B5F;
+  --ilx-onSecondaryContainer: #E1E8F9;
+  --ilx-tertiary: #85D3F0;
+  --ilx-onTertiary: #063B4B;
+  --ilx-tertiaryContainer: #035970;
+  --ilx-onTertiaryContainer: #C9F0FF;
+  --ilx-error: #FB9F9A;
+  --ilx-onError: #660813;
+  --ilx-errorContainer: #8D121F;
+  --ilx-onErrorContainer: #FEE0DE;
+  --ilx-surface: #181A1C;
+  --ilx-surfaceDim: #181A1C;
+  --ilx-surfaceBright: #3C3E42;
+  --ilx-surfaceContainerLowest: #121316;
+  --ilx-surfaceContainerLow: #1E2022;
+  --ilx-surfaceContainer: #222427;
+  --ilx-surfaceContainerHigh: #2A2C2F;
+  --ilx-surfaceContainerHighest: #35373B;
+  --ilx-onSurface: #E6E8EC;
+  --ilx-onSurfaceVariant: #BCC1CB;
+  --ilx-outline: #858C98;
+  --ilx-outlineVariant: #424750;
+  --ilx-inverseSurface: #E6E8EC;
+  --ilx-inverseOnSurface: #2A2C2F;
+  --ilx-inversePrimary: #255EE9;
+  --ilx-scrim: #000000;
+  --ilx-success: #88D5A6;
+  --ilx-successContainer: #055531;
+  --ilx-onSuccessContainer: #BDF9D2;
+  --ilx-warning: #E7B878;
+  --ilx-warningContainer: #613F03;
+  --ilx-onWarningContainer: #FEE4C2;
+  --ilx-info: #7DCEEC;
+  --ilx-infoContainer: #0A4E63;
+  --ilx-onInfoContainer: #C9F0FF;
+  --ilx-data-cpu: #86B1FE;
+  --ilx-data-gpu: #BF9BFC;
+  --ilx-data-memoria: #2EC9C9;
+  --ilx-data-disco: #E4A339;
+  --ilx-data-rede: #68CA80;
+  --ilx-data-temperatura: #FD8C7B;
+}
+}
+
+[data-theme="escuro"] {
+  --ilx-primary: #A4C1FB;
+  --ilx-onPrimary: #052784;
+  --ilx-primaryContainer: #1442B5;
+  --ilx-onPrimaryContainer: #DEE9FE;
+  --ilx-secondary: #B8C1D5;
+  --ilx-onSecondary: #2D3545;
+  --ilx-secondaryContainer: #424B5F;
+  --ilx-onSecondaryContainer: #E1E8F9;
+  --ilx-tertiary: #85D3F0;
+  --ilx-onTertiary: #063B4B;
+  --ilx-tertiaryContainer: #035970;
+  --ilx-onTertiaryContainer: #C9F0FF;
+  --ilx-error: #FB9F9A;
+  --ilx-onError: #660813;
+  --ilx-errorContainer: #8D121F;
+  --ilx-onErrorContainer: #FEE0DE;
+  --ilx-surface: #181A1C;
+  --ilx-surfaceDim: #181A1C;
+  --ilx-surfaceBright: #3C3E42;
+  --ilx-surfaceContainerLowest: #121316;
+  --ilx-surfaceContainerLow: #1E2022;
+  --ilx-surfaceContainer: #222427;
+  --ilx-surfaceContainerHigh: #2A2C2F;
+  --ilx-surfaceContainerHighest: #35373B;
+  --ilx-onSurface: #E6E8EC;
+  --ilx-onSurfaceVariant: #BCC1CB;
+  --ilx-outline: #858C98;
+  --ilx-outlineVariant: #424750;
+  --ilx-inverseSurface: #E6E8EC;
+  --ilx-inverseOnSurface: #2A2C2F;
+  --ilx-inversePrimary: #255EE9;
+  --ilx-scrim: #000000;
+  --ilx-success: #88D5A6;
+  --ilx-successContainer: #055531;
+  --ilx-onSuccessContainer: #BDF9D2;
+  --ilx-warning: #E7B878;
+  --ilx-warningContainer: #613F03;
+  --ilx-onWarningContainer: #FEE4C2;
+  --ilx-info: #7DCEEC;
+  --ilx-infoContainer: #0A4E63;
+  --ilx-onInfoContainer: #C9F0FF;
+  --ilx-data-cpu: #86B1FE;
+  --ilx-data-gpu: #BF9BFC;
+  --ilx-data-memoria: #2EC9C9;
+  --ilx-data-disco: #E4A339;
+  --ilx-data-rede: #68CA80;
+  --ilx-data-temperatura: #FD8C7B;
+}
+
+:root { --ilx-glass: #FFFFFFC7; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="claro"]) { --ilx-glass: #1E2022D9; } }
+[data-theme="escuro"] { --ilx-glass: #1E2022D9; }

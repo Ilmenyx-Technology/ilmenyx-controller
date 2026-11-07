@@ -6,7 +6,7 @@ não equivalem a conformidade legal. Publicação permanece sem autorização ne
 
 | Item | Evidência/data | Estado | Bloqueio/ação humana |
 |---|---|---|---|
-| [ ] Busca INPI Ilmenyx e Bismuth Technology, radicais/fonética/classes (avaliar 9/42 conforme atividade) | Não realizada; 2026-10-21 | PENDENTE DE REVISÃO | Titular/especialista definir abrangência/decisão; sem afirmar marca livre/registrada |
+| [~] Busca INPI Ilmenyx e Bismuth Technology, radicais/fonética/classes (avaliar 9/42 conforme atividade) | `docs/legal/BUSCA-MARCA-2026-11-07.md` (INPI, USPTO, web, domínios); WIPO/TMview/EUIPO exigem consulta manual | PARCIAL: Ilmenyx risco baixo; Bismuth risco médio | Titular/especialista definir abrangência/decisão; sem afirmar marca livre/registrada |
 | [ ] Busca internacional, uso comercial, handles/domínios | Não realizada | PENDENTE DE REVISÃO | Domínio/handle livre não comprova direito |
 | [ ] Eventual depósito/titular/custeio | Nenhuma ação/registro | PENDENTE DE REVISÃO | Aprovação formal; sem símbolo de registro |
 | [ ] Autoria/cessões/contribuições/identidade | OWNERSHIP-AND-CONTRIBUTIONS.md | PENDENTE DE REVISÃO | Não presumir pessoa jurídica ou transferência de direitos |
@@ -16,9 +16,9 @@ não equivalem a conformidade legal. Publicação permanece sem autorização ne
 | [ ] Segurança, benchmarks, cancelamento e vulnerabilidades | Testes/limites e consulta NuGet nesta sessão | IMPLEMENTADO parcialmente; full NÃO TESTADO | Definir canal privado e validar casos Sem_teste.md sem stress automático |
 | [ ] Nome/metadata/pacotes/ícone/app ID | Identidade ativa Ilmenyx; .desktop/AppStream/Flatpak inexistentes | PENDENTE DE REVISÃO | Definir IDs sem domínio fictício, ícone licenciado e empacotamento |
 | [ ] Linux real/distros/hardware/CI/Windows | CachyOS, CLI/UI testáveis; Sem_teste.md | NÃO TESTADO para matriz restante | Provisionar VMs/hardware; CI não criado nesta tarefa |
-| [ ] Manual de Marca e assets | BRAND-BRIEF.md e integração TODO | PENDENTE DE REVISÃO | Manual ainda não criado/aprovado; nenhuma identidade final |
-| [ ] Checksums/assinatura/SBOM rastreável | Sem artefato público | PENDENTE DE REVISÃO | Infra/credenciais apropriadas; não inventar assinatura/checksum |
-| [ ] Org/push/tags/releases | Principal sem remote, sem divulgação | BLOQUEADO nesta sessão | Aprovação humana explícita antes de qualquer operação remota |
+| [x] Manual de Marca e assets | `docs/branding/kit/` (manual PDF e assets), 2026-11-07 | APROVADO pelo mantenedor (ícone e cores) | — |
+| [~] Checksums/assinatura/SBOM rastreável | SHA-256 e assinatura GPG em cada arquivo da v0.30.0 (`docs/assinatura-gpg.md`), 2026-11-07 | FEITO exceto SBOM | SBOM formal ainda não gerado |
+| [~] Org/push/tags/releases | Repositório transferido para github.com/Bismuth-Technology/ilmenyx (privado); pré-release v0.30.0, 2026-11-07 | PRIVADO | Tornar público só após as decisões de licença e a validação final |
 
 Referências institucionais consultadas em 2026-10-21:
 [INPI guia](https://www.gov.br/inpi/pt-br/servicos/marcas/guia-basico),
