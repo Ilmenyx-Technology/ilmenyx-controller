@@ -8,6 +8,8 @@ namespace Ilmenyx.Platform.Linux;
 /// <summary>Installed drivers from sysfs: PCI and USB devices with the kernel module bound to each. Read-only; no modinfo, no root.</summary>
 public sealed partial class LinuxDriverInventory(string sysRoot = "/sys", string procRoot = "/proc", string etcRoot = "/etc")
 {
+    private readonly string etcRoot = HostSpawn.HostPath(etcRoot); // Flatpak: the host's /etc (/run/host/etc)
+
     private string Sys(string p) => Path.Combine(sysRoot, p);
     private static string Attr(string path, int max = 160) => SysfsText.Read(path, max).Replace("\n", " ").Trim();
 

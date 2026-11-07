@@ -205,16 +205,22 @@ public sealed partial class LinuxUsageProvider(string procRoot = "/proc", string
         var rows = new List<ProcessUsage>();
         int count = 0;
         double dt = now - processBefore.At;
-        IEnumerable<string> entries;
-        try { entries = Directory.EnumerateDirectories(procRoot).Where(p => Digits().IsMatch(Path.GetFileName(p))).Take(MaxProcesses).ToArray(); }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return ([], 0); }
-        foreach (var dir in entries)
+        // Natively one stat file per process; in Flatpak the host's stat lines in one dump (the sandbox /proc only lists the sandbox).
+        var stats = new List<(int Pid, string? Dir, string? Line)>();
+        if (HostProcesses.Active(procRoot)) stats.AddRange(HostProcesses.Parse(await HostProcesses.StatDumpAsync(ct)).Take(MaxProcesses).Select(h => (h.Pid, (string?)null, (string?)h.Line)));
+        else
+        {
+            try { stats.AddRange(Directory.EnumerateDirectories(procRoot).Where(p => Digits().IsMatch(Path.GetFileName(p))).Take(MaxProcesses).Select(d => (int.TryParse(Path.GetFileName(d), NumberStyles.None, CultureInfo.InvariantCulture, out int p) ? p : -1, (string?)d, (string?)null))); }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return ([], 0); }
+        }
+        foreach (var (pid, dir, line) in stats)
         {
             ct.ThrowIfCancellationRequested();
             string text;
-            try { text = await new LinuxFiles().ReadAsync(Path.Combine(dir, "stat"), ct); }
+            if (line is not null) text = line;
+            else try { text = await new LinuxFiles().ReadAsync(Path.Combine(dir!, "stat"), ct); }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException) { continue; }
-            if (ParseStat(text) is not { } s || !int.TryParse(Path.GetFileName(dir), NumberStyles.None, CultureInfo.InvariantCulture, out int pid)) continue;
+            if (ParseStat(text) is not { } s || pid < 0) continue;
             count++;
             current[(pid, s.start)] = s.ticks;
             double? percent = null;

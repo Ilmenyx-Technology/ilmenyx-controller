@@ -12,6 +12,8 @@ namespace Ilmenyx.Platform.Linux;
 /// </summary>
 public sealed class LinuxSystemInfoCollector(string procRoot = "/proc", string sysRoot = "/sys", string etcRoot = "/etc")
 {
+    private readonly string etcRoot = HostSpawn.HostPath(etcRoot); // Flatpak: the host's /etc (/run/host/etc)
+
     private string Proc(string p) => Path.Combine(procRoot, p);
     private string Sys(string p) => Path.Combine(sysRoot, p);
     private static string? Text(string path)
