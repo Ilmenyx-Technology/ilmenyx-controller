@@ -569,3 +569,5 @@ três processos .NET reais gravando 300 atualizações cada no mesmo arquivo (90
   AMD (RAPL/k10temp) e o módulo de temperatura.
 - Tela de permissões na primeira execução: todos os sensores bloqueados juntos, uma senha (script combinado testado em `sh`; tela no smoke com
   runner falso). NÃO TESTADO: a senha real nesta tela (precisa de uma máquina com sensores bloqueados ou de Desfazer antes).
+- AppImage (`scripts/package-appimage.sh`, `docs/appimage.md`): validada no Dell/Mint 22.3 X11 (CLI, interface, cópia dos componentes).
+  NÃO TESTADO: outras distros, sem libfuse2, Wayland nativo, jogo real com o MangoHud copiado.
