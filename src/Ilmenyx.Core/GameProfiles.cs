@@ -80,7 +80,7 @@ public static class GameLaunchOptions
     public static IReadOnlyList<KeyValuePair<string, string>> GpuEnvironment(string vendor) => vendor switch
     {
         "NVIDIA" => [new("__NV_PRIME_RENDER_OFFLOAD", "1"), new("__GLX_VENDOR_LIBRARY_NAME", "nvidia"), new("__VK_LAYER_NV_optimus", "NVIDIA_only")],
-        "AMD" or "Intel" or "" => [new("DRI_PRIME", "1")],
+        "AMD" or "Intel" or "NVIDIA-Mesa" or "" => [new("DRI_PRIME", "1")], // NVIDIA-Mesa: NVIDIA GPU driven by nouveau/NVK
         _ => []
     };
 

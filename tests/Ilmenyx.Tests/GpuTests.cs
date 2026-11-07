@@ -216,3 +216,13 @@ public sealed class GameCatalogHardwareTests
     [Fact]
     public void UnknownHardwareHasNoIndex() => Assert.Null(Ilmenyx.Core.GameCatalog.GpuPerf("Matrox G200eR2"));
 }
+
+public sealed class PrimeOffloadTests
+{
+    [Fact]
+    public void NvidiaOnNouveauUsesDriPrimeAndProprietaryUsesNvidiaVariables()
+    {
+        Assert.Equal([new("DRI_PRIME", "1")], Ilmenyx.Core.GameLaunchOptions.GpuEnvironment("NVIDIA-Mesa"));
+        Assert.Contains(new KeyValuePair<string, string>("__NV_PRIME_RENDER_OFFLOAD", "1"), Ilmenyx.Core.GameLaunchOptions.GpuEnvironment("NVIDIA"));
+    }
+}

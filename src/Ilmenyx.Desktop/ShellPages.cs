@@ -28,7 +28,8 @@ public sealed partial class ShellWindow
         {
             string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             var gpus = new LinuxGpuCollector().Collect(PciIds.Load());
-            string vendor = gpus.Count > 0 ? gpus[0].Card.Vendor : "";
+            // PRIME variables depend on the driver, not only the vendor: NVIDIA on nouveau is offloaded with DRI_PRIME like Mesa GPUs.
+            string vendor = gpus.Count > 0 ? (gpus[0].Card.Vendor == "NVIDIA" && gpus[0].Raw.Driver != "nvidia" ? "NVIDIA-Mesa" : gpus[0].Card.Vendor) : "";
             return new LauncherPage(new LinuxGameLibrary(home), new SteamInfo(home), IlmenyxSettings.DefaultPath(),
                 (g, p, v, status, learned, ct) => new LinuxGameLauncher().RunAsync(g, p, v, status, learned, ct), () => this, vendor, gpus.Count(x => !x.Raw.Integrated) + gpus.Count(x => x.Raw.Integrated) > 1, stop.Token) { Margin = new Thickness(0, 4, 8, 12) };
         }, null);
