@@ -188,11 +188,12 @@ public sealed class LinuxGpuCollector(string sysRoot = "/sys", string procRoot =
         return list.OrderBy(x => x.Item1.Integrated ? 1 : 0).ThenByDescending(x => x.Item1.VramBytes).ThenBy(x => x.Item1.PciAddress, StringComparer.Ordinal).ToList();
     }
 
-    /// <summary>Live readings: sysfs for AMD/Intel, the same nvidia-smi query for NVIDIA. Absent sources stay null.</summary>
+    /// <summary>Live readings: sysfs for AMD/Intel/nouveau, nvidia-smi for other NVIDIA drivers. Absent sources stay null.</summary>
     public async Task<GpuTelemetry> TelemetryAsync(GpuRaw raw, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         string dir = Path.Combine(Sys("bus/pci/devices"), raw.PciAddress), hw = Hwmon(dir), card = DrmCard(raw.PciAddress);
-        if (raw.VendorId == "10de")
+        if (raw.VendorId == "10de" && raw.Driver != "nouveau")
         {
             var smi = await QuerySmiAsync(ct);
             string key = raw.PciAddress[(raw.PciAddress.IndexOf(':') + 1)..].ToLowerInvariant();
@@ -219,8 +220,8 @@ public sealed class LinuxGpuCollector(string sysRoot = "/sys", string procRoot =
             : raw.VendorId == "1002" ? ActiveDpmMHz(SysfsText.Read(Path.Combine(dir, "pp_dpm_mclk"), 1024)) : null;
         // amdgpu documents power1 on APUs as the SoC power including the CPU: flag it instead of calling it GPU power.
         bool package = raw.Integrated && raw.VendorId == "1002" && power is not null;
-        // amdgpu in0 = vddgfx in mV (seen: in0_label "vddgfx", 810 on the Radeon 610M); only taken when the label says so.
-        double? volt = hw.Length > 0 && Attr(Path.Combine(hw, "in0_label"), 16) == "vddgfx" && Num(Path.Combine(hw, "in0_input")) is { } mv and > 0 and < 2000 ? mv / 1000.0 : null;
+        // hwmon core voltage in mV: amdgpu vddgfx or nouveau GPU core; unrelated rails stay unavailable.
+        double? volt = hw.Length > 0 && (Attr(Path.Combine(hw, "in0_label"), 16) is "vddgfx" or "GPU core") && Num(Path.Combine(hw, "in0_input")) is { } mv and > 0 and < 2000 ? mv / 1000.0 : null;
         return new(load, Milli("temp1_input"), Milli("temp2_input"), Milli("temp3_input"), sclk, mclk, used, total, power, raw.PowerLimitW, fanPct, fanRpm, null, null, null, null, null, raw.CurGen, raw.CurWidth,
             raw.Integrated, package, volt);
     }

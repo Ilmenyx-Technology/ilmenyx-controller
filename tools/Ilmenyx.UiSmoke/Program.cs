@@ -10,6 +10,8 @@ using Avalonia.Interactivity;
 using Avalonia.Media.Imaging;
 using Avalonia.Themes.Fluent;
 using Avalonia.VisualTree;
+using Avalonia.LogicalTree;
+using Ilmenyx.Platform.Linux;
 using Ilmenyx.Desktop;
 using Ilmenyx.Core;
 using Ilmenyx.Contracts;
@@ -467,6 +469,30 @@ public sealed class UiSmokeApp : Application
         if (!shell.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "Verdict_energia" && t.Text == "EM USO")) throw new InvalidOperationException("Energy card missing.");
         await Task.Delay(200); Capture(shell, "shell-energy.png");
         Console.WriteLine("PASS energy page: power card always present, battery cards when the kernel reports batteries");
+        // Synthetic nouveau inventory; the injected launcher must never open a real driver manager.
+        string driverFixture = Path.Combine(Program.OutputDirectory, "nouveau-driver-fixture");
+        string driverSys = Path.Combine(driverFixture, "sys"), driverEtc = Path.Combine(driverFixture, "etc");
+        string driverDevice = Path.Combine(driverSys, "bus/pci/devices/0000:01:00.0");
+        Directory.CreateDirectory(driverDevice); Directory.CreateDirectory(driverEtc);
+        File.WriteAllText(Path.Combine(driverDevice, "class"), "0x030000");
+        File.WriteAllText(Path.Combine(driverDevice, "vendor"), "0x10de");
+        File.WriteAllText(Path.Combine(driverDevice, "device"), "0x134d");
+        string nouveauModule = Path.Combine(driverSys, "bus/pci/drivers/nouveau");
+        Directory.CreateDirectory(nouveauModule);
+        Directory.CreateSymbolicLink(Path.Combine(driverDevice, "driver"), nouveauModule);
+        File.WriteAllText(Path.Combine(driverEtc, "os-release"), "ID=linuxmint\nID_LIKE=ubuntu\n");
+        int driverLaunches = 0;
+        var driverFixturePage = new DriverPage(_ => Task.FromResult<string?>(null), CancellationToken.None,
+            new LinuxDriverInventory(driverSys, Path.Combine(driverFixture, "proc"), driverEtc),
+            manager => { if (manager.Program != "/usr/bin/mintdrivers" || manager.Arguments.Count != 0) throw new InvalidOperationException("Unexpected manager."); driverLaunches++; },
+            name => name == "mintdrivers" ? "/usr/bin/mintdrivers" : null);
+        await driverFixturePage.ScanAsync();
+        if (driverLaunches != 0) throw new InvalidOperationException("Driver manager launched without a click.");
+        var managerButton = driverFixturePage.GetLogicalDescendants().OfType<Button>().Single(b => b.Name == "BtnDrvManager");
+        if (!managerButton.IsEnabled) throw new InvalidOperationException("Driver manager button disabled.");
+        managerButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        if (driverLaunches != 1) throw new InvalidOperationException("Driver manager click did not reach fake launcher.");
+        Console.WriteLine("PASS nouveau driver recommendation: explicit click invokes fake launcher only");
         Find<Button>(shell, "Navdriver").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await Until(() => shell.GetVisualDescendants().OfType<StackPanel>().Any(p => p.Name == "DrvList" && p.Children.Count > 0));
         if (!Find<TextBlock>(shell, "DrvStatus").Text!.StartsWith("Pronto")) throw new InvalidOperationException("Driver scan did not finish.");

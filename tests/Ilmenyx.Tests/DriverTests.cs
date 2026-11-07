@@ -69,6 +69,19 @@ public sealed class DriverTests : IDisposable
         nv.Latest = "550.9"; Assert.False(nv.UpdateAvailable);
     }
 
+    [Fact]
+    public void DriverManagerUsesOnlyTheDistributionsToolWithFixedArguments()
+    {
+        string? Find(string name) => "/usr/bin/" + name;
+        var mint = DriverTools.FindDriverManager("linuxmint", "ubuntu debian", Find)!;
+        Assert.Equal("/usr/bin/mintdrivers", mint.Program); Assert.Empty(mint.Arguments);
+        var ubuntu = DriverTools.FindDriverManager("ubuntu", "debian", Find)!;
+        Assert.Equal("/usr/bin/software-properties-gtk", ubuntu.Program); Assert.Equal(["--open-tab=4"], ubuntu.Arguments);
+        Assert.Null(DriverTools.FindDriverManager("fedora", "", Find));
+        Assert.Null(DriverTools.FindDriverManager("linuxmint", "ubuntu", _ => null));
+        Assert.Throws<ArgumentException>(() => DriverTools.LaunchDriverManager(new("sh", ["-c", "anything"])));
+    }
+
     [Theory]
     [InlineData("570.133.07", "550.54.14", 1)]
     [InlineData("550.54.14", "550.54.14", 0)]

@@ -8,6 +8,30 @@ namespace Ilmenyx.Platform.Linux;
 /// <summary>Explicit-click helpers: NVIDIA latest-version lookup (network), fwupd device/update listing (read-only), opening an official page.</summary>
 public static class DriverTools
 {
+    public sealed record DriverManager(string Program, IReadOnlyList<string> Arguments);
+
+    public static DriverManager? FindDriverManager(string distroId, string idLike, Func<string, string?>? find = null)
+    {
+        find ??= BoundedProcess.FindSystem;
+        if (distroId == "linuxmint")
+            return find("mintdrivers") is { } mint ? new(mint, []) : null;
+        if ((distroId + " " + idLike).Split(' ', StringSplitOptions.RemoveEmptyEntries).Contains("ubuntu"))
+            return find("software-properties-gtk") is { } ubuntu ? new(ubuntu, ["--open-tab=4"]) : null;
+        return null;
+    }
+
+    /// <summary>Explicit click only. No shell, elevation, waiting, or termination of the distribution's GUI.</summary>
+    public static void LaunchDriverManager(DriverManager manager)
+    {
+        // Re-resolve an allowlisted system tool rather than accepting arbitrary commands.
+        string name = Path.GetFileName(manager.Program);
+        if (name is not ("mintdrivers" or "software-properties-gtk")) throw new ArgumentException("Gerenciador não permitido.");
+        string path = BoundedProcess.FindSystem(name) ?? throw new FileNotFoundException("Gerenciador de drivers não encontrado.");
+        var start = new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = false };
+        if (name == "software-properties-gtk") start.ArgumentList.Add("--open-tab=4");
+        using var process = System.Diagnostics.Process.Start(start) ?? throw new IOException("Não foi possível abrir o gerenciador.");
+    }
+
     public const string NvidiaLatestUrl = "https://download.nvidia.com/XFree86/Linux-x86_64/latest.txt";
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(10) };
 

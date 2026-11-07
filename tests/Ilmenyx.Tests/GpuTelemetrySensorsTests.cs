@@ -14,6 +14,20 @@ public class GpuTelemetrySensorsTests
 
     private static GpuTelemetrySensors Provider(params (GpuRaw, GpuTelemetry)[] gpus) => new(_ => Task.FromResult<IReadOnlyList<(GpuRaw, GpuTelemetry)>>(gpus));
 
+    [Theory]
+    [InlineData("10de", "nouveau", true)]
+    [InlineData("10de", "nvidia", false)]
+    [InlineData("1002", "amdgpu", false)]
+    public async Task MissingReasonExplainsNouveauOnlyForNvidia(string vendor, string driver, bool nouveau)
+    {
+        var raw = Raw(vendor) with { Driver = driver };
+        var empty = new GpuTelemetry(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+        var snapshot = await Provider((raw, empty)).CollectAsync();
+        Assert.All(snapshot.Readings, r => Assert.Equal(nouveau ? GpuTelemetrySensors.NouveauReason : "Contador não exposto por este driver/GPU.", r.Reading.Reason));
+        if (nouveau) Assert.All(snapshot.Readings, r => Assert.Equal("sysfs (nouveau)", r.Reading.Source));
+        Assert.Contains("Drivers", GpuTelemetrySensors.NouveauReason);
+    }
+
     [Fact]
     public async Task TelemetryBecomesSensorChannelsWithUnits()
     {
