@@ -23,6 +23,8 @@ if ! echo "$runtime_sha  $runtime" | sha256sum --check --status 2>/dev/null; the
   echo "$runtime_sha  $runtime.part" | sha256sum --check --status || { rm -f -- "$runtime.part"; echo 'Runtime AppImage com SHA-256 inesperado' >&2; exit 1; }
   mv -- "$runtime.part" "$runtime"
 fi
+# package-linux-x64.sh publishes with --no-restore: restore the linux-x64 RID first (a plain build resets the assets file).
+for p in Cli Desktop; do dotnet restore "$repo/src/Ilmenyx.$p" -r linux-x64 -p:IlmenyxBundleIcu=true; done
 bash "$repo/scripts/package-linux-x64.sh" "$destination/bundle"
 bundle="$destination/bundle/Ilmenyx-linux-x64"
 version=$(jq -r .version "$bundle/package.json")
