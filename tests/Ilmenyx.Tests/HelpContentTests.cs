@@ -127,6 +127,8 @@ public class HelpContentTests
         var questions = HelpContent.For().Sections.SelectMany(s => s.Faq.Select(f => (s.Key, f.Question))).ToList();
         Assert.Contains(("dash", "Por que a temperatura da CPU não aparece?"), questions);
         Assert.Contains(("launcher", "Por que o jogo de Windows demora na primeira vez?"), questions);
+        Assert.Contains(("launcher", "Como instalo um jogo a partir do instalador do Windows?"), questions);
+        Assert.Contains(("launcher", "O que é a proteção contra travamento em tela cheia?"), questions);
         Assert.Contains(("launcher", "O que é GPU dedicada?"), questions);
         Assert.Contains(("launcher", "O que é o MangoHud?"), questions);
         Assert.Contains(("stress", "É seguro rodar o stress test?"), questions);
