@@ -532,3 +532,16 @@ a página real mostra confiança muito baixa (CS2 8–22 FPS) e os alertas "Driv
   online compara com o ramo global, errado para Maxwell — em correção), CMP-01 (MangoHud embutido em OpenGL e Vulkan nos dois drivers).
 - NÃO TESTADO: GPU NVIDIA de desktop/RTX (power limit ajustável, ventoinha, NVENC), driver open (Turing+), Wayland com NVIDIA, Secure Boot ligado,
   aplicar comandos de OC de verdade, stress longo.
+## Aba "Driver NVIDIA" — 2026-11-07
+
+Ver `docs/driver-nvidia.md` e `docs/evidencias/nvidia-driver-tab-2026-11-07/`. Testado de verdade: diagnóstico real e simulações `apt-get -s`
+nesta máquina (Dell Inspiron 7460, GeForce 940MX, Mint 22.3, driver 580.178.04 instalado pelo lead → "Funcionando, em dia"). O cenário
+quebrado (kernel 7.0 com cabeçalhos incompletos, `iF`/`iU`) só com fixtures reconstruídas; smoke com serviços falsos.
+
+| ID | Item | Por que não foi testado | Condição para testar |
+|---|---|---|---|
+| NVDRV-01 | Execução real por pkexec de INSTALAR / REPARAR / ATUALIZAR / VOLTAR AO NOUVEAU no Ubuntu/Mint | Regra da tarefa: nenhuma instalação/remoção real; o driver já está instalado e funcionando nesta máquina | Com autorização do dono: VM ou máquina Mint/Ubuntu com NVIDIA no nouveau; clicar INSTALAR, conferir log, `dkms status`, reboot, aba "Funcionando"; depois VOLTAR AO NOUVEAU e reinstalar |
+| NVDRV-02 | Secure Boot ligado (chave MOK) | Secure Boot desligado nesta máquina | Máquina com SB ligado: instalar, `mokutil --import`, "Enroll MOK", conferir módulo carregado |
+| NVDRV-03 | Kepler (470) e Turing+ (595 open) | Só há Maxwell aqui | Placas correspondentes; conferir ramo/pacotes e simulação |
+| NVDRV-04 | Debian, Fedora/Nobara (RPM Fusion akmod, nomes -580xx/-470xx), Arch e derivadas, openSUSE | Sem VM/dispositivo dessas distros; scripts só documentados | VM com GPU passthrough ou máquina real; revisar o script, rodar, conferir módulo |
+| NVDRV-05 | Página Drivers: versão mais recente do ramo pela listagem `download.nvidia.com/XFree86/Linux-x86_64/` | Rede não usada pelo agente; parser testado com fixture | Clicar "VERIFICAR VERSÃO MAIS RECENTE" numa sessão com rede e conferir 580.x para a 940MX |

@@ -544,6 +544,7 @@ public sealed class UiSmokeApp : Application
         if (OperatingSystem.IsLinux()) await CompatAsync(desktop, Program.OutputDirectory);
         if (OperatingSystem.IsLinux()) await SensorHelpAsync(desktop);
         if (OperatingSystem.IsLinux()) await AppsAsync(shell, desktop);
+        if (OperatingSystem.IsLinux()) await NvidiaDriverAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await BenchAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await OcAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await OcGpuAsync(desktop);
@@ -1267,6 +1268,96 @@ public sealed class UiSmokeApp : Application
         Click(dialog, "SensorFixShowCommands0"); await Until(() => Find<SelectableTextBlock>(dialog, "SensorFixCommand0").IsEffectivelyVisible);
         Click(dialog, "CloseSensorHelp"); await shown; owner.Close();
         Console.WriteLine("PASS sensor help: one-click fix only after confirmation (fake polkit runner), undo, commands folded for technicians");
+    }
+
+    private static async Task NvidiaDriverAsync(ShellWindow shell, IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        // Shell tab: real READ-ONLY diagnosis (sysfs, dpkg-query, mokutil...); no action button of the shell page is clicked.
+        Find<Button>(shell, "Navnvdriver").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => shell.CurrentPage == "nvdriver" && shell.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "NvStatus" && t.IsVisible && t.Text!.StartsWith("Verificado", StringComparison.Ordinal)));
+        await Task.Delay(300); Capture(shell, "shell-nvdriver.png");
+        // Drivers page links to the tab (the NVIDIA card is only there on a machine with an NVIDIA GPU, as this one).
+        Find<Button>(shell, "Navdriver").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => shell.CurrentPage == "driver" && shell.GetVisualDescendants().OfType<StackPanel>().Any(p => p.Name == "DrvList" && p.Children.Count > 0));
+        if (shell.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Name == "BtnDrvNvidiaTab") is { } link)
+        {
+            link.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); await Until(() => shell.CurrentPage == "nvdriver");
+        }
+        if (shell.GetVisualDescendants().OfType<TextBox>().Any(t => t.Name == "DrvInstallHint" && (t.Text ?? "").Contains("sudo ubuntu-drivers install"))) throw new InvalidOperationException("Drivers page still suggests ubuntu-drivers install.");
+
+        // Fake services: the incident of 2026-11-07 (Mint 22.3, 940MX, kernel 7.0 with incomplete headers, iF/iU packages). Never pkexec/apt.
+        const string running = "6.14.0-37-generic";
+        var gpu = new NvidiaGpu("0000:01:00.0", "134d", "GM108M [GeForce 940MX]", NvidiaGeneration.Maxwell, "GM108", "nouveau");
+        var mint = DistroInfo.Parse("ID=linuxmint\nID_LIKE=\"ubuntu debian\"\nPRETTY_NAME=\"Linux Mint 22.3\"\n");
+        var incident = new NvidiaDiagnosis
+        {
+            Gpus = [gpu], OtherGpus = ["Intel HD Graphics 620 (i915)"], Distro = mint, RunningKernel = running, SecureBoot = SecureBootState.Disabled, PrimeMode = "on-demand", PrimeSelectAvailable = true,
+            Kernels = [new KernelHeaders(running, true, []), new KernelHeaders("7.0.0-42-generic", true, ["scripts/module.lds", "tools/objtool/objtool"])],
+            Packages = DpkgPackage.Parse("iU |nvidia-driver-580|580.178.04-0ubuntu0.24.04.1\nii |nvidia-utils-580|580.178.04-0ubuntu0.24.04.1\niF |linux-modules-nvidia-580-7.0.0-42-generic|7.0.0-42.42\nii |linux-modules-nvidia-580-generic-hwe-24.04|6.14.0-37.37\nii |linux-image-7.0.0-42-generic|7.0.0-42.42\nii |linux-modules-7.0.0-42-generic|7.0.0-42.42\nii |linux-image-6.14.0-37-generic|6.14.0-37.37\n"),
+        };
+        var after = incident with
+        {
+            Kernels = [new KernelHeaders(running, true, [])],
+            Packages = DpkgPackage.Parse("ii |nvidia-driver-580|580.178.04-0ubuntu0.24.04.1\nii |nvidia-dkms-580|580.178.04-0ubuntu0.24.04.1\nii |nvidia-utils-580|580.178.04-0ubuntu0.24.04.1\nii |linux-image-6.14.0-37-generic|6.14.0-37.37\n"),
+            Dkms = DkmsEntry.Parse("nvidia/580.178.04, 6.14.0-37-generic, x86_64: installed\n"),
+        };
+        string repairSim = "NOTE: This is only a simulation!\nPurg linux-modules-nvidia-580-generic-hwe-24.04 [6.14.0-37.37]\nPurg linux-modules-nvidia-580-7.0.0-42-generic [7.0.0-42.42]\nPurg linux-image-7.0.0-42-generic [7.0.0-42.42]\nPurg linux-modules-7.0.0-42-generic [7.0.0-42.42]\nInst nvidia-dkms-580 (580.178.04-0ubuntu0.24.04.1 Ubuntu:24.04/noble-updates [amd64])\n0 upgraded, 1 newly installed, 4 to remove and 0 not upgraded.\n";
+        string hweSim = "Inst linux-image-7.0.0-42-generic (7.0.0-42.42 Ubuntu:24.04/noble-updates [amd64])\nInst linux-modules-nvidia-580-7.0.0-42-generic (7.0.0-42.42 Ubuntu:24.04/noble-updates [amd64])\nInst nvidia-driver-580 (580.178.04 Ubuntu:24.04/noble-updates [amd64])\n0 upgraded, 3 newly installed, 0 to remove and 0 not upgraded.\n";
+        var scripts = new List<string>(); int diagnoses = 0; string simText = repairSim;
+        NvidiaDiagnosis current = incident;
+        var services = new NvidiaDriverServices(
+            _ => { diagnoses++; return Task.FromResult(current); },
+            (_, _) => Task.FromResult(AptSimulation.Parse(simText, 0)),
+            (script, line, _) => { scripts.Add(script); line("== Ilmenyx 1/4: simulação de segurança (falsa)"); line("dkms: nvidia/580.178.04 installed (falso)"); current = after; return Task.FromResult((true, "Pronto.")); });
+        Window? host = null; var page = new NvidiaDriverPage(services, () => host, CancellationToken.None);
+        host = new Window { Width = 1180, Height = 1500, Background = Palette.Bg, Content = new ScrollViewer { Content = page } }; host.Show();
+        await Until(() => diagnoses == 1 && Find<TextBlock>(host, "NvState").Text!.Contains("problema"));
+        if (Find<TextBlock>(host, "NvGpuName").Text != "GeForce 940MX") throw new InvalidOperationException("Marketing name missing.");
+        if (Find<TextBlock>(host, "NvTileKernel").Text != running || Find<TextBlock>(host, "NvTilePrime").Text != "on-demand" || Find<TextBlock>(host, "NvTileSecureBoot").Text != "desligado") throw new InvalidOperationException("Stat tiles wrong.");
+        await Task.Delay(200); Capture(host, "nvdriver-incident.png");
+        Click(host, "BtnNvRepair"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        var confirm = desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible);
+        string asked = Find<TextBlock>(confirm, "ConfirmText").Text!;
+        if (!asked.Contains("linux-image-7.0.0-42-generic") || !asked.Contains("senha")) throw new InvalidOperationException("Confirmation must show exactly what will be removed.");
+        Click(confirm, "ConfirmNo"); await Until(() => !confirm.IsVisible); await Task.Delay(60);
+        if (scripts.Count != 0) throw new InvalidOperationException("Declined repair must not run anything.");
+        Click(host, "BtnNvRepair"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        Click(desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible), "ConfirmYes");
+        await Until(() => scripts.Count == 1 && Find<TextBlock>(host, "NvVerify").IsVisible && Find<Border>(host, "NvRebootCard").IsVisible);
+        if (!scripts[0].StartsWith("set -eu\n", StringComparison.Ordinal) || !scripts[0].Contains("'linux-image-7.0.0-42-generic-'") || !scripts[0].Contains("'nvidia-dkms-580'") || scripts[0].Contains("ubuntu-drivers"))
+            throw new InvalidOperationException("Unexpected repair script.");
+        if (!Find<TextBlock>(host, "NvVerify").Text!.Contains("Módulo NVIDIA pronto para o kernel 6.14.0-37-generic")) throw new InvalidOperationException("Verification missing.");
+        if (!Find<SelectableTextBlock>(host, "NvLog").Text!.Contains("Simulação aceita")) throw new InvalidOperationException("Log missing.");
+        if (!Find<TextBlock>(host, "NvState").Text!.Contains("reinicie")) throw new InvalidOperationException("Reboot state missing.");
+        Click(host, "BtnNvReboot"); await Until(() => Find<TextBlock>(host, "NvRebootHelp").IsVisible);
+        if (!Find<TextBlock>(host, "NvRebootHelp").Text!.Contains("não reinicia o computador sozinho")) throw new InvalidOperationException("Reboot button must only explain.");
+        await Task.Delay(200); Capture(host, "nvdriver-repaired.png");
+        host.Close();
+
+        // A simulation that pulls another kernel (what ubuntu-drivers did) is refused before any confirmation.
+        simText = hweSim; current = incident with { Packages = [], Kernels = [new KernelHeaders(running, false, KernelHeaders.RequiredFiles)] }; diagnoses = 0;
+        Window? host2 = null; var fresh = new NvidiaDriverPage(services, () => host2, CancellationToken.None);
+        host2 = new Window { Width = 900, Height = 1300, Background = Palette.Bg, Content = new ScrollViewer { Content = fresh } }; host2.Show();
+        await Until(() => diagnoses == 1 && host2.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnNvInstall"));
+        Click(host2, "BtnNvInstall");
+        await Until(() => Find<TextBlock>(host2, "NvVerify").IsVisible);
+        if (!Find<TextBlock>(host2, "NvVerify").Text!.Contains("recusado") || scripts.Count != 1 || desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible)) throw new InvalidOperationException("Kernel-pulling simulation must be refused.");
+        Click(host2, "BtnNvScriptInstall"); await Until(() => Find<SelectableTextBlock>(host2, "NvScriptInstall").IsVisible);
+        await Task.Delay(250); Capture(host2, "nvdriver-refused.png"); host2.Close();
+
+        // Working (today's state of this machine) and the empty state.
+        current = after with { Gpus = [gpu with { KernelDriver = "nvidia" }], LoadedVersion = "580.178.04", SmiVersion = "580.178.04", SmiInstalled = true }; diagnoses = 0;
+        Window? host3 = null; var working = new NvidiaDriverPage(services, () => host3, CancellationToken.None);
+        host3 = new Window { Width = 1000, Height = 1100, Background = Palette.Bg, Content = new ScrollViewer { Content = working } }; host3.Show();
+        await Until(() => diagnoses == 1 && Find<TextBlock>(host3, "NvState").Text!.StartsWith("Funcionando · driver 580.178.04", StringComparison.Ordinal));
+        if (!host3.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnNvRevert") || Find<Border>(host3, "NvRebootCard").IsVisible) throw new InvalidOperationException("Working state wrong.");
+        await working.RefreshAsync();
+        current = new NvidiaDiagnosis { OtherGpus = ["Intel UHD"], Distro = mint, RunningKernel = running };
+        await working.RefreshAsync();
+        await Until(() => Find<TextBlock>(host3, "NvEmpty").IsEffectivelyVisible && !Find<Border>(host3, "NvHero").IsVisible);
+        host3.Close();
+        if (scripts.Count != 1) throw new InvalidOperationException("Only the confirmed repair may reach the (fake) privileged runner.");
+        Console.WriteLine("PASS nvidia driver tab: real incident detected, repair simulated (fake apt-get -s) and confirmed before the fake polkit runner, kernel-pulling plan refused, verification + reboot notice (never reboots), working and empty states, Drivers page links to the tab");
     }
 
     private static async Task AppsAsync(ShellWindow shell, IClassicDesktopStyleApplicationLifetime desktop)

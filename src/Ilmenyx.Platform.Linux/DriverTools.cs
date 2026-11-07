@@ -51,6 +51,24 @@ public static class DriverTools
         return ParseNvidiaLatest(new string(buffer, 0, n));
     }
 
+    /// <summary>Directory listing of NVIDIA's Linux x86_64 releases (one folder per version, e.g. "580.105.08/").</summary>
+    public const string NvidiaReleasesUrl = "https://download.nvidia.com/XFree86/Linux-x86_64/";
+
+    /// <summary>
+    /// Newest release of <paramref name="branch"/> from the public listing (only on a click). A Maxwell card is compared with the newest 580.x,
+    /// never with latest.txt (595+ dropped Maxwell, Pascal and Volta).
+    /// </summary>
+    public static async Task<string?> NvidiaBranchLatestAsync(string branch, CancellationToken ct = default)
+    {
+        if (!NvidiaScripts.ValidBranch(branch)) return null;
+        using var response = await Http.GetAsync(NvidiaReleasesUrl, HttpCompletionOption.ResponseHeadersRead, ct);
+        response.EnsureSuccessStatusCode();
+        using var reader = new StreamReader(await response.Content.ReadAsStreamAsync(ct));
+        var buffer = new char[1 << 20]; int total = 0, n;
+        while (total < buffer.Length && (n = await reader.ReadAsync(buffer.AsMemory(total), ct)) > 0) total += n;
+        return NvidiaGenerations.NewestInBranch(new string(buffer, 0, total), branch);
+    }
+
     public sealed record FirmwareItem(string Name, string Version, string Update);
 
     /// <summary>Parses <c>fwupdmgr get-devices --json</c>: updatable devices with current version. No serials or device ids are kept.</summary>

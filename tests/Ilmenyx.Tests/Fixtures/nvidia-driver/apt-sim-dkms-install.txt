@@ -1,0 +1,15 @@
+NOTE: This is only a simulation!
+      apt-get needs root privileges for real execution.
+      Keep also in mind that locking is deactivated,
+      so don't depend on the relevance to the real current situation!
+Reading package lists...
+Building dependency tree...
+Reading state information...
+0 upgraded, 5 newly installed, 0 to remove and 435 not upgraded.
+Inst nvidia-kernel-source-580 (580.178.04-0ubuntu0.24.04.1 Ubuntu:24.04/noble-updates, Ubuntu:24.04/noble-security [amd64])
+Inst nvidia-dkms-580 (580.178.04-0ubuntu0.24.04.1 Ubuntu:24.04/noble-updates, Ubuntu:24.04/noble-security [amd64])
+Inst linux-hwe-6.14-headers-6.14.0-37 (6.14.0-37.37~24.04.1 Ubuntu:24.04/noble-updates [all])
+Inst linux-headers-6.14.0-37-generic (6.14.0-37.37~24.04.1 Ubuntu:24.04/noble-updates [amd64])
+Inst nvidia-driver-580 (580.178.04-0ubuntu0.24.04.1 Ubuntu:24.04/noble-updates, Ubuntu:24.04/noble-security [amd64])
+Conf nvidia-dkms-580 (580.178.04-0ubuntu0.24.04.1 Ubuntu:24.04/noble-updates, Ubuntu:24.04/noble-security [amd64])
+Conf nvidia-driver-580 (580.178.04-0ubuntu0.24.04.1 Ubuntu:24.04/noble-updates, Ubuntu:24.04/noble-security [amd64])
