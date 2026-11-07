@@ -107,7 +107,7 @@ public sealed partial class ShellWindow : Window
         ["dash"] = Icons.Overview, ["system"] = Icons.System, ["sensors"] = Icons.Sensors, ["gpu"] = Icons.Gpu, ["disks"] = Icons.Disks, ["energy"] = Icons.Energy, ["net"] = Icons.Network,
         ["procs"] = Icons.Processes, ["launcher"] = Icons.Games, ["compat"] = Icons.Compat, ["fps"] = Icons.Fps, ["bottleneck"] = Icons.Bottleneck, ["bench"] = Icons.Bench, ["oc"] = Icons.Oc,
         ["overlay"] = Icons.Overlay, ["validate"] = Icons.Validate, ["stress"] = Icons.Stress, ["makerports"] = Icons.Ports, ["makerdrv"] = Icons.SerialDrivers, ["optimize"] = Icons.Optimize,
-        ["lighting"] = Icons.Lighting, ["startup"] = Icons.Startup, ["apps"] = Icons.Apps, ["driver"] = Icons.Drivers, ["report"] = Icons.Report, ["blocked"] = Icons.Blocked, ["tools"] = Icons.About,
+        ["lighting"] = Icons.Lighting, ["startup"] = Icons.Startup, ["apps"] = Icons.Apps, ["driver"] = Icons.Drivers, ["nvdriver"] = Icons.Gpu, ["report"] = Icons.Report, ["blocked"] = Icons.Blocked, ["tools"] = Icons.About,
     };
 
     /// <summary>Active item: a small accent bar at the left edge, accent text and icon. No filled capsule.</summary>
@@ -172,7 +172,7 @@ public sealed partial class ShellWindow : Window
         Group("JOGOS", ("launcher", "Jogos"), ("compat", "Compatibilidade"), ("fps", "Estimativa de FPS"), ("bottleneck", "Detector de gargalo"));
         Group("DESEMPENHO", ("bench", "Benchmark"), ("oc", "OC"), ("overlay", "Overlay"), ("validate", "Validações reduzidas"), ("stress", "Stress test"));
         Group("MAKER", ("makerports", "Portas"), ("makerdrv", "Drivers seriais"));
-        Group("FERRAMENTAS", ("optimize", "Otimiza"), ("lighting", "Integração"), ("startup", "Inicialização"), ("apps", "Instalar apps"), ("driver", "Drivers"), ("report", "Relatório"), ("blocked", "Bloqueados (!)"), ("tools", "Requisitos e sobre"));
+        Group("FERRAMENTAS", ("optimize", "Otimiza"), ("lighting", "Integração"), ("startup", "Inicialização"), ("apps", "Instalar apps"), ("driver", "Drivers"), ("nvdriver", "Driver NVIDIA"), ("report", "Relatório"), ("blocked", "Bloqueados (!)"), ("tools", "Requisitos e sobre"));
 
         var temp = new TextBlock { Name = "SideTemp", Text = "—", FontSize = 12, FontFamily = IlmenyxTheme.Mono };
         var load = new TextBlock { Name = "SideLoad", Text = "—", FontSize = 12, Foreground = Palette.Muted, FontFamily = IlmenyxTheme.Mono };

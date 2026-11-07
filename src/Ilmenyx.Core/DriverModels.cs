@@ -15,6 +15,11 @@ public sealed class GpuDriverStatus
     public string Latest { get; set; } = "";       // empty when not queried
     public string OfficialPage { get; set; } = "";
     public string Message { get; set; } = "";
+    /// <summary>PCI device id (hex, no "0x"): for NVIDIA it selects the driver branch that supports the generation.</summary>
+    public string DeviceId { get; set; } = "";
+    /// <summary>NVIDIA branch that supports this card (580 for Maxwell–Volta, 595 for Turing+, 470 for Kepler), null otherwise.</summary>
+    public string? SupportedBranch => Vendor == "NVIDIA" ? NvidiaGenerations.Support(NvidiaGenerations.Classify(DeviceId).Generation).Branch : null;
+    /// <summary>Latest is the newest version of <see cref="SupportedBranch"/> (never the global latest, which may not support the card).</summary>
     public bool UpdateAvailable => Vendor == "NVIDIA" && Latest.Length > 0 && Installed.Length > 0 && DriverVersions.Compare(Latest, Installed) > 0;
 }
 
@@ -76,7 +81,8 @@ public static class DriverInstallHints
         string pkg = vendor switch
         {
             "NVIDIA" when Is("arch", "cachyos", "manjaro", "endeavouros") => "sudo pacman -S nvidia-open-dkms nvidia-utils",
-            "NVIDIA" when Is("ubuntu") => "sudo ubuntu-drivers install",
+            // Not "ubuntu-drivers install": on Mint 22.3 it chose the prebuilt HWE modules, pulled a new kernel with incomplete headers and left the driver half-installed.
+            "NVIDIA" when Is("ubuntu") => "Use a aba Driver NVIDIA do Ilmenyx (DKMS para o kernel em uso, com simulação antes).\nEvite `ubuntu-drivers install`: ele pode puxar um kernel novo com cabeçalhos incompletos.",
             "NVIDIA" when Is("debian") => "sudo apt install nvidia-driver",
             "NVIDIA" when Is("fedora", "rhel") => "sudo dnf install akmod-nvidia   # requer RPM Fusion",
             "AMD" when Is("arch", "cachyos", "manjaro", "endeavouros") => "sudo pacman -S mesa vulkan-radeon",

@@ -77,7 +77,7 @@ public sealed partial class LinuxDriverInventory(string sysRoot = "/sys", string
         {
             if (!Attr(Path.Combine(dir, "class"), 16).StartsWith("0x03", StringComparison.Ordinal)) continue;
             string vendor = Attr(Path.Combine(dir, "vendor"), 8), device = Attr(Path.Combine(dir, "device"), 8), drv = DriverName(dir);
-            var g = new GpuDriverStatus { GpuName = ids.Device(vendor, device) ?? $"GPU {vendor}:{device}", Driver = drv.Length > 0 ? drv : "sem driver" };
+            var g = new GpuDriverStatus { GpuName = ids.Device(vendor, device) ?? $"GPU {vendor}:{device}", Driver = drv.Length > 0 ? drv : "sem driver", DeviceId = device.ToLowerInvariant().Replace("0x", "") };
             switch (vendor.ToLowerInvariant().Replace("0x", ""))
             {
                 case "10de":

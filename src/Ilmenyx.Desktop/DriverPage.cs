@@ -17,6 +17,7 @@ public sealed class DriverPage : StackPanel
     private readonly PciIds pciIds = PciIds.Load();
     private readonly Func<string, Task<string?>> destination;
     private readonly CancellationToken lifetime;
+    private readonly Action? openNvidiaTab;
     private readonly TextBlock status = new() { Name = "DrvStatus", Text = "Clique em VERIFICAR TUDO.", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 16) };
     private readonly StackPanel gpuList = new() { Name = "DrvGpus", Spacing = 14 };
     private readonly TextBlock board = new() { Name = "DrvBoard", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0) };
@@ -29,8 +30,9 @@ public sealed class DriverPage : StackPanel
     private bool busy;
     public IReadOnlyList<DriverRow> Rows => rows;
 
-    public DriverPage(Func<string, Task<string?>> destination, CancellationToken lifetime, LinuxDriverInventory? inventory = null, Action<DriverTools.DriverManager>? launchManager = null, Func<string, string?>? findManager = null)
+    public DriverPage(Func<string, Task<string?>> destination, CancellationToken lifetime, LinuxDriverInventory? inventory = null, Action<DriverTools.DriverManager>? launchManager = null, Func<string, string?>? findManager = null, Action? openNvidiaTab = null)
     {
+        this.openNvidiaTab = openNvidiaTab;
         this.inventory = inventory ?? new();
         this.launchManager = launchManager ?? DriverTools.LaunchDriverManager;
         this.findManager = findManager ?? BoundedProcess.FindSystem;
@@ -107,28 +109,32 @@ public sealed class DriverPage : StackPanel
                 };
                 gpuList.Children.Add(Card("Driver NVIDIA recomendado", new StackPanel { Spacing = 8, Children =
                 {
-                    Note(GpuTelemetrySensors.NouveauReason), open,
-                    Note(manager is null ? DriverInstallHints.For(distro.Id, distro.IdLike, g.Vendor) : "Abre a ferramenta da distribuição; o Ilmenyx não instala nem eleva privilégios.")
+                    Note(GpuTelemetrySensors.NouveauReason), NvidiaTabButton("BtnDrvNouveauNvidiaTab"), open,
+                    Note(manager is null ? DriverInstallHints.For(distro.Id, distro.IdLike, g.Vendor) : "A aba Driver NVIDIA instala o driver certo para esta placa (DKMS para o kernel em uso, com simulação antes). O gerenciador da distribuição é a alternativa.")
                 } }));
             }
             var info = new TextBlock { Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap };
-            void Refresh() => info.Text = $"Instalado: {(g.Installed.Length > 0 ? g.Installed : "—")}  ·  Mais recente: {(g.Latest.Length > 0 ? g.Latest : "não consultado")}  ·  Driver: {g.Driver}";
+            string branchText = g.SupportedBranch is { } sb ? $" do ramo {sb}" : "";
+            void Refresh() => info.Text = $"Instalado: {(g.Installed.Length > 0 ? g.Installed : "—")}  ·  Mais recente{branchText}: {(g.Latest.Length > 0 ? g.Latest : "não consultado")}  ·  Driver: {g.Driver}";
             Refresh();
             var message = new TextBlock { Text = g.Message, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) };
             var hint = new TextBox { Name = "DrvInstallHint", Text = DriverInstallHints.For(distro.Id, distro.IdLike, g.Vendor), IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0) };
             var buttons = new WrapPanel { ItemSpacing = 10, LineSpacing = 8, Margin = new Thickness(0, 10, 0, 0) };
             if (g.Vendor == "NVIDIA")
             {
-                var latest = new Button { Name = "BtnDrvNvidiaLatest", Content = "VERIFICAR VERSÃO MAIS RECENTE (rede)" };
-                ToolTip.SetTip(latest, "Consulta " + DriverTools.NvidiaLatestUrl + " (somente ao clicar).");
+                var latest = new Button { Name = "BtnDrvNvidiaLatest", Content = "VERIFICAR VERSÃO MAIS RECENTE (rede)", IsEnabled = g.SupportedBranch is not null };
+                ToolTip.SetTip(latest, "Consulta " + DriverTools.NvidiaReleasesUrl + " (somente ao clicar) e compara só com o ramo que suporta esta placa.");
                 latest.Click += async (_, _) =>
                 {
-                    latest.IsEnabled = false; status.Text = "Consultando " + DriverTools.NvidiaLatestUrl + "…";
+                    if (g.SupportedBranch is not { } branch) return;
+                    latest.IsEnabled = false; status.Text = "Consultando " + DriverTools.NvidiaReleasesUrl + "…";
                     try
                     {
-                        string? v = await DriverTools.NvidiaLatestAsync(lifetime);
-                        if (v is null) { message.Text = "A resposta da NVIDIA não tem o formato esperado."; }
-                        else { g.Latest = v; Refresh(); message.Text = g.UpdateAvailable ? $"Há uma versão mais recente ({v}). Atualize pelo gerenciador de pacotes da distribuição." : "Você está na versão mais recente publicada pela NVIDIA (ou mais nova)."; }
+                        string? v = await DriverTools.NvidiaBranchLatestAsync(branch, lifetime);
+                        var gen = NvidiaGenerations.Classify(g.DeviceId).Generation;
+                        string why = NvidiaGenerations.Support(gen).Legacy ? $" Ramo {branch} = último que suporta {NvidiaGenerations.Name(gen)}; não instale 590 ou mais novo." : "";
+                        if (v is null) { message.Text = $"A listagem da NVIDIA não tem versões do ramo {branch}."; }
+                        else { g.Latest = v; Refresh(); message.Text = (g.UpdateAvailable ? $"Há uma versão mais recente do ramo {branch} ({v}). Atualize pela aba Driver NVIDIA (quando a distribuição já publicar o pacote)." : $"Você está na versão mais recente do ramo {branch} publicada pela NVIDIA (ou mais nova).") + why; }
                         status.Text = "Consulta concluída.";
                     }
                     catch (OperationCanceledException) { status.Text = "Consulta cancelada."; }
@@ -142,7 +148,8 @@ public sealed class DriverPage : StackPanel
             var copy = new Button { Name = "BtnDrvCopyHint", Content = "COPIAR COMANDO SUGERIDO" };
             copy.Click += async (_, _) => { if (TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard) { await clipboard.SetTextAsync(hint.Text ?? ""); status.Text = "Comando copiado; execute-o no terminal por conta própria."; } };
             buttons.Children.Add(page); buttons.Children.Add(copy);
-            gpuList.Children.Add(new StackPanel { Margin = new Thickness(0, 12, 0, 0), Children = { new TextBlock { Text = g.GpuName, FontSize = 15, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap }, info, message, hint, buttons } });
+            if (g.Vendor == "NVIDIA") buttons.Children.Insert(0, NvidiaTabButton("BtnDrvNvidiaTab"));
+            gpuList.Children.Add(new StackPanel { Margin = new Thickness(0, 12, 0, 0), Children = { new TextBlock { Text = NvidiaGenerations.MarketingName(g.GpuName), FontSize = 15, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap }, info, message, hint, buttons } });
         }
         board.Text = $"{boardInfo.Maker} {boardInfo.Model}\nBIOS: {(boardInfo.Bios.Length > 0 ? boardInfo.Bios : "—")}" + (boardInfo.Brand.Length > 0 ? $"\nFabricante reconhecido: {boardInfo.Brand}" : "\nFabricante não reconhecido");
         boardPage.IsEnabled = boardInfo.SupportUrl.Length > 0;
@@ -154,6 +161,14 @@ public sealed class DriverPage : StackPanel
             var row = new Grid { ColumnDefinitions = new("*,Auto"), Margin = new Thickness(0, 0, 0, 8) }; Grid.SetColumn(right, 1); row.Children.Add(left); row.Children.Add(right);
             list.Children.Add(row);
         }
+    }
+
+    private Button NvidiaTabButton(string name)
+    {
+        var b = UiKit.Primary(name, "ABRIR A ABA DRIVER NVIDIA");
+        b.HorizontalAlignment = HorizontalAlignment.Left; b.IsEnabled = openNvidiaTab is not null;
+        b.Click += (_, _) => openNvidiaTab?.Invoke();
+        return b;
     }
 
     private async Task OpenAsync(string url)

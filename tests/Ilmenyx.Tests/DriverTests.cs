@@ -106,7 +106,8 @@ public sealed class DriverTests : IDisposable
     public void InstallHintsAreDistroSpecificAndNeverExecuted()
     {
         Assert.Contains("pacman -S nvidia-open-dkms", DriverInstallHints.For("cachyos", "arch", "NVIDIA"));
-        Assert.Contains("ubuntu-drivers install", DriverInstallHints.For("ubuntu", "debian", "NVIDIA"));
+        Assert.Contains("aba Driver NVIDIA", DriverInstallHints.For("ubuntu", "debian", "NVIDIA"));
+        Assert.DoesNotContain("sudo ubuntu-drivers install", DriverInstallHints.For("linuxmint", "ubuntu debian", "NVIDIA"));
         Assert.Contains("akmod-nvidia", DriverInstallHints.For("fedora", "", "NVIDIA"));
         Assert.Contains("vulkan-intel", DriverInstallHints.For("arch", "", "Intel"));
         Assert.Contains("não instala drivers", DriverInstallHints.For("gentoo", "", "NVIDIA"));

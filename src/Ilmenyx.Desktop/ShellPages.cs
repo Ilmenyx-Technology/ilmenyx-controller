@@ -60,7 +60,8 @@ public sealed partial class ShellWindow
         pages["optimize"] = ("Otimiza", () => Scroll("OptimizeScroll", new OptimizePage(new LinuxOptimizer(), new OptimizeServices(LinuxGameLauncher.PowerProfileAsync, LinuxGameLauncher.SetPowerProfileAsync), usage, IlmenyxSettings.DefaultPath(), () => this, stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["startup"] = ("Inicialização", () => Scroll("StartupScroll", new StartupPage(LinuxStartupManager.CreateDefault(), () => this, stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["apps"] = ("Instalar apps", () => Scroll("AppsScroll", new AppsPage(new LinuxAppInstaller(), LinuxAppInstaller.FlatpakAvailable, () => this, stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
-        pages["driver"] = ("Drivers", () => Scroll("DriverScroll", new DriverPage(Destination("drivers"), stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
+        pages["driver"] = ("Drivers", () => Scroll("DriverScroll", new DriverPage(Destination("drivers"), stop.Token, openNvidiaTab: () => Select("nvdriver")) { Margin = new Thickness(0, 4, 8, 12) }), null);
+        pages["nvdriver"] = ("Driver NVIDIA", () => Scroll("NvDriverScroll", new NvidiaDriverPage(OperatingSystem.IsLinux() ? NvidiaDriverServices.Real() : throw new PlatformNotSupportedException(), () => this, stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["report"] = ("Relatório", () => Scroll("ReportScroll", new ReportPage(GatherReportAsync, Destination("report"), stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["blocked"] = ("Bloqueados (!)", () => Scroll("BlockedScroll", new BlockedPage(ReadMachineProbe) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["tools"] = ("Requisitos e sobre", ToolsPage, null);
