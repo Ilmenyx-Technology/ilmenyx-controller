@@ -567,3 +567,5 @@ três processos .NET reais gravando 300 atualizações cada no mesmo arquivo (90
   (`docs/evidencias/sensores-um-clique-2026-11-07/`). Fecha o caminho real do botão para RAPL Intel.
 - O link era discreto demais (o dono não achou): agora é um botão em destaque. NÃO TESTADO: Desfazer, persistência após reboot,
   AMD (RAPL/k10temp) e o módulo de temperatura.
+- Tela de permissões na primeira execução: todos os sensores bloqueados juntos, uma senha (script combinado testado em `sh`; tela no smoke com
+  runner falso). NÃO TESTADO: a senha real nesta tela (precisa de uma máquina com sensores bloqueados ou de Desfazer antes).

@@ -15,6 +15,17 @@ public static class SensorHelp
     /// <summary>Kernel module that exposes the CPU temperature for this vendor string (/proc/cpuinfo vendor_id or model name).</summary>
     public static string TemperatureModule(string? cpu) => (cpu ?? "").Contains("AMD", StringComparison.OrdinalIgnoreCase) || (cpu ?? "").Contains("Ryzen", StringComparison.OrdinalIgnoreCase) ? "k10temp" : "coretemp";
 
+    /// <summary>
+    /// One root script for several fixes, so the first-run screen asks for the password once. Each fix runs in its own subshell and a failure
+    /// does not stop the next one; the exit code is 0 only if all of them worked. Only the fixed <see cref="SensorFix.Apply"/> scripts are used.
+    /// </summary>
+    public static string? Combined(IEnumerable<SensorFix> fixes)
+    {
+        var scripts = fixes.Select(f => f.Apply).OfType<string>().Where(s => s.Length > 0).ToList();
+        if (scripts.Count == 0) return null;
+        return scripts.Count == 1 ? scripts[0] : "rc=0; " + string.Concat(scripts.Select(s => "(" + s + ") || rc=1; ")) + "exit $rc";
+    }
+
     public static IReadOnlyList<SensorFix> Build(bool cpuTemperatureMissing, CpuPowerAccess power, string? cpuModel, string? raplZone, bool virtualMachine)
     {
         var fixes = new List<SensorFix>();

@@ -33,6 +33,8 @@ internal static class Program
         // Every page that reads or writes Ilmenyx settings/logs uses the fixture directories, never the user's real ones.
         Environment.SetEnvironmentVariable("XDG_CONFIG_HOME", Path.Combine(OutputDirectory, "xdg-config"));
         Environment.SetEnvironmentVariable("XDG_DATA_HOME", Path.Combine(OutputDirectory, "xdg-data"));
+        // The first-run permissions screen is exercised by OnboardingAsync with a fake runner; the real shell must not open it (it would call pkexec).
+        Environment.SetEnvironmentVariable("ILMENYX_NO_ONBOARDING", "1");
         return DesktopBackend.Configure(AppBuilder.Configure<UiSmokeApp>(), DesktopBackend.Parse(DesktopBackend.ReadSelection())).StartWithClassicDesktopLifetime(Array.Empty<string>());
     }
 }
@@ -555,6 +557,7 @@ public sealed class UiSmokeApp : Application
         if (OperatingSystem.IsLinux()) await FpsAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await CompatAsync(desktop, Program.OutputDirectory);
         if (OperatingSystem.IsLinux()) await SensorHelpAsync(desktop);
+        if (OperatingSystem.IsLinux()) await OnboardingAsync(desktop);
         if (OperatingSystem.IsLinux()) await AppsAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await NvidiaDriverAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await BenchAsync(shell, desktop);
@@ -1257,6 +1260,37 @@ public sealed class UiSmokeApp : Application
             if (http.Hosts.Any(h => h != "www.protondb.com" && h != "store.steampowered.com" && h != "raw.githubusercontent.com" && h != "api.github.com")) throw new InvalidOperationException("Unexpected host.");
         }
         Console.WriteLine("PASS compat page: offline index search and similar-hardware ranking, unsafe options locked, home paths hidden, online query only after confirmation (fixed hosts), apply/undo on a fake Steam config, verified export update (fake HTTP; no network)");
+    }
+
+    private static async Task OnboardingAsync(IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        // Fake runner: pkexec is never started. Two blocked sensors, offered together; one call, one password.
+        var scripts = new List<string>(); bool fail = true;
+        var fixes = SensorHelp.Build(true, CpuPowerAccess.NoPermission, "Intel(R) Core(TM) i7-7500U", "/sys/class/powercap/intel-rapl:0", false);
+        var owner = new Window { Width = 300, Height = 200 }; owner.Show();
+        var dialog = new PermissionsOnboardingDialog(fixes, script => { scripts.Add(script); return Task.FromResult(fail ? (false, "Cancelado: a senha não foi informada.") : (true, "Pronto.")); });
+        var shown = dialog.ShowDialog(owner);
+        await Until(() => dialog.IsVisible);
+        if (Find<CheckBox>(dialog, "OnboardFix0").IsChecked != true || Find<CheckBox>(dialog, "OnboardFix1").IsChecked != true) throw new InvalidOperationException("Every fix must start selected.");
+        await Task.Delay(300); Capture(dialog, "onboarding-permissions.png");
+        Find<CheckBox>(dialog, "OnboardFix0").IsChecked = false; Find<CheckBox>(dialog, "OnboardFix1").IsChecked = false;
+        if (Find<Button>(dialog, "OnboardApply").IsEnabled) throw new InvalidOperationException("Nothing selected: apply must be disabled.");
+        Find<CheckBox>(dialog, "OnboardFix0").IsChecked = true; Find<CheckBox>(dialog, "OnboardFix1").IsChecked = true;
+        // Password dialog dismissed: nothing applied, can retry, sidebar remains the way back.
+        Click(dialog, "OnboardApply"); await Until(() => scripts.Count == 1 && Find<Button>(dialog, "OnboardApply").IsEnabled);
+        if (!Find<TextBlock>(dialog, "OnboardStatus").Text!.Contains("menu lateral") || dialog.Applied) throw new InvalidOperationException("Refused password must say how to do it later.");
+        fail = false; Click(dialog, "OnboardApply"); await Until(() => scripts.Count == 2 && dialog.Applied);
+        if (scripts[1] != SensorHelp.Combined(fixes) || !scripts[1].Contains("modprobe coretemp") || !scripts[1].Contains("chmod o+r /sys/class/powercap/intel-rapl:0/energy_uj"))
+            throw new InvalidOperationException("Both fixes must go in one privileged call.");
+        if ((string?)Find<Button>(dialog, "OnboardSkip").Content != "Continuar") throw new InvalidOperationException("After success the close button must read Continuar.");
+        Click(dialog, "OnboardSkip"); await shown;
+        // "Agora não" runs nothing.
+        scripts.Clear();
+        var second = new PermissionsOnboardingDialog(fixes, script => { scripts.Add(script); return Task.FromResult((true, "Pronto.")); });
+        var shown2 = second.ShowDialog(owner); await Until(() => second.IsVisible);
+        Click(second, "OnboardSkip"); await shown2; owner.Close();
+        if (scripts.Count != 0) throw new InvalidOperationException("Agora não must not run anything.");
+        Console.WriteLine("PASS first-run permissions: all blocked sensors offered at once, one privileged call (fake polkit runner), refusal keeps the way back, Agora não runs nothing");
     }
 
     private static async Task SensorHelpAsync(IClassicDesktopStyleApplicationLifetime desktop)

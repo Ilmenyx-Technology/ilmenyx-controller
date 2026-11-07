@@ -157,6 +157,8 @@ public sealed class IlmenyxSettings
     public bool ThemeLight { get; set; }
     /// <summary>Toast when a removable drive or USB device appears or disappears (local polling only).</summary>
     public bool DeviceToasts { get; set; } = true;
+    /// <summary>The first-run screen that offers every blocked sensor fix at once was already shown (accepted or not); later fixes stay in the sidebar button.</summary>
+    public bool PermissionsAsked { get; set; }
     /// <summary>FPS measured in game sessions started by the Launcher with MangoHud (newest first, at most <see cref="FpsSession.MaxEntries"/>). Never sent anywhere.</summary>
     public List<FpsSession> FpsSessions { get; set; } = [];
 

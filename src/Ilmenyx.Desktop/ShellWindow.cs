@@ -82,6 +82,7 @@ public sealed partial class ShellWindow : Window
             usage.Start(stop.Token);
             toasts = new DeviceToastService(() => LinuxDeviceWatcher.Read()) { Enabled = appSettings.DeviceToasts }; toasts.Notified += t => { sessionEvents.Insert(0, (DateTimeOffset.Now, t.Title, t.Text)); if (sessionEvents.Count > 50) sessionEvents.RemoveAt(50); overviewRefresh?.Invoke(); }; toasts.Start();
             _ = RefreshBlockedBadgeAsync();
+            OfferPermissionsOnce();
             await hardware.RefreshAsync(stop.Token);
             await sensors.RefreshAsync(stop.Token);
         };
@@ -252,6 +253,29 @@ public sealed partial class ShellWindow : Window
         AutomationProperties.SetName(chip, "Este computador: " + model + " — abrir Sistema");
         chip.Click += (_, _) => Select("system");
         return chip;
+    }
+
+    /// <summary>
+    /// First run: once the first reading shows what is blocked, offer every fix together (one password). Shown at most once per user
+    /// (settings PermissionsAsked); the sidebar button keeps the same fixes for later. ILMENYX_NO_ONBOARDING=1 skips it (automated runs).
+    /// </summary>
+    private void OfferPermissionsOnce()
+    {
+        if (appSettings.PermissionsAsked || Environment.GetEnvironmentVariable("ILMENYX_NO_ONBOARDING") == "1" || !PrivilegedFix.Available) return;
+        void OnUpdated()
+        {
+            if (usage.Last is null) return;
+            usage.Updated -= OnUpdated;
+            var fixes = CurrentFixes().Where(f => f.Apply is { Length: > 0 }).ToList();
+            if (fixes.Count == 0) return; // nothing blocked now; ask the first time something is
+            Avalonia.Threading.Dispatcher.UIThread.Post(async () =>
+            {
+                try { IlmenyxSettings.Update(settingsPath, s => s.PermissionsAsked = true); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+                appSettings.PermissionsAsked = true;
+                await new PermissionsOnboardingDialog(fixes, script => PrivilegedFix.RunAsync(script, stop.Token)).ShowDialog(this);
+            });
+        }
+        usage.Updated += OnUpdated;
     }
 
     private IReadOnlyList<SensorFix> CurrentFixes()
