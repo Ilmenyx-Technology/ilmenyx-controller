@@ -115,7 +115,7 @@ não executada. Metodologia e diferenças versionadas em docs/gamesim-completo.m
 | Microsoft.ICU.ICU4C.Runtime (ICU 72, app-local) | 72.1.0.3 | Unicode License (ICU) | `libicuuc/libicui18n/libicudata`; o texto da licença vai em `licenses/` e deve ser mantido |
 | Silk.NET.Vulkan e dependências | 2.23.0 | MIT | bindings; o loader `libvulkan.so.1` e o driver são do sistema, não embutidos |
 | MangoHud | 0.8.4 | MIT | bibliotecas 64 bits oficiais sem alteração em `components/mangohud/`; fonte: github.com/flightlessmango/MangoHud (v0.8.4) |
-| OpenRGB | 1.1 | GPL-2.0-only | AppImage oficial sem alteração em `components/openrgb/`, executado como programa separado (sem ligação); fonte: codeberg.org/OpenRGB/OpenRGB (release_1.1); oferta escrita em `components/openrgb/SOURCE.txt`; texto da licença em `licenses/components/` |
+| OpenRGB | 1.1 | GPL-2.0-only | AppImage oficial sem alteração em `components/openrgb/`, executado como programa separado (sem ligação); fonte correspondente exata (commit 8e16de2) publicada em cada release do Ilmenyx como `OpenRGB-1.1-source.tar.gz` (`scripts/fetch-gpl-sources.sh`), além de codeberg.org/OpenRGB/OpenRGB (release_1.1); oferta escrita de 3 anos em `components/openrgb/SOURCE.txt`; texto da licença em `licenses/components/` |
 
 Inventário, hashes e avisos coletados não equivalem a liberação jurídica de redistribuição.
 
