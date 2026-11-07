@@ -76,8 +76,10 @@ public sealed class CpuValidationViewModel(IHardwareInfoProvider hardware, ICpuB
     public void Cancel()
     {
         if (!CanCancel) return;
-        active!.Cancel();
+        // Status first: cancelling may run the worker's catch at once, and its final status must not be overwritten.
+        var cts = active!;
         SetStatus("Cancelando e aguardando encerramento dos workers…");
+        cts.Cancel();
         Notify(nameof(CanCancel));
     }
 
