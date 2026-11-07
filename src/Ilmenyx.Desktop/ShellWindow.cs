@@ -189,7 +189,17 @@ public sealed partial class ShellWindow : Window
         readout.Children.Add(cpuIcon); Grid.SetColumn(temp, 1); readout.Children.Add(temp); Grid.SetColumn(load, 2); readout.Children.Add(load);
         Grid.SetRow(state, 1); Grid.SetColumnSpan(state, 3); state.Margin = new Thickness(0, 4, 0, 0); readout.Children.Add(state);
         // The original shows the reason and a CORRIGIR button when CPU temperature/power are missing; here: reason + command (never run).
-        var help = new Button { Name = "SensorHelp", Content = "Liberar sensores da CPU", FontSize = 11, Foreground = Palette.AccentText, Background = Brushes.Transparent, Padding = new Thickness(0, 6, 0, 0), IsVisible = false };
+        // A visible call to action (a small text link was missed by the owner in a real test, 2026-11-07).
+        var help = new Button
+        {
+            Name = "SensorHelp", IsVisible = false, Background = Palette.WarnBg, Foreground = Palette.Warn, HorizontalAlignment = HorizontalAlignment.Stretch,
+            HorizontalContentAlignment = HorizontalAlignment.Left, Padding = new Thickness(10, 7), Margin = new Thickness(0, 8, 0, 0), CornerRadius = new CornerRadius(IlmenyxTheme.ControlRadius),
+            Content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = {
+                UiKit.Icon(Icons.Blocked, 15, Palette.Warn),
+                new StackPanel { Children = {
+                    new TextBlock { Text = "Liberar sensores da CPU", FontSize = 12, FontWeight = FontWeight.SemiBold, Foreground = Palette.Warn },
+                    new TextBlock { Text = "consumo/temperatura bloqueados", FontSize = 10.5, Foreground = Palette.Warn, Opacity = 0.8 } } } } },
+        };
         AutomationProperties.SetName(help, "Por que a temperatura ou o consumo da CPU não aparecem");
         help.Click += async (_, _) => await new SensorHelpDialog(CurrentFixes(), PrivilegedFix.Available ? script => PrivilegedFix.RunAsync(script, stop.Token) : null).ShowDialog(this);
         usage.Updated += () => help.IsVisible = CurrentFixes().Count > 0;

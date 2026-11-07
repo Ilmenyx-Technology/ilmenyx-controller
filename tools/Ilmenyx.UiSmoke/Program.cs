@@ -409,7 +409,19 @@ public sealed class UiSmokeApp : Application
         var chips = shell.GetVisualDescendants().OfType<Button>().Where(b => b.Content?.ToString() is "Temperatura" or "15 MIN").ToList();
         foreach (var chip in chips) chip.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await Until(() => Find<TextBlock>(shell, "OverviewValue").Text!.Contains("°C") || Find<TextBlock>(shell, "OverviewValue").Text == "—");
-        if (Find<Button>(shell, "DashMetricPower").IsEnabled) throw new InvalidOperationException("Unavailable power metric must stay disabled.");
+        // CPU power (RAPL): enabled only when this user can read the package counter (e.g. after 'Liberar sensores da CPU'); otherwise disabled.
+        bool raplReadable;
+        try { using (File.OpenRead("/sys/class/powercap/intel-rapl:0/energy_uj")) { } raplReadable = true; } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { raplReadable = false; }
+        if (raplReadable)
+        {
+            await Until(() => Find<Button>(shell, "DashMetricPower").IsEnabled);
+            Click(shell, "DashMetricPower");
+            await Until(() => Find<TextBlock>(shell, "OverviewValue").Text!.EndsWith(" W", StringComparison.Ordinal));
+            await Task.Delay(600); Capture(shell, "shell-overview-power.png");
+            Console.WriteLine("RAPL overview power: " + Find<TextBlock>(shell, "OverviewValue").Text);
+            chips.First(c => c.Content?.ToString() == "Temperatura").RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); // back to the temperature view
+        }
+        else if (Find<Button>(shell, "DashMetricPower").IsEnabled) throw new InvalidOperationException("Unavailable power metric must stay disabled.");
         Click(shell, "GoMemory"); await Until(() => shell.CurrentPage == "system");
         var expected = new (string Key, string Control)[] { ("dash", "OverviewChart"), ("system", "SysRefresh"), ("sensors", "RefreshSensors"), ("gpu", "GpuValidationNotice"), ("disks", "BtnDiskRefresh"),
             ("energy", "BtnEnergyRefresh"), ("net", "BtnNetTest"), ("procs", "ProcessRows"), ("launcher", "BtnScanGames"), ("fps", "BtnApiKey"), ("stress", "BtnStress"), ("optimize", "BtnOptimize"), ("apps", "BtnAppsInstall"), ("bottleneck", "BtnBnSession"), ("validate", "ValidateCpu"), ("makerports", "BtnMakerPortScan"), ("makerdrv", "BtnMakerDrvScan"), ("startup", "BtnStartupScan"), ("driver", "BtnDrvScan"), ("tools", "About") };

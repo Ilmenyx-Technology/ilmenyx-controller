@@ -561,3 +561,9 @@ três processos .NET reais gravando 300 atualizações cada no mesmo arquivo (90
 |---|---|---|---|
 | CFG-01 | Duas janelas do app (GUI) abertas ao mesmo tempo, clicando em páginas diferentes | Testado só com processos de console usando o mesmo código e com o smoke (uma instância); o display é compartilhado com outros agentes | Abrir duas instâncias, mudar tema numa e overlay/perfil na outra, conferir o JSON. Obs.: a cópia em memória de cada página só é atualizada quando ela mesma grava (ex.: perfis de jogo editados na outra instância aparecem ao reabrir a página) |
 | CFG-02 | `settings.json` em NFS/sistemas sem `flock` ou diretório só leitura | Sem esse ambiente | XDG_CONFIG_HOME num NFS; a trava cai no fallback (sem trava entre processos), a gravação continua atômica |
+
+## Correção de sensores com um clique — validação real (2026-11-07)
+- RAPL no Dell (Intel): liberado pelo dono com a senha na janela do polkit; regra udev criada; consumo em watts na Visão geral
+  (`docs/evidencias/sensores-um-clique-2026-11-07/`). Fecha o caminho real do botão para RAPL Intel.
+- O link era discreto demais (o dono não achou): agora é um botão em destaque. NÃO TESTADO: Desfazer, persistência após reboot,
+  AMD (RAPL/k10temp) e o módulo de temperatura.
