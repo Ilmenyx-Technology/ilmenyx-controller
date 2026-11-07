@@ -16,7 +16,7 @@ não equivalem a conformidade legal. Publicação permanece sem autorização ne
 | [ ] Segurança, benchmarks, cancelamento e vulnerabilidades | Testes/limites e consulta NuGet nesta sessão | IMPLEMENTADO parcialmente; full NÃO TESTADO | Definir canal privado e validar casos Sem_teste.md sem stress automático |
 | [ ] Nome/metadata/pacotes/ícone/app ID | Identidade ativa Ilmenyx; .desktop/AppStream/Flatpak inexistentes | PENDENTE DE REVISÃO | Definir IDs sem domínio fictício, ícone licenciado e empacotamento |
 | [ ] Linux real/distros/hardware/CI/Windows | CachyOS, CLI/UI testáveis; Sem_teste.md | NÃO TESTADO para matriz restante | Provisionar VMs/hardware; CI não criado nesta tarefa |
-| [ ] Manual de Marca e assets | BRAND-BRIEF.md e integração TODO | PENDENTE DE REVISÃO | Manual ainda não criado/aprovado; nenhuma identidade final |
+| [x] Manual de Marca e assets | `docs/branding/kit/` (manual PDF e assets), 2026-11-07 | APROVADO pelo mantenedor (ícone e cores) | — |
 | [ ] Checksums/assinatura/SBOM rastreável | Sem artefato público | PENDENTE DE REVISÃO | Infra/credenciais apropriadas; não inventar assinatura/checksum |
 | [ ] Org/push/tags/releases | Principal sem remote, sem divulgação | BLOQUEADO nesta sessão | Aprovação humana explícita antes de qualquer operação remota |
 
