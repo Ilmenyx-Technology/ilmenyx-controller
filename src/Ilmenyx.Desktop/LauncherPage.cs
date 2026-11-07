@@ -6,6 +6,7 @@ using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Layout;
+using Avalonia.Platform.Storage;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Ilmenyx.Core;
@@ -97,7 +98,7 @@ public sealed class LauncherPage : Grid
         confirm.Click += async (_, _) =>
         {
             string path = addPath.Text?.Trim() ?? "";
-            if (!LinuxGameLibrary.IsRunnableFile(path)) { addStatus.Text = "Informe o caminho completo de um arquivo regular executável (sem links, fora de /proc, /sys e /dev)."; return; }
+            if (!LinuxGameLibrary.IsRunnableFile(path) && !LinuxGameLibrary.IsWindowsExe(path)) { addStatus.Text = "Escolha um jogo: um executável do Linux ou um .exe de Windows (que roda com Proton). Use PROCURAR… para abrir o explorador de arquivos."; return; }
             if (!settings.CustomGames.Any(c => c.Exe == path))
             {
                 void add(IlmenyxSettings s) { if (!s.CustomGames.Any(c => c.Exe == path)) s.CustomGames.Add(new() { Name = Path.GetFileNameWithoutExtension(path), Exe = path }); }
@@ -105,7 +106,9 @@ public sealed class LauncherPage : Grid
             }
             addStatus.Text = "Adicionado."; await ScanAsync(); Select(games.FirstOrDefault(g => g.Store == "Manual" && g.Id == path));
         };
-        addBox.Children.Add(addPath); addBox.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Children = { confirm } }); addBox.Children.Add(addStatus);
+        var browseAdd = new Button { Name = "BtnAddExeBrowse", Content = "PROCURAR…", FontSize = 12, Padding = new Thickness(14, 6) };
+        browseAdd.Click += async (_, _) => { if (await PickExecutableAsync() is { } picked) addPath.Text = picked; };
+        addBox.Children.Add(addPath); addBox.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { browseAdd, confirm } }); addBox.Children.Add(addStatus);
 
         // Page header: title, library summary (live text) and the library actions.
         var header = UiKit.PageHeader("Jogos", null, new WrapPanel { ItemSpacing = 8, LineSpacing = 6, HorizontalAlignment = HorizontalAlignment.Right, Children = { scan, add } });
@@ -173,6 +176,8 @@ public sealed class LauncherPage : Grid
         chkGameMode.IsEnabled = hasGm; chkMango.IsEnabled = hasMango;
         if (!hasGm) ToolTip.SetTip(chkGameMode, "gamemoderun não está instalado."); if (!hasMango) ToolTip.SetTip(chkMango, "mangohud não está instalado.");
         var setExe = new Button { Name = "BtnSetExe", Content = "DEFINIR EXECUTÁVEL", FontSize = 12, Padding = new Thickness(14, 7) }; setExe.Click += (_, _) => SetExe();
+        var browseExe = new Button { Name = "BtnSetExeBrowse", Content = "PROCURAR…", FontSize = 12, Padding = new Thickness(14, 7) };
+        browseExe.Click += async (_, _) => { if (await PickExecutableAsync(current?.InstallDir) is { } picked) { exePath.Text = picked; SetExe(); } };
         var recommended = new Button { Name = "BtnRecommended", Content = "PERFIL PARA MAIS FPS", FontSize = 12, Padding = new Thickness(14, 7) }; recommended.Click += (_, _) => Recommended();
         exeText.Margin = new Thickness(0, 6, 0, 0);
         var perf = UiKit.Card(new StackPanel
@@ -180,7 +185,7 @@ public sealed class LauncherPage : Grid
             Children =
             {
                 CardTitle(Icons.Oc, "DESEMPENHO"), chkPlan, chkGpu, chkGameMode, chkMango, exeText, new Border { Height = 6 }, exePath, new Border { Height = 8 },
-                new WrapPanel { ItemSpacing = 8, LineSpacing = 6, Children = { setExe, recommended } }, protonBox,
+                new WrapPanel { ItemSpacing = 8, LineSpacing = 6, Children = { browseExe, setExe, recommended } }, protonBox,
                 new TextBlock { Text = "O perfil de energia vale só durante o jogo e volta ao anterior. Prioridade de processo elevada exige privilégios no Linux; o GameMode cuida disso quando instalado. O executável é descoberto sozinho; se errar, informe o caminho certo.", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0) }
             }
         });
@@ -381,11 +386,27 @@ public sealed class LauncherPage : Grid
         status.Text = "Perfil para mais FPS ligado: Alto desempenho" + (multiGpu ? ", GPU dedicada" : "") + (chkGameMode.IsEnabled ? ", GameMode" : "") + ".";
     }
 
+    /// <summary>System file chooser for the game's executable (Linux program, AppImage, script or Windows .exe). Null when cancelled.</summary>
+    private async Task<string?> PickExecutableAsync(string? startFolder = null)
+    {
+        if (owner() is not { } window) return null;
+        var storage = window.StorageProvider;
+        Avalonia.Platform.Storage.IStorageFolder? start = null;
+        string from = startFolder is { Length: > 0 } f && Directory.Exists(f) ? f : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        try { start = await storage.TryGetFolderFromPathAsync(new Uri(from)); } catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException) { }
+        var files = await storage.OpenFilePickerAsync(new Avalonia.Platform.Storage.FilePickerOpenOptions
+        {
+            Title = "Escolha o executável do jogo", AllowMultiple = false, SuggestedStartLocation = start,
+            FileTypeFilter = [new("Jogos (Linux e Windows)") { Patterns = ["*.exe", "*.EXE", "*.x86_64", "*.x86", "*.sh", "*.AppImage", "*"] }, new("Todos os arquivos") { Patterns = ["*"] }],
+        });
+        return files.Count > 0 ? files[0].TryGetLocalPath() : null;
+    }
+
     private void SetExe()
     {
         if (current is null || profile is null) return;
         string path = (exePath.Text ?? "").Trim();
-        if (!LinuxGameLibrary.IsRunnableFile(path)) { status.Text = "Caminho inválido: informe um arquivo regular executável (sem links, fora de /proc, /sys e /dev)."; return; }
+        if (!LinuxGameLibrary.IsRunnableFile(path) && !LinuxGameLibrary.IsWindowsExe(path)) { status.Text = "Caminho inválido: escolha um executável do Linux ou um .exe de Windows (PROCURAR… abre o explorador de arquivos)."; return; }
         profile.ExePath = path; SaveProfile(current, profile); ShowExe(current, profile); status.Text = "Executável definido.";
     }
 
@@ -421,7 +442,7 @@ public sealed class LauncherPage : Grid
     private async Task ApplySteamAsync(Button button)
     {
         if (current is not { IsSteam: true } g || profile is null || owner() is not { } window) return;
-        string options = GameLaunchOptions.BuildSteamOptions(profile, gpuVendor, File.Exists(MangoHudLogReader.ConfigPath()) ? MangoHudLogReader.ConfigPath() : null);
+        string options = GameLaunchOptions.BuildSteamOptions(profile, gpuVendor, profile.MangoHud && OperatingSystem.IsLinux() ? MangoHudLogReader.EnsureConfig(settings) : File.Exists(MangoHudLogReader.ConfigPath()) ? MangoHudLogReader.ConfigPath() : null);
         button.IsEnabled = false;
         try
         {
@@ -444,6 +465,7 @@ public sealed class LauncherPage : Grid
         if (launching is not null) { launching.Cancel(); return; }
         if (current is not { } g || profile is not { } p) return;
         launching = CancellationTokenSource.CreateLinkedTokenSource(lifetime); play.Content = "PARAR ACOMPANHAMENTO";
+        if (p.MangoHud && OperatingSystem.IsLinux()) MangoHudLogReader.EnsureConfig(settings); // overlay + FPS log ready without visiting the Overlay page
         try
         {
             var session = await launch(g, p, gpuVendor, t => Avalonia.Threading.Dispatcher.UIThread.Post(() => status.Text = t),
