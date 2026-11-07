@@ -280,3 +280,30 @@ public sealed class NvidiaSmiDriverDriftTests
         Assert.Null(Ilmenyx.Platform.Linux.LinuxGpuCollector.RefusedField("NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver."));
     }
 }
+
+public sealed class NvidiaRuntimePowerTests : IDisposable
+{
+    private readonly string root = Path.Combine(Path.GetTempPath(), "ilmenyx-rtd3-" + Guid.NewGuid().ToString("N"));
+    public void Dispose() { if (Directory.Exists(root)) Directory.Delete(root, true); }
+
+    private void Gpu(string addr, string vendor, string status)
+    {
+        string d = Path.Combine(root, "bus/pci/devices", addr); Directory.CreateDirectory(Path.Combine(d, "power"));
+        File.WriteAllText(Path.Combine(d, "vendor"), vendor + "\n"); File.WriteAllText(Path.Combine(d, "class"), "0x030200\n");
+        File.WriteAllText(Path.Combine(d, "power/runtime_status"), status + "\n");
+    }
+
+    [Fact]
+    public async Task SuspendedNvidiaGpuIsNotWokenForSensors()
+    {
+        Gpu("0000:01:00.0", "0x10de", "suspended"); Gpu("0000:00:02.0", "0x8086", "active");
+        Assert.False(Ilmenyx.Platform.Linux.LinuxGpuCollector.AnyNvidiaAwake(root));
+        var collector = new Ilmenyx.Platform.Linux.LinuxGpuCollector(root, Path.Combine(root, "proc"), []);
+        Assert.True(collector.IsSleeping("0000:01:00.0"));
+        var raw = new GpuRaw("NVIDIA GeForce RTX 3060 Laptop GPU", "10de", "2560", "", "", "", "0000:01:00.0", "nvidia", "580", null, 0, null, false, null, null, null, null, null, null, null, null, null, null, null, null, null, [], "");
+        var t = await collector.TelemetryAsync(raw);
+        Assert.True(t.Sleeping); Assert.Null(t.TempC);
+        File.WriteAllText(Path.Combine(root, "bus/pci/devices/0000:01:00.0/power/runtime_status"), "active\n");
+        Assert.True(Ilmenyx.Platform.Linux.LinuxGpuCollector.AnyNvidiaAwake(root)); // the 940MX here never suspends (RTD3 unsupported): query as before
+    }
+}

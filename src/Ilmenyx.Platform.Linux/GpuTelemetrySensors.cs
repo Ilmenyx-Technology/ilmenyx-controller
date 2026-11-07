@@ -37,7 +37,8 @@ public sealed class GpuTelemetrySensors(Func<CancellationToken, Task<IReadOnlyLi
                 string device = "gpu:" + raw.PciAddress, source = raw.VendorId == "10de" && raw.Driver != "nouveau" ? "nvidia-smi" : "sysfs (" + (raw.Driver.Length > 0 ? raw.Driver : "drm") + ")";
                 void Add(string channel, string label, double? value, string unit)
                 {
-                    var reading = value is double v ? Reading<double?>.Available(v, unit, source) : Reading<double?>.Missing(unit, source, MissingReason(raw));
+                    var reading = value is double v ? Reading<double?>.Available(v, unit, source)
+                        : Reading<double?>.Missing(unit, source, t.Sleeping ? "GPU dedicada em repouso (economia de energia): o Ilmenyx não a acorda só para ler sensores; os valores voltam quando um jogo ou app usar a GPU." : MissingReason(raw));
                     list.Add(new(device, raw.Name, channel, label, now, "driver", reading));
                 }
                 Add("load", "Uso da GPU", t.LoadPercent, "%"); Add("temp1", "Temperatura do núcleo", t.TempC, "°C"); Add("temp2", "Temperatura hotspot", t.TempHotspotC, "°C"); Add("temp3", "Temperatura da memória", t.TempMemC, "°C");

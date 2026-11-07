@@ -58,7 +58,26 @@ public sealed class LinuxGpuCollector(string sysRoot = "/sys", string procRoot =
     /// (seen on a GeForce 940MX, 2026-11-07). Refused fields are now dropped one by one (bounded) and the working list is cached.
     /// </summary>
     public static async Task<IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>>?> QuerySmiAsync(CancellationToken ct = default)
-        => await QuerySmiAsync((args, c) => BoundedProcess.RunAsync("nvidia-smi", args, TimeSpan.FromSeconds(3), 65536, c), ct);
+        => AnyNvidiaAwake() ? await QuerySmiAsync((args, c) => BoundedProcess.RunAsync("nvidia-smi", args, TimeSpan.FromSeconds(3), 65536, c), ct) : null;
+
+    /// <summary>
+    /// True when the PCI runtime power state says the GPU is powered down (RTD3 on Turing+ laptops). Reading sysfs does not wake it;
+    /// running nvidia-smi does, so a 2 s poll kept the dedicated GPU of a hybrid laptop always on (battery, heat).
+    /// </summary>
+    public bool IsSleeping(string pciAddress) => SysfsText.Read(Path.Combine(Sys("bus/pci/devices"), pciAddress, "power/runtime_status"), 32) == "suspended";
+
+    /// <summary>Any NVIDIA PCI GPU that is not runtime-suspended (or no power information at all, so the query keeps working as before).</summary>
+    public static bool AnyNvidiaAwake(string sysRoot = "/sys")
+    {
+        string pci = Path.Combine(sysRoot, "bus/pci/devices");
+        try
+        {
+            if (!Directory.Exists(pci)) return true;
+            var nvidia = Directory.EnumerateDirectories(pci).Take(512).Where(d => SysfsText.Read(Path.Combine(d, "vendor"), 8) == "0x10de" && SysfsText.Read(Path.Combine(d, "class"), 16).StartsWith("0x03", StringComparison.Ordinal)).ToList();
+            return nvidia.Count == 0 || nvidia.Any(d => SysfsText.Read(Path.Combine(d, "power/runtime_status"), 32) != "suspended");
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return true; }
+    }
 
     public static async Task<IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>>?> QuerySmiAsync(
         Func<IReadOnlyList<string>, CancellationToken, Task<(int Code, string Output)>> run, CancellationToken ct = default)
@@ -227,6 +246,8 @@ public sealed class LinuxGpuCollector(string sysRoot = "/sys", string procRoot =
         string dir = Path.Combine(Sys("bus/pci/devices"), raw.PciAddress), hw = Hwmon(dir), card = DrmCard(raw.PciAddress);
         if (raw.VendorId == "10de" && raw.Driver != "nouveau")
         {
+            // Do not wake a powered-down GPU just to read its sensors.
+            if (IsSleeping(raw.PciAddress)) return new(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, Sleeping: true);
             var smi = await QuerySmiAsync(ct);
             string key = raw.PciAddress[(raw.PciAddress.IndexOf(':') + 1)..].ToLowerInvariant();
             if (smi is not null && smi.TryGetValue(key, out var s))
