@@ -1,0 +1,9 @@
+{
+  "Status": 0,
+  "Adapter": "Intel(R) HD Graphics 620 (KBL GT2)",
+  "Frames": 132,
+  "Seconds": 8.2224611,
+  "AverageFps": 16.053587653944632,
+  "Reason": null
+}
+exit=0

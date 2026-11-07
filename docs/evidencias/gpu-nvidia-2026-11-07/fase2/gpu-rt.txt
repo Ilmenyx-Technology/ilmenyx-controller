@@ -1,0 +1,2 @@
+Ray tracing indisponível: Intel(R) HD Graphics 620 (KBL GT2) não tem ray tracing por hardware no Vulkan (faltam VK_KHR_acceleration_structure e VK_KHR_ray_query). Precisa de AMD Radeon RX 6000 (RDNA2) ou mais nova, NVIDIA RTX 20 ou mais nova, ou Intel Arc, com driver Vulkan atualizado.
+exit=1

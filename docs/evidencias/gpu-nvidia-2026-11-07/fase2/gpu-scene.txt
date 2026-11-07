@@ -1,0 +1,13 @@
+{
+  "Status": 0,
+  "Adapter": "Intel(R) HD Graphics 620 (KBL GT2)",
+  "Width": 1920,
+  "Height": 1080,
+  "Frames": 90,
+  "Seconds": 8.2774083,
+  "AverageFps": 10.872968535332491,
+  "Low1Fps": 8.454671967182346,
+  "Score": 108.72968535332491,
+  "Reason": null
+}
+exit=0
