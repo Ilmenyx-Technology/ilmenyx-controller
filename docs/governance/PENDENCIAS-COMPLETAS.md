@@ -1,0 +1,61 @@
+# Ilmenyx — tudo o que está pendente (atualizado em 2026-11-07)
+
+Lista para continuar em qualquer máquina. Repositório: https://github.com/Bismuth-Technology/ilmenyx (privado).
+Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes que faltam por área: `Sem_teste.md` e `docs/CONFIABILIDADE.md`.
+
+## 0. Como retomar numa máquina nova
+1. `git clone https://github.com/Bismuth-Technology/ilmenyx.git` e `cd ilmenyx`.
+2. SDK local (sem instalar nada no sistema): `bash scripts/get-local-sdk.sh` e `source scripts/env-local-sdk.sh`; depois `dotnet restore Ilmenyx.slnx`.
+3. Build e testes: `dotnet build Ilmenyx.slnx -c Release` e `dotnet test Ilmenyx.slnx -c Release --no-build`.
+4. **Assinatura GPG:** a subchave de assinatura só está no Dell de teste. Numa máquina nova, importe a chave principal do seu
+   pendrive pessoal (`gpg --import chave-privada-PRINCIPAL.asc`) e crie uma subchave nova (`gpg --quick-add-key 3D9716572A398DCDD0CFF0EE733D2EC78436DCE8 ed25519 sign 3y`),
+   depois apague a chave principal dessa máquina de novo (veja `docs/assinatura-gpg.md`). Atualize a chave pública no repositório.
+
+## 1. Código esperando aprovação/merge (você decide)
+- [ ] **PR #6** — nome civil completo como titular (`chore/titular-nome`). Pronto, testes ok.
+- [ ] **Branch `feat/proton-umu`** (ainda sem PR; inclui o PR #6): Proton fora da Steam com o umu-launcher embutido, botão PROCURAR…
+  para escolher o executável, configuração do MangoHud automática. Testes 1061, interface 56/56. Abrir PR quando o teste do jogo fechar.
+- [ ] **Branch `feat/tutorial`** (em construção): tour de boas-vindas opcional, central de Ajuda e botão "?" em cada página, já
+  preparado para tradução.
+
+## 2. Testes que precisam de você (hardware/jogo real)
+- [ ] **Congelamento com o MKX** (2026-11-07): o sistema travou no 2º carregamento da autoconfiguração do jogo, com MangoHud e janela
+  sem bordas. O log não mostra erro da NVIDIA, falta de memória nem temperatura. Próximo passo: repetir com um gravador que salva
+  CPU/GPU/RAM/temperaturas a cada segundo no SSD; primeiro sem MangoHud, depois com. Se travar de novo, a última linha mostra a causa.
+  Hipóteses: GPU (PRIME) sob carga, temperatura (CPU chegou a 89–90 °C antes), leitura pesada do pendrive (exFAT).
+- [ ] **MKX pela interface do Ilmenyx até o fim**: overlay (já apareceu), FPS medido salvo ("Medido neste PC").
+- [ ] **MKX pela Steam** como "jogo não Steam" com Proton (Steam já instalada; falta login e adicionar o jogo).
+- [ ] **SuperTuxKart** (instalado) pelo Ilmenyx: caminho de jogo nativo + MangoHud + FPS medido.
+- [ ] **Heroic e Lutris** (via Flatpak, sem senha): detectar e abrir um jogo.
+- [ ] Aba **Driver NVIDIA**: instalação/reparo de verdade pelo app (só a detecção e a simulação foram testadas).
+- [ ] **Tela de permissões na 1ª execução** com a senha real (precisa de uma máquina com sensores bloqueados, ou "Desfazer" antes).
+- [ ] **Desfazer** da liberação de sensores; persistência após reiniciar (a regra udev já existe).
+- [ ] **Outras distros**: Arch, Fedora, Debian, openSUSE (AppImage, Flatpak, Proton/umu com o python3 de cada uma); sistema sem python3.
+- [ ] **Outros hardwares**: GPU AMD dedicada, NVIDIA RTX/desktop, Intel Arc.
+- [ ] Wayland nativo em GNOME/KDE reais (só testado no Muffin aninhado).
+
+## 3. Funcionalidades combinadas, ainda não feitas
+- [ ] Ler os **"jogos não Steam"** da Steam (arquivo `shortcuts.vdf`) — fazer com o arquivo real depois que o MKX for adicionado lá.
+- [ ] **Overlay e FPS medido nos jogos de loja** (Steam/Heroic/Lutris abrem o jogo sozinhos, sem as opções do Ilmenyx).
+- [ ] **Instalar jogos de Windows a partir do instalador** (`setup.exe`) com Proton, de forma genérica (GOG offline, mídia física,
+  itch.io...). Sem recursos específicos para repacks.
+- [ ] **Tutorial/Ajuda** (em construção, ver item 1).
+- [ ] **Idiomas: inglês e espanhol** (extrair os textos da interface para arquivos por idioma).
+- [ ] **Passe de otimização antes do lançamento público**: medir quanto o próprio Ilmenyx usa de CPU/RAM/GPU/disco/energia parado,
+  monitorando e em cada página; achar e reduzir gargalos.
+- [ ] Próxima release (v0.31): incluir o umu-launcher e anexar os fontes GPL dele e do python-xlib (`scripts/fetch-gpl-sources.sh`
+  já faz) + assinar tudo (`scripts/sign-release.sh`).
+
+## 4. Decisões e tarefas de governança (você)
+- [ ] **Busca de marca manual** em 3 bases que bloquearam robôs: WIPO Global Brand Database, TMview, EUIPO (termos ilmenyx, ilmen*,
+  bismuth; classes 9, 42, 41). Passo a passo: `docs/legal/BUSCA-MARCA-2026-11-07.md`, seção 4.
+- [ ] **Depositar a marca ILMENYX no INPI** (recomendado: pessoa física, classes 9 e 42, R$ 880 no total). "Bismuth Technology":
+  esperar a empresa ou escolher um nome mais distintivo.
+- [ ] **E-mail da Bismuth** com encaminhamento para o seu (grátis: Gmail próprio com encaminhamento; ou domínio + Cloudflare Email
+  Routing/ImprovMX). Depois trocar o contato em SECURITY.md e nas ofertas escritas das licenças GPL.
+- [ ] **Doações**: configurar GitHub Sponsors na organização e/ou Pix (decisão 10-A já está na licença).
+- [ ] Confirmar se as **21 páginas "layout segue o original"** copiaram algo do RESET EXPLODE (se não, viram só PolyForm). Opcional.
+- [ ] Ao criar a empresa: contrato de cessão dos direitos para a pessoa jurídica + revisão curta da permissão adicional por advogado.
+- [ ] `reuse lint` oficial (a ferramenta não estava disponível; um script local cobre por ora) e SBOM.
+- [ ] Enviar o relato do travamento do Wayland ao Avalonia (rascunho em `docs/upstream/avalonia-wayland-crash.md`).
+- [ ] **Tornar o repositório e a release públicos** quando eu disser que a validação está suficiente.
