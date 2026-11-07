@@ -192,3 +192,27 @@ public sealed class GpuTests : IDisposable
         Assert.Null(GpuSpecDb.Find("8086", "9a49", "Iris Xe")); Assert.Equal("ASUS", GpuSpecDb.SubvendorName("1043")); Assert.Contains("Desconhecido", GpuSpecDb.SubvendorName("ffff"));
     }
 }
+
+public sealed class GameCatalogHardwareTests
+{
+    [Theory]
+    [InlineData("GM108M [GeForce 940MX]", 4.5)]        // nouveau / pci.ids name on a Dell laptop
+    [InlineData("NVIDIA GeForce 940MX", 4.5)]          // nvidia-smi name
+    [InlineData("HD Graphics 620", 2.5)]
+    [InlineData("Mendocino", 3)]                      // pci.ids name of the Radeon 610M
+    [InlineData("AMD Radeon 610M (RADV RAPHAEL_MENDOCINO)", 3)]
+    [InlineData("NVIDIA GeForce RTX 3060 Laptop GPU", 50)]
+    [InlineData("NVIDIA GeForce RTX 3060", 60)]
+    public void CommonLaptopAndIntegratedGpusAreInTheTable(string name, double index) => Assert.Equal(index, Ilmenyx.Core.GameCatalog.GpuPerf(name));
+
+    [Theory]
+    [InlineData("Intel(R) Core(TM) i7-7500U CPU @ 2.70GHz", 36)]
+    [InlineData("AMD Ryzen 5 7520U with Radeon Graphics", 34)]
+    [InlineData("AMD Ryzen 5 5600H with Radeon Graphics", 62)]
+    [InlineData("AMD Ryzen 7 7700X 8-Core Processor", 100)]
+    public void LaptopCpusAreInTheTable(string name, double index) =>
+        Assert.Equal(index, Ilmenyx.Core.GameCatalog.CpuPerf(Ilmenyx.Core.GameCatalog.ShortCpuName(name)) ?? Ilmenyx.Core.GameCatalog.CpuPerf(name));
+
+    [Fact]
+    public void UnknownHardwareHasNoIndex() => Assert.Null(Ilmenyx.Core.GameCatalog.GpuPerf("Matrox G200eR2"));
+}

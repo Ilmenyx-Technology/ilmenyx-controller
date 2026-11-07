@@ -30,6 +30,8 @@ public sealed class GamesFpsPage : StackPanel
     private readonly Button query = UiKit.Primary("BtnFpsQuery", "CONSULTAR API", 16, 8);
     private string res = "1920x1080", preset = "Alto", upscaling = "Native";
     private double gpuIdx = 50, cpuIdx = 80;
+    // Unknown hardware used to fall back to fixed indexes (GPU 50 ≈ RTX 3050, CPU 80) and showed invented FPS; now it says so.
+    private string? unknownHardware;
     public IReadOnlyList<GameFpsRow> Rows => rows;
     public double GpuIndex => gpuIdx; public double CpuIndex => cpuIdx;
 
@@ -69,7 +71,12 @@ public sealed class GamesFpsPage : StackPanel
     private void Init()
     {
         var (cpu, gpu) = hardware();
-        gpuIdx = GameCatalog.GpuPerf(gpu) ?? GameCatalog.GpuPerf(GameCatalog.ShortGpuName(gpu)) ?? 50; cpuIdx = GameCatalog.CpuPerf(GameCatalog.ShortCpuName(cpu)) ?? GameCatalog.CpuPerf(cpu) ?? 80;
+        double? g = GameCatalog.GpuPerf(gpu) ?? GameCatalog.GpuPerf(GameCatalog.ShortGpuName(gpu)), c = GameCatalog.CpuPerf(GameCatalog.ShortCpuName(cpu)) ?? GameCatalog.CpuPerf(cpu);
+        gpuIdx = g ?? 50; cpuIdx = c ?? 80;
+        var missing = new List<string>();
+        if (g is null) missing.Add("a GPU " + (gpu.Length > 0 ? GameCatalog.ShortGpuName(gpu) : "(não identificada)"));
+        if (c is null) missing.Add("a CPU " + (cpu.Length > 0 ? GameCatalog.ShortCpuName(cpu) : "(não identificada)"));
+        unknownHardware = missing.Count == 0 ? null : string.Join(" e ", missing);
         sub.Text = $"FPS esperado no seu PC · {(gpu.Length > 0 ? GameCatalog.ShortGpuName(gpu) : "GPU desconhecida")} · {(cpu.Length > 0 ? GameCatalog.ShortCpuName(cpu) : "CPU desconhecida")}";
         RefreshLocal();
     }
@@ -77,7 +84,15 @@ public sealed class GamesFpsPage : StackPanel
     public void RefreshLocal()
     {
         GameFpsRow.RefreshLocal(rows, gpuIdx, cpuIdx, res, preset, upscaling);
-        if (api.Configured)
+        if (unknownHardware is { } who)
+            foreach (var row in rows) row.Set(0, 0, "SEM ESTIMATIVA", $"{who} não está na tabela de referência do Ilmenyx");
+        if (unknownHardware is { } missingNow)
+        {
+            sourceTitle.Text = "Fonte: sem estimativa local para este PC";
+            sourceText.Text = $"Não há referência de desempenho para {missingNow}, então o Ilmenyx não calcula um FPS (seria inventado). " + (api.Configured ? "CONSULTAR API busca FPS medido em sessões reais." : "Para FPS medido em jogo, use uma chave da API HowManyFPS (info@howmanyfps.com).");
+            saveKey.Content = api.Configured ? "ATUALIZAR CHAVE" : "SALVAR CHAVE"; query.IsEnabled = api.Configured;
+        }
+        else if (api.Configured)
         {
             sourceTitle.Text = "Fonte: estimativa local + HowManyFPS sob demanda"; sourceText.Text = "A estimativa local usa o desempenho relativo da sua GPU e CPU. Com a chave, CONSULTAR API busca FPS médio e 1% low medidos em sessões reais (respostas ficam 7 dias em cache); a API usa as configurações gráficas dela.";
             saveKey.Content = "ATUALIZAR CHAVE"; query.IsEnabled = true;

@@ -183,8 +183,9 @@ public sealed class LinuxGpuCollector(string sysRoot = "/sys", string procRoot =
                 maxCore, maxMem, maxVideo, plim, pdef, pmin, pmax, cap, cuda, Apis(vendor), drv.Length > 0 ? LinuxDriverInventory.Flags(taint) : "");
             list.Add((raw, GpuCardBuilder.Build(raw)));
         }
-        // Dedicated first (more VRAM), like the original ordering.
-        return list.OrderByDescending(x => x.Item1.VramBytes).ThenBy(x => x.Item1.PciAddress, StringComparer.Ordinal).ToList();
+        // Dedicated first, then more VRAM. A dedicated GPU on nouveau reports no VRAM; without this the integrated GPU of a hybrid
+        // laptop came first and pages (FPS estimate, overview) used the wrong GPU (seen on a Dell i7-7500U + GeForce 940MX, 2026-11-07).
+        return list.OrderBy(x => x.Item1.Integrated ? 1 : 0).ThenByDescending(x => x.Item1.VramBytes).ThenBy(x => x.Item1.PciAddress, StringComparer.Ordinal).ToList();
     }
 
     /// <summary>Live readings: sysfs for AMD/Intel, the same nvidia-smi query for NVIDIA. Absent sources stay null.</summary>
