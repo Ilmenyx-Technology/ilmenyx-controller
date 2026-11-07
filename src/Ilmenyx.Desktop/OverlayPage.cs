@@ -119,7 +119,9 @@ public sealed class OverlayPage : StackPanel
     private void Changed()
     {
         settings.OverlayItems = OverlayMetrics.All.Select(m => m.Key).Where(show.Contains).ToList();
-        try { settings.Save(settingsPath); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { status.Text = "Configuração não salva: " + e.Message; }
+        var (items, corner, scale) = (settings.OverlayItems, settings.OverlayCorner, settings.OverlayScale);
+        try { IlmenyxSettings.Update(settingsPath, s => { s.OverlayItems = items.ToList(); s.OverlayCorner = corner; s.OverlayScale = scale; }); }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { status.Text = "Configuração não salva: " + e.Message; }
         _ = TickAsync();
     }
 

@@ -545,3 +545,19 @@ quebrado (kernel 7.0 com cabeçalhos incompletos, `iF`/`iU`) só com fixtures re
 | NVDRV-03 | Kepler (470) e Turing+ (595 open) | Só há Maxwell aqui | Placas correspondentes; conferir ramo/pacotes e simulação |
 | NVDRV-04 | Debian, Fedora/Nobara (RPM Fusion akmod, nomes -580xx/-470xx), Arch e derivadas, openSUSE | Sem VM/dispositivo dessas distros; scripts só documentados | VM com GPU passthrough ou máquina real; revisar o script, rodar, conferir módulo |
 | NVDRV-05 | Página Drivers: versão mais recente do ramo pela listagem `download.nvidia.com/XFree86/Linux-x86_64/` | Rede não usada pelo agente; parser testado com fixture | Clicar "VERIFICAR VERSÃO MAIS RECENTE" numa sessão com rede e conferir 580.x para a 940MX |
+
+## Gravação atômica do settings.json — 2026-11-07
+
+Corrigido: cada página (Shell: tema e avisos USB; Jogos: perfis, jogos manuais e sessões FPS; FPS: chave da API; Overlay; Otimizar:
+backups; OC e Benchmark: histórico) gravava a SUA cópia inteira de `~/.config/ilmenyx/settings.json`, apagando o que outra página
+salvou depois. Agora todas usam `IlmenyxSettings.Update(path, mudança)`: trava no processo por caminho + `flock` em
+`settings.json.lock` (liberado pelo kernel se o processo morrer; espera no máximo 2 s e segue sem a trava), relê o arquivo, aplica só o
+campo alterado, grava temp + rename em 0600. Arquivo corrompido é guardado em `settings.json.corrupt` antes de ser substituído; arquivo
+existente mas ilegível (permissão) NÃO é sobrescrito com padrões. Testado: `SettingsAtomicTests` (cópias antigas, 8 threads × 40,
+corrompido/ausente/ilegível, lock deixado por instância morta, lock real de outro processo via `flock(1)` com timeout, modo 0600) e
+três processos .NET reais gravando 300 atualizações cada no mesmo arquivo (900/900 preservadas, 3 repetições, modo 600).
+
+| ID | Item | Por que não foi testado | Condição para testar |
+|---|---|---|---|
+| CFG-01 | Duas janelas do app (GUI) abertas ao mesmo tempo, clicando em páginas diferentes | Testado só com processos de console usando o mesmo código e com o smoke (uma instância); o display é compartilhado com outros agentes | Abrir duas instâncias, mudar tema numa e overlay/perfil na outra, conferir o JSON. Obs.: a cópia em memória de cada página só é atualizada quando ela mesma grava (ex.: perfis de jogo editados na outra instância aparecem ao reabrir a página) |
+| CFG-02 | `settings.json` em NFS/sistemas sem `flock` ou diretório só leitura | Sem esse ambiente | XDG_CONFIG_HOME num NFS; a trava cai no fallback (sem trava entre processos), a gravação continua atômica |
