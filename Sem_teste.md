@@ -522,3 +522,13 @@ a página real mostra confiança muito baixa (CS2 8–22 FPS) e os alertas "Driv
 - NÃO TESTADO: abrir gerenciador real por clique e sensores reais na GeForce 940MX/nouveau; fixtures não certificam hardware. Retestar na sessão gráfica do mantenedor com o driver ainda ligado a nouveau, sem instalar/trocar driver como parte do teste. Temperatura ausente deve continuar indisponível; tensão esperada somente se hwmon ainda informar 900 mV.
 - Aceite humano PENDENTE DE REVISÃO; nenhuma instalação, carga ou mudança de driver realizada.
 - NÃO TESTADO: smoke/capturas X11 e Wayland deste incremento. O harness compilou com 0 avisos/erros, mas a inicialização X11 falhou com `XOpenDisplay failed` (saída 134) no sandbox antes dos casos. Repetir o smoke em sessão gráfica acessível, incluindo o novo caso `nouveau driver recommendation` com launcher falso; não clicar no gerenciador real em testes automáticos.
+
+## NVIDIA real — GeForce 940MX (Dell Inspiron 7460, driver 580.178.04), 2026-11-07
+
+- FECHADOS/PARCIAIS com evidência (`docs/evidencias/gpu-nvidia-2026-11-07/`): GPU-02 (identificação NVIDIA real, nouveau e proprietário),
+  GPU-04 NVIDIA (telemetria via nvidia-smi — corrigida: com o driver 580 nada era lido), GAME-03 PRIME (DRI_PRIME no nouveau e variáveis
+  NVIDIA no proprietário, comprovados pelo CSV do MangoHud), GPU-06/GPU-08 parcial em GPU dedicada NVIDIA (stress 8 s, cena 8 s; RT recusado),
+  OC-01 parcial (faixa de energia de preenchimento descartada; só teto de clock nesta placa), DRV-01 parcial (versão instalada lida; consulta
+  online compara com o ramo global, errado para Maxwell — em correção), CMP-01 (MangoHud embutido em OpenGL e Vulkan nos dois drivers).
+- NÃO TESTADO: GPU NVIDIA de desktop/RTX (power limit ajustável, ventoinha, NVENC), driver open (Turing+), Wayland com NVIDIA, Secure Boot ligado,
+  aplicar comandos de OC de verdade, stress longo.

@@ -179,20 +179,34 @@ public static class NvidiaTuning
         {
             var f = line.Split(',');
             if (f.Length < 8 || !int.TryParse(f[0].Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out int index)) continue;
-            list.Add(new(index, f[1].Trim(), D(f[2]), D(f[3]), D(f[4]), D(f[5]), U(f[6]), U(f[7])));
+            // No power management (power.limit N/A, e.g. GeForce 940MX on a laptop): the driver still returns placeholder
+            // default/min/max limits (200 / 0 / 200 W, seen with driver 580.178.04). They are not the card's: dropped.
+            double? limit = D(f[2]);
+            list.Add(new(index, f[1].Trim(), limit, limit is null ? null : D(f[3]), limit is null ? null : D(f[4]), limit is null ? null : D(f[5]), U(f[6]), U(f[7])));
         }
         return list;
     }
 
-    /// <summary>Commands for the requested limits; throws ArgumentOutOfRangeException when a value is outside what the card reports.</summary>
-    public static IReadOnlyList<string> Commands(NvidiaTuningState gpu, double powerWatts, uint? clockCapMhz)
+    /// <summary>The card lets the power limit be changed (nvidia-smi reports a current limit and a range).</summary>
+    public static bool SupportsPowerLimit(NvidiaTuningState gpu) => gpu.PowerLimitW is not null && gpu.PowerMinW is not null && gpu.PowerMaxW is not null;
+
+    /// <summary>
+    /// Commands for the requested limits; throws ArgumentOutOfRangeException when a value is outside what the card reports.
+    /// Without power management only the clock cap is offered (<paramref name="powerWatts"/> must then be null).
+    /// </summary>
+    public static IReadOnlyList<string> Commands(NvidiaTuningState gpu, double? powerWatts, uint? clockCapMhz)
     {
-        if (gpu.PowerMinW is not double min || gpu.PowerMaxW is not double max) throw new InvalidOperationException("A placa não informa a faixa do limite de energia.");
-        if (powerWatts < min || powerWatts > max) throw new ArgumentOutOfRangeException(nameof(powerWatts), $"Limite de energia de {min:0} a {max:0} W.");
         if (clockCapMhz is { } cap && (cap < 300 || cap > (gpu.MaxClockMhz ?? 5000))) throw new ArgumentOutOfRangeException(nameof(clockCapMhz), "Teto de clock fora da faixa da placa.");
         string i = gpu.Index.ToString(CultureInfo.InvariantCulture);
-        return [$"sudo nvidia-smi -i {i} -pl {powerWatts.ToString("0", CultureInfo.InvariantCulture)}",
-            clockCapMhz is { } c ? $"sudo nvidia-smi -i {i} -lgc 210,{c.ToString(CultureInfo.InvariantCulture)}" : $"sudo nvidia-smi -i {i} -rgc"];
+        string clock = clockCapMhz is { } c ? $"sudo nvidia-smi -i {i} -lgc 210,{c.ToString(CultureInfo.InvariantCulture)}" : $"sudo nvidia-smi -i {i} -rgc";
+        if (!SupportsPowerLimit(gpu))
+        {
+            if (powerWatts is not null) throw new InvalidOperationException("Esta placa não permite ajustar o limite de energia (o driver informa N/A).");
+            return [clock];
+        }
+        if (powerWatts is not double w) throw new InvalidOperationException("Informe o limite de energia em watts.");
+        if (w < gpu.PowerMinW!.Value || w > gpu.PowerMaxW!.Value) throw new ArgumentOutOfRangeException(nameof(powerWatts), $"Limite de energia de {gpu.PowerMinW:0} a {gpu.PowerMaxW:0} W.");
+        return [$"sudo nvidia-smi -i {i} -pl {w.ToString("0", CultureInfo.InvariantCulture)}", clock];
     }
 
     public static IReadOnlyList<string> ResetCommands(NvidiaTuningState gpu)

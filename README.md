@@ -68,7 +68,7 @@ Onde ficam os dados (nada vai junto com o programa): configurações e históric
 componentes) em `~/.cache/ilmenyx/` e `~/.local/share/ilmenyx/`. Para começar do zero, apague essas pastas.
 
 > **GPU:** placas NVIDIA mostram mais detalhes (VBIOS, limites de energia, CUDA) com o driver proprietário e o `nvidia-smi`.
-> Em AMD os dados vêm do `amdgpu`. GPUs dedicadas AMD/NVIDIA ainda não foram testadas em hardware real (aviso no app).
+> Em AMD os dados vêm do `amdgpu`. NVIDIA foi validada numa GeForce 940MX de notebook (driver 580, PRIME); GPU AMD dedicada ainda não foi testada (aviso no app).
 
 ## Começando
 

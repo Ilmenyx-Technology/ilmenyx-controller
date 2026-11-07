@@ -263,7 +263,7 @@ public sealed partial class ShellWindow
         void HeroTags()
         {
             heroTags.Children.Clear();
-            foreach (var t in new[] { gpuRaw?.Name is { } gn ? "GPU · " + gn : null, usage.MemorySub is { Length: > 0 } ms ? ms.Replace("Total", "RAM") : null, distro, kernel.Length > 0 ? "kernel " + kernel.Split('-')[0] : null })
+            foreach (var t in new[] { gpuRaw?.Name is { } gn ? "GPU · " + GameCatalog.ShortGpuName(MarketingName(gn)) : null, usage.MemorySub is { Length: > 0 } ms ? ms.Replace("Total", "RAM") : null, distro, kernel.Length > 0 ? "kernel " + kernel.Split('-')[0] : null })
                 if (t is not null) heroTags.Children.Add(UiKit.Tag(t, Palette.Fg));
         }
         HeroTags();
@@ -386,7 +386,7 @@ public sealed partial class ShellWindow
             string gUse = g?.PowerW is { } gw ? gw.ToString("0.0", CultureInfo.InvariantCulture) + " W" + (g.PowerIsPackage ? " (pacote CPU+GPU)" : "")
                 : g?.VramUsed is { } vu && g.VramTotal is > 0 ? $"{vu >> 20:N0} / {g.VramTotal.Value >> 20:N0} MB".Replace(",", ".")
                 : "sem contadores";
-            Set("GPU", gpuRaw?.Name ?? "Inventário DRM/PCI", UsageViewModel.Pct(g?.LoadPercent),
+            Set("GPU", gpuRaw?.Name is { } rawName ? MarketingName(rawName) : "Inventário DRM/PCI", UsageViewModel.Pct(g?.LoadPercent),
                 (g?.TempC is { } gt ? gt.ToString("0.0", CultureInfo.InvariantCulture) + " °C" : "—") + " · " + (g?.CoreMHz is { } gm ? gm.ToString("0", CultureInfo.InvariantCulture) + " MHz" : "—"), gUse);
             Set("Memória", usage.MemorySub, s is { MemoryTotal: > 0, MemoryUsed: { } u } ? UsageViewModel.Pct(100.0 * u / s.MemoryTotal.Value) : "—", usage.MemoryLine, "");
             Set("Discos", "Dispositivos inteiros", "E/S", usage.DiskLine, "");
@@ -468,6 +468,10 @@ public sealed partial class ShellWindow
         gpuTimer.Start(); stop.Token.Register(() => Avalonia.Threading.Dispatcher.UIThread.Post(gpuTimer.Stop));
         return scroll;
     }
+
+    /// <summary>pci.ids names put the marketing name in brackets ("GM108M [GeForce 940MX]"): show that part.</summary>
+    internal static string MarketingName(string name) =>
+        name.IndexOf('[') is var open and >= 0 && name.IndexOf(']', open) is var close and > 0 && close > open + 1 ? name[(open + 1)..close].Split('/')[0].Trim() : name;
 
     private event Action? overviewRefresh;
     private readonly List<(DateTimeOffset At, string Title, string Text)> sessionEvents = [];

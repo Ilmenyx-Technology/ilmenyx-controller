@@ -93,12 +93,16 @@ public sealed class OcPage : StackPanel
         IReadOnlyList<NvidiaTuningState> found = [];
         try { found = await services.Nvidia(lifetime); } catch (Exception e) when (e is IOException or TimeoutException or OperationCanceledException) { }
         gpu = found.FirstOrDefault();
-        if (gpu is null) gpuState.Text = "Ajustes disponíveis só para placas NVIDIA com driver oficial (nvidia-smi). Nenhuma foi encontrada; AMD e Intel não são ajustados por este módulo. NVIDIA: testes em hardware real não realizados.";
+        if (gpu is null) gpuState.Text = "Ajustes disponíveis só para placas NVIDIA com driver oficial (nvidia-smi). Nenhuma foi encontrada; AMD e Intel não são ajustados por este módulo. Validado numa GeForce 940MX (driver 580); outras placas NVIDIA não foram testadas.";
         else
         {
             string F(double? v) => v is double d ? d.ToString("0", CultureInfo.InvariantCulture) + " W" : "—";
-            gpuState.Text = $"{gpu.Name} · limite atual {F(gpu.PowerLimitW)} (padrão {F(gpu.PowerDefaultW)}, faixa {F(gpu.PowerMinW)}–{F(gpu.PowerMaxW)}) · clock máximo {(gpu.MaxClockMhz?.ToString(CultureInfo.InvariantCulture) ?? "—")} MHz";
-            power.Text = gpu.PowerLimitW?.ToString("0", CultureInfo.InvariantCulture) ?? ""; power.IsEnabled = gen.IsEnabled = reset.IsEnabled = true;
+            gpuState.Text = NvidiaTuning.SupportsPowerLimit(gpu)
+                ? $"{gpu.Name} · limite atual {F(gpu.PowerLimitW)} (padrão {F(gpu.PowerDefaultW)}, faixa {F(gpu.PowerMinW)}–{F(gpu.PowerMaxW)}) · clock máximo {(gpu.MaxClockMhz?.ToString(CultureInfo.InvariantCulture) ?? "—")} MHz"
+                : $"{gpu.Name} · limite de energia não ajustável nesta placa (o driver informa N/A) · clock máximo {(gpu.MaxClockMhz?.ToString(CultureInfo.InvariantCulture) ?? "—")} MHz: só o teto de clock pode ser ajustado";
+            power.Text = gpu.PowerLimitW?.ToString("0", CultureInfo.InvariantCulture) ?? ""; gen.IsEnabled = reset.IsEnabled = true;
+            power.IsEnabled = NvidiaTuning.SupportsPowerLimit(gpu);
+            if (!power.IsEnabled) ToolTip.SetTip(power, "Esta GPU não permite ajustar o limite de energia.");
             if (gpu.MaxClockMhz is uint max)
             {
                 var panel = gpuChips!.Panel;
@@ -125,8 +129,13 @@ public sealed class OcPage : StackPanel
             if (restore) list = NvidiaTuning.ResetCommands(gpu);
             else
             {
-                if (!double.TryParse(power.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out double watts) && !double.TryParse(power.Text, NumberStyles.Float, CultureInfo.CurrentCulture, out watts))
-                { gpuResult.Text = "Informe o limite de energia em watts."; return; }
+                double? watts = null;
+                if (NvidiaTuning.SupportsPowerLimit(gpu))
+                {
+                    if (!double.TryParse(power.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out double w) && !double.TryParse(power.Text, NumberStyles.Float, CultureInfo.CurrentCulture, out w))
+                    { gpuResult.Text = "Informe o limite de energia em watts."; return; }
+                    watts = w;
+                }
                 list = NvidiaTuning.Commands(gpu, watts, clockCap);
             }
             commands.Text = string.Join("\n", list); commands.IsVisible = true;
