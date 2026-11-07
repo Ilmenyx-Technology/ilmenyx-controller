@@ -29,6 +29,8 @@ public sealed class GameProfile
     public int Hz { get; set; }                        // 0 = do not set
     public string Style { get; set; } = "source";      // source | unity | unreal
     public string Extra { get; set; } = "";
+    /// <summary>Steam AppID of a Windows game run with Proton outside Steam (umu GAMEID umu-&lt;id&gt;, so the known per-game fixes apply). Digits only; null = generic.</summary>
+    public string? ProtonGameId { get; set; }
     public List<HelperProgram> Helpers { get; set; } = [];
 }
 
@@ -43,7 +45,9 @@ public sealed class CustomGame
 public sealed record LibGame(string Store, string Id, string Name, string InstallDir, string? ExePath = null, string? LaunchUri = null, string Args = "")
 {
     public string Key => Store + ":" + Id;
-    public string Subtitle => Store;
+    public string Subtitle => IsWindowsManual ? "Windows · Proton" : Store;
+    /// <summary>A manually added Windows program (.exe): Ilmenyx runs it with Proton (umu-launcher).</summary>
+    public bool IsWindowsManual => Store == "Manual" && (ExePath ?? Id).EndsWith(".exe", StringComparison.OrdinalIgnoreCase);
     public bool IsSteam => Store == "Steam";
 }
 

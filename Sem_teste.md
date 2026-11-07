@@ -580,3 +580,6 @@ três processos .NET reais gravando 300 atualizações cada no mesmo arquivo (90
   instalação --system e outras distros. Ver `docs/flatpak.md`.
 
 - LIC-01 (2026-11-07): licença PolyForm NC + permissão adicional, SPDX/REUSE: `reuse lint` NÃO TESTADO (ferramenta e pip ausentes no host); verificado por script local equivalente. Rodar `reuse lint` quando a ferramenta estiver disponível.
+- Proton fora da Steam (umu-launcher 1.4.4 embutido, zipapp + python3 do sistema): jogo de Windows real (MK10.exe, DX11) rodou
+  com UMU-Proton 10.0-4, DXVK na GeForce 940MX (PRIME), 100% de GPU e 2,9 GB de VRAM, prefixo por jogo em ~/.local/share/ilmenyx/prefixes.
+  NÃO TESTADO: abrir pela interface do Ilmenyx com MangoHud/FPS medido, outras distros (Arch/Fedora/Debian), sistema sem python3.

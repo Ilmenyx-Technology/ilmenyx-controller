@@ -46,6 +46,8 @@ public sealed class LauncherPage : Grid
     private readonly TextBlock exeText = new() { Name = "LExeText", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap };
     private readonly TextBox exePath = new() { Name = "LExePath", PlaceholderText = "/caminho/completo/do/executavel" };
     private readonly TextBox extra = new() { Name = "LExtra", PlaceholderText = "ex.: -novid -high +fps_max 0" };
+    private readonly TextBox protonId = new() { Name = "LProtonId", PlaceholderText = "ID Steam do jogo (opcional), ex.: 307780", MaxLength = 10 };
+    private readonly StackPanel protonBox = new() { Name = "LProtonBox", IsVisible = false, Margin = new Thickness(0, 10, 0, 0) };
     private readonly TextBlock preview = new() { Name = "LPreview", FontFamily = new FontFamily("monospace"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 10) };
     private readonly TextBlock steamNow = new() { Name = "LSteamNow", Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8) };
     private readonly StackPanel steamBox = new() { Name = "LSteamBox", IsVisible = false };
@@ -178,7 +180,7 @@ public sealed class LauncherPage : Grid
             Children =
             {
                 CardTitle(Icons.Oc, "DESEMPENHO"), chkPlan, chkGpu, chkGameMode, chkMango, exeText, new Border { Height = 6 }, exePath, new Border { Height = 8 },
-                new WrapPanel { ItemSpacing = 8, LineSpacing = 6, Children = { setExe, recommended } },
+                new WrapPanel { ItemSpacing = 8, LineSpacing = 6, Children = { setExe, recommended } }, protonBox,
                 new TextBlock { Text = "O perfil de energia vale só durante o jogo e volta ao anterior. Prioridade de processo elevada exige privilégios no Linux; o GameMode cuida disso quando instalado. O executável é descoberto sozinho; se errar, informe o caminho certo.", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0) }
             }
         });
@@ -189,6 +191,17 @@ public sealed class LauncherPage : Grid
         hzChips = new("LHzPanel", [("Padrão", 0), ("60", 60), ("120", 120), ("144", 144), ("165", 165), ("240", 240)], 0, v => Chosen(p => p.Hz = v));
         styleChips = new("LStylePanel", [("Source / CS2", "source"), ("Unity", "unity"), ("Unreal", "unreal")], "source", v => Chosen(p => p.Style = v));
         extra.TextChanged += (_, _) => SaveFromControls();
+        // Windows games (.exe) run with Proton through the bundled umu-launcher; the Steam ID lets it apply the game's known fixes.
+        protonBox.Children.Add(UiKit.Label("PROTON (JOGO DE WINDOWS)"));
+        protonBox.Children.Add(new Border { Height = 6 }); protonBox.Children.Add(protonId);
+        protonBox.Children.Add(new TextBlock { Text = "Este jogo roda com Proton, sem precisar da Steam. Na primeira vez o Proton é baixado (~1 GB) e o \"Windows\" do jogo é preparado; demora alguns minutos. Com o ID Steam do jogo (o número em store.steampowered.com/app/ID, ou na aba Compatibilidade), o Proton aplica as correções conhecidas dele.", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0) });
+        protonId.TextChanged += (_, _) =>
+        {
+            if (loading || profile is null) return;
+            string digits = new((protonId.Text ?? "").Where(char.IsAsciiDigit).ToArray());
+            if (digits != (protonId.Text ?? "")) { protonId.Text = digits; return; }
+            profile.ProtonGameId = digits.Length > 0 ? digits : null; SaveProfile(current, profile); UpdateTags();
+        };
         var presets = new WrapPanel { Name = "LExtraPresets", Margin = new Thickness(0, 8, 0, 14), ItemSpacing = 6, LineSpacing = 6 };
         foreach (var (label, token, hint) in new (string, string, string?)[] { ("Pular intro (-novid)", "-novid", null), ("Sem limite de FPS (+fps_max 0)", "+fps_max 0", null), ("Sem joystick (-nojoy)", "-nojoy", null), ("Abrir console (-console)", "-console", null),
             ("Programas de terceiros (-allow_third_party_software)", "-allow_third_party_software",
@@ -237,6 +250,7 @@ public sealed class LauncherPage : Grid
         if (p.GpuHigh && multiGpu) tags.Add("GPU dedicada");
         if (p.GameMode && chkGameMode.IsEnabled) tags.Add("GameMode");
         if (p.MangoHud && chkMango.IsEnabled) tags.Add("MangoHud");
+        if (g.IsWindowsManual) tags.Add(p.ProtonGameId is { } pid ? "Proton · ID " + pid : "Proton");
         if (p.Res != "default") tags.Add(p.Res);
         if (p.Hz > 0) tags.Add(p.Hz + " Hz");
         if (tags.Count == 1) tags.Add("Perfil padrão");
@@ -330,6 +344,7 @@ public sealed class LauncherPage : Grid
         heroScrim.IsVisible = heroArt; title.Foreground = heroArt ? Brushes.White : Palette.Fg; sub.Foreground = heroArt ? GameArt.OnImageMuted : Palette.Muted;
         chkPlan.IsChecked = p.HighPerfPlan; chkGpu.IsChecked = p.GpuHigh && multiGpu; chkGameMode.IsChecked = p.GameMode; chkMango.IsChecked = p.MangoHud;
         modeChips!.Select(p.WinMode); resChips!.Select(p.Res); hzChips!.Select(p.Hz); styleChips!.Select(p.Style); extra.Text = p.Extra; exePath.Text = p.ExePath ?? "";
+        protonBox.IsVisible = g.IsWindowsManual; protonId.Text = p.ProtonGameId ?? "";
         RebuildHelpers();
         steamBox.IsVisible = g.IsSteam; steamNow.Text = g.IsSteam ? "Opções atuais na Steam: " + (steam.GetLaunchOptions(g.Id) is { Length: > 0 } cur ? cur : "(nenhuma)") : "";
         gfxNote.Text = g.IsSteam ? "Os argumentos e variáveis só passam a valer na Steam depois de APLICAR NAS OPÇÕES DA STEAM (a Steam é fechada nessa hora). Depois, o JOGAR abre pela Steam normalmente."
