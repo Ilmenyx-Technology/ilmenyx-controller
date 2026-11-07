@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-# SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+# SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
 # Read-only diagnostics, exports only to a new directory.
 # Does not install, elevate, start GUI/workloads/SMART or claim a machine is a clean VM.
 set -euo pipefail

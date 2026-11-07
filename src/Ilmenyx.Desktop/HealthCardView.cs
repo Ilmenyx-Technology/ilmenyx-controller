@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT AND PolyForm-Noncommercial-1.0.0
 // SPDX-FileCopyrightText: 2026 Gustavo (GustavoReset)
-// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
 // New Ilmenyx additions (card layout follows the original CardTemplate: title/meta, verdict badge, reasons, 2-column metrics;
 // cinematic surface and semantic verdict colours 2026-11-06): see LICENSING.md.
 using Avalonia;

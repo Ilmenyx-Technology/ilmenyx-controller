@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
 // Network use only on an explicit user action: four fixed HTTPS hosts, nothing about the user is sent besides the Steam app id asked for.
 // The ProtonDB export (ODbL) is downloaded once by the user, checked against the git blob SHA-1 GitHub publishes for it,
 // reduced to a local index and deleted. The index stays on this machine (it is not redistributed).

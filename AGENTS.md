@@ -144,9 +144,9 @@ as regras de arquitetura Linux, benchmarks, testes, licenças e segurança anter
 ## Licença 2026-11-07 (prevalece sobre as regras de licença anteriores deste arquivo)
 - Todo o código e a documentação do mantenedor, desde o primeiro commit (inclusive a fase Silex), estão sob PolyForm Noncommercial 1.0.0 + permissão adicional (LICENSES/LicenseRef-Ilmenyx-Permissao-Adicional.txt, PT prevalece). Explicação: LICENSING.md. LICENSE-ILMENYX.md não existe mais.
 - Permitido: uso como ferramenta em trabalho pago, instalar no PC do cliente sem cobrar pelo app, vídeos monetizados, redistribuição gratuita sem cadastro/anúncio, modificação para uso interno. Proibido: vender, cobrar acesso, serviço pago, derivado comercial. Doações ao mantenedor são aceitas e não mudam os termos.
-- Titular: "Flávio (mantido como Bismuth Technology)" até o nome civil completo ser informado (docs/governance/PENDENCIAS.md). Bismuth Technology não é pessoa jurídica.
+- Titular: "Flávio Henrique Meira Roque (mantido como Bismuth Technology)" até o nome civil completo ser informado (docs/governance/PENDENCIAS.md). Bismuth Technology não é pessoa jurídica.
 - **Todo arquivo novo** em src/, tests/, tools/, scripts/, packaging/ leva no topo (após `#!`/`#version`/`<?xml`):
-  `SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0` e `SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)`.
+  `SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0` e `SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)`.
 - Arquivo que adapta código, dados, estrutura ou layout do RESET EXPLODE: `SPDX-License-Identifier: MIT AND PolyForm-Noncommercial-1.0.0`, com `SPDX-FileCopyrightText: 2026 Gustavo (GustavoReset)` e a linha do mantenedor; acrescentar o arquivo à lista de NOTICE.md.
 - Arquivo sem comentário possível (imagem, JSON, binário): cobrir em REUSE.toml. Terceiros mantêm seu identificador (ex.: Icons.cs `PolyForm-Noncommercial-1.0.0 AND Apache-2.0`); registrar em THIRD-PARTY-NOTICES.md.
 - Pacotes levam LICENSE, LICENSES/, NOTICE.md, LICENSING.md e THIRD-PARTY-NOTICES.md. Metainfo: `MIT AND PolyForm-Noncommercial-1.0.0`.

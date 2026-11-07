@@ -5,10 +5,10 @@
 > inglês da permissão adicional e desta explicação, **prevalece o português**. O texto da PolyForm é o
 > texto oficial em inglês.
 
-**Titular:** Flávio (mantido como Bismuth Technology). Bismuth Technology é o nome sob o qual o projeto
+**Titular:** Flávio Henrique Meira Roque (mantido como Bismuth Technology). Bismuth Technology é o nome sob o qual o projeto
 é mantido; não é pessoa jurídica.
 
-**Required Notice:** Copyright (c) 2026 Flávio (mantido como Bismuth Technology) — https://github.com/Bismuth-Technology/ilmenyx
+**Required Notice:** Copyright (c) 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology) — https://github.com/Bismuth-Technology/ilmenyx
 
 ## Em uma frase
 

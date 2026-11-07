@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
 using System.Reflection;
 using System.Text.Json;
 using Ilmenyx.Cli;
@@ -28,7 +28,7 @@ public class IdentityPrivacyTests
         Assert.DoesNotContain("Bismuth",mit);
         var license=File.ReadAllText(Path.Combine(AppContext.BaseDirectory,"LICENSE"));
         Assert.Contains("# PolyForm Noncommercial License 1.0.0",license);
-        Assert.Contains("Required Notice: Copyright (c) 2026 Flávio (mantido como Bismuth Technology)",license);
+        Assert.Contains("Required Notice: Copyright (c) 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)",license);
         Assert.Contains("LICENSES/LicenseRef-Ilmenyx-Permissao-Adicional.txt",license);
         Assert.Contains("LICENSES/MIT.txt",license);
         Assert.DoesNotContain("Copyright (c) 2026 Bismuth",license);

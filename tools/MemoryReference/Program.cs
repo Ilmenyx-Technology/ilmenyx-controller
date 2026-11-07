@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT AND PolyForm-Noncommercial-1.0.0
 // SPDX-FileCopyrightText: 2026 Gustavo (GustavoReset)
-// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
 // Test-only bounded oracle derived at generation time from MIT upstream MemoryBench.cs.
 // Original copyright (c) 2026 Gustavo (GustavoReset), MIT. No source copied into product projects.
 using System.Buffers.Binary;

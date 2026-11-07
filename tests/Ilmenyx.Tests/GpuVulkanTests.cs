@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
 // No test renders or creates a Vulkan device: GPU load only runs by explicit click/CLI flag.
 using System.Reflection;
 using Ilmenyx.Gpu.Vulkan;

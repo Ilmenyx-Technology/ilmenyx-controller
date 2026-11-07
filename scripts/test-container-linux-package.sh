@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-# SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+# SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
 # Local non-root container diagnostics only.
 set -euo pipefail
 if [[ $# != 4 || $2 != /* || $3 != /* || $4 != /* ]]; then

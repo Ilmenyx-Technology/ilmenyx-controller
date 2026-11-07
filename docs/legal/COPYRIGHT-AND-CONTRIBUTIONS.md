@@ -1,6 +1,6 @@
 # Copyright e contribuições
 
-- **Titular do código próprio:** Flávio (mantido como Bismuth Technology), pessoa física. Bismuth
+- **Titular do código próprio:** Flávio Henrique Meira Roque (mantido como Bismuth Technology), pessoa física. Bismuth
   Technology é a identidade sob a qual o projeto é mantido, não uma pessoa jurídica. Nome civil completo:
   pendente (ver ../governance/PENDENCIAS.md).
 - **"Silex Audit contributors"** (aviso do LICENSE antigo) eram só o mantenedor; o código dessa fase está

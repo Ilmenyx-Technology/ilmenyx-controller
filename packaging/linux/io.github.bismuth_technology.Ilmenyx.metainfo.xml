@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 -->
-<!-- SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology) -->
+<!-- SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology) -->
 <!-- AppStream metadata for software centers. -->
 <component type="desktop-application">
   <id>io.github.bismuth_technology.Ilmenyx</id>

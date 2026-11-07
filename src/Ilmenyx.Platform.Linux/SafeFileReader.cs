@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
 namespace Ilmenyx.Platform.Linux;
 
 /// <summary>Bounded read of one user-chosen regular file. Rejects relative paths, links, /dev /proc /sys, non-seekable and oversized files.</summary>

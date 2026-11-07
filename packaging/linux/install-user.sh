@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-# SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+# SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
 # Opt-in: registers the bundle's desktop entry, icons and AppStream metadata for the CURRENT USER only
 # (~/.local/share). Never uses sudo, never touches system directories, never runs automatically.
 # Uso: bash linux/install-user.sh            (a partir da pasta do pacote Ilmenyx-linux-x64)

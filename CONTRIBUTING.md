@@ -30,7 +30,7 @@ projeto original em nome do Ilmenyx.
 
 - Todo arquivo novo leva o cabeçalho SPDX (ver [AGENTS.md](AGENTS.md) e [LICENSING.md](LICENSING.md)):
   `SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0` e
-  `SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)`. Arquivo que adapta código do
+  `SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)`. Arquivo que adapta código do
   RESET EXPLODE: `MIT AND PolyForm-Noncommercial-1.0.0` com os dois copyrights.
 - Não acrescente logo, fonte, driver, asset ou código de terceiros sem licença conhecida e registro em
   `THIRD-PARTY-NOTICES.md`.
