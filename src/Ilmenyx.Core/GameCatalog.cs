@@ -101,15 +101,19 @@ public static class GameCatalog
         ("5700U", 50), ("5500U", 45), ("4700U", 44), ("4500U", 40), ("3700U", 32), ("3500U", 30), ("Custom APU 0405", 40),
     };
 
-    public static double? GpuPerf(string gpuName) => Lookup(GpuIndex, gpuName) ?? Lookup(GpuIndex, ShortGpuName(gpuName));
-    public static double? CpuPerf(string cpuName) => Lookup(CpuIndex, cpuName);
+    public static double? GpuPerf(string gpuName) => GpuMatch(gpuName)?.Index;
+    public static double? CpuPerf(string cpuName) => Lookup(CpuIndex, cpuName)?.Index;
+
+    /// <summary>Table entry that matched the GPU name (the key tells how specific the match was: see <see cref="FpsAccuracy"/>).</summary>
+    public static (string Key, double Index)? GpuMatch(string gpuName) => Lookup(GpuIndex, gpuName) ?? Lookup(GpuIndex, ShortGpuName(gpuName));
+    public static (string Key, double Index)? CpuMatch(string cpuName) => Lookup(CpuIndex, ShortCpuName(cpuName)) ?? Lookup(CpuIndex, cpuName);
 
     /// <summary>A chave mais longa contida no nome vence ("RTX 5070 Ti" antes de "RTX 5070").</summary>
-    private static double? Lookup((string Key, double Index)[] table, string name)
+    private static (string Key, double Index)? Lookup((string Key, double Index)[] table, string name)
     {
         var hit = table.Where(t => name.Contains(t.Key, StringComparison.OrdinalIgnoreCase))
                        .OrderByDescending(t => t.Key.Length).FirstOrDefault();
-        return hit.Key == null ? null : hit.Index;
+        return hit.Key == null ? null : hit;
     }
 
     public static double ResolutionFactor(string res) => res switch

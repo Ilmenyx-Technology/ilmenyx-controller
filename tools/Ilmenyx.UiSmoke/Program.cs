@@ -596,7 +596,7 @@ public sealed class UiSmokeApp : Application
         string settingsPath = Path.Combine(root, "cfg/ilmenyx/settings.json"); string? launched = null;
         Window? host = null;
         var page = new LauncherPage(new Ilmenyx.Platform.Linux.LinuxGameLibrary(home, (_, _) => Task.FromResult((0, "[]"))), new Ilmenyx.Platform.Linux.SteamInfo(home, Path.Combine(root, "noproc")), settingsPath,
-            (g, p, v, status, learned, ct) => { launched = g.Key + "|" + p.WinMode; status("stub launched"); return Task.CompletedTask; }, () => host, "AMD", true, CancellationToken.None);
+            (g, p, v, status, learned, ct) => { launched = g.Key + "|" + p.WinMode; status("stub launched"); return Task.FromResult<Ilmenyx.Core.FpsSession?>(new(g.Name, DateTimeOffset.UtcNow, 61.5, 44, 95, "Fixture GPU", null)); }, () => host, "AMD", true, CancellationToken.None);
         host = new Window { Width = 1100, Height = 800, Content = page }; host.Show();
         await Until(() => page.Games.Count == 1);
         Click(host, "BtnAddExe"); Find<TextBox>(host, "LAddPath").Text = "relative/path"; Click(host, "BtnAddExeConfirm");
@@ -617,6 +617,7 @@ public sealed class UiSmokeApp : Application
         await Until(() => Find<StackPanel>(host, "LHelpers").Children.Count == 1);
         Click(host, "BtnPlay");
         await Until(() => launched == "Steam:100|full" && Find<TextBlock>(host, "LStatus").Text == "stub launched" && Find<Button>(host, "BtnPlay").Content!.ToString() == "JOGAR");
+        if (Ilmenyx.Core.IlmenyxSettings.Load(settingsPath).FpsSessions is not [{ Game: "Game One", AvgFps: 61.5 }]) throw new InvalidOperationException("Measured session returned by the launch was not kept in the settings.");
         host.Close();
         // The real shell page reads the real libraries (Steam, Lutris, Heroic) without launching, writing or closing anything.
         Find<Button>(shell, "Navlauncher").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -1095,14 +1096,25 @@ public sealed class UiSmokeApp : Application
         string root = Path.Combine(Program.OutputDirectory, "fps-fixture"); Directory.CreateDirectory(root);
         var http = new FakeHttp(); var client = new Ilmenyx.Core.HowManyFpsClient(Path.Combine(root, "cache.json"), http);
         string settingsPath = Path.Combine(root, "settings.json"); Window? host = null;
-        var page = new GamesFpsPage(client, new Ilmenyx.Core.IlmenyxSettings(), settingsPath, () => host, () => ("AMD Ryzen 7 7700X 8-Core Processor", "NVIDIA GeForce RTX 4070"), CancellationToken.None);
+        // A session measured on this PC (as the Launcher records it) for Dota 2; nothing is played.
+        var fixture = new Ilmenyx.Core.IlmenyxSettings(); fixture.AddFpsSession(new("Dota 2", new DateTimeOffset(2026, 11, 6, 21, 0, 0, TimeSpan.Zero), 87.4, 52, 1800, "NVIDIA GeForce RTX 4070", "1920x1080")); fixture.Save(settingsPath);
+        var ctx = new Ilmenyx.Core.FpsContext("NVIDIA GeForce RTX 4070", "10de", "2786", "nvidia", false, 2UL << 30, null, true, 0, 0);
+        var page = new GamesFpsPage(client, new Ilmenyx.Core.IlmenyxSettings(), settingsPath, () => host, () => ("AMD Ryzen 7 7700X 8-Core Processor", "NVIDIA GeForce RTX 4070"), CancellationToken.None, () => ctx);
         host = new Window { Width = 1100, Height = 900, Content = new ScrollViewer { Content = page } }; host.Show();
         await Until(() => page.Rows.Count > 20 && page.Rows.Any(r => r.Fps > 0));
         if (page.GpuIndex != 100 || page.CpuIndex != 100) throw new InvalidOperationException("Hardware indices not resolved from the catalog tables.");
         string CardFps(string name) => host.GetVisualDescendants().OfType<Border>().Single(b => b.Name == "Game_" + LauncherPage.SafeName(name)).GetVisualDescendants().OfType<TextBlock>().First(t => t.FontSize == 28).Text!;
-        await Until(() => host.GetVisualDescendants().OfType<Border>().Any(b => b.Name == "Game_" + LauncherPage.SafeName("Counter-Strike 2"))); if (CardFps("Counter-Strike 2") != "340") throw new InvalidOperationException("CS2 estimate at 1080p/Alto should be 340.");
+        // The local estimate is shown as a range around the table value (CS2 at 1080p/Alto on RTX 4070 + 7700X = 340), never as a single number.
+        bool RangeAround(string text, double centre) => text.Split('–') is [var lo, var hi] && double.TryParse(lo, System.Globalization.CultureInfo.InvariantCulture, out double l) && double.TryParse(hi, System.Globalization.CultureInfo.InvariantCulture, out double h) && l < centre && centre < h;
+        await Until(() => host.GetVisualDescendants().OfType<Border>().Any(b => b.Name == "Game_" + LauncherPage.SafeName("Counter-Strike 2")));
+        if (page.Rows.Single(r => r.Name == "Counter-Strike 2").Fps != 340 || !RangeAround(CardFps("Counter-Strike 2"), 340)) throw new InvalidOperationException("CS2 estimate at 1080p/Alto should be a range around 340, got " + CardFps("Counter-Strike 2") + ".");
+        if (page.Assessment.Confidence != Ilmenyx.Core.FpsConfidence.Medium) throw new InvalidOperationException("Desktop GPU + CPU at the reference should give medium confidence.");
+        var dota = page.Rows.Single(r => r.Name == "Dota 2");
+        if (CardFps("Dota 2") != "87" || dota.Source != "MEDIDO NESTE PC" || !dota.Summary.StartsWith("Medido neste PC: 87 FPS (1% low 52) · última sessão", StringComparison.Ordinal)) throw new InvalidOperationException("Measured session must take priority over the estimate.");
+        if (page.Alerts.Select(a => a.Title).ToArray() is not ["2 GB de VRAM", "Notebook na bateria"] || !Find<StackPanel>(host, "FpsAlerts").IsVisible) throw new InvalidOperationException("VRAM and battery alerts expected.");
+        await Task.Delay(300); Capture(host, "fps-fixture.png");
         foreach (var chip in host.GetVisualDescendants().OfType<Button>().Where(b => b.Content?.ToString() == "1440p")) chip.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        await Until(() => CardFps("Counter-Strike 2") != "340");
+        await Until(() => CardFps("Counter-Strike 2") is var t && !RangeAround(t, 340) && RangeAround(t, page.Rows.Single(r => r.Name == "Counter-Strike 2").Fps) && CardFps("Dota 2") == "87");
         if (Find<Button>(host, "BtnFpsQuery").IsEnabled) throw new InvalidOperationException("API query must be disabled without a key.");
         Find<TextBox>(host, "ApiKeyBox").Text = "fixture-key"; Click(host, "BtnApiKey");
         await Until(() => Find<Button>(host, "BtnFpsQuery").IsEnabled && File.Exists(settingsPath));
@@ -1111,11 +1123,12 @@ public sealed class UiSmokeApp : Application
         Click(dlg, "ConfirmNo"); await Until(() => !dlg.IsVisible); if (http.Calls != 0) throw new InvalidOperationException("Declined confirmation still used the network.");
         Click(host, "BtnFpsQuery"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
         Click(desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible), "ConfirmYes");
-        await Until(() => http.Calls >= 20 && page.Rows.All(r => r.Source == "HOWMANYFPS") && CardFps("Counter-Strike 2") == "111");
+        await Until(() => http.Calls >= 20 && page.Rows.All(r => r.Source == "HOWMANYFPS" || r.Name == "Dota 2" && r.Source == "MEDIDO NESTE PC") && CardFps("Counter-Strike 2") == "111" && CardFps("Dota 2") == "87");
         host.Close();
         Find<Button>(shell, "Navfps").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await Until(() => shell.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnFpsQuery" && !b.IsEnabled || b.Name == "BtnApiKey"));
-        Console.WriteLine("PASS fps page: local estimate from catalog tables, option chips recompute, API query only after key + confirmation naming the endpoint, fake handler results shown; real service never contacted");
+        if (Ilmenyx.Core.IlmenyxSettings.Load(settingsPath).FpsSessions.Count != 1) throw new InvalidOperationException("Saving the API key dropped the measured sessions.");
+        Console.WriteLine("PASS fps page: local estimate as range + confidence from catalog tables, measured session has priority, VRAM/battery alerts, option chips recompute, API query only after key + confirmation naming the endpoint, fake handler results shown; real service never contacted");
     }
     private sealed class CompatFakeHttp(Func<HttpRequestMessage, HttpResponseMessage> respond) : HttpMessageHandler
     {

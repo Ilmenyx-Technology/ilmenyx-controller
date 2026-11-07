@@ -12,7 +12,7 @@ namespace Ilmenyx.Desktop;
 
 public sealed class LauncherPage : Grid
 {
-    public delegate Task LaunchFunc(LibGame game, GameProfile profile, string gpuVendor, Action<string> status, Action<string> learnedExe, CancellationToken ct);
+    public delegate Task<FpsSession?> LaunchFunc(LibGame game, GameProfile profile, string gpuVendor, Action<string> status, Action<string> learnedExe, CancellationToken ct);
 
     private readonly LinuxGameLibrary library;
     private readonly SteamInfo steam;
@@ -416,8 +416,10 @@ public sealed class LauncherPage : Grid
         launching = CancellationTokenSource.CreateLinkedTokenSource(lifetime); play.Content = "PARAR ACOMPANHAMENTO";
         try
         {
-            await launch(g, p, gpuVendor, t => Avalonia.Threading.Dispatcher.UIThread.Post(() => status.Text = t),
+            var session = await launch(g, p, gpuVendor, t => Avalonia.Threading.Dispatcher.UIThread.Post(() => status.Text = t),
                 exe => Avalonia.Threading.Dispatcher.UIThread.Post(() => { if (p.ExePath != exe) { p.ExePath = exe; Save(); if (current == g) exeText.Text = "Executável: " + exe; } }), launching.Token);
+            // Measured on this PC (MangoHud log of this launch): kept locally for the FPS page, at most FpsSession.MaxEntries sessions.
+            if (session is { IsValid: true }) { settings.AddFpsSession(session); Save(); }
         }
         finally { launching.Dispose(); launching = null; play.Content = "JOGAR"; }
     }

@@ -46,7 +46,7 @@ public sealed partial class ShellWindow
         {
             string cache = Path.Combine(Path.GetDirectoryName(IlmenyxSettings.DefaultPath())!, "fps-cache.json");
             return new GamesFpsPage(new HowManyFpsClient(cache), IlmenyxSettings.Load(IlmenyxSettings.DefaultPath()), IlmenyxSettings.DefaultPath(), () => this,
-                () => (usage.Last?.CpuModel ?? "", new LinuxGpuCollector().Collect(PciIds.Load()).FirstOrDefault().Raw?.Name ?? ""), stop.Token) { Margin = new Thickness(0, 4, 8, 12) };
+                () => (usage.Last?.CpuModel ?? "", new LinuxGpuCollector().Collect(PciIds.Load()).FirstOrDefault().Raw?.Name ?? ""), stop.Token, FpsContextNow) { Margin = new Thickness(0, 4, 8, 12) };
         }, null);
         pages["bottleneck"] = ("Detector de gargalo", () => Scroll("BottleneckScroll", new BottleneckPage(usage, stop.Token, OperatingSystem.IsLinux() ? () => MangoHudLogReader.Read(MangoHudLogReader.DefaultFolder(), DateTimeOffset.UtcNow) : null) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["stress"] = ("Stress test", () => Scroll("StressScroll", stressPage = new StressPage(new StressTester(), usage, () => this, () => usage.Last is { MemoryTotal: > 0, MemoryUsed: { } u } l ? l.MemoryTotal!.Value - u : 0, stop.Token, OperatingSystem.IsLinux() ? new VulkanGpuStress() : null, OperatingSystem.IsLinux() ? GpuTemperatureCache() : null) { Margin = new Thickness(0, 4, 8, 12) }), null);
@@ -64,6 +64,20 @@ public sealed partial class ShellWindow
         pages["report"] = ("Relatório", () => Scroll("ReportScroll", new ReportPage(GatherReportAsync, Destination("report"), stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["blocked"] = ("Bloqueados (!)", () => Scroll("BlockedScroll", new BlockedPage(ReadMachineProbe) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["tools"] = ("Requisitos e sobre", ToolsPage, null);
+    }
+
+    /// <summary>Local facts for the FPS page alerts: the GPU games are estimated for, a second (integrated) GPU, battery state and PRIME in the game profiles. Read-only.</summary>
+    private static FpsContext? FpsContextNow()
+    {
+        if (!OperatingSystem.IsLinux()) return null;
+        var gpus = new LinuxGpuCollector().Collect(PciIds.Load());
+        if (gpus.Count == 0) return null;
+        var main = gpus[0].Raw;
+        var power = new LinuxPowerReader().Read();
+        var profiles = IlmenyxSettings.Load(IlmenyxSettings.DefaultPath()).GameProfiles.Values;
+        return new FpsContext(main.Name, main.VendorId, main.DeviceId, main.Driver, main.Integrated, main.VramBytes,
+            gpus.Skip(1).Select(g => g.Raw).FirstOrDefault(r => r.Integrated)?.Name, FpsAlerts.OnBattery(power.Batteries, power.MainsOnline),
+            profiles.Count(p => p.GpuHigh), profiles.Count);
     }
 
     private Task<ReportData> GatherReportAsync(CancellationToken ct)

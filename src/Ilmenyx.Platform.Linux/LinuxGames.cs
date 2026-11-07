@@ -316,10 +316,13 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
         catch (Exception e) when (e is IOException or FileNotFoundException or TimeoutException or System.ComponentModel.Win32Exception) { return false; }
     }
 
-    /// <summary>Applies the profile, starts the game and follows it until it exits; temporary changes are always undone (finally).</summary>
-    public async Task RunAsync(LibGame g, GameProfile p, string gpuVendor, Action<string> status, Action<string> learnedExe, CancellationToken ct)
+    /// <summary>
+    /// Applies the profile, starts the game and follows it until it exits; temporary changes are always undone (finally).
+    /// With MangoHud on, returns the measured session (from Ilmenyx's own MangoHud log folder) once the game closes; null otherwise.
+    /// </summary>
+    public async Task<FpsSession?> RunAsync(LibGame g, GameProfile p, string gpuVendor, Action<string> status, Action<string> learnedExe, CancellationToken ct)
     {
-        string? oldPlan = null; var helpers = new List<(Process Proc, bool Close)>();
+        string? oldPlan = null; var helpers = new List<(Process Proc, bool Close)>(); var started = DateTimeOffset.UtcNow;
         try
         {
             status("Aplicando o perfil…");
@@ -356,11 +359,16 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
 
             IReadOnlyList<int> running = [];
             for (int i = 0; i < 120 && running.Count == 0; i++) { await Task.Delay(1500, ct); running = GameProcesses.Find(procRoot, g, p.ExePath ?? g.ExePath); }
-            if (running.Count == 0) { status("Não detectei o processo do jogo (ele pode ter demorado a abrir). Os ajustes continuam aplicados."); return; }
+            if (running.Count == 0) { status("Não detectei o processo do jogo (ele pode ter demorado a abrir). Os ajustes continuam aplicados."); return null; }
             status($"{g.Name} em execução" + (p.HighPerfPlan ? " · perfil Alto desempenho" : "") + ".");
             int quiet = 0;
             while (quiet < 6) { await Task.Delay(1000, ct); running = GameProcesses.Find(procRoot, g, p.ExePath ?? g.ExePath); quiet = running.Count == 0 ? quiet + 1 : 0; }
-            status($"{g.Name} encerrado. Ajustes temporários desfeitos.");
+            if (!p.MangoHud) { status($"{g.Name} encerrado. Ajustes temporários desfeitos."); return null; }
+            var session = MangoHudSession.ToSession(MangoHudLogReader.ReadSession(MangoHudLogReader.DefaultFolder(), started), g.Name, DateTimeOffset.UtcNow, p.Res);
+            status(session is null
+                ? $"{g.Name} encerrado. Ajustes temporários desfeitos. Sessão não registrada: sem log do MangoHud na pasta do Ilmenyx (gere a configuração na página Overlay) ou sessão com menos de {FpsSession.MinSeconds:0} s."
+                : $"{g.Name} encerrado. Ajustes temporários desfeitos. Medido: {session.AvgFps:0} FPS médio (1% low {session.Low1Fps:0}) — salvo na Estimativa de FPS.");
+            return session;
         }
         catch (OperationCanceledException) { status("Acompanhamento cancelado."); }
         catch (Exception e) when (e is InvalidOperationException or IOException or System.ComponentModel.Win32Exception or FormatException or ArgumentException) { status("Falhou: " + e.Message); }
@@ -369,6 +377,7 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
             if (oldPlan is not null) await SetPowerProfileAsync(oldPlan, CancellationToken.None);
             foreach (var (proc, close) in helpers) if (close) await CloseAsync(proc);
         }
+        return null;
     }
 
     private static async Task StartAsync(string program, IReadOnlyList<string> args, IReadOnlyList<KeyValuePair<string, string>> env, CancellationToken ct, string? workDir = null)
