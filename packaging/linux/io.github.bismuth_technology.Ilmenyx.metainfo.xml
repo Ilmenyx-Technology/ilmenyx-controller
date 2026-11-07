@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- New Ilmenyx additions: see LICENSING.md. AppStream metadata for software centers. -->
+<!-- SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 -->
+<!-- SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology) -->
+<!-- AppStream metadata for software centers. -->
 <component type="desktop-application">
   <id>io.github.bismuth_technology.Ilmenyx</id>
   <metadata_license>CC0-1.0</metadata_license>
-  <project_license>MIT AND LicenseRef-Ilmenyx</project_license>
+  <project_license>MIT AND PolyForm-Noncommercial-1.0.0</project_license>
   <name>Ilmenyx</name>
   <summary>Hardware diagnostics, monitoring and benchmarking for Linux</summary>
   <summary xml:lang="pt_BR">Diagnóstico, monitoramento e benchmarking de hardware para Linux</summary>

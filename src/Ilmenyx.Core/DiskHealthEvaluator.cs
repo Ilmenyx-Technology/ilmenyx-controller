@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT AND PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Gustavo (GustavoReset)
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
 // New Ilmenyx additions, adapted from the heuristics of the original DiskHealth.ToCard (MIT, see NOTICE): see LICENSING.md.
 // The verdict is an estimate from the available readings, exactly as in the original; it is not a guarantee of health.
 using System.Globalization;

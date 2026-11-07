@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
 // New Ilmenyx additions (replaces the original MessageBox YesNo for every confirmed action): see LICENSING.md.
 using Avalonia;
 using Avalonia.Automation;

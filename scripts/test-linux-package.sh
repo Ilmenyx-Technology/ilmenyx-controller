@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# New Ilmenyx additions: see LICENSING.md; third-party components retain their terms.
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+# Third-party components retain their terms.
 # Read-only diagnostics plus exports in a new test directory; no workloads or SMART.
 set -euo pipefail
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
@@ -14,7 +16,8 @@ output=$(cd -- "$2" && pwd)
 (cd -- "$bundle" && sha256sum --check SHA256SUMS) > "$output/integrity.txt"
 jq -e '.rid == "linux-x64" and .selfContained == true and .distribution == "local-review-only"' "$bundle/package.json" >/dev/null
 for directory in cli desktop; do
-  for notice in LICENSE NOTICE.md LICENSING.md LICENSE-ILMENYX.md THIRD-PARTY-NOTICES.md; do
+  for notice in LICENSE NOTICE.md LICENSING.md THIRD-PARTY-NOTICES.md LICENSES/PolyForm-Noncommercial-1.0.0.txt \
+    LICENSES/LicenseRef-Ilmenyx-Permissao-Adicional.txt LICENSES/MIT.txt; do
     cmp -- "$bundle/$notice" "$bundle/$directory/$notice"
   done
 done

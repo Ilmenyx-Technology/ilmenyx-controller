@@ -1,4 +1,5 @@
-// New Ilmenyx additions: see LICENSING.md.
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
 // "Driver NVIDIA" tab (FERRAMENTAS): read-only diagnosis, a plan in plain language, and one-click actions that run a FIXED script through
 // polkit only after the real apt-get -s simulation was accepted and the user confirmed exactly what will be done (AGENTS.md pattern).
 using Avalonia;

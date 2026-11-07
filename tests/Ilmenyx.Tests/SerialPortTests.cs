@@ -1,4 +1,6 @@
-// New Ilmenyx additions: see LICENSING.md. Fixtures sintéticos; nenhuma porta real é aberta.
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// Fixtures sintéticos; nenhuma porta real é aberta.
 using Ilmenyx.Core;
 using Ilmenyx.Platform.Linux;
 using Xunit;

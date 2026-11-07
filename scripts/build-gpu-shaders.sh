@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# New Ilmenyx additions: see LICENSING.md.
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
 # Compiles the GLSL in src/Ilmenyx.Gpu.Vulkan/Shaders to SPIR-V (embedded resources) and validates them. Needs glslc and spirv-val.
 set -euo pipefail
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)

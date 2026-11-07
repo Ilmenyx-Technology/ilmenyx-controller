@@ -1,4 +1,7 @@
-// New Ilmenyx additions: see LICENSING.md. Layout follows the original RESET EXPLODE structure (grouped rounded sidebar,
+// SPDX-License-Identifier: MIT AND PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Gustavo (GustavoReset)
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// Layout follows the original RESET EXPLODE structure (grouped rounded sidebar,
 // header with brand and current page, live footer, overview with chart/chips/components table); no original assets are used.
 using Avalonia;
 using Avalonia.Automation;

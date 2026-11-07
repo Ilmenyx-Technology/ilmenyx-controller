@@ -1,4 +1,5 @@
 # AGENTS.md — diretrizes do fork de portabilidade Linux
+<!-- REUSE-IgnoreStart -->
 
 ## Objetivo
 Portar incrementalmente o RESET EXPLODE de WPF/.NET Windows para Linux com Avalonia + .NET, preservando compatibilidade futura com Windows e a autoria/licença do projeto original.
@@ -125,7 +126,7 @@ as regras de arquitetura Linux, benchmarks, testes, licenças e segurança anter
 
 - Produto Linux: Ilmenyx; marca mantenedora: Bismuth Technology (grafia exata), sem sufixo Audit no nome principal.
 - Origem: RESET EXPLODE de Gustavo (GustavoReset), adaptação independente e não oficial, sem afiliação, endosso ou patrocínio.
-- Preservar LICENSE MIT integral, Copyright (c) 2026 Gustavo (GustavoReset), referência upstream e direitos de dependências/assets verificados individualmente.
+- Preservar a MIT integral do RESET EXPLODE em LICENSES/MIT.txt (Copyright (c) 2026 Gustavo (GustavoReset)), referência upstream e direitos de dependências/assets verificados individualmente. (Atualizado 2026-11-07: o LICENSE da raiz agora é a PolyForm Noncommercial; ver "Licença 2026-11-07".)
 - Ilmenyx não implica marca registrada/disponível: não usar símbolo de registro, exclusividade ou alegação de liberação no INPI.
 - Organização GitHub não prova pessoa jurídica; não atribuir direitos à empresa sem definição formal.
 - Renomear somente identificadores ativos seguros do port; não substituir cegamente nomes WPF, benchmarks, histórico, créditos ou formatos.
@@ -140,17 +141,18 @@ as regras de arquitetura Linux, benchmarks, testes, licenças e segurança anter
   mudanças de identidade exigem nova aprovação. Continua sem presunção de registro de marca.
 
 
-## Decisão permanente posterior — monetização e diretório
-- O mantenedor proíbe qualquer monetização das contribuições próprias licenciáveis futuras, direta/indireta/profissional. Ver LICENSING.md e LICENSE-ILMENYX.md; revisão jurídica antes de publicar.
-- Preservar MIT do RESET, termos de terceiros e direitos já concedidos; não afirmar restrição sobre todo material anterior nem retroatividade.
-- Não anunciar o conjunto como open source OSI com termos não comerciais. Não presumir titularidade da marca/pessoa jurídica.
-- Workspace/repositório local atual: /mnt/HDD/Github/Ilmenyx, descrição Git Ilmenyx e branch feat/ilmenyx-linux; preservar histórico e submódulo.
+## Licença 2026-11-07 (prevalece sobre as regras de licença anteriores deste arquivo)
+- Todo o código e a documentação do mantenedor, desde o primeiro commit (inclusive a fase Silex), estão sob PolyForm Noncommercial 1.0.0 + permissão adicional (LICENSES/LicenseRef-Ilmenyx-Permissao-Adicional.txt, PT prevalece). Explicação: LICENSING.md. LICENSE-ILMENYX.md não existe mais.
+- Permitido: uso como ferramenta em trabalho pago, instalar no PC do cliente sem cobrar pelo app, vídeos monetizados, redistribuição gratuita sem cadastro/anúncio, modificação para uso interno. Proibido: vender, cobrar acesso, serviço pago, derivado comercial. Doações ao mantenedor são aceitas e não mudam os termos.
+- Titular: "Flávio (mantido como Bismuth Technology)" até o nome civil completo ser informado (docs/governance/PENDENCIAS.md). Bismuth Technology não é pessoa jurídica.
+- **Todo arquivo novo** em src/, tests/, tools/, scripts/, packaging/ leva no topo (após `#!`/`#version`/`<?xml`):
+  `SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0` e `SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)`.
+- Arquivo que adapta código, dados, estrutura ou layout do RESET EXPLODE: `SPDX-License-Identifier: MIT AND PolyForm-Noncommercial-1.0.0`, com `SPDX-FileCopyrightText: 2026 Gustavo (GustavoReset)` e a linha do mantenedor; acrescentar o arquivo à lista de NOTICE.md.
+- Arquivo sem comentário possível (imagem, JSON, binário): cobrir em REUSE.toml. Terceiros mantêm seu identificador (ex.: Icons.cs `PolyForm-Noncommercial-1.0.0 AND Apache-2.0`); registrar em THIRD-PARTY-NOTICES.md.
+- Pacotes levam LICENSE, LICENSES/, NOTICE.md, LICENSING.md e THIRD-PARTY-NOTICES.md. Metainfo: `MIT AND PolyForm-Noncommercial-1.0.0`.
+- Não aceitar código externo (CONTRIBUTING.md). Não anunciar como open source OSI. Não remover nem alterar o copyright/texto MIT do Gustavo.
+- Workspace/repositório local histórico: /mnt/HDD/Github/Ilmenyx; preservar histórico e submódulo.
 
-
-## Esclarecimento comercial mais recente (prevalece sobre a vedação ampla acima)
-- É permitido usar o Ilmenyx como ferramenta independente em serviços remunerados, diagnóstico e entrega de relatórios.
-- Não é permitido, sobre contribuições próprias abrangidas, vender o programa, cobrar acesso ou copiar/incorporar código para produto/serviço pago. Ver LICENSE-ILMENYX.md e LICENSING.md.
-- Não tratar o uso profissional instrumental como venda do software. MIT/terceiros e permissões já concedidas permanecem preservados; revisão jurídica antes de publicar.
 
 ## Exportação dos resultados pela UI 0.12.0
 - Botões HTML exportam o snapshot selecionado; não repetir coleta/workload ao exportar.
@@ -297,3 +299,4 @@ as regras de arquitetura Linux, benchmarks, testes, licenças e segurança anter
   que roda um script **fixo**, montado só com valores de lista permitida, via polkit (`pkexec`): o sistema pede a senha na janela dele e o
   Ilmenyx nunca a vê. Sempre por clique com confirmação, com Desfazer, e com o comando visível para técnicos. Isso substitui, só para esses
   casos, a regra "root = comando exibido". Nenhum outro script, texto livre ou valor vindo de relatórios/rede pode chegar ao `pkexec`.
+<!-- REUSE-IgnoreEnd -->

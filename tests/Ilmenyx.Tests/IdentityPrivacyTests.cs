@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
 using System.Reflection;
 using System.Text.Json;
 using Ilmenyx.Cli;
@@ -20,10 +22,20 @@ public class IdentityPrivacyTests
         Assert.Equal("ilmenyx",typeof(CliArguments).Assembly.GetName().Name);
         Assert.Contains("RESET EXPLODE",CliArguments.Help);Assert.Contains("GustavoReset",ProductIdentity.Attribution);
         Assert.Contains("não oficial",ProductIdentity.Attribution);Assert.Contains("sem afiliação",ProductIdentity.Attribution);
+        var mit=File.ReadAllText(Path.Combine(AppContext.BaseDirectory,"LICENSES","MIT.txt"));
+        Assert.Contains("Copyright (c) 2026 Gustavo (GustavoReset)",mit);
+        Assert.Contains("Permission is hereby granted, free of charge",mit);
+        Assert.DoesNotContain("Bismuth",mit);
         var license=File.ReadAllText(Path.Combine(AppContext.BaseDirectory,"LICENSE"));
-        Assert.Contains("Copyright (c) 2026 Gustavo (GustavoReset)",license);
-        Assert.Contains("Permission is hereby granted, free of charge",license);
+        Assert.Contains("# PolyForm Noncommercial License 1.0.0",license);
+        Assert.Contains("Required Notice: Copyright (c) 2026 Flávio (mantido como Bismuth Technology)",license);
+        Assert.Contains("LICENSES/LicenseRef-Ilmenyx-Permissao-Adicional.txt",license);
+        Assert.Contains("LICENSES/MIT.txt",license);
         Assert.DoesNotContain("Copyright (c) 2026 Bismuth",license);
+        Assert.EndsWith(File.ReadAllText(Path.Combine(AppContext.BaseDirectory,"LICENSES","PolyForm-Noncommercial-1.0.0.txt")),license);
+        var permission=File.ReadAllText(Path.Combine(AppContext.BaseDirectory,"LICENSES","LicenseRef-Ilmenyx-Permissao-Adicional.txt"));
+        Assert.Contains("prevalece o",permission);Assert.Contains("only ADDS rights",permission);
+        Assert.Contains("Gustavo (GustavoReset)",File.ReadAllText(Path.Combine(AppContext.BaseDirectory,"NOTICE.md")));
         Assert.Contains("não oficial",File.ReadAllText(Path.Combine(AppContext.BaseDirectory,"NOTICE.md")));
         Assert.Contains("Avalonia.Wayland",File.ReadAllText(Path.Combine(AppContext.BaseDirectory,"THIRD-PARTY-NOTICES.md")));
     }

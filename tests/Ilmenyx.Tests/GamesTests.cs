@@ -1,4 +1,6 @@
-// New Ilmenyx additions: see LICENSING.md. Fixtures sintéticos; nenhum jogo é iniciado e nenhum arquivo real da Steam é alterado.
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// Fixtures sintéticos; nenhum jogo é iniciado e nenhum arquivo real da Steam é alterado.
 using Ilmenyx.Core;
 using Ilmenyx.Platform.Linux;
 using Xunit;

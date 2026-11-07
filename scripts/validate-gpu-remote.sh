@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# New Ilmenyx additions: see LICENSING.md.
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
 # Validates the GPU paths on ANY machine you own or were lent (AMD/NVIDIA desktop, friend's PC): no install, no root, no network.
 # Phase 1 (default) is read-only. Phase 2 runs short, bounded GPU loads and needs --allow-gpu-load AND the machine's owner agreeing.
 set -euo pipefail

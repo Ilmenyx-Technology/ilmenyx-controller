@@ -1,21 +1,44 @@
-# Contribuir com Ilmenyx
+# Contribuir com o Ilmenyx
+<!-- REUSE-IgnoreStart -->
 
-Port independente e não oficial de RESET EXPLODE, de Gustavo (GustavoReset), mantido sob a
-identidade Bismuth Technology. Leia AGENTS.md, NOTICE.md e LICENSE. O upstream não recebe PRs
-conforme README local auditado; colaboração futura aqui é para o port, não publicação em nome do RESET.
-Repositório remoto da organização: [PENDENTE: decisão humana]. Nenhum envio remoto autorizado agora.
+## Por enquanto: issues sim, código não
 
-Não há CLA, DCO, cessão automática ou nova condição comercial imposta. A política própria permite uso instrumental em trabalho remunerado e restringe venda/acesso
-pago do programa e derivação comercial de código; leia
-LICENSING.md e confirme autoria/permissões/compatibilidade antes de contribuir. Partes MIT
-e direitos anteriormente concedidos permanecem com seus termos. Não acrescente logo,
-fonte, driver ou asset sem proveniência/licença própria. GitHub owner e marca não provam titularidade.
+**O Ilmenyx não aceita contribuições de código de outras pessoas por enquanto** (pull requests,
+patches, trechos enviados por e-mail ou issue). Pull requests de terceiros serão fechados sem
+incorporar o código. Assim todo o código continua de um único titular, o que mantém a licença simples
+e deixa aberta a porta para uma futura empresa.
 
-Crie alterações pequenas e explicáveis, preserve o submódulo fixado e a metodologia dos benchmarks.
-Core/Contracts sem UI/Windows; adaptadores por SO; dados reais ou indisponíveis. Não executar stress,
-sudo, drivers, escrita em disco bruto ou perfis full em testes. Não coletar/anexar identificadores.
+**Issues são muito bem-vindas:**
 
-Com SDK .NET 10 disponível, telemetria opt-out e dependências já instaladas:
+- relato de bug (o que fez, o que esperava, o que aconteceu, distro e hardware);
+- sugestão de recurso;
+- resultado de teste em hardware ou distro que o projeto ainda não validou (veja `Sem_teste.md`).
+
+Antes de anexar relatórios, leia [PRIVACY.md](PRIVACY.md): eles podem identificar a sua máquina.
+Vulnerabilidades: não abra issue pública, siga [SECURITY.md](SECURITY.md).
+
+Ao abrir uma issue, não envie código para ser copiado. Uma ideia descrita em palavras é suficiente.
+
+## Licença
+
+O Ilmenyx está sob a PolyForm Noncommercial 1.0.0 com uma permissão adicional; os trechos que vêm do
+RESET EXPLODE continuam também sob a MIT. Explicação: [LICENSING.md](LICENSING.md). O Ilmenyx é uma
+adaptação independente e não oficial do RESET EXPLODE, de Gustavo (GustavoReset); não envie nada ao
+projeto original em nome do Ilmenyx.
+
+## Para o mantenedor e os agentes que trabalham no repositório
+
+- Todo arquivo novo leva o cabeçalho SPDX (ver [AGENTS.md](AGENTS.md) e [LICENSING.md](LICENSING.md)):
+  `SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0` e
+  `SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)`. Arquivo que adapta código do
+  RESET EXPLODE: `MIT AND PolyForm-Noncommercial-1.0.0` com os dois copyrights.
+- Não acrescente logo, fonte, driver, asset ou código de terceiros sem licença conhecida e registro em
+  `THIRD-PARTY-NOTICES.md`.
+- Alterações pequenas e explicáveis; preserve o submódulo fixado e a metodologia dos benchmarks.
+  Core/Contracts sem UI/Windows; adaptadores por SO; dados reais ou indisponíveis. Não executar stress,
+  sudo, drivers, escrita em disco bruto ou perfis full em testes.
+
+Com o SDK .NET 10 disponível:
 
 ```bash
 dotnet restore Ilmenyx.slnx --disable-parallel -m:1
@@ -23,9 +46,14 @@ dotnet build Ilmenyx.slnx -c Release --no-restore -m:1
 dotnet test Ilmenyx.slnx -c Release --no-build --no-restore -m:1
 ```
 
-Em Bash, helper local opcional `. scripts/env-local-sdk.sh` reutiliza apenas o SDK temporário da
-sessão anterior, se ainda existir. Não executar esse source no fish. Sem instalação automática.
+Em Bash, o helper opcional `. scripts/env-local-sdk.sh` reutiliza o SDK temporário em `/tmp/silex-dotnet`
+(`scripts/get-local-sdk.sh` o baixa). Registre NÃO TESTADO em `Sem_teste.md` quando faltar ambiente.
+Push, tags, releases e publicação exigem decisão explícita do mantenedor.
 
-Informe o comportamento, evidência e limites; registre NÃO TESTADO em Sem_teste.md quando faltar
-ambiente. Leia PRIVACY.md antes de anexar relatórios. Vulnerabilidades: SECURITY.md. Commits locais
-por incremento; push, tags, releases e publicação exigem decisão explícita do mantenedor.
+---
+
+**English:** external code contributions are not accepted for now; pull requests from third parties will
+be closed without merging. Issues (bug reports, feature ideas, test results on new hardware/distros) are
+welcome. Security issues: see `SECURITY.md`. License: PolyForm Noncommercial 1.0.0 + additional
+permission, MIT for the RESET EXPLODE portions; see `LICENSING.md`. The Portuguese text prevails.
+<!-- REUSE-IgnoreEnd -->

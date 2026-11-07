@@ -12,6 +12,8 @@ Sobre usa agora um ComboBox padrão Avalonia com rótulo Documento, seguido por 
 Dependências e Termos Ilmenyx. Origem mantém ProductIdentity.Attribution + NOTICE;
 MIT é LICENSE integral; dependências usam THIRD-PARTY-NOTICES; termos combinam
 LICENSING e LICENSE-ILMENYX, como anteriormente. Não há busca, download ou upload.
+(Atualização 2026-11-07: "MIT (partes do RESET EXPLODE)" lê LICENSES/MIT.txt e "Licença Ilmenyx"
+combina LICENSING.md, a permissão adicional e a PolyForm Noncommercial em LICENSE.)
 Falha de leitura mantém mensagem explícita de indisponibilidade já existente.
 
 O seletor recebe nome acessível e LabeledBy. O leitor tem nome de controle estável

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT AND PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Gustavo (GustavoReset)
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
 // Adapted from RESET EXPLODE GameSimBench.cs, MIT, copyright (c) 2026 Gustavo (GustavoReset).
 // Bounded state engine only; see LICENSE and docs/gamesim-metodologia.md.
 using Ilmenyx.Contracts;

@@ -1,4 +1,5 @@
-// New Ilmenyx additions: see LICENSING.md.
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
 using System.Net.Http;
 using System.Text.Json;
 using Ilmenyx.Core;

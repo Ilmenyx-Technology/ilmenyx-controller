@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# New Ilmenyx additions: see LICENSING.md; third-party components retain their terms.
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+# Third-party components retain their terms.
 # Builds Ilmenyx-<version>-x86_64.AppImage from the self-contained bundle of package-linux-x64.sh.
 # AppImage = the official type2 runtime (pinned release, SHA-256 checked against the value GitHub publishes) followed by
 # a squashfs image of the AppDir. Never installs, elevates or publishes anything.

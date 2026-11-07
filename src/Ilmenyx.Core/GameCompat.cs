@@ -1,8 +1,9 @@
-// New Ilmenyx additions: see LICENSING.md.
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
 // Game compatibility from public sources that allow automated use:
-//  - ProtonDB summaries (protondb.com) and ProtonDB report exports (github.com/bdefore/protondb-data, ODbL 1.0 / DbCL 1.0);
-//  - Steam Deck compatibility report from the Steam store (Valve);
-//  - AreWeAntiCheatYet games.json (MIT).
+// - ProtonDB summaries (protondb.com) and ProtonDB report exports (github.com/bdefore/protondb-data, ODbL 1.0 / DbCL 1.0);
+// - Steam Deck compatibility report from the Steam store (Valve);
+// - AreWeAntiCheatYet games.json (MIT).
 // SteamDB is not queried: its FAQ forbids scraping and it has no public API; the app only offers a link the user opens.
 // Everything here is pure (no I/O): parsing, privacy filtering, hardware matching, suggestions and launch-option safety.
 using System.Globalization;

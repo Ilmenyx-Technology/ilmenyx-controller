@@ -1,0 +1,57 @@
+version = 1
+SPDX-PackageName = "Ilmenyx"
+SPDX-PackageSupplier = "Flávio (mantido como Bismuth Technology)"
+SPDX-PackageDownloadLocation = "https://github.com/Bismuth-Technology/ilmenyx"
+
+# Licensing of files that cannot carry an SPDX header (images, binary data, JSON fixtures, documents).
+# Files WITH an SPDX header keep their header (precedence "closest"). When several annotations match a
+# file, the LAST one wins, so the catch-all comes first. Explanation: LICENSING.md.
+
+# Catch-all: the maintainer's own documentation, evidence, configuration and data.
+[[annotations]]
+path = "**"
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 Flávio (mantido como Bismuth Technology)"
+SPDX-License-Identifier = "PolyForm-Noncommercial-1.0.0"
+
+# Top-level documents that explain the license and the additional permission.
+[[annotations]]
+path = ["README.md", "LICENSING.md", "NOTICE.md"]
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 Flávio (mantido como Bismuth Technology)"
+SPDX-License-Identifier = "PolyForm-Noncommercial-1.0.0 AND LicenseRef-Ilmenyx-Permissao-Adicional"
+
+# Brand: name, logo, symbol, icons and brand manual. Not licensed for other people's products.
+[[annotations]]
+path = ["docs/branding/kit/**", "packaging/linux/hicolor/**", "src/Ilmenyx.Desktop/Assets/**"]
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 Flávio (mantido como Bismuth Technology)"
+SPDX-License-Identifier = "LicenseRef-Ilmenyx-Marca"
+
+# Data produced by running the original RESET EXPLODE code (bounded oracles) and the SPIR-V compiled
+# from the adapted ray tracing shader: original MIT portions plus the maintainer's work.
+[[annotations]]
+path = [
+  "tests/Ilmenyx.Tests/Fixtures/cpu-original-pixels.json",
+  "tests/Ilmenyx.Tests/Fixtures/cpu-reference.json",
+  "tests/Ilmenyx.Tests/Fixtures/cpu-reference.bgra",
+  "tests/Ilmenyx.Tests/Fixtures/gamesim-reference.json",
+  "tests/Ilmenyx.Tests/Fixtures/memory-reference.json",
+  "src/Ilmenyx.Gpu.Vulkan/Shaders/rt_trace.comp.spv",
+]
+precedence = "closest"
+SPDX-FileCopyrightText = ["2026 Gustavo (GustavoReset)", "2026 Flávio (mantido como Bismuth Technology)"]
+SPDX-License-Identifier = "MIT AND PolyForm-Noncommercial-1.0.0"
+
+# Third-party license texts shipped in the packages.
+[[annotations]]
+path = "packaging/licenses/Apache-2.0.txt"
+precedence = "closest"
+SPDX-FileCopyrightText = "The Apache Software Foundation"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "packaging/licenses/Inter-OFL-1.1.txt"
+precedence = "closest"
+SPDX-FileCopyrightText = "2016 The Inter Project Authors"
+SPDX-License-Identifier = "OFL-1.1"

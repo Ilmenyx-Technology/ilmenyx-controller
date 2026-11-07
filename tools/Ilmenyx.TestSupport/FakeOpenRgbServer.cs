@@ -1,4 +1,6 @@
-// New Ilmenyx additions: see LICENSING.md. Source shared (linked) by the unit tests and the graphical smoke; loopback only, no real device.
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// Source shared (linked) by the unit tests and the graphical smoke; loopback only, no real device.
 using System.Buffers.Binary;
 using System.Net;
 using System.Net.Sockets;

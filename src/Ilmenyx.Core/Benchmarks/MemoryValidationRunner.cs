@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT AND PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Gustavo (GustavoReset)
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
 // RAM algorithm reference: RESET EXPLODE MemoryBench.cs, MIT, copyright (c) 2026 Gustavo (GustavoReset).
 // Bounded validation adaptation; see LICENSE and docs/memoria-metodologia.md.
 using System.Buffers.Binary;

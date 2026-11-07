@@ -53,7 +53,7 @@ Referência detalhada existente: ../../THIRD-PARTY-NOTICES.md. Material de direi
 | Material | Fonte/licença observada | Uso / obrigação | Estado |
 |---|---|---|---|
 | Código original RESET | LICENSE MIT GustavoReset, SHA fixado | Avisos integrais em fonte e outputs; nomes de algoritmos preservados | IMPLEMENTADO; clean-room estrito não alegado |
-| Código novo | Intenção MIT, sem cessão à marca | Confirmar autoria/permissões individuais | PENDENTE DE REVISÃO |
+| Código próprio do mantenedor (desde o primeiro commit) | PolyForm Noncommercial 1.0.0 + permissão adicional (LICENSING.md); arquivos adaptados do RESET: MIT AND PolyForm | Cabeçalho SPDX em cada arquivo; REUSE.toml para o resto | IMPLEMENTADO 2026-11-07 |
 | Assets/logo/ícones RESET | upstream/ResetExplode/Assets/*.png, app.ico | Não incorporados ao port; licença de marca/asset não demonstrada individualmente | BLOQUEIA REDISTRIBUIÇÃO desses assets ATÉ REVISÃO |
 | Drivers/SDKs/binários Windows | Drivers/**/*.sys/.dll, Native opcional, csproj WPF | Fora da solução nova; termos próprios por fornecedor | BLOQUEIA REDISTRIBUIÇÃO no produto até revisão individual |
 | JPG de referência local/ZIP do mantenedor | Arquivos locais sem licença específica demonstrada | Ignorados especificamente, não usados como assets nem removidos | BLOQUEIA REDISTRIBUIÇÃO ATÉ REVISÃO |
@@ -62,6 +62,6 @@ Referência detalhada existente: ../../THIRD-PARTY-NOTICES.md. Material de direi
 | smartctl | Ferramenta externa opcional, smartmontools GPL própria | Não incorporada/redistribuída; MIT não a relicencia | Revisar termos se futura distribuição incluir binário |
 | NuGet nativos Skia/HarfBuzz/ANGLE | Pacotes/arquivos de licença, não só wrapper MIT | Preservar avisos completos e sublicenças nativas no pacote final | PENDENTE; redistribuição final bloqueada até coleta/revisão |
 
-Outputs locais recebem LICENSE/NOTICE/THIRD-PARTY-NOTICES via src/Directory.Build.props. Isso
+Outputs locais recebem LICENSE, LICENSES/, NOTICE e THIRD-PARTY-NOTICES via src/Directory.Build.props. Isso
 implementa avisos do projeto, mas não substitui reunir todos os termos nativos/terceiros finais.
 Nenhum documento autoriza marca RESET, direitos exclusivos Ilmenyx, registro ou publicação.

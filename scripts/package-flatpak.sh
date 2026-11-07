@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# New Ilmenyx additions: see LICENSING.md.
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
 # Builds the Flatpak bundle (single .flatpak file) from the self-contained linux-x64 package. User-level tools only (no sudo):
-#   flatpak install --user flathub org.flatpak.Builder org.freedesktop.Platform//25.08 org.freedesktop.Sdk//25.08
+# flatpak install --user flathub org.flatpak.Builder org.freedesktop.Platform//25.08 org.freedesktop.Sdk//25.08
 # Never publishes or installs anything; the result is a local file to review. Uso: bash scripts/package-flatpak.sh /caminho/absoluto/destino-novo
 set -euo pipefail
 if [[ $# != 1 || $1 != /* ]]; then

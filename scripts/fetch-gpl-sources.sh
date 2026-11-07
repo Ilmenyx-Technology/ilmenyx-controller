@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# New Ilmenyx additions: see LICENSING.md.
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
 # Corresponding source of the GPL programs that ship inside the Ilmenyx packages (GPL-2.0 section 3): pinned, SHA-256 checked,
 # written to a new directory so it can be attached to the release next to the binaries. Downloads only; publishes nothing.
 set -euo pipefail

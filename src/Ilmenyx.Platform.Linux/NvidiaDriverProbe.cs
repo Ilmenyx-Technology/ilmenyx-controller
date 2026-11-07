@@ -1,4 +1,5 @@
-// New Ilmenyx additions: see LICENSING.md.
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
 // "Driver NVIDIA" tab, Linux side: a read-only probe (sysfs, os-release, /usr/src, /lib/modules, dpkg-query, apt-cache policy, dkms status,
 // mokutil, prime-select, nvidia-smi — never as root) and the real `apt-get -s` dry run. The privileged runner lives in NvidiaDriverRunner.
 using System.Text;

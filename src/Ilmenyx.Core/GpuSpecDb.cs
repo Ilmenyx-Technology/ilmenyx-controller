@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT AND PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Gustavo (GustavoReset)
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
 // Reference data table ported from the original GpuSpecDb (MIT, see NOTICE): see LICENSING.md.
 namespace Ilmenyx.Core;
 

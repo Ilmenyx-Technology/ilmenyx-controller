@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
 // New Ilmenyx additions: shared builders of the cinematic ambient dark interface (2026-11-06). See LICENSING.md.
 // Every page builds its surfaces from here, so tokens (Palette), radii and motion (IlmenyxTheme) stay consistent.
 using Avalonia;

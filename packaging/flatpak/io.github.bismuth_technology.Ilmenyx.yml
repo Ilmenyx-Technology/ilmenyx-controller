@@ -1,4 +1,5 @@
-# New Ilmenyx additions: see LICENSING.md.
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
 # Flatpak of the PREBUILT self-contained linux-x64 bundle (scripts/package-linux-x64.sh output): .NET 10 and ICU ship inside, so the
 # runtime only provides the graphics stack (X11/Wayland, fontconfig, Vulkan loader). Built by scripts/package-flatpak.sh, which places
 # the bundle next to this file as ./bundle. Permissions and what degrades in the sandbox: docs/flatpak.md.
@@ -29,7 +30,7 @@ modules:
     build-commands:
       - mkdir -p /app/lib/ilmenyx /app/bin
       - cp -a desktop cli components licenses /app/lib/ilmenyx/
-      - cp LICENSE NOTICE.md LICENSING.md LICENSE-ILMENYX.md THIRD-PARTY-NOTICES.md package.json /app/lib/ilmenyx/
+      - cp -r LICENSE LICENSES NOTICE.md LICENSING.md THIRD-PARTY-NOTICES.md package.json /app/lib/ilmenyx/
       - install -Dm755 ilmenyx-desktop.sh /app/bin/ilmenyx-desktop
       - install -Dm755 ilmenyx-cli.sh /app/bin/ilmenyx
       - install -Dm644 linux/io.github.bismuth_technology.Ilmenyx.desktop /app/share/applications/io.github.bismuth_technology.Ilmenyx.desktop

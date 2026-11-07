@@ -1,0 +1,119 @@
+Ilmenyx — Permissão Adicional à PolyForm Noncommercial License 1.0.0
+Ilmenyx — Additional Permission to the PolyForm Noncommercial License 1.0.0
+Versão / Version 1.0 — 2026-11-07
+
+Required Notice: Copyright (c) 2026 Flávio (mantido como Bismuth Technology) — https://github.com/Bismuth-Technology/ilmenyx
+
+=====================================================================
+PORTUGUÊS (esta versão prevalece)
+=====================================================================
+
+1. O que é. O titular indicado acima (o "licenciante") oferece o Ilmenyx sob a PolyForm
+   Noncommercial License 1.0.0 (a "PolyForm"), cujo texto oficial está em
+   LICENSES/PolyForm-Noncommercial-1.0.0.txt. Esta permissão adicional só ACRESCENTA direitos
+   aos da PolyForm. Ela nunca retira, limita nem condiciona direito algum que a PolyForm, a
+   licença MIT (nas partes que são MIT) ou a lei já lhe deem. Quem preferir pode ignorá-la e
+   usar só a PolyForm.
+
+2. Uso como ferramenta em trabalho pago. Você, pessoa ou empresa, pode usar o Ilmenyx como
+   ferramenta no seu próprio trabalho, mesmo remunerado. Exemplos: diagnosticar, testar, manter
+   ou consertar o computador de um cliente; administrar os computadores da sua empresa; entregar
+   ao cliente os relatórios gerados pelo Ilmenyx. Você pode cobrar pelo seu trabalho, mas não
+   pelo Ilmenyx.
+
+3. Instalação no computador do cliente. Um técnico pode instalar uma cópia sem modificação do
+   Ilmenyx no computador de um cliente e cobrar pela visita ou pelo serviço, desde que não cobre
+   pelo Ilmenyx e deixe junto a licença e os avisos (LICENSE, LICENSES/, NOTICE.md e
+   THIRD-PARTY-NOTICES.md).
+
+4. Vídeos, tutoriais e artigos. Você pode publicar vídeos, transmissões, tutoriais, cursos,
+   artigos e capturas de tela sobre o Ilmenyx, inclusive monetizados (anúncios, patrocínio,
+   assinatura da plataforma).
+
+5. Redistribuição gratuita. Qualquer pessoa ou empresa pode redistribuir cópias sem modificação
+   dos pacotes do Ilmenyx (AppImage, Flatpak, tar.gz e outros pacotes publicados pelo
+   licenciante), desde que:
+   a) a cópia seja gratuita;
+   b) baixá-la não exija cadastro, pagamento, assinatura, nem ver ou clicar em anúncio; e
+   c) a licença e os avisos acompanhem a cópia.
+   Um site que exiba anúncios nas suas páginas pode hospedar a cópia se cumprir a), b) e c).
+
+6. Modificação para uso interno. Uma empresa ou organização pode modificar o Ilmenyx para uso
+   interno próprio, inclusive pelas pessoas que trabalham para ela e da forma descrita no item 2,
+   desde que não venda, não alugue, não distribua e não ofereça a terceiros a versão modificada
+   nem o acesso a ela.
+
+7. O que esta permissão não abrange. Esta permissão não autoriza: vender, alugar ou cobrar por
+   cópias, acesso, ativação ou desbloqueio do Ilmenyx; oferecer as funções do Ilmenyx como
+   serviço pago (por exemplo, hospedado ou por API); nem usar o código do Ilmenyx, modificado ou
+   não, em produto ou serviço pago. Para esses usos valem apenas a PolyForm, a MIT nas partes
+   que são MIT (ver LICENSING.md) e qualquer outra licença que o licenciante conceda por escrito.
+
+8. Demais regras. Aplicam-se também a esta permissão as seções "Notices", "No Other Rights",
+   "Violations", "No Liability" e "Definitions" da PolyForm. Esta permissão não concede direito
+   de usar o nome Ilmenyx, o logo ou o nome Bismuth Technology como marca de outro produto ou
+   serviço; citar o Ilmenyx para identificá-lo é permitido.
+
+9. Idioma. Se o texto em português e o texto em inglês desta permissão divergirem, prevalece o
+   português. O texto da PolyForm é o texto oficial em inglês.
+
+10. Doações. O licenciante pode aceitar doações e patrocínios voluntários. Doar não é condição para
+   usar o Ilmenyx, não dá direito a recursos pagos nem a direitos além desta licença, e o fato de o
+   licenciante receber doações não muda os termos não comerciais para ninguém.
+
+=====================================================================
+ENGLISH (translation; the Portuguese version prevails)
+=====================================================================
+
+1. What this is. The holder named above (the "licensor") offers Ilmenyx under the PolyForm
+   Noncommercial License 1.0.0 ("PolyForm"), whose official text is in
+   LICENSES/PolyForm-Noncommercial-1.0.0.txt. This additional permission only ADDS rights to
+   those in PolyForm. It never removes, limits or conditions any right that PolyForm, the MIT
+   license (for the parts that are MIT) or the law already gives you. You may ignore it and rely
+   on PolyForm alone.
+
+2. Use as a tool in paid work. You, a person or a company, may use Ilmenyx as a tool in your own
+   work, including paid work. Examples: diagnosing, testing, maintaining or repairing a client's
+   computer; administering your company's computers; handing the client the reports Ilmenyx
+   produced. You may charge for your work, but not for Ilmenyx.
+
+3. Installing on a client's computer. A technician may install an unmodified copy of Ilmenyx on
+   a client's computer and charge for the visit or the service, as long as they do not charge for
+   Ilmenyx and they leave the license and notices with it (LICENSE, LICENSES/, NOTICE.md and
+   THIRD-PARTY-NOTICES.md).
+
+4. Videos, tutorials and articles. You may publish videos, streams, tutorials, courses, articles
+   and screenshots about Ilmenyx, including monetized ones (ads, sponsorship, platform
+   subscriptions).
+
+5. Free redistribution. Any person or company may redistribute unmodified copies of the Ilmenyx
+   packages (AppImage, Flatpak, tar.gz and other packages published by the licensor), as long as:
+   a) the copy is free of charge;
+   b) downloading it does not require registration, payment, a subscription, or viewing or
+      clicking an ad; and
+   c) the license and notices go with the copy.
+   A website that shows ads on its pages may host the copy if it meets a), b) and c).
+
+6. Modification for internal use. A company or organization may modify Ilmenyx for its own
+   internal use, including by the people who work for it and in the way described in item 2, as
+   long as it does not sell, rent, distribute or offer the modified version, or access to it, to
+   third parties.
+
+7. What this permission does not cover. This permission does not authorize: selling, renting or
+   charging for copies of, access to, activation or unlocking of Ilmenyx; offering the functions of
+   Ilmenyx as a paid service (for example hosted or through an API); or using the code of Ilmenyx,
+   modified or not, in a paid product or service. For those uses only PolyForm, the MIT license for
+   the parts that are MIT (see LICENSING.md) and any other license the licensor grants in writing
+   apply.
+
+8. Other rules. The "Notices", "No Other Rights", "Violations", "No Liability" and "Definitions"
+   sections of PolyForm also apply to this permission. This permission grants no right to use the
+   name Ilmenyx, the logo or the name Bismuth Technology as a brand for another product or
+   service; naming Ilmenyx to identify it is allowed.
+
+9. Language. If the Portuguese and the English texts of this permission differ, the Portuguese
+   text prevails. The PolyForm text is the official English text.
+
+10. Donations. The licensor may accept voluntary donations and sponsorship. Donating is not a
+   condition for using Ilmenyx, gives no paid features and no rights beyond this license, and the
+   licensor receiving donations does not change the noncommercial terms for anyone.

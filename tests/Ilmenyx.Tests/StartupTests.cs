@@ -1,4 +1,6 @@
-// New Ilmenyx additions: see LICENSING.md. Diretórios temporários; nada do usuário real é tocado.
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// Diretórios temporários; nada do usuário real é tocado.
 using Ilmenyx.Platform.Linux;
 using Xunit;
 

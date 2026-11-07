@@ -1,3 +1,5 @@
+**Contribuições de código externas não são aceitas por enquanto** (ver CONTRIBUTING.md); este template é para o mantenedor.
+
 Descreva o problema e o comportamento final. Este template é para o port Ilmenyx, não o upstream.
 
 - Alteração e motivo:

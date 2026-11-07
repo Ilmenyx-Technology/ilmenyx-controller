@@ -1,4 +1,6 @@
 #version 450
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
 // Ilmenyx GPU burn: furry torus drawn as N inflated shells. No vertex buffers: positions come from gl_VertexIndex.
 layout(push_constant) uniform PC { mat4 viewProj; float time; float shells; int iterations; float aspect; } pc;
 layout(location = 0) out vec3 vNormal;
