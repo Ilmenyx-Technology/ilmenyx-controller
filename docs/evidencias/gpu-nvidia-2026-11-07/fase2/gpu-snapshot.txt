@@ -1,0 +1,2 @@
+Quadro salvo em /tmp/ilx-gpu-f2/cena.png (1920×1080) · Intel(R) HD Graphics 620 (KBL GT2)
+exit=0

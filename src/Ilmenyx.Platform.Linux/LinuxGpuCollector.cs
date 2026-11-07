@@ -25,39 +25,87 @@ public sealed class LinuxGpuCollector(string sysRoot = "/sys", string procRoot =
     ];
 
     /// <summary>Parses nvidia-smi --format=csv,noheader,nounits rows into per-GPU field maps keyed by the lowercase bus id suffix ("01:00.0").</summary>
-    public static IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> ParseSmi(string csv)
+    public static IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> ParseSmi(string csv) => ParseSmi(csv, SmiFields);
+
+    /// <summary>Same, for the fields actually requested (drivers drop and rename fields: the column list follows what was asked).</summary>
+    public static IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> ParseSmi(string csv, IReadOnlyList<string> fields)
     {
         var result = new Dictionary<string, IReadOnlyDictionary<string, string>>(StringComparer.Ordinal);
         foreach (var line in csv.Split('\n', StringSplitOptions.RemoveEmptyEntries).Take(16))
         {
             var cells = line.Split(", ", StringSplitOptions.None).Select(c => c.Trim()).ToArray();
-            if (cells.Length != SmiFields.Length) continue;
+            if (cells.Length != fields.Count) continue;
             var map = new Dictionary<string, string>(StringComparer.Ordinal);
             for (int i = 0; i < cells.Length; i++)
-                if (cells[i].Length is > 0 and < 160 && !cells[i].StartsWith('[') && cells[i] != "N/A" && !cells[i].All(char.IsControl)) map[SmiFields[i]] = cells[i];
+                if (cells[i].Length is > 0 and < 160 && !cells[i].StartsWith('[') && cells[i] != "N/A" && !cells[i].All(char.IsControl)) map[fields[i]] = cells[i];
             if (map.TryGetValue("pci.bus_id", out var id) && id.IndexOf(':') is var c && c >= 0) result[id[(c + 1)..].ToLowerInvariant()] = map;
         }
         return result;
     }
 
+    /// <summary>Name of the field nvidia-smi refused ("Field \"clocks.max.video\" is not a valid field to query."), or null.</summary>
+    public static string? RefusedField(string output) =>
+        System.Text.RegularExpressions.Regex.Match(output, "Field \"([A-Za-z0-9_.]{1,64})\" is not a valid field") is { Success: true } m ? m.Groups[1].Value : null;
+
+    private static string[]? resolvedFields;
+
     private static double? D(IReadOnlyDictionary<string, string> m, string k) => m.TryGetValue(k, out var v) && double.TryParse(v, NumberStyles.Float, CultureInfo.InvariantCulture, out double d) && double.IsFinite(d) && d >= 0 ? d : null;
     private static int? I(IReadOnlyDictionary<string, string> m, string k) => D(m, k) is { } d && d < int.MaxValue ? (int)d : null;
 
-    /// <summary>Runs the single read-only query; null when nvidia-smi is absent or fails (no driver, no device).</summary>
+    /// <summary>
+    /// Runs the read-only query; null when nvidia-smi is absent or fails (no driver, no device). A single unknown field used to make the
+    /// whole query fail: driver 580 no longer accepts clocks.max.video and clocks_throttle_reasons.active, so no NVIDIA reading worked
+    /// (seen on a GeForce 940MX, 2026-11-07). Refused fields are now dropped one by one (bounded) and the working list is cached.
+    /// </summary>
     public static async Task<IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>>?> QuerySmiAsync(CancellationToken ct = default)
+        => AnyNvidiaAwake() ? await QuerySmiAsync((args, c) => BoundedProcess.RunAsync("nvidia-smi", args, TimeSpan.FromSeconds(3), 65536, c), ct) : null;
+
+    /// <summary>
+    /// True when the PCI runtime power state says the GPU is powered down (RTD3 on Turing+ laptops). Reading sysfs does not wake it;
+    /// running nvidia-smi does, so a 2 s poll kept the dedicated GPU of a hybrid laptop always on (battery, heat).
+    /// </summary>
+    public bool IsSleeping(string pciAddress) => SysfsText.Read(Path.Combine(Sys("bus/pci/devices"), pciAddress, "power/runtime_status"), 32) == "suspended";
+
+    /// <summary>Any NVIDIA PCI GPU that is not runtime-suspended (or no power information at all, so the query keeps working as before).</summary>
+    public static bool AnyNvidiaAwake(string sysRoot = "/sys")
     {
-        foreach (var throttle in new[] { "clocks_throttle_reasons.active", "clocks_event_reasons.active" })
+        string pci = Path.Combine(sysRoot, "bus/pci/devices");
+        try
         {
-            try
-            {
-                string fields = string.Join(",", SmiFields.Select(f => f == "{THROTTLE}" ? throttle : f));
-                var (code, output) = await BoundedProcess.RunAsync("nvidia-smi", [$"--query-gpu={fields}", "--format=csv,noheader,nounits"], TimeSpan.FromSeconds(3), 65536, ct);
-                if (code == 0 && ParseSmi(output) is { Count: > 0 } parsed) return parsed;
-            }
-            catch (Exception e) when (e is IOException or FileNotFoundException or TimeoutException or System.ComponentModel.Win32Exception) { return null; }
+            if (!Directory.Exists(pci)) return true;
+            var nvidia = Directory.EnumerateDirectories(pci).Take(512).Where(d => SysfsText.Read(Path.Combine(d, "vendor"), 8) == "0x10de" && SysfsText.Read(Path.Combine(d, "class"), 16).StartsWith("0x03", StringComparison.Ordinal)).ToList();
+            return nvidia.Count == 0 || nvidia.Any(d => SysfsText.Read(Path.Combine(d, "power/runtime_status"), 32) != "suspended");
         }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return true; }
+    }
+
+    public static async Task<IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>>?> QuerySmiAsync(
+        Func<IReadOnlyList<string>, CancellationToken, Task<(int Code, string Output)>> run, CancellationToken ct = default)
+    {
+        // Logical names: "{THROTTLE}" is stored under that key whichever generation of the field name the driver accepts.
+        var candidates = resolvedFields is { } known ? new List<string>(known)
+            : SmiFields.SelectMany(f => f == "{THROTTLE}" ? new[] { "clocks_event_reasons.active", "clocks_throttle_reasons.active" } : [f]).ToList();
+        try
+        {
+            for (int attempt = 0; attempt < 12 && candidates.Count > 2; attempt++)
+            {
+                // Only one of the two throttle names is asked at a time.
+                var asked = candidates.Where((f, i) => f != "clocks_throttle_reasons.active" || !candidates.Contains("clocks_event_reasons.active")).ToList();
+                var (code, output) = await run([$"--query-gpu={string.Join(",", asked)}", "--format=csv,noheader,nounits"], ct);
+                if (code == 0)
+                {
+                    var keys = asked.Select(f => f is "clocks_event_reasons.active" or "clocks_throttle_reasons.active" ? "{THROTTLE}" : f).ToList();
+                    if (ParseSmi(output, keys) is { Count: > 0 } parsed) { resolvedFields = asked.ToArray(); return parsed; }
+                    return null;
+                }
+                if (RefusedField(output) is not { } bad || !candidates.Remove(bad)) return null;
+            }
+        }
+        catch (Exception e) when (e is IOException or FileNotFoundException or TimeoutException or System.ComponentModel.Win32Exception) { }
         return null;
     }
+
+    internal static void ResetResolvedFields() => resolvedFields = null;
 
     /// <summary>
     /// amdgpu gpu_metrics header (u16 size, u8 format_revision, u8 content_revision): format 2 and 3 are the APU tables, 1 the dedicated-GPU table.
@@ -172,7 +220,10 @@ public sealed class LinuxGpuCollector(string sysRoot = "/sys", string procRoot =
                 if (s.TryGetValue("name", out var smiName) && smiName.Length > 0) name = smiName;
                 if (D(s, "memory.total") is { } mt) vram = (ulong)mt * 1048576UL;
                 maxCore = I(s, "clocks.max.graphics") ?? maxCore; maxMem = I(s, "clocks.max.memory"); maxVideo = I(s, "clocks.max.video");
-                plim = I(s, "power.limit"); pdef = I(s, "power.default_limit"); pmin = I(s, "power.min_limit"); pmax = I(s, "power.max_limit");
+                // Without power management (power.limit N/A, e.g. GeForce 940MX on a laptop) the driver still returns placeholder
+                // default/min/max limits (200 / 0 / 200 W): they are not the card's, so they are ignored.
+                plim = I(s, "power.limit");
+                if (plim is not null) { pdef = I(s, "power.default_limit"); pmin = I(s, "power.min_limit"); pmax = I(s, "power.max_limit"); }
                 maxGen = I(s, "pcie.link.gen.max") ?? maxGen; curGen = I(s, "pcie.link.gen.current") ?? curGen; maxW = I(s, "pcie.link.width.max") ?? maxW; curW = I(s, "pcie.link.width.current") ?? curW;
                 vbios = s.GetValueOrDefault("vbios_version") ?? vbios; cap = s.GetValueOrDefault("compute_cap"); driverVersion = s.GetValueOrDefault("driver_version") ?? "";
             }
@@ -183,16 +234,20 @@ public sealed class LinuxGpuCollector(string sysRoot = "/sys", string procRoot =
                 maxCore, maxMem, maxVideo, plim, pdef, pmin, pmax, cap, cuda, Apis(vendor), drv.Length > 0 ? LinuxDriverInventory.Flags(taint) : "");
             list.Add((raw, GpuCardBuilder.Build(raw)));
         }
-        // Dedicated first (more VRAM), like the original ordering.
-        return list.OrderByDescending(x => x.Item1.VramBytes).ThenBy(x => x.Item1.PciAddress, StringComparer.Ordinal).ToList();
+        // Dedicated first, then more VRAM. A dedicated GPU on nouveau reports no VRAM; without this the integrated GPU of a hybrid
+        // laptop came first and pages (FPS estimate, overview) used the wrong GPU (seen on a Dell i7-7500U + GeForce 940MX, 2026-11-07).
+        return list.OrderBy(x => x.Item1.Integrated ? 1 : 0).ThenByDescending(x => x.Item1.VramBytes).ThenBy(x => x.Item1.PciAddress, StringComparer.Ordinal).ToList();
     }
 
-    /// <summary>Live readings: sysfs for AMD/Intel, the same nvidia-smi query for NVIDIA. Absent sources stay null.</summary>
+    /// <summary>Live readings: sysfs for AMD/Intel/nouveau, nvidia-smi for other NVIDIA drivers. Absent sources stay null.</summary>
     public async Task<GpuTelemetry> TelemetryAsync(GpuRaw raw, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         string dir = Path.Combine(Sys("bus/pci/devices"), raw.PciAddress), hw = Hwmon(dir), card = DrmCard(raw.PciAddress);
-        if (raw.VendorId == "10de")
+        if (raw.VendorId == "10de" && raw.Driver != "nouveau")
         {
+            // Do not wake a powered-down GPU just to read its sensors.
+            if (IsSleeping(raw.PciAddress)) return new(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, Sleeping: true);
             var smi = await QuerySmiAsync(ct);
             string key = raw.PciAddress[(raw.PciAddress.IndexOf(':') + 1)..].ToLowerInvariant();
             if (smi is not null && smi.TryGetValue(key, out var s))
@@ -218,8 +273,8 @@ public sealed class LinuxGpuCollector(string sysRoot = "/sys", string procRoot =
             : raw.VendorId == "1002" ? ActiveDpmMHz(SysfsText.Read(Path.Combine(dir, "pp_dpm_mclk"), 1024)) : null;
         // amdgpu documents power1 on APUs as the SoC power including the CPU: flag it instead of calling it GPU power.
         bool package = raw.Integrated && raw.VendorId == "1002" && power is not null;
-        // amdgpu in0 = vddgfx in mV (seen: in0_label "vddgfx", 810 on the Radeon 610M); only taken when the label says so.
-        double? volt = hw.Length > 0 && Attr(Path.Combine(hw, "in0_label"), 16) == "vddgfx" && Num(Path.Combine(hw, "in0_input")) is { } mv and > 0 and < 2000 ? mv / 1000.0 : null;
+        // hwmon core voltage in mV: amdgpu vddgfx or nouveau GPU core; unrelated rails stay unavailable.
+        double? volt = hw.Length > 0 && (Attr(Path.Combine(hw, "in0_label"), 16) is "vddgfx" or "GPU core") && Num(Path.Combine(hw, "in0_input")) is { } mv and > 0 and < 2000 ? mv / 1000.0 : null;
         return new(load, Milli("temp1_input"), Milli("temp2_input"), Milli("temp3_input"), sclk, mclk, used, total, power, raw.PowerLimitW, fanPct, fanRpm, null, null, null, null, null, raw.CurGen, raw.CurWidth,
             raw.Integrated, package, volt);
     }

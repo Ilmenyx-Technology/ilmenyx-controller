@@ -13,7 +13,7 @@ public sealed class PciIds
 
     public static PciIds Load(IEnumerable<string>? paths = null)
     {
-        foreach (var path in paths ?? CandidatePaths)
+        foreach (var path in paths ?? CandidatePaths.Select(HostSpawn.HostPath))
         {
             try
             {

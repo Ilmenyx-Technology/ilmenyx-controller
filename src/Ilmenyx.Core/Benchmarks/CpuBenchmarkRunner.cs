@@ -118,13 +118,14 @@ public sealed class CpuBenchmarkRunner : ICpuBenchmarkRunner
             catch { stop.Cancel(); throw; }
             finally { foreach (var thread in startedWorkers) thread.Join(); }
             if (!errors.IsEmpty) throw new AggregateException("Falha em worker do renderizador.", errors);
-            if (stop.IsCancellationRequested) break;
+            // The deadline timer runs on the thread pool and can fire late under load: check the clock as well.
+            if (stop.IsCancellationRequested || timer.Elapsed >= options.Timeout) break;
             passes++;
         } while (timer.Elapsed < options.MinimumDuration);
         timer.Stop();
 
         var status = external.IsCancellationRequested ? CpuRunStatus.Cancelled
-            : deadline.IsCancellationRequested ? CpuRunStatus.TimedOut : CpuRunStatus.Completed;
+            : deadline.IsCancellationRequested || timer.Elapsed >= options.Timeout ? CpuRunStatus.TimedOut : CpuRunStatus.Completed;
         var imageBytes = new byte[pixels.Length * sizeof(int)];
         for (int i = 0; i < pixels.Length; i++) BinaryPrimitives.WriteInt32LittleEndian(imageBytes.AsSpan(i * 4), pixels[i]);
         string hash = Convert.ToHexString(SHA256.HashData(imageBytes)).ToLowerInvariant();

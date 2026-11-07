@@ -10,6 +10,8 @@ using Avalonia.Interactivity;
 using Avalonia.Media.Imaging;
 using Avalonia.Themes.Fluent;
 using Avalonia.VisualTree;
+using Avalonia.LogicalTree;
+using Ilmenyx.Platform.Linux;
 using Ilmenyx.Desktop;
 using Ilmenyx.Core;
 using Ilmenyx.Contracts;
@@ -31,6 +33,8 @@ internal static class Program
         // Every page that reads or writes Ilmenyx settings/logs uses the fixture directories, never the user's real ones.
         Environment.SetEnvironmentVariable("XDG_CONFIG_HOME", Path.Combine(OutputDirectory, "xdg-config"));
         Environment.SetEnvironmentVariable("XDG_DATA_HOME", Path.Combine(OutputDirectory, "xdg-data"));
+        // The first-run permissions screen is exercised by OnboardingAsync with a fake runner; the real shell must not open it (it would call pkexec).
+        Environment.SetEnvironmentVariable("ILMENYX_NO_ONBOARDING", "1");
         return DesktopBackend.Configure(AppBuilder.Configure<UiSmokeApp>(), DesktopBackend.Parse(DesktopBackend.ReadSelection())).StartWithClassicDesktopLifetime(Array.Empty<string>());
     }
 }
@@ -407,7 +411,19 @@ public sealed class UiSmokeApp : Application
         var chips = shell.GetVisualDescendants().OfType<Button>().Where(b => b.Content?.ToString() is "Temperatura" or "15 MIN").ToList();
         foreach (var chip in chips) chip.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await Until(() => Find<TextBlock>(shell, "OverviewValue").Text!.Contains("°C") || Find<TextBlock>(shell, "OverviewValue").Text == "—");
-        if (Find<Button>(shell, "DashMetricPower").IsEnabled) throw new InvalidOperationException("Unavailable power metric must stay disabled.");
+        // CPU power (RAPL): enabled only when this user can read the package counter (e.g. after 'Liberar sensores da CPU'); otherwise disabled.
+        bool raplReadable;
+        try { using (File.OpenRead("/sys/class/powercap/intel-rapl:0/energy_uj")) { } raplReadable = true; } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { raplReadable = false; }
+        if (raplReadable)
+        {
+            await Until(() => Find<Button>(shell, "DashMetricPower").IsEnabled);
+            Click(shell, "DashMetricPower");
+            await Until(() => Find<TextBlock>(shell, "OverviewValue").Text!.EndsWith(" W", StringComparison.Ordinal));
+            await Task.Delay(600); Capture(shell, "shell-overview-power.png");
+            Console.WriteLine("RAPL overview power: " + Find<TextBlock>(shell, "OverviewValue").Text);
+            chips.First(c => c.Content?.ToString() == "Temperatura").RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); // back to the temperature view
+        }
+        else if (Find<Button>(shell, "DashMetricPower").IsEnabled) throw new InvalidOperationException("Unavailable power metric must stay disabled.");
         Click(shell, "GoMemory"); await Until(() => shell.CurrentPage == "system");
         var expected = new (string Key, string Control)[] { ("dash", "OverviewChart"), ("system", "SysRefresh"), ("sensors", "RefreshSensors"), ("gpu", "GpuValidationNotice"), ("disks", "BtnDiskRefresh"),
             ("energy", "BtnEnergyRefresh"), ("net", "BtnNetTest"), ("procs", "ProcessRows"), ("launcher", "BtnScanGames"), ("fps", "BtnApiKey"), ("stress", "BtnStress"), ("optimize", "BtnOptimize"), ("apps", "BtnAppsInstall"), ("bottleneck", "BtnBnSession"), ("validate", "ValidateCpu"), ("makerports", "BtnMakerPortScan"), ("makerdrv", "BtnMakerDrvScan"), ("startup", "BtnStartupScan"), ("driver", "BtnDrvScan"), ("tools", "About") };
@@ -467,6 +483,30 @@ public sealed class UiSmokeApp : Application
         if (!shell.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "Verdict_energia" && t.Text == "EM USO")) throw new InvalidOperationException("Energy card missing.");
         await Task.Delay(200); Capture(shell, "shell-energy.png");
         Console.WriteLine("PASS energy page: power card always present, battery cards when the kernel reports batteries");
+        // Synthetic nouveau inventory; the injected launcher must never open a real driver manager.
+        string driverFixture = Path.Combine(Program.OutputDirectory, "nouveau-driver-fixture");
+        string driverSys = Path.Combine(driverFixture, "sys"), driverEtc = Path.Combine(driverFixture, "etc");
+        string driverDevice = Path.Combine(driverSys, "bus/pci/devices/0000:01:00.0");
+        Directory.CreateDirectory(driverDevice); Directory.CreateDirectory(driverEtc);
+        File.WriteAllText(Path.Combine(driverDevice, "class"), "0x030000");
+        File.WriteAllText(Path.Combine(driverDevice, "vendor"), "0x10de");
+        File.WriteAllText(Path.Combine(driverDevice, "device"), "0x134d");
+        string nouveauModule = Path.Combine(driverSys, "bus/pci/drivers/nouveau");
+        Directory.CreateDirectory(nouveauModule);
+        Directory.CreateSymbolicLink(Path.Combine(driverDevice, "driver"), nouveauModule);
+        File.WriteAllText(Path.Combine(driverEtc, "os-release"), "ID=linuxmint\nID_LIKE=ubuntu\n");
+        int driverLaunches = 0;
+        var driverFixturePage = new DriverPage(_ => Task.FromResult<string?>(null), CancellationToken.None,
+            new LinuxDriverInventory(driverSys, Path.Combine(driverFixture, "proc"), driverEtc),
+            manager => { if (manager.Program != "/usr/bin/mintdrivers" || manager.Arguments.Count != 0) throw new InvalidOperationException("Unexpected manager."); driverLaunches++; },
+            name => name == "mintdrivers" ? "/usr/bin/mintdrivers" : null);
+        await driverFixturePage.ScanAsync();
+        if (driverLaunches != 0) throw new InvalidOperationException("Driver manager launched without a click.");
+        var managerButton = driverFixturePage.GetLogicalDescendants().OfType<Button>().Single(b => b.Name == "BtnDrvManager");
+        if (!managerButton.IsEnabled) throw new InvalidOperationException("Driver manager button disabled.");
+        managerButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        if (driverLaunches != 1) throw new InvalidOperationException("Driver manager click did not reach fake launcher.");
+        Console.WriteLine("PASS nouveau driver recommendation: explicit click invokes fake launcher only");
         Find<Button>(shell, "Navdriver").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await Until(() => shell.GetVisualDescendants().OfType<StackPanel>().Any(p => p.Name == "DrvList" && p.Children.Count > 0));
         if (!Find<TextBlock>(shell, "DrvStatus").Text!.StartsWith("Pronto")) throw new InvalidOperationException("Driver scan did not finish.");
@@ -517,7 +557,9 @@ public sealed class UiSmokeApp : Application
         if (OperatingSystem.IsLinux()) await FpsAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await CompatAsync(desktop, Program.OutputDirectory);
         if (OperatingSystem.IsLinux()) await SensorHelpAsync(desktop);
+        if (OperatingSystem.IsLinux()) await OnboardingAsync(desktop);
         if (OperatingSystem.IsLinux()) await AppsAsync(shell, desktop);
+        if (OperatingSystem.IsLinux()) await NvidiaDriverAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await BenchAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await OcAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await OcGpuAsync(desktop);
@@ -596,7 +638,7 @@ public sealed class UiSmokeApp : Application
         string settingsPath = Path.Combine(root, "cfg/ilmenyx/settings.json"); string? launched = null;
         Window? host = null;
         var page = new LauncherPage(new Ilmenyx.Platform.Linux.LinuxGameLibrary(home, (_, _) => Task.FromResult((0, "[]"))), new Ilmenyx.Platform.Linux.SteamInfo(home, Path.Combine(root, "noproc")), settingsPath,
-            (g, p, v, status, learned, ct) => { launched = g.Key + "|" + p.WinMode; status("stub launched"); return Task.CompletedTask; }, () => host, "AMD", true, CancellationToken.None);
+            (g, p, v, status, learned, ct) => { launched = g.Key + "|" + p.WinMode; status("stub launched"); return Task.FromResult<Ilmenyx.Core.FpsSession?>(new(g.Name, DateTimeOffset.UtcNow, 61.5, 44, 95, "Fixture GPU", null)); }, () => host, "AMD", true, CancellationToken.None);
         host = new Window { Width = 1100, Height = 800, Content = page }; host.Show();
         await Until(() => page.Games.Count == 1);
         Click(host, "BtnAddExe"); Find<TextBox>(host, "LAddPath").Text = "relative/path"; Click(host, "BtnAddExeConfirm");
@@ -617,6 +659,7 @@ public sealed class UiSmokeApp : Application
         await Until(() => Find<StackPanel>(host, "LHelpers").Children.Count == 1);
         Click(host, "BtnPlay");
         await Until(() => launched == "Steam:100|full" && Find<TextBlock>(host, "LStatus").Text == "stub launched" && Find<Button>(host, "BtnPlay").Content!.ToString() == "JOGAR");
+        if (Ilmenyx.Core.IlmenyxSettings.Load(settingsPath).FpsSessions is not [{ Game: "Game One", AvgFps: 61.5 }]) throw new InvalidOperationException("Measured session returned by the launch was not kept in the settings.");
         host.Close();
         // The real shell page reads the real libraries (Steam, Lutris, Heroic) without launching, writing or closing anything.
         Find<Button>(shell, "Navlauncher").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -1095,14 +1138,25 @@ public sealed class UiSmokeApp : Application
         string root = Path.Combine(Program.OutputDirectory, "fps-fixture"); Directory.CreateDirectory(root);
         var http = new FakeHttp(); var client = new Ilmenyx.Core.HowManyFpsClient(Path.Combine(root, "cache.json"), http);
         string settingsPath = Path.Combine(root, "settings.json"); Window? host = null;
-        var page = new GamesFpsPage(client, new Ilmenyx.Core.IlmenyxSettings(), settingsPath, () => host, () => ("AMD Ryzen 7 7700X 8-Core Processor", "NVIDIA GeForce RTX 4070"), CancellationToken.None);
+        // A session measured on this PC (as the Launcher records it) for Dota 2; nothing is played.
+        var fixture = new Ilmenyx.Core.IlmenyxSettings(); fixture.AddFpsSession(new("Dota 2", new DateTimeOffset(2026, 11, 6, 21, 0, 0, TimeSpan.Zero), 87.4, 52, 1800, "NVIDIA GeForce RTX 4070", "1920x1080")); fixture.Save(settingsPath);
+        var ctx = new Ilmenyx.Core.FpsContext("NVIDIA GeForce RTX 4070", "10de", "2786", "nvidia", false, 2UL << 30, null, true, 0, 0);
+        var page = new GamesFpsPage(client, new Ilmenyx.Core.IlmenyxSettings(), settingsPath, () => host, () => ("AMD Ryzen 7 7700X 8-Core Processor", "NVIDIA GeForce RTX 4070"), CancellationToken.None, () => ctx);
         host = new Window { Width = 1100, Height = 900, Content = new ScrollViewer { Content = page } }; host.Show();
         await Until(() => page.Rows.Count > 20 && page.Rows.Any(r => r.Fps > 0));
         if (page.GpuIndex != 100 || page.CpuIndex != 100) throw new InvalidOperationException("Hardware indices not resolved from the catalog tables.");
         string CardFps(string name) => host.GetVisualDescendants().OfType<Border>().Single(b => b.Name == "Game_" + LauncherPage.SafeName(name)).GetVisualDescendants().OfType<TextBlock>().First(t => t.FontSize == 28).Text!;
-        await Until(() => host.GetVisualDescendants().OfType<Border>().Any(b => b.Name == "Game_" + LauncherPage.SafeName("Counter-Strike 2"))); if (CardFps("Counter-Strike 2") != "340") throw new InvalidOperationException("CS2 estimate at 1080p/Alto should be 340.");
+        // The local estimate is shown as a range around the table value (CS2 at 1080p/Alto on RTX 4070 + 7700X = 340), never as a single number.
+        bool RangeAround(string text, double centre) => text.Split('–') is [var lo, var hi] && double.TryParse(lo, System.Globalization.CultureInfo.InvariantCulture, out double l) && double.TryParse(hi, System.Globalization.CultureInfo.InvariantCulture, out double h) && l < centre && centre < h;
+        await Until(() => host.GetVisualDescendants().OfType<Border>().Any(b => b.Name == "Game_" + LauncherPage.SafeName("Counter-Strike 2")));
+        if (page.Rows.Single(r => r.Name == "Counter-Strike 2").Fps != 340 || !RangeAround(CardFps("Counter-Strike 2"), 340)) throw new InvalidOperationException("CS2 estimate at 1080p/Alto should be a range around 340, got " + CardFps("Counter-Strike 2") + ".");
+        if (page.Assessment.Confidence != Ilmenyx.Core.FpsConfidence.Medium) throw new InvalidOperationException("Desktop GPU + CPU at the reference should give medium confidence.");
+        var dota = page.Rows.Single(r => r.Name == "Dota 2");
+        if (CardFps("Dota 2") != "87" || dota.Source != "MEDIDO NESTE PC" || !dota.Summary.StartsWith("Medido neste PC: 87 FPS (1% low 52) · última sessão", StringComparison.Ordinal)) throw new InvalidOperationException("Measured session must take priority over the estimate.");
+        if (page.Alerts.Select(a => a.Title).ToArray() is not ["2 GB de VRAM", "Notebook na bateria"] || !Find<StackPanel>(host, "FpsAlerts").IsVisible) throw new InvalidOperationException("VRAM and battery alerts expected.");
+        await Task.Delay(300); Capture(host, "fps-fixture.png");
         foreach (var chip in host.GetVisualDescendants().OfType<Button>().Where(b => b.Content?.ToString() == "1440p")) chip.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        await Until(() => CardFps("Counter-Strike 2") != "340");
+        await Until(() => CardFps("Counter-Strike 2") is var t && !RangeAround(t, 340) && RangeAround(t, page.Rows.Single(r => r.Name == "Counter-Strike 2").Fps) && CardFps("Dota 2") == "87");
         if (Find<Button>(host, "BtnFpsQuery").IsEnabled) throw new InvalidOperationException("API query must be disabled without a key.");
         Find<TextBox>(host, "ApiKeyBox").Text = "fixture-key"; Click(host, "BtnApiKey");
         await Until(() => Find<Button>(host, "BtnFpsQuery").IsEnabled && File.Exists(settingsPath));
@@ -1111,11 +1165,12 @@ public sealed class UiSmokeApp : Application
         Click(dlg, "ConfirmNo"); await Until(() => !dlg.IsVisible); if (http.Calls != 0) throw new InvalidOperationException("Declined confirmation still used the network.");
         Click(host, "BtnFpsQuery"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
         Click(desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible), "ConfirmYes");
-        await Until(() => http.Calls >= 20 && page.Rows.All(r => r.Source == "HOWMANYFPS") && CardFps("Counter-Strike 2") == "111");
+        await Until(() => http.Calls >= 20 && page.Rows.All(r => r.Source == "HOWMANYFPS" || r.Name == "Dota 2" && r.Source == "MEDIDO NESTE PC") && CardFps("Counter-Strike 2") == "111" && CardFps("Dota 2") == "87");
         host.Close();
         Find<Button>(shell, "Navfps").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await Until(() => shell.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnFpsQuery" && !b.IsEnabled || b.Name == "BtnApiKey"));
-        Console.WriteLine("PASS fps page: local estimate from catalog tables, option chips recompute, API query only after key + confirmation naming the endpoint, fake handler results shown; real service never contacted");
+        if (Ilmenyx.Core.IlmenyxSettings.Load(settingsPath).FpsSessions.Count != 1) throw new InvalidOperationException("Saving the API key dropped the measured sessions.");
+        Console.WriteLine("PASS fps page: local estimate as range + confidence from catalog tables, measured session has priority, VRAM/battery alerts, option chips recompute, API query only after key + confirmation naming the endpoint, fake handler results shown; real service never contacted");
     }
     private sealed class CompatFakeHttp(Func<HttpRequestMessage, HttpResponseMessage> respond) : HttpMessageHandler
     {
@@ -1207,6 +1262,37 @@ public sealed class UiSmokeApp : Application
         Console.WriteLine("PASS compat page: offline index search and similar-hardware ranking, unsafe options locked, home paths hidden, online query only after confirmation (fixed hosts), apply/undo on a fake Steam config, verified export update (fake HTTP; no network)");
     }
 
+    private static async Task OnboardingAsync(IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        // Fake runner: pkexec is never started. Two blocked sensors, offered together; one call, one password.
+        var scripts = new List<string>(); bool fail = true;
+        var fixes = SensorHelp.Build(true, CpuPowerAccess.NoPermission, "Intel(R) Core(TM) i7-7500U", "/sys/class/powercap/intel-rapl:0", false);
+        var owner = new Window { Width = 300, Height = 200 }; owner.Show();
+        var dialog = new PermissionsOnboardingDialog(fixes, script => { scripts.Add(script); return Task.FromResult(fail ? (false, "Cancelado: a senha não foi informada.") : (true, "Pronto.")); });
+        var shown = dialog.ShowDialog(owner);
+        await Until(() => dialog.IsVisible);
+        if (Find<CheckBox>(dialog, "OnboardFix0").IsChecked != true || Find<CheckBox>(dialog, "OnboardFix1").IsChecked != true) throw new InvalidOperationException("Every fix must start selected.");
+        await Task.Delay(300); Capture(dialog, "onboarding-permissions.png");
+        Find<CheckBox>(dialog, "OnboardFix0").IsChecked = false; Find<CheckBox>(dialog, "OnboardFix1").IsChecked = false;
+        if (Find<Button>(dialog, "OnboardApply").IsEnabled) throw new InvalidOperationException("Nothing selected: apply must be disabled.");
+        Find<CheckBox>(dialog, "OnboardFix0").IsChecked = true; Find<CheckBox>(dialog, "OnboardFix1").IsChecked = true;
+        // Password dialog dismissed: nothing applied, can retry, sidebar remains the way back.
+        Click(dialog, "OnboardApply"); await Until(() => scripts.Count == 1 && Find<Button>(dialog, "OnboardApply").IsEnabled);
+        if (!Find<TextBlock>(dialog, "OnboardStatus").Text!.Contains("menu lateral") || dialog.Applied) throw new InvalidOperationException("Refused password must say how to do it later.");
+        fail = false; Click(dialog, "OnboardApply"); await Until(() => scripts.Count == 2 && dialog.Applied);
+        if (scripts[1] != SensorHelp.Combined(fixes) || !scripts[1].Contains("modprobe coretemp") || !scripts[1].Contains("chmod o+r /sys/class/powercap/intel-rapl:0/energy_uj"))
+            throw new InvalidOperationException("Both fixes must go in one privileged call.");
+        if ((string?)Find<Button>(dialog, "OnboardSkip").Content != "Continuar") throw new InvalidOperationException("After success the close button must read Continuar.");
+        Click(dialog, "OnboardSkip"); await shown;
+        // "Agora não" runs nothing.
+        scripts.Clear();
+        var second = new PermissionsOnboardingDialog(fixes, script => { scripts.Add(script); return Task.FromResult((true, "Pronto.")); });
+        var shown2 = second.ShowDialog(owner); await Until(() => second.IsVisible);
+        Click(second, "OnboardSkip"); await shown2; owner.Close();
+        if (scripts.Count != 0) throw new InvalidOperationException("Agora não must not run anything.");
+        Console.WriteLine("PASS first-run permissions: all blocked sensors offered at once, one privileged call (fake polkit runner), refusal keeps the way back, Agora não runs nothing");
+    }
+
     private static async Task SensorHelpAsync(IClassicDesktopStyleApplicationLifetime desktop)
     {
         // Fake runner: pkexec is never started by the smoke.
@@ -1228,6 +1314,96 @@ public sealed class UiSmokeApp : Application
         Click(dialog, "SensorFixShowCommands0"); await Until(() => Find<SelectableTextBlock>(dialog, "SensorFixCommand0").IsEffectivelyVisible);
         Click(dialog, "CloseSensorHelp"); await shown; owner.Close();
         Console.WriteLine("PASS sensor help: one-click fix only after confirmation (fake polkit runner), undo, commands folded for technicians");
+    }
+
+    private static async Task NvidiaDriverAsync(ShellWindow shell, IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        // Shell tab: real READ-ONLY diagnosis (sysfs, dpkg-query, mokutil...); no action button of the shell page is clicked.
+        Find<Button>(shell, "Navnvdriver").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => shell.CurrentPage == "nvdriver" && shell.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "NvStatus" && t.IsVisible && t.Text!.StartsWith("Verificado", StringComparison.Ordinal)));
+        await Task.Delay(300); Capture(shell, "shell-nvdriver.png");
+        // Drivers page links to the tab (the NVIDIA card is only there on a machine with an NVIDIA GPU, as this one).
+        Find<Button>(shell, "Navdriver").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => shell.CurrentPage == "driver" && shell.GetVisualDescendants().OfType<StackPanel>().Any(p => p.Name == "DrvList" && p.Children.Count > 0));
+        if (shell.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Name == "BtnDrvNvidiaTab") is { } link)
+        {
+            link.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); await Until(() => shell.CurrentPage == "nvdriver");
+        }
+        if (shell.GetVisualDescendants().OfType<TextBox>().Any(t => t.Name == "DrvInstallHint" && (t.Text ?? "").Contains("sudo ubuntu-drivers install"))) throw new InvalidOperationException("Drivers page still suggests ubuntu-drivers install.");
+
+        // Fake services: the incident of 2026-11-07 (Mint 22.3, 940MX, kernel 7.0 with incomplete headers, iF/iU packages). Never pkexec/apt.
+        const string running = "6.14.0-37-generic";
+        var gpu = new NvidiaGpu("0000:01:00.0", "134d", "GM108M [GeForce 940MX]", NvidiaGeneration.Maxwell, "GM108", "nouveau");
+        var mint = DistroInfo.Parse("ID=linuxmint\nID_LIKE=\"ubuntu debian\"\nPRETTY_NAME=\"Linux Mint 22.3\"\n");
+        var incident = new NvidiaDiagnosis
+        {
+            Gpus = [gpu], OtherGpus = ["Intel HD Graphics 620 (i915)"], Distro = mint, RunningKernel = running, SecureBoot = SecureBootState.Disabled, PrimeMode = "on-demand", PrimeSelectAvailable = true,
+            Kernels = [new KernelHeaders(running, true, []), new KernelHeaders("7.0.0-42-generic", true, ["scripts/module.lds", "tools/objtool/objtool"])],
+            Packages = DpkgPackage.Parse("iU |nvidia-driver-580|580.178.04-0ubuntu0.24.04.1\nii |nvidia-utils-580|580.178.04-0ubuntu0.24.04.1\niF |linux-modules-nvidia-580-7.0.0-42-generic|7.0.0-42.42\nii |linux-modules-nvidia-580-generic-hwe-24.04|6.14.0-37.37\nii |linux-image-7.0.0-42-generic|7.0.0-42.42\nii |linux-modules-7.0.0-42-generic|7.0.0-42.42\nii |linux-image-6.14.0-37-generic|6.14.0-37.37\n"),
+        };
+        var after = incident with
+        {
+            Kernels = [new KernelHeaders(running, true, [])],
+            Packages = DpkgPackage.Parse("ii |nvidia-driver-580|580.178.04-0ubuntu0.24.04.1\nii |nvidia-dkms-580|580.178.04-0ubuntu0.24.04.1\nii |nvidia-utils-580|580.178.04-0ubuntu0.24.04.1\nii |linux-image-6.14.0-37-generic|6.14.0-37.37\n"),
+            Dkms = DkmsEntry.Parse("nvidia/580.178.04, 6.14.0-37-generic, x86_64: installed\n"),
+        };
+        string repairSim = "NOTE: This is only a simulation!\nPurg linux-modules-nvidia-580-generic-hwe-24.04 [6.14.0-37.37]\nPurg linux-modules-nvidia-580-7.0.0-42-generic [7.0.0-42.42]\nPurg linux-image-7.0.0-42-generic [7.0.0-42.42]\nPurg linux-modules-7.0.0-42-generic [7.0.0-42.42]\nInst nvidia-dkms-580 (580.178.04-0ubuntu0.24.04.1 Ubuntu:24.04/noble-updates [amd64])\n0 upgraded, 1 newly installed, 4 to remove and 0 not upgraded.\n";
+        string hweSim = "Inst linux-image-7.0.0-42-generic (7.0.0-42.42 Ubuntu:24.04/noble-updates [amd64])\nInst linux-modules-nvidia-580-7.0.0-42-generic (7.0.0-42.42 Ubuntu:24.04/noble-updates [amd64])\nInst nvidia-driver-580 (580.178.04 Ubuntu:24.04/noble-updates [amd64])\n0 upgraded, 3 newly installed, 0 to remove and 0 not upgraded.\n";
+        var scripts = new List<string>(); int diagnoses = 0; string simText = repairSim;
+        NvidiaDiagnosis current = incident;
+        var services = new NvidiaDriverServices(
+            _ => { diagnoses++; return Task.FromResult(current); },
+            (_, _) => Task.FromResult(AptSimulation.Parse(simText, 0)),
+            (script, line, _) => { scripts.Add(script); line("== Ilmenyx 1/4: simulação de segurança (falsa)"); line("dkms: nvidia/580.178.04 installed (falso)"); current = after; return Task.FromResult((true, "Pronto.")); });
+        Window? host = null; var page = new NvidiaDriverPage(services, () => host, CancellationToken.None);
+        host = new Window { Width = 1180, Height = 1500, Background = Palette.Bg, Content = new ScrollViewer { Content = page } }; host.Show();
+        await Until(() => diagnoses == 1 && Find<TextBlock>(host, "NvState").Text!.Contains("problema"));
+        if (Find<TextBlock>(host, "NvGpuName").Text != "GeForce 940MX") throw new InvalidOperationException("Marketing name missing.");
+        if (Find<TextBlock>(host, "NvTileKernel").Text != running || Find<TextBlock>(host, "NvTilePrime").Text != "on-demand" || Find<TextBlock>(host, "NvTileSecureBoot").Text != "desligado") throw new InvalidOperationException("Stat tiles wrong.");
+        await Task.Delay(200); Capture(host, "nvdriver-incident.png");
+        Click(host, "BtnNvRepair"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        var confirm = desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible);
+        string asked = Find<TextBlock>(confirm, "ConfirmText").Text!;
+        if (!asked.Contains("linux-image-7.0.0-42-generic") || !asked.Contains("senha")) throw new InvalidOperationException("Confirmation must show exactly what will be removed.");
+        Click(confirm, "ConfirmNo"); await Until(() => !confirm.IsVisible); await Task.Delay(60);
+        if (scripts.Count != 0) throw new InvalidOperationException("Declined repair must not run anything.");
+        Click(host, "BtnNvRepair"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        Click(desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible), "ConfirmYes");
+        await Until(() => scripts.Count == 1 && Find<TextBlock>(host, "NvVerify").IsVisible && Find<Border>(host, "NvRebootCard").IsVisible);
+        if (!scripts[0].StartsWith("set -eu\n", StringComparison.Ordinal) || !scripts[0].Contains("'linux-image-7.0.0-42-generic-'") || !scripts[0].Contains("'nvidia-dkms-580'") || scripts[0].Contains("ubuntu-drivers"))
+            throw new InvalidOperationException("Unexpected repair script.");
+        if (!Find<TextBlock>(host, "NvVerify").Text!.Contains("Módulo NVIDIA pronto para o kernel 6.14.0-37-generic")) throw new InvalidOperationException("Verification missing.");
+        if (!Find<SelectableTextBlock>(host, "NvLog").Text!.Contains("Simulação aceita")) throw new InvalidOperationException("Log missing.");
+        if (!Find<TextBlock>(host, "NvState").Text!.Contains("reinicie")) throw new InvalidOperationException("Reboot state missing.");
+        Click(host, "BtnNvReboot"); await Until(() => Find<TextBlock>(host, "NvRebootHelp").IsVisible);
+        if (!Find<TextBlock>(host, "NvRebootHelp").Text!.Contains("não reinicia o computador sozinho")) throw new InvalidOperationException("Reboot button must only explain.");
+        await Task.Delay(200); Capture(host, "nvdriver-repaired.png");
+        host.Close();
+
+        // A simulation that pulls another kernel (what ubuntu-drivers did) is refused before any confirmation.
+        simText = hweSim; current = incident with { Packages = [], Kernels = [new KernelHeaders(running, false, KernelHeaders.RequiredFiles)] }; diagnoses = 0;
+        Window? host2 = null; var fresh = new NvidiaDriverPage(services, () => host2, CancellationToken.None);
+        host2 = new Window { Width = 900, Height = 1300, Background = Palette.Bg, Content = new ScrollViewer { Content = fresh } }; host2.Show();
+        await Until(() => diagnoses == 1 && host2.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnNvInstall"));
+        Click(host2, "BtnNvInstall");
+        await Until(() => Find<TextBlock>(host2, "NvVerify").IsVisible);
+        if (!Find<TextBlock>(host2, "NvVerify").Text!.Contains("recusado") || scripts.Count != 1 || desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible)) throw new InvalidOperationException("Kernel-pulling simulation must be refused.");
+        Click(host2, "BtnNvScriptInstall"); await Until(() => Find<SelectableTextBlock>(host2, "NvScriptInstall").IsVisible);
+        await Task.Delay(250); Capture(host2, "nvdriver-refused.png"); host2.Close();
+
+        // Working (today's state of this machine) and the empty state.
+        current = after with { Gpus = [gpu with { KernelDriver = "nvidia" }], LoadedVersion = "580.178.04", SmiVersion = "580.178.04", SmiInstalled = true }; diagnoses = 0;
+        Window? host3 = null; var working = new NvidiaDriverPage(services, () => host3, CancellationToken.None);
+        host3 = new Window { Width = 1000, Height = 1100, Background = Palette.Bg, Content = new ScrollViewer { Content = working } }; host3.Show();
+        await Until(() => diagnoses == 1 && Find<TextBlock>(host3, "NvState").Text!.StartsWith("Funcionando · driver 580.178.04", StringComparison.Ordinal));
+        if (!host3.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnNvRevert") || Find<Border>(host3, "NvRebootCard").IsVisible) throw new InvalidOperationException("Working state wrong.");
+        await working.RefreshAsync();
+        current = new NvidiaDiagnosis { OtherGpus = ["Intel UHD"], Distro = mint, RunningKernel = running };
+        await working.RefreshAsync();
+        await Until(() => Find<TextBlock>(host3, "NvEmpty").IsEffectivelyVisible && !Find<Border>(host3, "NvHero").IsVisible);
+        host3.Close();
+        if (scripts.Count != 1) throw new InvalidOperationException("Only the confirmed repair may reach the (fake) privileged runner.");
+        Console.WriteLine("PASS nvidia driver tab: real incident detected, repair simulated (fake apt-get -s) and confirmed before the fake polkit runner, kernel-pulling plan refused, verification + reboot notice (never reboots), working and empty states, Drivers page links to the tab");
     }
 
     private static async Task AppsAsync(ShellWindow shell, IClassicDesktopStyleApplicationLifetime desktop)

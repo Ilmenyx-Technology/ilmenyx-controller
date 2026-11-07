@@ -8,6 +8,29 @@ namespace Ilmenyx.Platform.Linux;
 /// <summary>Explicit-click helpers: NVIDIA latest-version lookup (network), fwupd device/update listing (read-only), opening an official page.</summary>
 public static class DriverTools
 {
+    public sealed record DriverManager(string Program, IReadOnlyList<string> Arguments);
+
+    public static DriverManager? FindDriverManager(string distroId, string idLike, Func<string, string?>? find = null)
+    {
+        find ??= BoundedProcess.FindSystem;
+        if (distroId == "linuxmint")
+            return find("mintdrivers") is { } mint ? new(mint, []) : null;
+        if ((distroId + " " + idLike).Split(' ', StringSplitOptions.RemoveEmptyEntries).Contains("ubuntu"))
+            return find("software-properties-gtk") is { } ubuntu ? new(ubuntu, ["--open-tab=4"]) : null;
+        return null;
+    }
+
+    /// <summary>Explicit click only. No shell, elevation, waiting, or termination of the distribution's GUI.</summary>
+    public static void LaunchDriverManager(DriverManager manager)
+    {
+        // Re-resolve an allowlisted system tool rather than accepting arbitrary commands.
+        string name = Path.GetFileName(manager.Program);
+        if (name is not ("mintdrivers" or "software-properties-gtk")) throw new ArgumentException("Gerenciador não permitido.");
+        string path = BoundedProcess.FindSystem(name) ?? throw new FileNotFoundException("Gerenciador de drivers não encontrado.");
+        var start = HostSpawn.Start(path, name == "software-properties-gtk" ? ["--open-tab=4"] : [], redirect: false);
+        using var process = System.Diagnostics.Process.Start(start) ?? throw new IOException("Não foi possível abrir o gerenciador.");
+    }
+
     public const string NvidiaLatestUrl = "https://download.nvidia.com/XFree86/Linux-x86_64/latest.txt";
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(10) };
 
@@ -25,6 +48,24 @@ public static class DriverTools
         var buffer = new char[512]; using var reader = new StreamReader(await response.Content.ReadAsStreamAsync(ct));
         int n = await reader.ReadBlockAsync(buffer.AsMemory(), ct);
         return ParseNvidiaLatest(new string(buffer, 0, n));
+    }
+
+    /// <summary>Directory listing of NVIDIA's Linux x86_64 releases (one folder per version, e.g. "580.105.08/").</summary>
+    public const string NvidiaReleasesUrl = "https://download.nvidia.com/XFree86/Linux-x86_64/";
+
+    /// <summary>
+    /// Newest release of <paramref name="branch"/> from the public listing (only on a click). A Maxwell card is compared with the newest 580.x,
+    /// never with latest.txt (595+ dropped Maxwell, Pascal and Volta).
+    /// </summary>
+    public static async Task<string?> NvidiaBranchLatestAsync(string branch, CancellationToken ct = default)
+    {
+        if (!NvidiaScripts.ValidBranch(branch)) return null;
+        using var response = await Http.GetAsync(NvidiaReleasesUrl, HttpCompletionOption.ResponseHeadersRead, ct);
+        response.EnsureSuccessStatusCode();
+        using var reader = new StreamReader(await response.Content.ReadAsStreamAsync(ct));
+        var buffer = new char[1 << 20]; int total = 0, n;
+        while (total < buffer.Length && (n = await reader.ReadAsync(buffer.AsMemory(total), ct)) > 0) total += n;
+        return NvidiaGenerations.NewestInBranch(new string(buffer, 0, total), branch);
     }
 
     public sealed record FirmwareItem(string Name, string Version, string Update);

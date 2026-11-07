@@ -28,7 +28,8 @@ public sealed partial class ShellWindow
         {
             string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             var gpus = new LinuxGpuCollector().Collect(PciIds.Load());
-            string vendor = gpus.Count > 0 ? gpus[0].Card.Vendor : "";
+            // PRIME variables depend on the driver, not only the vendor: NVIDIA on nouveau is offloaded with DRI_PRIME like Mesa GPUs.
+            string vendor = gpus.Count > 0 ? (gpus[0].Card.Vendor == "NVIDIA" && gpus[0].Raw.Driver != "nvidia" ? "NVIDIA-Mesa" : gpus[0].Card.Vendor) : "";
             return new LauncherPage(new LinuxGameLibrary(home), new SteamInfo(home), IlmenyxSettings.DefaultPath(),
                 (g, p, v, status, learned, ct) => new LinuxGameLauncher().RunAsync(g, p, v, status, learned, ct), () => this, vendor, gpus.Count(x => !x.Raw.Integrated) + gpus.Count(x => x.Raw.Integrated) > 1, stop.Token) { Margin = new Thickness(0, 4, 8, 12) };
         }, null);
@@ -45,7 +46,7 @@ public sealed partial class ShellWindow
         {
             string cache = Path.Combine(Path.GetDirectoryName(IlmenyxSettings.DefaultPath())!, "fps-cache.json");
             return new GamesFpsPage(new HowManyFpsClient(cache), IlmenyxSettings.Load(IlmenyxSettings.DefaultPath()), IlmenyxSettings.DefaultPath(), () => this,
-                () => (usage.Last?.CpuModel ?? "", new LinuxGpuCollector().Collect(PciIds.Load()).FirstOrDefault().Raw?.Name ?? ""), stop.Token) { Margin = new Thickness(0, 4, 8, 12) };
+                () => (usage.Last?.CpuModel ?? "", new LinuxGpuCollector().Collect(PciIds.Load()).FirstOrDefault().Raw?.Name ?? ""), stop.Token, FpsContextNow) { Margin = new Thickness(0, 4, 8, 12) };
         }, null);
         pages["bottleneck"] = ("Detector de gargalo", () => Scroll("BottleneckScroll", new BottleneckPage(usage, stop.Token, OperatingSystem.IsLinux() ? () => MangoHudLogReader.Read(MangoHudLogReader.DefaultFolder(), DateTimeOffset.UtcNow) : null) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["stress"] = ("Stress test", () => Scroll("StressScroll", stressPage = new StressPage(new StressTester(), usage, () => this, () => usage.Last is { MemoryTotal: > 0, MemoryUsed: { } u } l ? l.MemoryTotal!.Value - u : 0, stop.Token, OperatingSystem.IsLinux() ? new VulkanGpuStress() : null, OperatingSystem.IsLinux() ? GpuTemperatureCache() : null) { Margin = new Thickness(0, 4, 8, 12) }), null);
@@ -59,10 +60,25 @@ public sealed partial class ShellWindow
         pages["optimize"] = ("Otimiza", () => Scroll("OptimizeScroll", new OptimizePage(new LinuxOptimizer(), new OptimizeServices(LinuxGameLauncher.PowerProfileAsync, LinuxGameLauncher.SetPowerProfileAsync), usage, IlmenyxSettings.DefaultPath(), () => this, stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["startup"] = ("Inicialização", () => Scroll("StartupScroll", new StartupPage(LinuxStartupManager.CreateDefault(), () => this, stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["apps"] = ("Instalar apps", () => Scroll("AppsScroll", new AppsPage(new LinuxAppInstaller(), LinuxAppInstaller.FlatpakAvailable, () => this, stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
-        pages["driver"] = ("Drivers", () => Scroll("DriverScroll", new DriverPage(Destination("drivers"), stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
+        pages["driver"] = ("Drivers", () => Scroll("DriverScroll", new DriverPage(Destination("drivers"), stop.Token, openNvidiaTab: () => Select("nvdriver")) { Margin = new Thickness(0, 4, 8, 12) }), null);
+        pages["nvdriver"] = ("Driver NVIDIA", () => Scroll("NvDriverScroll", new NvidiaDriverPage(OperatingSystem.IsLinux() ? NvidiaDriverServices.Real() : throw new PlatformNotSupportedException(), () => this, stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["report"] = ("Relatório", () => Scroll("ReportScroll", new ReportPage(GatherReportAsync, Destination("report"), stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["blocked"] = ("Bloqueados (!)", () => Scroll("BlockedScroll", new BlockedPage(ReadMachineProbe) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["tools"] = ("Requisitos e sobre", ToolsPage, null);
+    }
+
+    /// <summary>Local facts for the FPS page alerts: the GPU games are estimated for, a second (integrated) GPU, battery state and PRIME in the game profiles. Read-only.</summary>
+    private static FpsContext? FpsContextNow()
+    {
+        if (!OperatingSystem.IsLinux()) return null;
+        var gpus = new LinuxGpuCollector().Collect(PciIds.Load());
+        if (gpus.Count == 0) return null;
+        var main = gpus[0].Raw;
+        var power = new LinuxPowerReader().Read();
+        var profiles = IlmenyxSettings.Load(IlmenyxSettings.DefaultPath()).GameProfiles.Values;
+        return new FpsContext(main.Name, main.VendorId, main.DeviceId, main.Driver, main.Integrated, main.VramBytes,
+            gpus.Skip(1).Select(g => g.Raw).FirstOrDefault(r => r.Integrated)?.Name, FpsAlerts.OnBattery(power.Batteries, power.MainsOnline),
+            profiles.Count(p => p.GpuHigh), profiles.Count);
     }
 
     private Task<ReportData> GatherReportAsync(CancellationToken ct)
@@ -248,7 +264,7 @@ public sealed partial class ShellWindow
         void HeroTags()
         {
             heroTags.Children.Clear();
-            foreach (var t in new[] { gpuRaw?.Name is { } gn ? "GPU · " + gn : null, usage.MemorySub is { Length: > 0 } ms ? ms.Replace("Total", "RAM") : null, distro, kernel.Length > 0 ? "kernel " + kernel.Split('-')[0] : null })
+            foreach (var t in new[] { gpuRaw?.Name is { } gn ? "GPU · " + GameCatalog.ShortGpuName(MarketingName(gn)) : null, usage.MemorySub is { Length: > 0 } ms ? ms.Replace("Total", "RAM") : null, distro, kernel.Length > 0 ? "kernel " + kernel.Split('-')[0] : null })
                 if (t is not null) heroTags.Children.Add(UiKit.Tag(t, Palette.Fg));
         }
         HeroTags();
@@ -371,7 +387,7 @@ public sealed partial class ShellWindow
             string gUse = g?.PowerW is { } gw ? gw.ToString("0.0", CultureInfo.InvariantCulture) + " W" + (g.PowerIsPackage ? " (pacote CPU+GPU)" : "")
                 : g?.VramUsed is { } vu && g.VramTotal is > 0 ? $"{vu >> 20:N0} / {g.VramTotal.Value >> 20:N0} MB".Replace(",", ".")
                 : "sem contadores";
-            Set("GPU", gpuRaw?.Name ?? "Inventário DRM/PCI", UsageViewModel.Pct(g?.LoadPercent),
+            Set("GPU", gpuRaw?.Name is { } rawName ? MarketingName(rawName) : "Inventário DRM/PCI", UsageViewModel.Pct(g?.LoadPercent),
                 (g?.TempC is { } gt ? gt.ToString("0.0", CultureInfo.InvariantCulture) + " °C" : "—") + " · " + (g?.CoreMHz is { } gm ? gm.ToString("0", CultureInfo.InvariantCulture) + " MHz" : "—"), gUse);
             Set("Memória", usage.MemorySub, s is { MemoryTotal: > 0, MemoryUsed: { } u } ? UsageViewModel.Pct(100.0 * u / s.MemoryTotal.Value) : "—", usage.MemoryLine, "");
             Set("Discos", "Dispositivos inteiros", "E/S", usage.DiskLine, "");
@@ -454,6 +470,10 @@ public sealed partial class ShellWindow
         return scroll;
     }
 
+    /// <summary>pci.ids names put the marketing name in brackets ("GM108M [GeForce 940MX]"): show that part.</summary>
+    internal static string MarketingName(string name) =>
+        name.IndexOf('[') is var open and >= 0 && name.IndexOf(']', open) is var close and > 0 && close > open + 1 ? name[(open + 1)..close].Split('/')[0].Trim() : name;
+
     private event Action? overviewRefresh;
     private readonly List<(DateTimeOffset At, string Title, string Text)> sessionEvents = [];
 
@@ -517,7 +537,8 @@ public sealed partial class ShellWindow
         toastToggle.IsCheckedChanged += (_, _) =>
         {
             appSettings.DeviceToasts = toastToggle.IsChecked == true; if (toasts is not null) toasts.Enabled = appSettings.DeviceToasts;
-            try { appSettings.Save(settingsPath); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+            bool on = appSettings.DeviceToasts;
+            try { IlmenyxSettings.Update(settingsPath, s => s.DeviceToasts = on); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
         };
         return Scroll("ToolsScroll", new StackPanel
         {

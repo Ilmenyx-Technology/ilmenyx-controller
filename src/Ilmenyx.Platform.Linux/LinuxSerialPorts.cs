@@ -29,6 +29,9 @@ public sealed class LinuxSerialPorts(string sysRoot = "/sys", string procRoot = 
 
     public static (int Uid, int[] Gids) Identity(string procRoot)
     {
+        // Flatpak: inside the user namespace the supplementary groups read as 65534 (nobody); the host's `id` gives the real ones,
+        // matching the device nodes, which are also stat'ed on the host (StatNode runs stat through HostSpawn).
+        if (HostProcesses.Active(procRoot) && HostIdentity() is { } host) return host;
         string status = SysfsText.Read(Path.Combine(procRoot, "self/status"), 4096); // small, line based
         int uid = -1; var gids = new List<int>();
         foreach (var line in status.Split('\n'))
@@ -38,6 +41,19 @@ public sealed class LinuxSerialPorts(string sysRoot = "/sys", string procRoot = 
             else if (line.StartsWith("Gid:", StringComparison.Ordinal)) { var p = line[4..].Split(['\t', ' '], StringSplitOptions.RemoveEmptyEntries); if (p.Length > 0 && int.TryParse(p[0], out int primary)) gids.Add(primary); }
         }
         return (uid, gids.Distinct().ToArray());
+    }
+
+    private static (int Uid, int[] Gids)? HostIdentity()
+    {
+        try
+        {
+            var (c1, u) = Task.Run(() => BoundedProcess.RunAsync("id", ["-u"], TimeSpan.FromSeconds(3), 64)).GetAwaiter().GetResult();
+            var (c2, g) = Task.Run(() => BoundedProcess.RunAsync("id", ["-G"], TimeSpan.FromSeconds(3), 4096)).GetAwaiter().GetResult();
+            if (c1 != 0 || c2 != 0 || !int.TryParse(u.Trim(), out int uid)) return null;
+            var gids = g.Split((char[])[' ', '\n'], StringSplitOptions.RemoveEmptyEntries).Select(t => int.TryParse(t, out int x) ? x : -1).Where(x => x >= 0).Distinct().ToArray();
+            return gids.Length == 0 ? null : (uid, gids);
+        }
+        catch (Exception e) when (e is IOException or FileNotFoundException or TimeoutException or System.ComponentModel.Win32Exception) { return null; }
     }
 
     /// <summary>rw access for (uid, gids) from owner/group/other bits of a file mode.</summary>
@@ -50,6 +66,7 @@ public sealed class LinuxSerialPorts(string sysRoot = "/sys", string procRoot = 
 
     private bool Running(string name)
     {
+        if (HostProcesses.Active(procRoot)) return HostProcesses.Parse(HostProcesses.StatDump()).Any(p => p.Comm == name);
         try
         {
             foreach (var dir in Directory.EnumerateDirectories(procRoot).Where(d => char.IsAsciiDigit(Path.GetFileName(d)[0])).Take(4096))
@@ -61,9 +78,10 @@ public sealed class LinuxSerialPorts(string sysRoot = "/sys", string procRoot = 
 
     private (bool Available, bool Loaded) Module(string name)
     {
-        bool loaded = Directory.Exists(Path.Combine(sysRoot, "module", name));
+        string moduleDir = Path.Combine(sysRoot, "module", name);
+        bool loaded = HostSysfs.Hidden(moduleDir) ? HostSysfs.DirectoryExists(moduleDir) : Directory.Exists(moduleDir);
         string release = Attr(Path.Combine(procRoot, "sys/kernel/osrelease"), 64);
-        bool available = loaded || (new[] { modulesRoot, "/usr/lib/modules", "/lib/modules" }.Where(r => !string.IsNullOrEmpty(r)).Any(r =>
+        bool available = loaded || (new[] { modulesRoot, HostSpawn.HostPath("/usr/lib/modules"), HostSpawn.HostPath("/lib/modules") }.Where(r => !string.IsNullOrEmpty(r)).Any(r =>
         {
             try { string root = Path.Combine(r!, release, "kernel/drivers/usb/serial"); string acm = Path.Combine(r!, release, "kernel/drivers/usb/class"); return (Directory.Exists(root) && Directory.EnumerateFiles(root, name + ".ko*").Any()) || (Directory.Exists(acm) && Directory.EnumerateFiles(acm, name + ".ko*").Any()); }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return false; }
@@ -77,7 +95,7 @@ public sealed class LinuxSerialPorts(string sysRoot = "/sys", string procRoot = 
         string tty = Path.Combine(sysRoot, "class/tty");
         if (!Directory.Exists(tty)) return rows;
         var (uid, gids) = Identity(procRoot);
-        string serialGroup = File.Exists("/etc/group") && File.ReadAllText("/etc/group").Contains("\nuucp:", StringComparison.Ordinal) && !File.ReadAllText("/etc/group").Contains("\ndialout:", StringComparison.Ordinal) ? "uucp" : "dialout";
+        string serialGroup = File.Exists(HostSpawn.HostPath("/etc/group")) && File.ReadAllText(HostSpawn.HostPath("/etc/group")).Contains("\nuucp:", StringComparison.Ordinal) && !File.ReadAllText(HostSpawn.HostPath("/etc/group")).Contains("\ndialout:", StringComparison.Ordinal) ? "uucp" : "dialout";
         var statFn = stat ?? StatNode;
         // Group membership: any of the user's gids that belongs to the serial group is resolved through /etc/group names only for the advice text.
         foreach (var dir in Directory.EnumerateDirectories(tty).Where(d => Path.GetFileName(d).StartsWith("ttyUSB", StringComparison.Ordinal) || Path.GetFileName(d).StartsWith("ttyACM", StringComparison.Ordinal)).OrderBy(d => d, StringComparer.Ordinal).Take(64))
@@ -100,7 +118,7 @@ public sealed class LinuxSerialPorts(string sysRoot = "/sys", string procRoot = 
             var st = await statFn(node, ct);
             bool? accessible = st is { } s ? CanReadWrite(uid, gids, s.Uid, s.Gid, s.Mode) : null;
             string? group = null;
-            if (st is { } s2 && File.Exists("/etc/group")) group = File.ReadLines("/etc/group").Take(2048).Select(l => l.Split(':')).Where(p => p.Length > 2 && p[2] == s2.Gid.ToString(CultureInfo.InvariantCulture)).Select(p => p[0]).FirstOrDefault();
+            if (st is { } s2 && File.Exists(HostSpawn.HostPath("/etc/group"))) group = File.ReadLines(HostSpawn.HostPath("/etc/group")).Take(2048).Select(l => l.Split(':')).Where(p => p.Length > 2 && p[2] == s2.Gid.ToString(CultureInfo.InvariantCulture)).Select(p => p[0]).FirstOrDefault();
             var port = new SerialPortInfo(node, vid, pid, Attr(Path.Combine(usb, "product")), Attr(Path.Combine(usb, "manufacturer")), driver, accessible, group);
             bool inGroup = st is { } s3 && gids.Contains(s3.Gid);
             var env = new SerialEnvironment(Running("brltty"), Running("ModemManager"), inGroup, serialGroup, Module);

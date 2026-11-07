@@ -191,6 +191,11 @@ public class OcSupportTests
         Assert.Throws<ArgumentOutOfRangeException>(() => NvidiaTuning.Commands(gpu, 90, null));
         Assert.Throws<ArgumentOutOfRangeException>(() => NvidiaTuning.Commands(gpu, 230, null));
         Assert.Throws<ArgumentOutOfRangeException>(() => NvidiaTuning.Commands(gpu, 180, 100));
+        // Real GeForce 940MX (driver 580.178.04): power.limit N/A with placeholder 200/0/200 W.
+        var laptop = NvidiaTuning.Parse("0, NVIDIA GeForce 940MX, [N/A], 200.00, 0.00, 200.00, 1189, 135").Single();
+        Assert.False(NvidiaTuning.SupportsPowerLimit(laptop)); Assert.Null(laptop.PowerDefaultW); Assert.Null(laptop.PowerMaxW);
+        Assert.Equal(["sudo nvidia-smi -i 0 -lgc 210,889"], NvidiaTuning.Commands(laptop, null, 889));
+        Assert.Throws<InvalidOperationException>(() => NvidiaTuning.Commands(laptop, 15, null));
         Assert.Throws<ArgumentOutOfRangeException>(() => NvidiaTuning.Commands(gpu, 180, 9000));
         Assert.Equal(["sudo nvidia-smi -i 0 -pl 200", "sudo nvidia-smi -i 0 -rgc"], NvidiaTuning.ResetCommands(gpu));
         Assert.Throws<InvalidOperationException>(() => NvidiaTuning.Commands(new(0, "x", null, null, null, null, null, null), 100, null));

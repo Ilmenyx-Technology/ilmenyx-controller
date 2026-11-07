@@ -44,6 +44,43 @@ public static class MangoHudLogReader
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return null; }
     }
 
+    public const long SessionMaxBytes = 32L << 20;
+
+    /// <summary>
+    /// Whole-session statistics from the MangoHud CSVs in Ilmenyx's log folder written since <paramref name="since"/> (the game launch).
+    /// When several logs were written (a launcher window and the game), the one with the most samples wins. Null when none is usable.
+    /// Logs above <see cref="SessionMaxBytes"/> are summarized from the header and the last <see cref="SessionMaxBytes"/>.
+    /// </summary>
+    public static MangoHudSessionStats? ReadSession(string folder, DateTimeOffset since)
+    {
+        try
+        {
+            if (!Directory.Exists(folder)) return null;
+            MangoHudSessionStats? best = null;
+            foreach (var file in new DirectoryInfo(folder).EnumerateFiles("*.csv").Take(512).Where(f => new DateTimeOffset(f.LastWriteTimeUtc, TimeSpan.Zero) >= since - TimeSpan.FromSeconds(2))
+                         .OrderByDescending(f => f.LastWriteTimeUtc).Take(16))
+            {
+                try
+                {
+                    using var stream = new FileStream(file.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                    string text;
+                    if (stream.Length <= SessionMaxBytes) text = new StreamReader(stream, Encoding.UTF8).ReadToEnd();
+                    else
+                    {
+                        var head = new byte[HeadBytes]; stream.ReadExactly(head);
+                        stream.Position = stream.Length - SessionMaxBytes; var tail = new byte[SessionMaxBytes]; stream.ReadExactly(tail);
+                        string tailText = Encoding.UTF8.GetString(tail);
+                        text = Encoding.UTF8.GetString(head) + "\n" + tailText[(tailText.IndexOf('\n') + 1)..];
+                    }
+                    if (MangoHudSession.Summarize(text) is { } stats && (best is null || stats.Samples > best.Samples)) best = stats;
+                }
+                catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+            }
+            return best;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return null; }
+    }
+
     /// <summary>Writes Ilmenyx's own MangoHud config (0600, atomic). The user's MangoHud.conf is never touched.</summary>
     [System.Runtime.Versioning.SupportedOSPlatform("linux")]
     public static void WriteConfig(string path, string content, string logFolder)

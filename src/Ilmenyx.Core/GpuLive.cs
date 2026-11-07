@@ -8,7 +8,7 @@ namespace Ilmenyx.Core;
 /// <param name="PowerIsPackage">PowerW is the whole package (CPU+GPU), as amdgpu reports power1 on APUs, not the GPU alone.</param>
 public sealed record GpuTelemetry(double? LoadPercent, double? TempC, double? TempHotspotC, double? TempMemC, double? CoreMHz, double? MemMHz,
     ulong? VramUsed, ulong? VramTotal, double? PowerW, double? PowerLimitW, double? FanPercent, double? FanRpm, string? PState, ulong? ThrottleMask,
-    double? MemControllerPercent, double? EncoderPercent, double? DecoderPercent, int? PcieGen, int? PcieWidth, bool Integrated = false, bool PowerIsPackage = false, double? CoreVoltageV = null);
+    double? MemControllerPercent, double? EncoderPercent, double? DecoderPercent, int? PcieGen, int? PcieWidth, bool Integrated = false, bool PowerIsPackage = false, double? CoreVoltageV = null, bool Sleeping = false);
 
 public sealed record LiveRow(string Category, string Name, string Value);
 

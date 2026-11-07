@@ -80,7 +80,7 @@ public static class GameLaunchOptions
     public static IReadOnlyList<KeyValuePair<string, string>> GpuEnvironment(string vendor) => vendor switch
     {
         "NVIDIA" => [new("__NV_PRIME_RENDER_OFFLOAD", "1"), new("__GLX_VENDOR_LIBRARY_NAME", "nvidia"), new("__VK_LAYER_NV_optimus", "NVIDIA_only")],
-        "AMD" or "Intel" or "" => [new("DRI_PRIME", "1")],
+        "AMD" or "Intel" or "NVIDIA-Mesa" or "" => [new("DRI_PRIME", "1")], // NVIDIA-Mesa: NVIDIA GPU driven by nouveau/NVK
         _ => []
     };
 
@@ -128,6 +128,17 @@ public sealed record BenchRunEntry(DateTimeOffset At, string Kind, string Summar
     public const int MaxEntries = 50;
 }
 
+/// <summary>
+/// Summary of one game session measured by MangoHud on this PC (Launcher with MangoHud on). Only the game name from the library, the
+/// date, FPS figures, duration, the GPU name MangoHud logged and the profile resolution are kept; nothing leaves the PC.
+/// </summary>
+public sealed record FpsSession(string Game, DateTimeOffset At, double AvgFps, double Low1Fps, double DurationSeconds, string? Gpu, string? Resolution)
+{
+    public const int MaxEntries = 50;
+    public const double MinSeconds = 30;
+    public bool IsValid => DurationSeconds >= MinSeconds && double.IsFinite(AvgFps) && AvgFps > 0 && AvgFps < 10000 && Game is { Length: > 0 };
+}
+
 public sealed class IlmenyxSettings
 {
     public Dictionary<string, GameProfile> GameProfiles { get; set; } = [];
@@ -146,6 +157,17 @@ public sealed class IlmenyxSettings
     public bool ThemeLight { get; set; }
     /// <summary>Toast when a removable drive or USB device appears or disappears (local polling only).</summary>
     public bool DeviceToasts { get; set; } = true;
+    /// <summary>The first-run screen that offers every blocked sensor fix at once was already shown (accepted or not); later fixes stay in the sidebar button.</summary>
+    public bool PermissionsAsked { get; set; }
+    /// <summary>FPS measured in game sessions started by the Launcher with MangoHud (newest first, at most <see cref="FpsSession.MaxEntries"/>). Never sent anywhere.</summary>
+    public List<FpsSession> FpsSessions { get; set; } = [];
+
+    public void AddFpsSession(FpsSession session)
+    {
+        if (!session.IsValid) return;
+        FpsSessions.Insert(0, session);
+        if (FpsSessions.Count > FpsSession.MaxEntries) FpsSessions.RemoveRange(FpsSession.MaxEntries, FpsSessions.Count - FpsSession.MaxEntries);
+    }
 
     public void AddBenchRun(BenchRunEntry entry)
     {
@@ -153,20 +175,87 @@ public sealed class IlmenyxSettings
         if (BenchRuns.Count > BenchRunEntry.MaxEntries) BenchRuns.RemoveRange(BenchRunEntry.MaxEntries, BenchRuns.Count - BenchRunEntry.MaxEntries);
     }
 
-    public static IlmenyxSettings Load(string path)
+    /// <summary>Reads the file (missing, too large or corrupt = defaults). Use it for reads; write with <see cref="Update"/>.</summary>
+    public static IlmenyxSettings Load(string path) => LoadCore(path, out _, out _);
+
+    private static IlmenyxSettings LoadCore(string path, out bool corrupt, out Exception? unreadable)
     {
-        try { if (File.Exists(path) && new FileInfo(path).Length < 4 << 20) return JsonSerializer.Deserialize<IlmenyxSettings>(File.ReadAllText(path)) ?? new(); }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException or JsonException) { }
+        corrupt = false; unreadable = null;
+        try
+        {
+            if (!File.Exists(path)) return new();
+            if (new FileInfo(path).Length < 4 << 20 && JsonSerializer.Deserialize<IlmenyxSettings>(File.ReadAllText(path)) is { } loaded)
+            {
+                loaded.GameProfiles ??= []; loaded.CustomGames ??= []; loaded.TweakBackup ??= []; loaded.BenchRuns ??= []; // hand-edited files ("x": null)
+                loaded.FpsSessions = (loaded.FpsSessions ?? []).Where(x => x is not null && x.IsValid).Take(FpsSession.MaxEntries).ToList();
+                return loaded;
+            }
+            corrupt = true;
+        }
+        catch (JsonException) { corrupt = true; }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { unreadable = e; }
         return new();
     }
 
+    /// <summary>Writes this whole copy over the file. Kept for compatibility: it overwrites what other pages or instances saved since this
+    /// copy was loaded, so the app writes through <see cref="Update"/> instead.</summary>
     public void Save(string path)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
         string tmp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
-        File.WriteAllText(tmp, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
-        if (OperatingSystem.IsLinux()) File.SetUnixFileMode(tmp, UnixFileMode.UserRead | UnixFileMode.UserWrite);
-        File.Move(tmp, path, overwrite: true);
+        try
+        {
+            File.WriteAllText(tmp, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
+            if (OperatingSystem.IsLinux()) File.SetUnixFileMode(tmp, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+            File.Move(tmp, path, overwrite: true);
+        }
+        catch { try { File.Delete(tmp); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { } throw; }
+    }
+
+    /// <summary>How long <see cref="Update"/> waits for another process holding the settings lock before going on without it.</summary>
+    public static TimeSpan LockTimeout { get; set; } = TimeSpan.FromSeconds(2);
+
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, object> pathLocks = new(StringComparer.Ordinal);
+
+    /// <summary>Atomic read-modify-write: under an in-process lock (per path) and an inter-process lock (flock on "settings.json.lock",
+    /// released by the kernel if the holder dies), re-reads the current file, applies only <paramref name="change"/> and writes it back
+    /// atomically (temp file + rename, mode 0600). Returns the saved state, so callers can refresh their copy. A corrupt file is kept as
+    /// "settings.json.corrupt" before being replaced. If the lock is not obtained within <see cref="LockTimeout"/> it goes on without it
+    /// (still re-read + atomic rename), so a stuck process never blocks the app.</summary>
+    public static IlmenyxSettings Update(string path, Action<IlmenyxSettings> change) => UpdateAndGet(path, s => { change(s); return s; });
+
+    /// <summary><see cref="Update"/> returning a value computed from the fresh state inside the lock (separate name so an assignment
+    /// lambda like <c>s =&gt; s.X = v</c> always binds to <see cref="Update"/>).</summary>
+    public static T UpdateAndGet<T>(string path, Func<IlmenyxSettings, T> change)
+    {
+        string full = Path.GetFullPath(path);
+        lock (pathLocks.GetOrAdd(full, _ => new object()))
+        {
+            using var crossProcess = AcquireFileLock(full + ".lock", LockTimeout);
+            var current = LoadCore(full, out bool corrupt, out var unreadable);
+            if (unreadable is not null) throw new IOException("Settings file exists but cannot be read; not overwriting it: " + unreadable.Message, unreadable);
+            if (corrupt) { try { File.Copy(full, full + ".corrupt", overwrite: true); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { } }
+            T result = change(current);
+            current.Save(full);
+            return result;
+        }
+    }
+
+    private static FileStream? AcquireFileLock(string lockPath, TimeSpan timeout)
+    {
+        var deadline = DateTime.UtcNow + timeout;
+        while (true)
+        {
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(lockPath)!);
+                var options = new FileStreamOptions { Mode = FileMode.OpenOrCreate, Access = FileAccess.ReadWrite, Share = FileShare.None };
+                if (OperatingSystem.IsLinux()) options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+                return new FileStream(lockPath, options); // .NET on Unix: FileShare.None = flock(LOCK_EX | LOCK_NB)
+            }
+            catch (IOException) when (DateTime.UtcNow < deadline) { Thread.Sleep(15); }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return null; } // timeout or read-only dir: go on unlocked
+        }
     }
 
     public static string DefaultPath()

@@ -65,6 +65,20 @@ public static class GameCatalog
         ("RX 6950 XT", 125), ("RX 6800 XT", 112), ("RX 6700 XT", 82), ("RX 6600", 58),
         ("Arc B580", 80), ("Arc A770", 68),
         ("Radeon(TM) Graphics", 6), ("Radeon Graphics", 6),
+        // Ilmenyx additions (2026-11-07): older desktop, laptop and integrated GPUs, so common Linux machines are not left out
+        // (approximate relative gaming performance, same scale: RTX 4070 = 100).
+        ("RTX 2080 Ti", 75), ("RTX 2080 SUPER", 65), ("RTX 2080", 61), ("RTX 2070 SUPER", 58), ("RTX 2070", 51), ("RTX 2060 SUPER", 48), ("RTX 2060", 42),
+        ("GTX 1660 Ti", 42), ("GTX 1660 SUPER", 41), ("GTX 1080 Ti", 66), ("GTX 1080", 52), ("GTX 1070 Ti", 47), ("GTX 1070", 43),
+        ("GTX 1060", 30), ("GTX 1050 Ti", 18), ("GTX 1050", 14), ("GT 1030", 7), ("GTX 980 Ti", 40), ("GTX 980", 32), ("GTX 970", 28), ("GTX 960", 18),
+        ("RTX 4060 Laptop", 58), ("RTX 4050 Laptop", 48), ("RTX 3060 Laptop", 50), ("RTX 3050 Laptop", 30), ("RTX 3050 Ti Laptop", 33), ("GTX 1650 Ti", 26),
+        ("MX570", 15), ("MX550", 13), ("MX450", 11), ("MX350", 8), ("MX330", 7.5), ("MX250", 7.5), ("MX230", 6), ("MX150", 7), ("MX130", 4.5), ("MX110", 3.5),
+        ("940MX", 4.5), ("940M", 4), ("930MX", 3.5), ("930M", 3.5), ("920MX", 3), ("GTX 950M", 9), ("GTX 960M", 11), ("GTX 1050 Mobile", 13),
+        ("RX 6800", 98), ("RX 6750 XT", 86), ("RX 6650 XT", 66), ("RX 6600 XT", 64), ("RX 6500 XT", 26), ("RX 6400", 20),
+        ("RX 5700 XT", 55), ("RX 5700", 50), ("RX 5600 XT", 46), ("RX 5500 XT", 33), ("RX 590", 32), ("RX 580", 30), ("RX 570", 26), ("RX 560", 13), ("RX 550", 9),
+        ("Arc A750", 62), ("Arc A580", 52), ("Arc A380", 22), ("Iris Xe", 7), ("Iris Plus", 4), ("UHD Graphics 770", 4), ("UHD Graphics 630", 3), ("UHD Graphics 620", 2.5),
+        ("HD Graphics 630", 3), ("HD Graphics 620", 2.5), ("HD Graphics 520", 2), ("UHD Graphics", 2.5),
+        ("Radeon 890M", 30), ("Radeon 880M", 26), ("Radeon 780M", 21), ("Radeon 760M", 17), ("Radeon 680M", 18), ("Radeon 660M", 12), ("Radeon 610M", 3), ("Mendocino", 3),
+        ("Vega 8", 6), ("Vega 7", 6), ("Vega 6", 5), ("Vega 3", 2.5), ("Steam Deck", 9), ("VanGogh", 9), ("Van Gogh", 9),
     };
 
     // Desempenho relativo em jogos (limitado pela CPU), Ryzen 7 7700X = 100. Aproximado.
@@ -75,17 +89,31 @@ public static class GameCatalog
         ("7700", 97), ("7600X", 96), ("7600", 93), ("5950X", 82), ("5900X", 81), ("5800X", 80), ("5700X", 77), ("5600X", 76), ("5600", 73),
         ("285K", 112), ("265K", 108), ("245K", 100), ("14900K", 116), ("14700K", 112), ("14600K", 104), ("13900K", 113),
         ("13700K", 108), ("13600K", 101), ("13400", 84), ("12900K", 98), ("12700K", 95), ("12600K", 90), ("12400", 78),
+        // Ilmenyx additions (2026-11-07): older desktop and laptop CPUs (approximate, same scale: Ryzen 7 7700X = 100).
+        ("11700K", 78), ("11400", 70), ("10700K", 76), ("10400", 62), ("9900K", 78), ("9700K", 74), ("9600K", 66), ("9400F", 58), ("9400", 58),
+        ("8700K", 68), ("8700", 66), ("8400", 58), ("7700K", 60), ("6700K", 55), ("4790K", 45),
+        ("13900H", 95), ("13700H", 90), ("13500H", 86), ("12900H", 92), ("12700H", 85), ("12650H", 80), ("12500H", 78), ("12450H", 72),
+        ("1360P", 66), ("1260P", 64), ("1255U", 63), ("1235U", 60), ("1165G7", 58), ("1135G7", 55), ("1065G7", 46), ("10750H", 58), ("10510U", 45),
+        ("9750H", 55), ("8750H", 52), ("8565U", 42), ("8550U", 42), ("8250U", 40), ("7700HQ", 45), ("7500U", 36), ("7200U", 33), ("6500U", 30),
+        ("3900X", 67), ("3700X", 65), ("3600", 62), ("2700X", 54), ("2600", 50), ("1600", 45), ("5600G", 66), ("5700G", 70), ("5500", 70), ("4600G", 58),
+        ("7945HX", 115), ("7940HS", 86), ("7840HS", 85), ("7840U", 78), ("7735HS", 74), ("7640HS", 76), ("7535HS", 66), ("6900HS", 74), ("6800H", 72),
+        ("5900HX", 70), ("5800H", 66), ("5600H", 62), ("4800H", 58), ("4600H", 55), ("7730U", 52), ("7530U", 48), ("7520U", 34), ("7320U", 30),
+        ("5700U", 50), ("5500U", 45), ("4700U", 44), ("4500U", 40), ("3700U", 32), ("3500U", 30), ("Custom APU 0405", 40),
     };
 
-    public static double? GpuPerf(string gpuName) => Lookup(GpuIndex, gpuName) ?? Lookup(GpuIndex, ShortGpuName(gpuName));
-    public static double? CpuPerf(string cpuName) => Lookup(CpuIndex, cpuName);
+    public static double? GpuPerf(string gpuName) => GpuMatch(gpuName)?.Index;
+    public static double? CpuPerf(string cpuName) => Lookup(CpuIndex, cpuName)?.Index;
+
+    /// <summary>Table entry that matched the GPU name (the key tells how specific the match was: see <see cref="FpsAccuracy"/>).</summary>
+    public static (string Key, double Index)? GpuMatch(string gpuName) => Lookup(GpuIndex, gpuName) ?? Lookup(GpuIndex, ShortGpuName(gpuName));
+    public static (string Key, double Index)? CpuMatch(string cpuName) => Lookup(CpuIndex, ShortCpuName(cpuName)) ?? Lookup(CpuIndex, cpuName);
 
     /// <summary>A chave mais longa contida no nome vence ("RTX 5070 Ti" antes de "RTX 5070").</summary>
-    private static double? Lookup((string Key, double Index)[] table, string name)
+    private static (string Key, double Index)? Lookup((string Key, double Index)[] table, string name)
     {
         var hit = table.Where(t => name.Contains(t.Key, StringComparison.OrdinalIgnoreCase))
                        .OrderByDescending(t => t.Key.Length).FirstOrDefault();
-        return hit.Key == null ? null : hit.Index;
+        return hit.Key == null ? null : hit;
     }
 
     public static double ResolutionFactor(string res) => res switch

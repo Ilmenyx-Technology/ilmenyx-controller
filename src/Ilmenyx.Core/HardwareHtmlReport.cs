@@ -8,7 +8,8 @@ namespace Ilmenyx.Core;
 public static class ValidationNotices
 {
     // 2026-11-06: an AMD APU (Radeon 610M) was validated on real hardware; dedicated AMD/NVIDIA GPUs were not (maintainer decision to keep the notice).
-    public const string AmdNvidia = "GPUs dedicadas AMD/NVIDIA · Testes não realizados em hardware real";
+    // 2026-11-07: NVIDIA validated on one real dedicated GPU (GeForce 940MX, driver 580, laptop); dedicated AMD still untested.
+    public const string AmdNvidia = "GPU AMD dedicada não testada · NVIDIA validada só numa GeForce 940MX";
 }
 
 /// <summary>Standalone, passive HTML. All data is encoded as text; no untrusted attributes or markup.</summary>

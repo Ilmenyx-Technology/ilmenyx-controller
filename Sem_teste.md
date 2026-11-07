@@ -60,6 +60,8 @@ Um item só sai daqui com evidência real (comando, ambiente, data). Fixture, bu
 | OPT-02 | Aceleração do mouse em KDE | A página só implementa GNOME (gsettings); KDE exige edição por dispositivo em `kcminputrc` | Implementar e testar numa sessão Plasma |
 | APP-01 | Instalação real de Flatpaks | Baixaria centenas de MB e alteraria o sistema do usuário; o smoke usa executor falso (a leitura real de `flatpak list/remotes` foi verificada) | Clique manual instalando um app pequeno |
 | FPS-01 | API HowManyFPS real | Exige chave pedida por e-mail à HowManyFPS e consome cota; o formato de autenticação só vem com a credencial | Obter a chave e clicar em CONSULTAR API |
+| FPS-02 | "MEDIDO NESTE PC": sessão real de jogo pelo Launcher com MangoHud, leitura do CSV ao fechar e cartão na Estimativa de FPS | Em 2026-11-07 (Dell Inspiron 7460, i7-7500U + HD 620 + GeForce 940MX no nouveau) **nenhum FPS real foi medido**: por regra nenhum jogo nem carga foi executado. Validados só com dados sintéticos e o CSV real do glxgears (fixture, 5,7 s → recusado por ser < 30 s): resumo da sessão, limite de 50, recusa de sessões curtas/sem amostras, escolha do maior log desde o início, casamento de nomes, prioridade sobre a estimativa; o Launcher no smoke usa execução falsa. Não conferido: qual nome de GPU o MangoHud escreve no nouveau/PRIME, MangoHud via opções da Steam, logs múltiplos de jogos com launcher | Ligar MangoHud no perfil, gerar a configuração na página Overlay, jogar ≥ 1 min pela página Jogos, fechar e conferir o status do Launcher e o cartão MEDIDO NESTE PC contra o contador do próprio MangoHud |
+| FPS-03 | Faixa + confiança e alertas (VRAM, bateria, PRIME, nouveau) contra FPS real | A faixa (ex.: CS2 1080p/Alto nesta máquina: 8–22 FPS, confiança muito baixa) e o spread não foram calibrados com FPS medido; os alertas foram conferidos só na leitura desta máquina (nouveau + duas GPUs, na tomada; VRAM não exposta pelo nouveau, então sem alerta de VRAM) e com fixtures. `vulkaninfo` desta máquina lista só HD 620 e llvmpipe (sem Vulkan na 940MX no nouveau) | Medir alguns jogos (FPS-02) em hardware variado e comparar com a faixa; com o driver NVIDIA o `nvidia-smi` informa 4096 MiB (a 940MX desta máquina é de 4 GB), então o alerta de VRAM < 4 GB corretamente não aparece; conferir o alerta numa GPU de 2 GB e o alerta de bateria tirando o carregador |
 | PKG-02 | Pacote autocontido: smoke gráfico completo, Wayland, Arch/openSUSE/Alpine, ARM64 | Em 2026-10-22 CLI e janela abriram sem .NET e sem ICU do sistema em Ubuntu/Debian/Fedora (docs/pacote-linux-x64.md); falta o smoke completo com o pacote, outras distros e arquiteturas, que exigem outra imagem/hardware | VMs já preparadas; ARM64/musl exigem outro hardware | Atualização 2026-10-22: o pacote 0.30.0 também passou na validação CLI e abriu a janela em Arch Linux (kernel 7.2.9) e openSUSE Tumbleweed (VMs mínimas, evidências em docs/evidencias/ilmenyx-vm-arch-linux-0.30.0 e -opensuse-tumbleweed-0.30.0); o smoke gráfico completo, Alpine/musl e ARM64 continuam sem teste.
 | CMP-01 | MangoHud embutido (v0.8.4, 64 bits) desenhando sobre um jogo/Vulkan real, e jogos de 32 bits — **PARCIAL em 2026-11-06: MangoHud embutido desenhou sobre o vkcube (Vulkan) numa máquina sem MangoHud no sistema e gravou o CSV; antes disso não carregava em loader 1.3.275 (corrigido). Falta um jogo real e 32 bits** | Em 2026-10-22 só foi verificado que o wrapper gerado carrega o shim e que o loader Vulkan enumera o manifesto do Ilmenyx; nenhum jogo ou renderização com o MangoHud embutido foi executado (a máquina de teste já tem MangoHud do sistema, que tem prioridade, e abrir um jogo/janela de teste fica fora do que o smoke pode fazer sem intervenção). Bibliotecas de 32 bits não foram embutidas | Máquina sem MangoHud no sistema: iniciar um jogo Vulkan pelo Launcher com MangoHud ligado e conferir overlay e CSV |
 | CMP-02 | GameMode embutido (ionice/renice do usuário) | Só foi testado que o script executa o programa e repassa argumentos. Os efeitos (prioridade de E/S e nice) dependem de permissão e não foram medidos num jogo; ele não troca governador/perfil de CPU (isso o GameMode real faz via daemon/polkit e é usado quando está no sistema) | Medir `ionice -p`/`ps -o ni` do jogo iniciado pelo Launcher sem gamemoderun no sistema |
@@ -504,3 +506,75 @@ Desempenho por agentes Claude e Ferramentas/Maker/diálogos pelo Codex, em workt
 build 0 avisos, 887 testes, smoke X11 52/52 e Wayland nativo (Muffin) 52/52. Capturas em `docs/evidencias/ui-cinematic-2026-11-06/`.
 - NÃO TESTADO: escala fracionária/HiDPI, leitor de tela (Orca) com os novos cards-botão, KWin/GNOME reais, capas reais da Steam
   (a máquina não tem Steam; o caminho foi visto só com arquivo falso), contraste medido (WCAG) dos textos sobre os gradientes.
+
+## Precisão da Estimativa de FPS (2026-11-07)
+
+Página Estimativa de FPS mais honesta (docs/fps-estimativa.md): sessões MEDIDO NESTE PC gravadas pelo Launcher com MangoHud (prioridade sobre
+estimativa e API), estimativa local como faixa + confiança com o motivo, e alertas lidos localmente (nouveau, GPU sem driver, VRAM < 4 GB,
+bateria, notebook híbrido sem PRIME). Conferido nesta máquina (Dell Inspiron 7460, i7-7500U + HD 620 + GeForce 940MX no nouveau, na tomada):
+a página real mostra confiança muito baixa (CS2 8–22 FPS) e os alertas "Driver nouveau na GeForce" e "Notebook com duas GPUs".
+- NÃO TESTADO: qualquer FPS real (nenhum jogo foi executado), o caminho real de sessão (FPS-02), calibração da faixa (FPS-03), alerta de VRAM
+  com o driver NVIDIA e alerta de bateria fora da tomada.
+## UX nouveau / gerenciador de drivers — 2026-11-07
+
+- IMPLEMENTADO: motivo específico NVIDIA/nouveau, tensão hwmon `GPU core`, temperatura somente quando exposta, recomendação e launcher injetável da ferramenta Mint/Ubuntu. Ver `docs/validacao-nouveau-ux.md`.
+- NÃO TESTADO: testes unitários deste incremento. VSTest abortou antes dos casos por `System.Net.Sockets.SocketException (13): Permission denied` ao criar o socket de comunicação no sandbox. Retestar fora do sandbox com `dotnet test Ilmenyx.slnx -c Release --no-build --no-restore`.
+- NÃO TESTADO: abrir gerenciador real por clique e sensores reais na GeForce 940MX/nouveau; fixtures não certificam hardware. Retestar na sessão gráfica do mantenedor com o driver ainda ligado a nouveau, sem instalar/trocar driver como parte do teste. Temperatura ausente deve continuar indisponível; tensão esperada somente se hwmon ainda informar 900 mV.
+- Aceite humano PENDENTE DE REVISÃO; nenhuma instalação, carga ou mudança de driver realizada.
+- NÃO TESTADO: smoke/capturas X11 e Wayland deste incremento. O harness compilou com 0 avisos/erros, mas a inicialização X11 falhou com `XOpenDisplay failed` (saída 134) no sandbox antes dos casos. Repetir o smoke em sessão gráfica acessível, incluindo o novo caso `nouveau driver recommendation` com launcher falso; não clicar no gerenciador real em testes automáticos.
+
+## NVIDIA real — GeForce 940MX (Dell Inspiron 7460, driver 580.178.04), 2026-11-07
+
+- FECHADOS/PARCIAIS com evidência (`docs/evidencias/gpu-nvidia-2026-11-07/`): GPU-02 (identificação NVIDIA real, nouveau e proprietário),
+  GPU-04 NVIDIA (telemetria via nvidia-smi — corrigida: com o driver 580 nada era lido), GAME-03 PRIME (DRI_PRIME no nouveau e variáveis
+  NVIDIA no proprietário, comprovados pelo CSV do MangoHud), GPU-06/GPU-08 parcial em GPU dedicada NVIDIA (stress 8 s, cena 8 s; RT recusado),
+  OC-01 parcial (faixa de energia de preenchimento descartada; só teto de clock nesta placa), DRV-01 parcial (versão instalada lida; consulta
+  online compara com o ramo global, errado para Maxwell — em correção), CMP-01 (MangoHud embutido em OpenGL e Vulkan nos dois drivers).
+- NÃO TESTADO: GPU NVIDIA de desktop/RTX (power limit ajustável, ventoinha, NVENC), driver open (Turing+), Wayland com NVIDIA, Secure Boot ligado,
+  aplicar comandos de OC de verdade, stress longo.
+## Aba "Driver NVIDIA" — 2026-11-07
+
+Ver `docs/driver-nvidia.md` e `docs/evidencias/nvidia-driver-tab-2026-11-07/`. Testado de verdade: diagnóstico real e simulações `apt-get -s`
+nesta máquina (Dell Inspiron 7460, GeForce 940MX, Mint 22.3, driver 580.178.04 instalado pelo lead → "Funcionando, em dia"). O cenário
+quebrado (kernel 7.0 com cabeçalhos incompletos, `iF`/`iU`) só com fixtures reconstruídas; smoke com serviços falsos.
+
+| ID | Item | Por que não foi testado | Condição para testar |
+|---|---|---|---|
+| NVDRV-01 | Execução real por pkexec de INSTALAR / REPARAR / ATUALIZAR / VOLTAR AO NOUVEAU no Ubuntu/Mint | Regra da tarefa: nenhuma instalação/remoção real; o driver já está instalado e funcionando nesta máquina | Com autorização do dono: VM ou máquina Mint/Ubuntu com NVIDIA no nouveau; clicar INSTALAR, conferir log, `dkms status`, reboot, aba "Funcionando"; depois VOLTAR AO NOUVEAU e reinstalar |
+| NVDRV-02 | Secure Boot ligado (chave MOK) | Secure Boot desligado nesta máquina | Máquina com SB ligado: instalar, `mokutil --import`, "Enroll MOK", conferir módulo carregado |
+| NVDRV-03 | Kepler (470) e Turing+ (595 open) | Só há Maxwell aqui | Placas correspondentes; conferir ramo/pacotes e simulação |
+| NVDRV-04 | Debian, Fedora/Nobara (RPM Fusion akmod, nomes -580xx/-470xx), Arch e derivadas, openSUSE | Sem VM/dispositivo dessas distros; scripts só documentados | VM com GPU passthrough ou máquina real; revisar o script, rodar, conferir módulo |
+| NVDRV-05 | Página Drivers: versão mais recente do ramo pela listagem `download.nvidia.com/XFree86/Linux-x86_64/` | Rede não usada pelo agente; parser testado com fixture | Clicar "VERIFICAR VERSÃO MAIS RECENTE" numa sessão com rede e conferir 580.x para a 940MX |
+
+## Gravação atômica do settings.json — 2026-11-07
+
+Corrigido: cada página (Shell: tema e avisos USB; Jogos: perfis, jogos manuais e sessões FPS; FPS: chave da API; Overlay; Otimizar:
+backups; OC e Benchmark: histórico) gravava a SUA cópia inteira de `~/.config/ilmenyx/settings.json`, apagando o que outra página
+salvou depois. Agora todas usam `IlmenyxSettings.Update(path, mudança)`: trava no processo por caminho + `flock` em
+`settings.json.lock` (liberado pelo kernel se o processo morrer; espera no máximo 2 s e segue sem a trava), relê o arquivo, aplica só o
+campo alterado, grava temp + rename em 0600. Arquivo corrompido é guardado em `settings.json.corrupt` antes de ser substituído; arquivo
+existente mas ilegível (permissão) NÃO é sobrescrito com padrões. Testado: `SettingsAtomicTests` (cópias antigas, 8 threads × 40,
+corrompido/ausente/ilegível, lock deixado por instância morta, lock real de outro processo via `flock(1)` com timeout, modo 0600) e
+três processos .NET reais gravando 300 atualizações cada no mesmo arquivo (900/900 preservadas, 3 repetições, modo 600).
+
+| ID | Item | Por que não foi testado | Condição para testar |
+|---|---|---|---|
+| CFG-01 | Duas janelas do app (GUI) abertas ao mesmo tempo, clicando em páginas diferentes | Testado só com processos de console usando o mesmo código e com o smoke (uma instância); o display é compartilhado com outros agentes | Abrir duas instâncias, mudar tema numa e overlay/perfil na outra, conferir o JSON. Obs.: a cópia em memória de cada página só é atualizada quando ela mesma grava (ex.: perfis de jogo editados na outra instância aparecem ao reabrir a página) |
+| CFG-02 | `settings.json` em NFS/sistemas sem `flock` ou diretório só leitura | Sem esse ambiente | XDG_CONFIG_HOME num NFS; a trava cai no fallback (sem trava entre processos), a gravação continua atômica |
+
+## Correção de sensores com um clique — validação real (2026-11-07)
+- RAPL no Dell (Intel): liberado pelo dono com a senha na janela do polkit; regra udev criada; consumo em watts na Visão geral
+  (`docs/evidencias/sensores-um-clique-2026-11-07/`). Fecha o caminho real do botão para RAPL Intel.
+- O link era discreto demais (o dono não achou): agora é um botão em destaque. NÃO TESTADO: Desfazer, persistência após reboot,
+  AMD (RAPL/k10temp) e o módulo de temperatura.
+- Tela de permissões na primeira execução: todos os sensores bloqueados juntos, uma senha (script combinado testado em `sh`; tela no smoke com
+  runner falso). NÃO TESTADO: a senha real nesta tela (precisa de uma máquina com sensores bloqueados ou de Desfazer antes).
+- AppImage (`scripts/package-appimage.sh`, `docs/appimage.md`): validada no Dell/Mint 22.3 X11 (CLI, interface, cópia dos componentes).
+  NÃO TESTADO: outras distros, sem libfuse2, Wayland nativo, jogo real com o MangoHud copiado.
+
+## Flatpak (2026-11-07)
+- Bundle `.flatpak` (scripts/package-flatpak.sh) instalado e aberto de verdade no Dell (Mint 22.3): Visão geral, GPU (nvidia-smi pela ponte
+  `flatpak-spawn --host`), Sensores, Processos do sistema, RAPL, Driver NVIDIA, Drivers, Otimiza e Jogos iguais ao nativo
+  (`docs/evidencias/flatpak-2026-11-07/`). Achados corrigidos: /sys/module ausente no sandbox, travamento em Jogos, grupos 65534.
+- NÃO TESTADO no Flatpak: senha do pkexec pela ponte, jogos reais/MangoHud/PRIME/GameMode, OpenRGB, benchmarks Vulkan, Wayland nativo,
+  instalação --system e outras distros. Ver `docs/flatpak.md`.

@@ -1,7 +1,7 @@
 # Roteiro — validação de GPU AMD/NVIDIA em hardware real
 
 Para uma sessão do Claude Code (ou uma pessoa) num PC com GPU AMD ou NVIDIA. A máquina original de desenvolvimento só
-tem GPU Intel. Uma APU AMD (Radeon 610M) foi validada em 2026-11-06; por isso o app mostra o aviso **"GPUs dedicadas AMD/NVIDIA · Testes não realizados em hardware real"**. Este roteiro
+tem GPU Intel. Uma APU AMD (Radeon 610M) foi validada em 2026-11-06; em 2026-11-07, uma GeForce 940MX (driver 580); por isso o app mostra o aviso **"GPU AMD dedicada não testada · NVIDIA validada só numa GeForce 940MX"**. Este roteiro
 produz a evidência que falta e corrige o que falhar. Siga o `AGENTS.md`: sem sudo, sem instalar no sistema, carga só
 com autorização.
 

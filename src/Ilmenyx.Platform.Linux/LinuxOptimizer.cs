@@ -12,7 +12,7 @@ public sealed class LinuxOptimizer(string procRoot = "/proc", string sysRoot = "
     public IReadOnlyDictionary<string, string> DesktopApps(IEnumerable<string>? dirs = null)
     {
         var map = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var dir in dirs ?? ["/usr/share/applications", Path.Combine(home, ".local/share/applications"), "/var/lib/flatpak/exports/share/applications", Path.Combine(home, ".local/share/flatpak/exports/share/applications")])
+        foreach (var dir in dirs ?? [HostSpawn.HostPath("/usr/share/applications"), Path.Combine(home, ".local/share/applications"), "/var/lib/flatpak/exports/share/applications", Path.Combine(home, ".local/share/flatpak/exports/share/applications")])
         {
             try
             {
@@ -59,6 +59,19 @@ public sealed class LinuxOptimizer(string procRoot = "/proc", string sysRoot = "
         desktop ??= DesktopApps();
         var (uid, _) = LinuxSerialPorts.Identity(procRoot);
         var list = new List<RunningProcess>(); long page = Environment.SystemPageSize;
+        if (HostProcesses.Active(procRoot))
+        {
+            // Flatpak: host processes of this user (stat dump + ps -U); no argv0 there, the name (comm) is matched to the menu entries.
+            var mine = uid >= 0 ? HostProcesses.PidsOf(uid) : null;
+            foreach (var (pid, comm, line) in HostProcesses.Parse(HostProcesses.StatDump()).Take(4096))
+            {
+                // Ilmenyx's own host processes have other pids than Environment.ProcessId (sandbox namespace): skip them by name.
+                if (mine is null || !mine.Contains(pid) || comm.Trim().Length == 0 || comm.StartsWith("Ilmenyx", StringComparison.Ordinal) || comm is "bwrap" or "flatpak-spawn" or "flatpak-session-" or "xdg-dbus-proxy") continue;
+                long rss = LinuxUsageProvider.ParseStat(line) is { rssPages: long pages } ? pages * page : 0;
+                list.Add(new(pid, comm.Trim(), rss, desktop.GetValueOrDefault(comm.Trim())));
+            }
+            return OptimizerLogic.Build(list, selfPid ?? Environment.ProcessId);
+        }
         try
         {
             foreach (var dir in Directory.EnumerateDirectories(procRoot).Where(d => char.IsAsciiDigit(Path.GetFileName(d)[0])).Take(4096))
@@ -83,15 +96,19 @@ public sealed class LinuxOptimizer(string procRoot = "/proc", string sysRoot = "
     public async Task<CloseResult> CloseAsync(IEnumerable<BackgroundApp> apps, CancellationToken ct = default)
     {
         var closed = new List<string>(); var notClosed = new List<string>();
+        // Flatpak: the pids are the host's (ListApps), so their existence is checked on the host too.
+        Func<int, bool> alive = HostProcesses.Active(procRoot)
+            ? p => HostProcesses.Parse(HostProcesses.StatDump()).Any(h => h.Pid == p)
+            : p => Directory.Exists(Path.Combine(procRoot, p.ToString(CultureInfo.InvariantCulture)));
         foreach (var app in apps)
         {
-            var pids = app.Pids.Where(p => p > 1 && Directory.Exists(Path.Combine(procRoot, p.ToString(CultureInfo.InvariantCulture)))).ToList();
+            var pids = app.Pids.Where(p => p > 1 && alive(p)).ToList();
             if (pids.Count > 0)
                 try { await (signalTerm ?? SendTerm)(pids, ct); }
                 catch (Exception e) when (e is IOException or FileNotFoundException or TimeoutException or System.ComponentModel.Win32Exception) { }
             var sw = System.Diagnostics.Stopwatch.StartNew();
-            while (sw.Elapsed.TotalSeconds < 4 && pids.Any(p => Directory.Exists(Path.Combine(procRoot, p.ToString(CultureInfo.InvariantCulture))))) await Task.Delay(200, ct);
-            (pids.Any(p => Directory.Exists(Path.Combine(procRoot, p.ToString(CultureInfo.InvariantCulture)))) ? notClosed : closed).Add(app.Title);
+            while (sw.Elapsed.TotalSeconds < 4 && pids.Any(alive)) await Task.Delay(200, ct);
+            (pids.Any(alive) ? notClosed : closed).Add(app.Title);
         }
         return new(closed, notClosed);
     }
