@@ -32,12 +32,19 @@ public sealed class GamesFpsPage : StackPanel
     private double gpuIdx = 50, cpuIdx = 80;
     // Unknown hardware used to fall back to fixed indexes (GPU 50 ≈ RTX 3050, CPU 80) and showed invented FPS; now it says so.
     private string? unknownHardware;
+    private FpsAssessment assessment = new(FpsConfidence.Low, FpsAccuracy.LowSpread, []);
+    private IReadOnlyList<FpsSession> sessions = [];
+    private readonly Func<FpsContext?>? context;
+    private readonly StackPanel alertList = new() { Name = "FpsAlerts", Spacing = 8 };
+    private readonly Border alertCard;
     public IReadOnlyList<GameFpsRow> Rows => rows;
+    public FpsAssessment Assessment => assessment;
+    public IReadOnlyList<FpsAlert> Alerts { get; private set; } = [];
     public double GpuIndex => gpuIdx; public double CpuIndex => cpuIdx;
 
-    public GamesFpsPage(HowManyFpsClient api, IlmenyxSettings settings, string settingsPath, Func<Window?> owner, Func<(string Cpu, string Gpu)> hardware, CancellationToken lifetime)
+    public GamesFpsPage(HowManyFpsClient api, IlmenyxSettings settings, string settingsPath, Func<Window?> owner, Func<(string Cpu, string Gpu)> hardware, CancellationToken lifetime, Func<FpsContext?>? context = null)
     {
-        this.api = api; this.settings = settings; this.settingsPath = settingsPath; this.owner = owner; this.hardware = hardware; this.lifetime = lifetime; Spacing = 4;
+        this.context = context; this.api = api; this.settings = settings; this.settingsPath = settingsPath; this.owner = owner; this.hardware = hardware; this.lifetime = lifetime; Spacing = 4;
         query.IsEnabled = false;
         var icon = UiKit.Icon(Icons.Search, 15, Palette.Faint); icon.HorizontalAlignment = HorizontalAlignment.Left; icon.Margin = new Thickness(12, 0, 0, 0); icon.IsHitTestVisible = false;
         var header = UiKit.PageHeader("Estimativa de FPS", null, new Grid { Children = { search, icon } });
@@ -54,6 +61,9 @@ public sealed class GamesFpsPage : StackPanel
         var keyRow = new WrapPanel { ItemSpacing = 8, LineSpacing = 8, Margin = new Thickness(0, 12, 0, 0), Children = { keyBox, saveKey, query } };
         var srcHead = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { UiKit.Icon(Icons.Network, 15, Palette.AccentText), sourceTitle } };
         Children.Add(UiKit.Card(new StackPanel { Children = { srcHead, sourceText, keyRow } }));
+        var alertHead = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { UiKit.Icon(Icons.Blocked, 15, Palette.Warn), new TextBlock { Text = "O que pode derrubar o FPS neste PC", FontWeight = FontWeight.SemiBold, FontSize = 13.5, VerticalAlignment = VerticalAlignment.Center } } };
+        alertCard = UiKit.Card(new StackPanel { Spacing = 10, Children = { alertHead, alertList } }); alertCard.IsVisible = false;
+        Children.Add(alertCard);
         Children.Add(UiKit.SectionHeader("Jogos do catálogo"));
         var cardsScroll = new ScrollViewer { Name = "GameCardsScroll", Content = cards, MaxHeight = 900 };
         // Responsive grid: as many ~220 px columns as fit, stretched to fill the row.
@@ -71,35 +81,52 @@ public sealed class GamesFpsPage : StackPanel
     private void Init()
     {
         var (cpu, gpu) = hardware();
-        double? g = GameCatalog.GpuPerf(gpu) ?? GameCatalog.GpuPerf(GameCatalog.ShortGpuName(gpu)), c = GameCatalog.CpuPerf(GameCatalog.ShortCpuName(cpu)) ?? GameCatalog.CpuPerf(cpu);
+        var ctx = context?.Invoke();
+        var gm = GameCatalog.GpuMatch(gpu); var cm = GameCatalog.CpuMatch(cpu);
+        double? g = gm?.Index, c = cm?.Index;
         gpuIdx = g ?? 50; cpuIdx = c ?? 80;
+        if (gm is { } hit) assessment = FpsAccuracy.Assess(FpsAccuracy.ClassifyGpu(gpu, hit.Key, ctx?.GpuIntegrated == true), gpuIdx, FpsAccuracy.IsLaptopCpu(cpu), cpuIdx);
+        // Sessions are re-read on every visit: the Launcher records them in the same settings file after a game closes.
+        sessions = File.Exists(settingsPath) ? IlmenyxSettings.Load(settingsPath).FpsSessions : settings.FpsSessions;
+        Alerts = ctx is null ? [] : FpsAlerts.Build(ctx);
+        alertList.Children.Clear();
+        foreach (var a in Alerts)
+            alertList.Children.Add(new StackPanel { Spacing = 2, Children = { new TextBlock { Text = a.Title, FontWeight = FontWeight.SemiBold, FontSize = 12.5, Foreground = Palette.Warn, TextWrapping = TextWrapping.Wrap }, new TextBlock { Text = a.Text, Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap } } });
+        alertCard.IsVisible = Alerts.Count > 0;
         var missing = new List<string>();
         if (g is null) missing.Add("a GPU " + (gpu.Length > 0 ? GameCatalog.ShortGpuName(gpu) : "(não identificada)"));
         if (c is null) missing.Add("a CPU " + (cpu.Length > 0 ? GameCatalog.ShortCpuName(cpu) : "(não identificada)"));
         unknownHardware = missing.Count == 0 ? null : string.Join(" e ", missing);
-        sub.Text = $"FPS esperado no seu PC · {(gpu.Length > 0 ? GameCatalog.ShortGpuName(gpu) : "GPU desconhecida")} · {(cpu.Length > 0 ? GameCatalog.ShortCpuName(cpu) : "CPU desconhecida")}";
+        sub.Text = $"FPS esperado no seu PC · {(gpu.Length > 0 ? FpsAccuracy.DisplayGpuName(gpu) : "GPU desconhecida")} · {(cpu.Length > 0 ? GameCatalog.ShortCpuName(cpu) : "CPU desconhecida")}";
         RefreshLocal();
     }
 
     public void RefreshLocal()
     {
-        GameFpsRow.RefreshLocal(rows, gpuIdx, cpuIdx, res, preset, upscaling);
+        GameFpsRow.RefreshLocal(rows, gpuIdx, cpuIdx, res, preset, upscaling, assessment, sessions);
         if (unknownHardware is { } who)
+        {
             foreach (var row in rows) row.Set(0, 0, "SEM ESTIMATIVA", $"{who} não está na tabela de referência do Ilmenyx");
+            GameFpsRow.ApplyMeasured(rows, sessions);
+        }
+        int measured = rows.Count(r => r.IsMeasured);
+        string measuredNote = measured == 0 ? " Para ver o FPS real deste PC, abra o jogo pela página Jogos com MangoHud ligado: ao fechar, a sessão aparece aqui como MEDIDO NESTE PC."
+            : $" {measured} jogo(s) com sessão MEDIDO NESTE PC (MangoHud, pela página Jogos): esse valor vale nas configurações usadas no jogo, não nas opções acima.";
+        string estimateNote = $" A faixa é uma estimativa, não uma medição ({assessment.ConfidenceText}): {string.Join("; ", assessment.Reasons)}.";
         if (unknownHardware is { } missingNow)
         {
             sourceTitle.Text = "Fonte: sem estimativa local para este PC";
-            sourceText.Text = $"Não há referência de desempenho para {missingNow}, então o Ilmenyx não calcula um FPS (seria inventado). " + (api.Configured ? "CONSULTAR API busca FPS medido em sessões reais." : "Para FPS medido em jogo, use uma chave da API HowManyFPS (info@howmanyfps.com).");
+            sourceText.Text = $"Não há referência de desempenho para {missingNow}, então o Ilmenyx não calcula um FPS (seria inventado). " + (api.Configured ? "CONSULTAR API busca FPS medido em sessões reais." : "Para FPS medido em jogo, use uma chave da API HowManyFPS (info@howmanyfps.com).") + measuredNote;
             saveKey.Content = api.Configured ? "ATUALIZAR CHAVE" : "SALVAR CHAVE"; query.IsEnabled = api.Configured;
         }
         else if (api.Configured)
         {
-            sourceTitle.Text = "Fonte: estimativa local + HowManyFPS sob demanda"; sourceText.Text = "A estimativa local usa o desempenho relativo da sua GPU e CPU. Com a chave, CONSULTAR API busca FPS médio e 1% low medidos em sessões reais (respostas ficam 7 dias em cache); a API usa as configurações gráficas dela.";
+            sourceTitle.Text = "Fonte: estimativa local + HowManyFPS sob demanda"; sourceText.Text = "A estimativa local usa o desempenho relativo da sua GPU e CPU." + estimateNote + " Com a chave, CONSULTAR API busca FPS médio e 1% low medidos em sessões reais (respostas ficam 7 dias em cache); a API usa as configurações gráficas dela." + measuredNote;
             saveKey.Content = "ATUALIZAR CHAVE"; query.IsEnabled = true;
         }
         else
         {
-            sourceTitle.Text = "Fonte: estimativa local (aproximada)"; sourceText.Text = "Calculada a partir do desempenho relativo da sua GPU e CPU. Para FPS medido em jogo, peça uma chave da API em info@howmanyfps.com e cole ao lado. A internet só é usada quando você clicar em CONSULTAR API.";
+            sourceTitle.Text = "Fonte: estimativa local (aproximada)"; sourceText.Text = "Calculada a partir do desempenho relativo da sua GPU e CPU." + estimateNote + measuredNote + " Para FPS medido por outros jogadores, peça uma chave da API em info@howmanyfps.com e cole ao lado. A internet só é usada quando você clicar em CONSULTAR API.";
             saveKey.Content = "SALVAR CHAVE"; query.IsEnabled = false;
         }
         Rebuild();
@@ -108,6 +135,8 @@ public sealed class GamesFpsPage : StackPanel
     private void SaveKey()
     {
         settings.HowManyFpsKey = string.IsNullOrWhiteSpace(keyBox.Text) ? null : keyBox.Text.Trim(); api.ApiKey = settings.HowManyFpsKey;
+        // Keep what other pages wrote since this page loaded (the Launcher records measured sessions in the same file).
+        if (File.Exists(settingsPath)) settings.FpsSessions = IlmenyxSettings.Load(settingsPath).FpsSessions;
         try { settings.Save(settingsPath); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { sourceText.Text = "Não foi possível salvar a chave: " + e.Message; return; }
         RefreshLocal();
     }
@@ -116,22 +145,23 @@ public sealed class GamesFpsPage : StackPanel
     {
         if (!api.Configured || owner() is not { } window) return;
         var (cpuFull, gpuFull) = hardware(); string cpu = GameCatalog.ShortCpuName(cpuFull), gpu = GameCatalog.ShortGpuName(gpuFull);
-        int needed = rows.Count(r => !api.IsCached(cpu, gpu, r.Name, res, upscaling));
+        int needed = rows.Count(r => !r.IsMeasured && !api.IsCached(cpu, gpu, r.Name, res, upscaling));
         if (needed > 0 && !await ConfirmDialog.AskAsync(window, "HowManyFPS", $"Isto envia até {needed} consulta(s) para {HowManyFpsClient.Endpoint} (CPU \"{cpu}\", GPU \"{gpu}\", resolução e upscaling escolhidos), usando a sua chave. As respostas ficam 7 dias em cache. Consultar agora?", "Consultar", "Cancelar")) return;
         query.IsEnabled = false; int ok = 0;
         try
         {
-            foreach (var row in rows)
+            foreach (var row in rows.Where(r => !r.IsMeasured)) // measured on this PC keeps priority
             {
-                try { var r = await api.GetAsync(cpu, gpu, row.Name, res, upscaling, lifetime); row.Set(r.AvgFps, r.Min1Fps, "HOWMANYFPS", ""); ok++; }
+                try { var r = await api.GetAsync(cpu, gpu, row.Name, res, upscaling, lifetime); row.Set(r.AvgFps, r.Min1Fps, GameFpsRow.SourceApi, ""); ok++; }
                 catch (OperationCanceledException) { return; }
                 catch (Exception e) when (e is HttpRequestException or InvalidOperationException)
                 {
-                    row.Set(row.Fps, 0, "ESTIMATIVA", $"API: {e.Message}");
+                    row.Note($"API: {e.Message}");
                     if (e.Message.Contains("chave", StringComparison.Ordinal) || e.Message.Contains("cota", StringComparison.Ordinal)) { sourceText.Text = $"A API recusou a consulta ({e.Message}). Mostrando a estimativa local."; Rebuild(); return; }
                 }
             }
-            sourceText.Text = $"{ok} de {rows.Count} jogos com dados da HowManyFPS; os demais usam a estimativa local."; Rebuild();
+            int measuredRows = rows.Count(r => r.IsMeasured);
+            sourceText.Text = $"{ok} de {rows.Count} jogos com dados da HowManyFPS" + (measuredRows > 0 ? $"; {measuredRows} com sessão medida neste PC" : "") + "; os demais usam a estimativa local (faixa, não medição)."; Rebuild();
         }
         finally { query.IsEnabled = api.Configured; }
     }
@@ -177,14 +207,17 @@ public sealed class GamesFpsPage : StackPanel
                 var rating = new TextBlock { Text = row.Rating, FontSize = 10, FontWeight = FontWeight.Bold, Foreground = tone, LetterSpacing = 0.5, VerticalAlignment = VerticalAlignment.Center };
                 Grid.SetColumn(rating, 1); top.Children.Add(rating);
             }
-            var meta = new Grid { ColumnDefinitions = new("*,Auto"), Children = { new TextBlock { Text = row.LowText, Foreground = Palette.Muted, FontSize = 11 } } };
+            var meta = new Grid { ColumnDefinitions = new("*,Auto"), Children = { new TextBlock { Text = row.LowText, Foreground = Palette.Muted, FontSize = 11, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(0, 0, 6, 0) } } };
             var source = new TextBlock { Text = row.Source, Foreground = Palette.Faint, FontSize = 10.5, LetterSpacing = 0.4 }; Grid.SetColumn(source, 1); meta.Children.Add(source);
             var body = new StackPanel { Margin = new Thickness(16, 6, 16, 14), Children = { top, bar, meta, new TextBlock { Text = row.Detail, Foreground = Palette.Faint, FontSize = 11, Margin = new Thickness(0, 3, 0, 0), TextTrimming = TextTrimming.CharacterEllipsis, IsVisible = row.Detail.Length > 0 } } };
-            cards.Children.Add(new Border
+            var card = new Border
             {
-                Name = "Game_" + LauncherPage.SafeName(row.Name), Width = cardWidth, Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1),
+                Name = "Game_" + LauncherPage.SafeName(row.Name), Width = cardWidth, Background = Palette.Card, BorderBrush = row.IsMeasured ? Palette.Success : Palette.Line, BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), ClipToBounds = true, Child = new StackPanel { Children = { band, body } },
-            });
+            };
+            if (row.Summary.Length > 0) { ToolTip.SetTip(card, row.Summary); AutomationProperties.SetHelpText(card, row.Summary); }
+            AutomationProperties.SetName(card, row.Name);
+            cards.Children.Add(card);
         }
     }
 }

@@ -128,6 +128,17 @@ public sealed record BenchRunEntry(DateTimeOffset At, string Kind, string Summar
     public const int MaxEntries = 50;
 }
 
+/// <summary>
+/// Summary of one game session measured by MangoHud on this PC (Launcher with MangoHud on). Only the game name from the library, the
+/// date, FPS figures, duration, the GPU name MangoHud logged and the profile resolution are kept; nothing leaves the PC.
+/// </summary>
+public sealed record FpsSession(string Game, DateTimeOffset At, double AvgFps, double Low1Fps, double DurationSeconds, string? Gpu, string? Resolution)
+{
+    public const int MaxEntries = 50;
+    public const double MinSeconds = 30;
+    public bool IsValid => DurationSeconds >= MinSeconds && double.IsFinite(AvgFps) && AvgFps > 0 && AvgFps < 10000 && Game is { Length: > 0 };
+}
+
 public sealed class IlmenyxSettings
 {
     public Dictionary<string, GameProfile> GameProfiles { get; set; } = [];
@@ -146,6 +157,15 @@ public sealed class IlmenyxSettings
     public bool ThemeLight { get; set; }
     /// <summary>Toast when a removable drive or USB device appears or disappears (local polling only).</summary>
     public bool DeviceToasts { get; set; } = true;
+    /// <summary>FPS measured in game sessions started by the Launcher with MangoHud (newest first, at most <see cref="FpsSession.MaxEntries"/>). Never sent anywhere.</summary>
+    public List<FpsSession> FpsSessions { get; set; } = [];
+
+    public void AddFpsSession(FpsSession session)
+    {
+        if (!session.IsValid) return;
+        FpsSessions.Insert(0, session);
+        if (FpsSessions.Count > FpsSession.MaxEntries) FpsSessions.RemoveRange(FpsSession.MaxEntries, FpsSessions.Count - FpsSession.MaxEntries);
+    }
 
     public void AddBenchRun(BenchRunEntry entry)
     {
@@ -155,7 +175,14 @@ public sealed class IlmenyxSettings
 
     public static IlmenyxSettings Load(string path)
     {
-        try { if (File.Exists(path) && new FileInfo(path).Length < 4 << 20) return JsonSerializer.Deserialize<IlmenyxSettings>(File.ReadAllText(path)) ?? new(); }
+        try
+        {
+            if (File.Exists(path) && new FileInfo(path).Length < 4 << 20 && JsonSerializer.Deserialize<IlmenyxSettings>(File.ReadAllText(path)) is { } loaded)
+            {
+                loaded.FpsSessions = (loaded.FpsSessions ?? []).Where(x => x is not null && x.IsValid).Take(FpsSession.MaxEntries).ToList(); // hand-edited files
+                return loaded;
+            }
+        }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or JsonException) { }
         return new();
     }
