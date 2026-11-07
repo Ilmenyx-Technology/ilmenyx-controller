@@ -26,10 +26,8 @@ public sealed partial class SmartctlQuery : ISmartctlQuery
     {
         var arguments = Arguments(device);
         if (!Directory.Exists("/sys/block/" + device)) throw new IOException("Disco não exposto em /sys/block.");
-        string executable = new[] { "/usr/sbin/smartctl", "/usr/bin/smartctl", "/sbin/smartctl" }.FirstOrDefault(File.Exists) ?? throw new FileNotFoundException("smartctl opcional não encontrado.");
-        var start = new ProcessStartInfo(executable) { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true };
-        foreach (var argument in arguments) start.ArgumentList.Add(argument);
-        start.Environment["LC_ALL"] = "C";
+        string executable = new[] { "/usr/sbin/smartctl", "/usr/bin/smartctl", "/sbin/smartctl" }.FirstOrDefault(p => File.Exists(HostSpawn.HostPath(p))) ?? throw new FileNotFoundException("smartctl opcional não encontrado.");
+        var start = HostSpawn.Start(executable, arguments, new Dictionary<string, string> { ["LC_ALL"] = "C" });
         using var process = new Process { StartInfo = start };
         ct.ThrowIfCancellationRequested();
         if (!process.Start()) throw new IOException("Não foi possível iniciar smartctl.");

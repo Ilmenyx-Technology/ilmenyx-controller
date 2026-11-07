@@ -1,0 +1,9 @@
+{
+  "Status": 0,
+  "Adapter": "NVIDIA GeForce 940MX",
+  "Frames": 239,
+  "Seconds": 8.1164431,
+  "AverageFps": 29.446396291498676,
+  "Reason": null
+}
+exit=0

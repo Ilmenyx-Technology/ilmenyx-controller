@@ -1,0 +1,30 @@
+#!/bin/sh
+# New Ilmenyx additions: see LICENSING.md.
+# AppImage entry point. The image is mounted read-only at a path that changes on every run and disappears when the app
+# closes, so the bundled programs (MangoHud, OpenRGB) are copied once per version into the user's data folder: wrappers and
+# Steam launch options keep working after the app exits. Nothing outside the user's own data folder is touched; no root.
+set -eu
+HERE=$(dirname "$(readlink -f "$0")")
+APP="$HERE/usr/lib/ilmenyx"
+if [ "${1-}" = "--cli" ]; then shift; exec "$APP/cli/ilmenyx" "$@"; fi
+version=$(cat "$APP/appimage-version" 2>/dev/null || echo unknown)
+data="${XDG_DATA_HOME:-$HOME/.local/share}"
+case "$data" in /*) ;; *) data="$HOME/.local/share" ;; esac
+bundles="$data/ilmenyx/bundle"
+target="$bundles/$version"
+if [ -d "$APP/components" ] && [ ! -f "$target/.complete" ]; then
+  mkdir -p "$bundles"
+  tmp="$bundles/.tmp-$$"
+  rm -rf -- "$tmp"
+  if cp -R -- "$APP/components" "$tmp" && touch "$tmp/.complete"; then
+    rm -rf -- "$target"; mv -- "$tmp" "$target"
+  else
+    rm -rf -- "$tmp"
+  fi
+fi
+if [ -f "$target/.complete" ]; then
+  export ILMENYX_COMPONENTS_DIR="$target"
+  # Older copies from previous AppImage versions (only this folder's own entries).
+  for old in "$bundles"/*; do [ "$old" = "$target" ] || [ ! -d "$old" ] || rm -rf -- "$old"; done
+fi
+exec "$APP/desktop/Ilmenyx.Desktop" "$@"

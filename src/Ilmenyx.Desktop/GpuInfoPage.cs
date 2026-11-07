@@ -187,7 +187,7 @@ public sealed class GpuInfoPage : Grid
         }
         var rows = GpuLive.Rows(t);
         if (rows.Count == 0 && pairs.Count == 0)
-            live.Children.Add(new TextBlock { Name = "GpuLiveEmpty", Text = "Esta GPU não expõe contadores sem privilégios (típico de iGPU Intel; NVIDIA exige nvidia-smi, AMD usa sysfs).", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(2, 0, 0, 10) });
+            live.Children.Add(new TextBlock { Name = "GpuLiveEmpty", Text = gpus.Count > selected && gpus[selected].Raw is { VendorId: "10de", Driver: "nouveau" } ? GpuTelemetrySensors.NouveauReason : "Esta GPU não expõe contadores sem privilégios (típico de iGPU Intel; NVIDIA exige nvidia-smi, AMD usa sysfs).", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(2, 0, 0, 10) });
         foreach (var r in rows)
         {
             string category = r.Category.TrimEnd(' ', '·');

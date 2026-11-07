@@ -52,7 +52,7 @@ public static class BundledComponents
             {
                 "gamemoderun" => Write(data, name, GameModeScript()),
                 "mangohud" when File.Exists(Path.Combine(MangoHudLibraryFolder(root), "libMangoHud.so")) && File.Exists(Path.Combine(MangoHudLibraryFolder(root), "libMangoHud_shim.so")) => ResolveMangoHud(root, data),
-                "openrgb" when File.Exists(OpenRgbImage(root)) => Write(data, name, OpenRgbScript(OpenRgbImage(root))),
+                "openrgb" when File.Exists(OpenRgbImage(root)) => Write(data, name, OpenRgbScript(HostSpawn.ForHost(OpenRgbImage(root), HostSpawn.AppPathOnHost))),
                 _ => null,
             };
         }
@@ -63,7 +63,8 @@ public static class BundledComponents
 
     private static string ResolveMangoHud(string root, string data)
     {
-        string lib = MangoHudLibraryFolder(root);
+        // Flatpak: games run on the host, which sees /app under its own path: the manifest and script name the host path (unchanged natively).
+        string lib = HostSpawn.ForHost(MangoHudLibraryFolder(root), HostSpawn.AppPathOnHost);
         // Explicit layer requested by name: VK_ADD_LAYER_PATH + VK_INSTANCE_LAYERS. The earlier implicit layer relied on VK_ADD_IMPLICIT_LAYER_PATH, which the
         // loader of Ubuntu 24.04 / Mint 22 (1.3.275) ignores, so the overlay never loaded there (seen on real hardware, 2026-11-06). Neither variable replaces
         // the system search paths, so system layers (Mesa device_select, Steam, OBS) keep loading.

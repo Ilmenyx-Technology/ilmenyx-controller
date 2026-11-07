@@ -17,7 +17,7 @@ public sealed class LinuxHardwareInfoProvider(ILinuxFiles files, ISensorProvider
         var ct = timeout.Token;
         var cpuText = await Read("/proc/cpuinfo", ct);
         var memText = await Read("/proc/meminfo", ct);
-        var osText = await Read("/etc/os-release", ct);
+        var osText = await Read(HostSpawn.HostPath("/etc/os-release"), ct);
         var kernelText = await Read("/proc/sys/kernel/osrelease", ct);
         var cpu = LinuxParsers.Cpu(cpuText.Text ?? "");
         if (cpuText.Error is { } ce) cpu = new(Reading<string>.Missing("", "/proc/cpuinfo", ce), Reading<int?>.Missing("logical processors", "/proc/cpuinfo", ce));

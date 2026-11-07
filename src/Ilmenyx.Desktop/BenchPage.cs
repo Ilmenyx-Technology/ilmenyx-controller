@@ -121,7 +121,7 @@ public sealed class BenchPage : StackPanel
         {
             if (owner() is not { } w || settings.BenchRuns.Count == 0) return;
             if (!await ConfirmDialog.AskAsync(w, "Limpar histórico", "Apaga somente a lista local de benchmarks deste aplicativo. Continuar?", "Limpar", "Cancelar")) return;
-            settings.BenchRuns.Clear(); Save(); BuildHistory();
+            Save(s => s.BenchRuns.Clear()); BuildHistory();
         };
         Children.Add(UiKit.SectionHeader("Histórico local", clear));
         Children.Add(UiKit.Card(new StackPanel { Spacing = 6, Children = { new TextBlock { Text = "Fica só neste computador; nunca é enviado.", FontSize = 11.5, Foreground = Palette.Faint }, historyRows } }));
@@ -375,7 +375,7 @@ public sealed class BenchPage : StackPanel
         catch (Exception e) when (e is ArgumentException or InvalidOperationException or IOException) { finalStatus = "Falha: " + e.Message; }
         timer.Stop(); cts.Dispose(); cts = null; Busy(false); SetPhase("Parado", entry is null ? 0 : 1); phase.Text = "Parado"; bar.Value = progressValue;
         status.Text = finalStatus;
-        if (entry is not null) { settings.AddBenchRun(entry); Save(); BuildHistory(); }
+        if (entry is not null) { Save(s => s.AddBenchRun(entry)); BuildHistory(); }
     }
 
     private static string N(double v, string format = "0") => v.ToString(format, CultureInfo.InvariantCulture);
@@ -477,10 +477,11 @@ public sealed class BenchPage : StackPanel
         return new(DateTimeOffset.Now, "Disco", $"{N(r.SeqReadMBs.Value)}/{N(r.SeqWriteMBs.Value)} MB/s seq. · 4K Q1 {N(r.ReadIopsQ1.Value)}/{N(r.WriteIopsQ1.Value)} IOPS", r.Score);
     }
 
-    private void Save()
+    /// <summary>Applies the history change to the current file (atomic, keeps what other pages saved) and refreshes this page's copy.</summary>
+    private void Save(Action<IlmenyxSettings> change)
     {
-        try { settings.Save(settingsPath); }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { status.Text += " · Histórico não salvo: " + e.Message; }
+        try { settings.BenchRuns = IlmenyxSettings.Update(settingsPath, change).BenchRuns; }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { change(settings); status.Text += " · Histórico não salvo: " + e.Message; }
     }
 
     private void BuildHistory()

@@ -9,7 +9,8 @@ public static class BoundedProcess
 {
     // /usr/games: Debian/Ubuntu/Mint install gamemoderun there; without it the built-in fallback replaced the real GameMode (seen on Mint 22.3, 2026-11-06).
     private static readonly string[] Directories = ["/usr/bin", "/usr/sbin", "/bin", "/sbin", "/usr/local/bin", "/usr/games"];
-    public static string? FindSystem(string name) => name.Contains('/') ? null : Directories.Select(d => Path.Combine(d, name)).FirstOrDefault(File.Exists);
+    /// <summary>Host program path. In Flatpak it is looked up in the host's directories (/run/host) and run there by <see cref="HostSpawn"/>.</summary>
+    public static string? FindSystem(string name) => name.Contains('/') ? null : Directories.Select(d => Path.Combine(d, name)).FirstOrDefault(p => File.Exists(HostSpawn.HostPath(p)));
 
     /// <summary>System program first; for the integrated tools (mangohud, gamemoderun, openrgb) the copy that ships in the package is the fallback.</summary>
     public static string? Find(string name)
@@ -22,9 +23,7 @@ public static class BoundedProcess
     public static async Task<(int ExitCode, string Output)> RunAsync(string program, IReadOnlyList<string> arguments, TimeSpan timeout, int maxCharacters = 65536, CancellationToken ct = default)
     {
         string path = Find(program) ?? throw new FileNotFoundException($"{program} não encontrado nos diretórios padrão.");
-        var start = new ProcessStartInfo(path) { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true };
-        foreach (var a in arguments) start.ArgumentList.Add(a);
-        start.Environment["LC_ALL"] = "C";
+        var start = HostSpawn.Start(path, arguments, new Dictionary<string, string> { ["LC_ALL"] = "C" });
         using var process = new Process { StartInfo = start };
         using var stop = CancellationTokenSource.CreateLinkedTokenSource(ct); stop.CancelAfter(timeout);
         if (!process.Start()) throw new IOException($"Não foi possível iniciar {program}.");

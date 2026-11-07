@@ -1,0 +1,88 @@
+# Reconhecimento 2026-11-07T04:04:18-03:00
+Linux 6.14.0-37-generic
+PRETTY_NAME="Linux Mint 22.3"
+session=x11
+Dell Inc.
+Inspiron 7460
+model name	: Intel(R) Core(TM) i7-7500U CPU @ 2.70GHz
+MemTotal:       16273384 kB
+00:02.0 VGA compatible controller [0300]: Intel Corporation HD Graphics 620 [8086:5916] (rev 02)
+	DeviceName:  Onboard IGD
+	Subsystem: Dell HD Graphics 620 [1028:0781]
+	Kernel driver in use: i915
+--
+01:00.0 3D controller [0302]: NVIDIA Corporation GM108M [GeForce 940MX] [10de:134d] (rev a2)
+	Subsystem: Dell GM108M [GeForce 940MX] [1028:0781]
+	Kernel driver in use: nouveau
+	Kernel modules: nvidiafb, nouveau
+coretemp               24576  0
+i915                 4702208  14
+nouveau              3010560  2
+intel_rapl_msr         20480  0
+== /sys/class/drm/card1 0000:01:00.0 driver=nouveau
+power_state
+active
+-- /sys/class/drm/card1/device/hwmon/hwmon6 nouveau
+in0_input=900
+in0_label=GPU core
+== /sys/class/drm/card2 0000:00:02.0 driver=i915
+power_state
+active
+/sys/class/drm/card2/gt_cur_freq_mhz
+/sys/class/drm/card2/gt_max_freq_mhz
+950
+1050
+== hwmon
+/sys/class/hwmon/hwmon0 AC
+/sys/class/hwmon/hwmon1 acpitz
+/sys/class/hwmon/hwmon2 BAT0
+/sys/class/hwmon/hwmon3 pch_skylake
+/sys/class/hwmon/hwmon4 dell_smm
+/sys/class/hwmon/hwmon5 coretemp
+/sys/class/hwmon/hwmon6 nouveau
+/sys/class/hwmon/hwmon7 ath10k_hwmon
+== powercap
+intel-rapl
+intel-rapl:0
+intel-rapl:0:0
+intel-rapl:0:1
+intel-rapl:0:2
+intel-rapl:1
+intel-rapl-mmio
+intel-rapl-mmio:0
+intel-rapl-mmio:0:0
+-r-------- /sys/class/powercap/intel-rapl:0/energy_uj
+== vulkan
+GPU0:
+	apiVersion         = 1.4.305
+	deviceType         = PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU
+	deviceName         = Intel(R) HD Graphics 620 (KBL GT2)
+	driverID           = DRIVER_ID_INTEL_OPEN_SOURCE_MESA
+	driverName         = Intel open-source Mesa driver
+GPU1:
+	apiVersion         = 1.4.305
+	deviceType         = PHYSICAL_DEVICE_TYPE_CPU
+	deviceName         = llvmpipe (LLVM 20.1.2, 256 bits)
+	driverID           = DRIVER_ID_MESA_LLVMPIPE
+	driverName         = llvmpipe
+== RT ext
+	deviceName        = Intel(R) HD Graphics 620 (KBL GT2)
+	deviceName        = llvmpipe (LLVM 20.1.2, 256 bits)
+	VK_KHR_acceleration_structure                      : extension revision 13
+	VK_KHR_ray_query                                   : extension revision 1
+== glx
+    Device: Mesa Intel(R) HD Graphics 620 (KBL GT2) (0x5916)
+OpenGL renderer string: Mesa Intel(R) HD Graphics 620 (KBL GT2)
+    Device: NV118 (0x134d)
+OpenGL renderer string: NV118
+== prime
+/usr/bin/switcherooctl
+== drivers disponíveis
+nvidia-driver-580, (kernel modules provided by linux-modules-nvidia-580-generic-hwe-24.04)
+nvidia-driver-580-server, (kernel modules provided by linux-modules-nvidia-580-server-generic-hwe-24.04)
+nvidia-driver-580:
+  Candidato: 580.178.04-0ubuntu0.24.04.1
+nvidia-driver-570:
+  Candidato: 570.211.01-0ubuntu1.24.04.1
+nvidia-driver-550:
+  Candidato: 550.163.01-0ubuntu0.24.04.2

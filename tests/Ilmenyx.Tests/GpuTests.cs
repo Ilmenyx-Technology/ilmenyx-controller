@@ -25,6 +25,27 @@ public sealed class GpuTests : IDisposable
         return d;
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task NouveauReadsGpuCoreVoltageAndOnlyExistingTemperature(bool temperature)
+    {
+        string sys = Path.Combine(root, "nouveau");
+        string dir = Gpu(sys, "0000:01:00.0", "0x10de", "0x2204", "nouveau", new()
+        {
+            ["hwmon/hwmon0/in0_label"] = "GPU core", ["hwmon/hwmon0/in0_input"] = "900"
+        });
+        if (temperature) File.WriteAllText(Path.Combine(dir, "hwmon/hwmon0/temp1_input"), "45000");
+        var collector = new LinuxGpuCollector(sys, Path.Combine(root, "proc"), []);
+        var raw = collector.Collect(Ids).Single().Raw;
+        var live = await collector.TelemetryAsync(raw);
+        Assert.Equal(0.9, live.CoreVoltageV);
+        Assert.Equal(temperature ? 45.0 : (double?)null, live.TempC);
+        Assert.Null(live.LoadPercent); Assert.Null(live.PowerW); Assert.Null(live.VramUsed);
+        File.WriteAllText(Path.Combine(dir, "hwmon/hwmon0/in0_label"), "unrelated rail");
+        Assert.Null((await collector.TelemetryAsync(raw)).CoreVoltageV);
+    }
+
     private const string SmiCsv = "0, 00000000:01:00.0, NVIDIA GeForce RTX 3090, 550.54.14, 24576, 1200, 37, 12, 0, 0, 52, 60, 1695, 9751, 2100, 9751, 1950, 120.50, 350.00, 350.00, 100.00, 390.00, 41, P2, 0x0000000000000004, 4, 4, 16, 16, 94.02.4B.00.A4, 8.6";
 
     [Fact]
@@ -190,5 +211,99 @@ public sealed class GpuTests : IDisposable
         Assert.Equal("RDNA 4", GpuSpecDb.Find("1002", "7550", "AMD Radeon RX 9070 XT")!.Arch);
         Assert.Equal(3584, GpuSpecDb.Find("1002", "7550", "AMD Radeon RX 9070")!.Shaders);
         Assert.Null(GpuSpecDb.Find("8086", "9a49", "Iris Xe")); Assert.Equal("ASUS", GpuSpecDb.SubvendorName("1043")); Assert.Contains("Desconhecido", GpuSpecDb.SubvendorName("ffff"));
+    }
+}
+
+public sealed class GameCatalogHardwareTests
+{
+    [Theory]
+    [InlineData("GM108M [GeForce 940MX]", 4.5)]        // nouveau / pci.ids name on a Dell laptop
+    [InlineData("NVIDIA GeForce 940MX", 4.5)]          // nvidia-smi name
+    [InlineData("HD Graphics 620", 2.5)]
+    [InlineData("Mendocino", 3)]                      // pci.ids name of the Radeon 610M
+    [InlineData("AMD Radeon 610M (RADV RAPHAEL_MENDOCINO)", 3)]
+    [InlineData("NVIDIA GeForce RTX 3060 Laptop GPU", 50)]
+    [InlineData("NVIDIA GeForce RTX 3060", 60)]
+    public void CommonLaptopAndIntegratedGpusAreInTheTable(string name, double index) => Assert.Equal(index, Ilmenyx.Core.GameCatalog.GpuPerf(name));
+
+    [Theory]
+    [InlineData("Intel(R) Core(TM) i7-7500U CPU @ 2.70GHz", 36)]
+    [InlineData("AMD Ryzen 5 7520U with Radeon Graphics", 34)]
+    [InlineData("AMD Ryzen 5 5600H with Radeon Graphics", 62)]
+    [InlineData("AMD Ryzen 7 7700X 8-Core Processor", 100)]
+    public void LaptopCpusAreInTheTable(string name, double index) =>
+        Assert.Equal(index, Ilmenyx.Core.GameCatalog.CpuPerf(Ilmenyx.Core.GameCatalog.ShortCpuName(name)) ?? Ilmenyx.Core.GameCatalog.CpuPerf(name));
+
+    [Fact]
+    public void UnknownHardwareHasNoIndex() => Assert.Null(Ilmenyx.Core.GameCatalog.GpuPerf("Matrox G200eR2"));
+}
+
+public sealed class PrimeOffloadTests
+{
+    [Fact]
+    public void NvidiaOnNouveauUsesDriPrimeAndProprietaryUsesNvidiaVariables()
+    {
+        Assert.Equal([new("DRI_PRIME", "1")], Ilmenyx.Core.GameLaunchOptions.GpuEnvironment("NVIDIA-Mesa"));
+        Assert.Contains(new KeyValuePair<string, string>("__NV_PRIME_RENDER_OFFLOAD", "1"), Ilmenyx.Core.GameLaunchOptions.GpuEnvironment("NVIDIA"));
+    }
+}
+
+public sealed class NvidiaSmiDriverDriftTests
+{
+    // Real row of a GeForce 940MX with driver 580.178.04 (Dell Inspiron 7460, 2026-11-07), after the refused fields were dropped.
+    private const string Row940 = "0, 00000000:01:00.0, NVIDIA GeForce 940MX, 580.178.04, 4096, 5, 0, 0, [N/A], [N/A], 54, N/A, 135, 405, 1189, 2000, [N/A], [N/A], 200.00, 0.00, 200.00, [N/A], P8, 0x0000000000000001, 1, 3, 4, 4, 82.08.77.00.DD, 5.0";
+
+    [Fact]
+    public async Task RefusedFieldsAreDroppedAndTheQueryStillWorks()
+    {
+        Ilmenyx.Platform.Linux.LinuxGpuCollector.ResetResolvedFields();
+        var asked = new List<string>();
+        Task<(int, string)> Run(IReadOnlyList<string> args, CancellationToken ct)
+        {
+            string fields = args[0]["--query-gpu=".Length..]; asked.Add(fields);
+            if (fields.Contains("clocks.max.video")) return Task.FromResult((2, "Field \"clocks.max.video\" is not a valid field to query.\n"));
+            return Task.FromResult((0, Row940 + "\n"));
+        }
+        var smi = await Ilmenyx.Platform.Linux.LinuxGpuCollector.QuerySmiAsync(Run);
+        Assert.NotNull(smi); Assert.Equal(2, asked.Count);
+        Assert.DoesNotContain("clocks_throttle_reasons.active", asked[1]); // only one generation of the throttle field is asked
+        var m = smi!["01:00.0"];
+        Assert.Equal("54", m["temperature.gpu"]); Assert.Equal("135", m["clocks.current.graphics"]); Assert.Equal("4096", m["memory.total"]); Assert.Equal("0x0000000000000001", m["{THROTTLE}"]);
+        Assert.False(m.ContainsKey("power.draw")); Assert.False(m.ContainsKey("temperature.memory")); // [N/A] and N/A are absent, never zero
+        Ilmenyx.Platform.Linux.LinuxGpuCollector.ResetResolvedFields();
+    }
+
+    [Fact]
+    public void RefusedFieldIsReadFromTheErrorMessage()
+    {
+        Assert.Equal("clocks.max.video", Ilmenyx.Platform.Linux.LinuxGpuCollector.RefusedField("Field \"clocks.max.video\" is not a valid field to query."));
+        Assert.Null(Ilmenyx.Platform.Linux.LinuxGpuCollector.RefusedField("NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver."));
+    }
+}
+
+public sealed class NvidiaRuntimePowerTests : IDisposable
+{
+    private readonly string root = Path.Combine(Path.GetTempPath(), "ilmenyx-rtd3-" + Guid.NewGuid().ToString("N"));
+    public void Dispose() { if (Directory.Exists(root)) Directory.Delete(root, true); }
+
+    private void Gpu(string addr, string vendor, string status)
+    {
+        string d = Path.Combine(root, "bus/pci/devices", addr); Directory.CreateDirectory(Path.Combine(d, "power"));
+        File.WriteAllText(Path.Combine(d, "vendor"), vendor + "\n"); File.WriteAllText(Path.Combine(d, "class"), "0x030200\n");
+        File.WriteAllText(Path.Combine(d, "power/runtime_status"), status + "\n");
+    }
+
+    [Fact]
+    public async Task SuspendedNvidiaGpuIsNotWokenForSensors()
+    {
+        Gpu("0000:01:00.0", "0x10de", "suspended"); Gpu("0000:00:02.0", "0x8086", "active");
+        Assert.False(Ilmenyx.Platform.Linux.LinuxGpuCollector.AnyNvidiaAwake(root));
+        var collector = new Ilmenyx.Platform.Linux.LinuxGpuCollector(root, Path.Combine(root, "proc"), []);
+        Assert.True(collector.IsSleeping("0000:01:00.0"));
+        var raw = new GpuRaw("NVIDIA GeForce RTX 3060 Laptop GPU", "10de", "2560", "", "", "", "0000:01:00.0", "nvidia", "580", null, 0, null, false, null, null, null, null, null, null, null, null, null, null, null, null, null, [], "");
+        var t = await collector.TelemetryAsync(raw);
+        Assert.True(t.Sleeping); Assert.Null(t.TempC);
+        File.WriteAllText(Path.Combine(root, "bus/pci/devices/0000:01:00.0/power/runtime_status"), "active\n");
+        Assert.True(Ilmenyx.Platform.Linux.LinuxGpuCollector.AnyNvidiaAwake(root)); // the 940MX here never suspends (RTD3 unsupported): query as before
     }
 }

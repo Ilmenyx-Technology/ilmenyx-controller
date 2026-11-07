@@ -27,7 +27,7 @@ public sealed class AppsPage : StackPanel
 
     private static (string Id, string IdLike) Distro()
     {
-        try { var text = File.ReadAllText("/etc/os-release"); string F(string k) => text.Split('\n').Where(l => l.StartsWith(k + "=", StringComparison.Ordinal)).Select(l => l[(k.Length + 1)..].Trim().Trim('"')).FirstOrDefault() ?? ""; return (F("ID"), F("ID_LIKE")); }
+        try { var text = File.ReadAllText(Ilmenyx.Platform.Linux.HostSpawn.HostPath("/etc/os-release")); string F(string k) => text.Split('\n').Where(l => l.StartsWith(k + "=", StringComparison.Ordinal)).Select(l => l[(k.Length + 1)..].Trim().Trim('"')).FirstOrDefault() ?? ""; return (F("ID"), F("ID_LIKE")); }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return ("", ""); }
     }
 

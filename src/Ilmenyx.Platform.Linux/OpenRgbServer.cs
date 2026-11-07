@@ -24,8 +24,7 @@ public sealed class OpenRgbServer : IAsyncDisposable
         if (port is < 1024 or > 65535) throw new ArgumentOutOfRangeException(nameof(port), "Porta fora de 1024–65535.");
         string program = BoundedProcess.Find("openrgb") ?? throw new FileNotFoundException("OpenRGB não encontrado (nem no pacote, nem no sistema).");
         Directory.CreateDirectory(ConfigFolder());
-        var start = new ProcessStartInfo(program) { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true };
-        foreach (var a in new[] { "--server", "--server-host", "127.0.0.1", "--server-port", port.ToString(System.Globalization.CultureInfo.InvariantCulture), "--noautoconnect", "--config", ConfigFolder() }) start.ArgumentList.Add(a);
+        var start = HostSpawn.Start(program, ["--server", "--server-host", "127.0.0.1", "--server-port", port.ToString(System.Globalization.CultureInfo.InvariantCulture), "--noautoconnect", "--config", ConfigFolder()]);
         var p = new Process { StartInfo = start };
         if (!p.Start()) throw new IOException("Não foi possível iniciar o OpenRGB.");
         var errors = new System.Text.StringBuilder();

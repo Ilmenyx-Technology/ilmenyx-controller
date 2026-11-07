@@ -12,7 +12,7 @@ namespace Ilmenyx.Desktop;
 
 public sealed class LauncherPage : Grid
 {
-    public delegate Task LaunchFunc(LibGame game, GameProfile profile, string gpuVendor, Action<string> status, Action<string> learnedExe, CancellationToken ct);
+    public delegate Task<FpsSession?> LaunchFunc(LibGame game, GameProfile profile, string gpuVendor, Action<string> status, Action<string> learnedExe, CancellationToken ct);
 
     private readonly LinuxGameLibrary library;
     private readonly SteamInfo steam;
@@ -93,7 +93,11 @@ public sealed class LauncherPage : Grid
         {
             string path = addPath.Text?.Trim() ?? "";
             if (!LinuxGameLibrary.IsRunnableFile(path)) { addStatus.Text = "Informe o caminho completo de um arquivo regular executável (sem links, fora de /proc, /sys e /dev)."; return; }
-            if (!settings.CustomGames.Any(c => c.Exe == path)) { settings.CustomGames.Add(new() { Name = Path.GetFileNameWithoutExtension(path), Exe = path }); Save(); }
+            if (!settings.CustomGames.Any(c => c.Exe == path))
+            {
+                void add(IlmenyxSettings s) { if (!s.CustomGames.Any(c => c.Exe == path)) s.CustomGames.Add(new() { Name = Path.GetFileNameWithoutExtension(path), Exe = path }); }
+                if (Save(add) is { } fresh) settings.CustomGames = fresh.CustomGames; else add(settings);
+            }
             addStatus.Text = "Adicionado."; await ScanAsync(); Select(games.FirstOrDefault(g => g.Store == "Manual" && g.Id == path));
         };
         addBox.Children.Add(addPath); addBox.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Children = { confirm } }); addBox.Children.Add(addStatus);
@@ -176,7 +180,7 @@ public sealed class LauncherPage : Grid
             }
         });
 
-        void Chosen(Action<GameProfile> set) { if (loading || profile is null) return; set(profile); Save(); UpdatePreview(); }
+        void Chosen(Action<GameProfile> set) { if (loading || profile is null) return; set(profile); SaveProfile(current, profile); UpdatePreview(); }
         modeChips = new("LModePanel", [("Padrão do jogo", "default"), ("Tela cheia", "full"), ("Sem bordas", "borderless"), ("Janela", "window")], "default", v => Chosen(p => p.WinMode = v));
         resChips = new("LResPanel", [("Padrão", "default"), ("1280x720", "1280x720"), ("1920x1080", "1920x1080"), ("2560x1440", "2560x1440"), ("3840x2160", "3840x2160")], "default", v => Chosen(p => p.Res = v));
         hzChips = new("LHzPanel", [("Padrão", 0), ("60", 60), ("120", 120), ("144", 144), ("165", 165), ("240", 240)], 0, v => Chosen(p => p.Hz = v));
@@ -238,7 +242,15 @@ public sealed class LauncherPage : Grid
     }
 
     private string SettingsKey(LibGame g) => g.Key;
-    private void Save() { try { settings.Save(settingsPath); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { status.Text = "Não foi possível salvar as configurações: " + e.Message; } }
+    /// <summary>Applies only this change to the current settings file (atomic; keeps what other pages and instances saved). Null on failure.</summary>
+    private IlmenyxSettings? Save(Action<IlmenyxSettings> change)
+    {
+        try { return IlmenyxSettings.Update(settingsPath, change); }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { status.Text = "Não foi possível salvar as configurações: " + e.Message; return null; }
+    }
+
+    /// <summary>Writes this game's profile (only that entry) to the settings file.</summary>
+    private void SaveProfile(LibGame? g, GameProfile p) { if (g is null) return; string key = SettingsKey(g); Save(s => s.GameProfiles[key] = p); }
 
     public async Task ScanAsync()
     {
@@ -339,7 +351,7 @@ public sealed class LauncherPage : Grid
         if (loading || profile is null) return;
         profile.HighPerfPlan = chkPlan.IsChecked == true; profile.GpuHigh = chkGpu.IsChecked == true; profile.GameMode = chkGameMode.IsChecked == true; profile.MangoHud = chkMango.IsChecked == true;
         profile.Extra = (extra.Text ?? "").Trim();
-        Save(); UpdatePreview();
+        SaveProfile(current, profile); UpdatePreview();
     }
 
     private void UpdatePreview() { if (profile is null) return; string a = GameLaunchOptions.BuildArgs(profile); string o = current?.IsSteam == true ? GameLaunchOptions.BuildSteamOptions(profile, gpuVendor, File.Exists(MangoHudLogReader.ConfigPath()) ? MangoHudLogReader.ConfigPath() : null) : a; preview.Text = o.Length > 0 ? o : "(nenhum argumento)"; UpdateTags(); }
@@ -356,7 +368,7 @@ public sealed class LauncherPage : Grid
         if (current is null || profile is null) return;
         string path = (exePath.Text ?? "").Trim();
         if (!LinuxGameLibrary.IsRunnableFile(path)) { status.Text = "Caminho inválido: informe um arquivo regular executável (sem links, fora de /proc, /sys e /dev)."; return; }
-        profile.ExePath = path; Save(); ShowExe(current, profile); status.Text = "Executável definido.";
+        profile.ExePath = path; SaveProfile(current, profile); ShowExe(current, profile); status.Text = "Executável definido.";
     }
 
     private void RebuildHelpers()
@@ -369,7 +381,7 @@ public sealed class LauncherPage : Grid
             var grid = new Grid { ColumnDefinitions = new("*,Auto"), Margin = new Thickness(0, 0, 0, 6) };
             var text = new TextBlock { Text = h.Display + (h.CloseWithGame ? "  ·  fecha com o jogo" : ""), TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center };
             Grid.SetColumn(remove, 1); grid.Children.Add(text); grid.Children.Add(remove);
-            remove.Click += (_, _) => { profile.Helpers.Remove(h); Save(); RebuildHelpers(); UpdateTags(); };
+            remove.Click += (_, _) => { profile.Helpers.Remove(h); SaveProfile(current, profile); RebuildHelpers(); UpdateTags(); };
             helpers.Children.Add(grid);
         }
     }
@@ -383,7 +395,7 @@ public sealed class LauncherPage : Grid
             var parts = GameLaunchOptions.SplitArguments(line);
             if (parts.Count == 0 || !LinuxGameLibrary.IsRunnableFile(parts[0])) { status.Text = "Informe o caminho completo de um programa executável (e, opcionalmente, seus argumentos)."; return; }
             profile.Helpers.Add(new HelperProgram { Path = parts[0], Args = string.Join(" ", parts.Skip(1).Select(a => a.Contains(' ') ? "\"" + a + "\"" : a)), CloseWithGame = helperClose.IsChecked == true });
-            Save(); helperPath.Text = ""; RebuildHelpers(); UpdateTags();
+            SaveProfile(current, profile); helperPath.Text = ""; RebuildHelpers(); UpdateTags();
         }
         catch (FormatException e) { status.Text = e.Message; }
     }
@@ -416,8 +428,10 @@ public sealed class LauncherPage : Grid
         launching = CancellationTokenSource.CreateLinkedTokenSource(lifetime); play.Content = "PARAR ACOMPANHAMENTO";
         try
         {
-            await launch(g, p, gpuVendor, t => Avalonia.Threading.Dispatcher.UIThread.Post(() => status.Text = t),
-                exe => Avalonia.Threading.Dispatcher.UIThread.Post(() => { if (p.ExePath != exe) { p.ExePath = exe; Save(); if (current == g) exeText.Text = "Executável: " + exe; } }), launching.Token);
+            var session = await launch(g, p, gpuVendor, t => Avalonia.Threading.Dispatcher.UIThread.Post(() => status.Text = t),
+                exe => Avalonia.Threading.Dispatcher.UIThread.Post(() => { if (p.ExePath != exe) { p.ExePath = exe; SaveProfile(g, p); if (current == g) exeText.Text = "Executável: " + exe; } }), launching.Token);
+            // Measured on this PC (MangoHud log of this launch): kept locally for the FPS page, at most FpsSession.MaxEntries sessions.
+            if (session is { IsValid: true }) { if (Save(s => s.AddFpsSession(session)) is { } fresh) settings.FpsSessions = fresh.FpsSessions; else settings.AddFpsSession(session); }
         }
         finally { launching.Dispose(); launching = null; play.Content = "JOGAR"; }
     }

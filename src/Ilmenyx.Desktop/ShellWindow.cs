@@ -50,7 +50,8 @@ public sealed partial class ShellWindow : Window
             Palette.Apply(!Palette.IsLight); appSettings.ThemeLight = Palette.IsLight; RebuildAmbient();
             foreach (var (k, button) in nav) Style(k, button, k == CurrentPage);
             UiKit.SetAction(theme, Palette.IsLight ? Icons.Moon : Icons.Sun, Palette.IsLight ? "Tema escuro" : "Tema claro");
-            try { appSettings.Save(settingsPath); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+            bool light = appSettings.ThemeLight;
+            try { IlmenyxSettings.Update(settingsPath, s => s.ThemeLight = light); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
         };
         var pause = UiKit.IconButton("ToggleMonitor", Icons.Pause, "Pausar monitor");
         pause.Click += async (_, _) =>
@@ -81,6 +82,7 @@ public sealed partial class ShellWindow : Window
             usage.Start(stop.Token);
             toasts = new DeviceToastService(() => LinuxDeviceWatcher.Read()) { Enabled = appSettings.DeviceToasts }; toasts.Notified += t => { sessionEvents.Insert(0, (DateTimeOffset.Now, t.Title, t.Text)); if (sessionEvents.Count > 50) sessionEvents.RemoveAt(50); overviewRefresh?.Invoke(); }; toasts.Start();
             _ = RefreshBlockedBadgeAsync();
+            OfferPermissionsOnce();
             await hardware.RefreshAsync(stop.Token);
             await sensors.RefreshAsync(stop.Token);
         };
@@ -107,7 +109,7 @@ public sealed partial class ShellWindow : Window
         ["dash"] = Icons.Overview, ["system"] = Icons.System, ["sensors"] = Icons.Sensors, ["gpu"] = Icons.Gpu, ["disks"] = Icons.Disks, ["energy"] = Icons.Energy, ["net"] = Icons.Network,
         ["procs"] = Icons.Processes, ["launcher"] = Icons.Games, ["compat"] = Icons.Compat, ["fps"] = Icons.Fps, ["bottleneck"] = Icons.Bottleneck, ["bench"] = Icons.Bench, ["oc"] = Icons.Oc,
         ["overlay"] = Icons.Overlay, ["validate"] = Icons.Validate, ["stress"] = Icons.Stress, ["makerports"] = Icons.Ports, ["makerdrv"] = Icons.SerialDrivers, ["optimize"] = Icons.Optimize,
-        ["lighting"] = Icons.Lighting, ["startup"] = Icons.Startup, ["apps"] = Icons.Apps, ["driver"] = Icons.Drivers, ["report"] = Icons.Report, ["blocked"] = Icons.Blocked, ["tools"] = Icons.About,
+        ["lighting"] = Icons.Lighting, ["startup"] = Icons.Startup, ["apps"] = Icons.Apps, ["driver"] = Icons.Drivers, ["nvdriver"] = Icons.Gpu, ["report"] = Icons.Report, ["blocked"] = Icons.Blocked, ["tools"] = Icons.About,
     };
 
     /// <summary>Active item: a small accent bar at the left edge, accent text and icon. No filled capsule.</summary>
@@ -172,7 +174,7 @@ public sealed partial class ShellWindow : Window
         Group("JOGOS", ("launcher", "Jogos"), ("compat", "Compatibilidade"), ("fps", "Estimativa de FPS"), ("bottleneck", "Detector de gargalo"));
         Group("DESEMPENHO", ("bench", "Benchmark"), ("oc", "OC"), ("overlay", "Overlay"), ("validate", "Validações reduzidas"), ("stress", "Stress test"));
         Group("MAKER", ("makerports", "Portas"), ("makerdrv", "Drivers seriais"));
-        Group("FERRAMENTAS", ("optimize", "Otimiza"), ("lighting", "Integração"), ("startup", "Inicialização"), ("apps", "Instalar apps"), ("driver", "Drivers"), ("report", "Relatório"), ("blocked", "Bloqueados (!)"), ("tools", "Requisitos e sobre"));
+        Group("FERRAMENTAS", ("optimize", "Otimiza"), ("lighting", "Integração"), ("startup", "Inicialização"), ("apps", "Instalar apps"), ("driver", "Drivers"), ("nvdriver", "Driver NVIDIA"), ("report", "Relatório"), ("blocked", "Bloqueados (!)"), ("tools", "Requisitos e sobre"));
 
         var temp = new TextBlock { Name = "SideTemp", Text = "—", FontSize = 12, FontFamily = IlmenyxTheme.Mono };
         var load = new TextBlock { Name = "SideLoad", Text = "—", FontSize = 12, Foreground = Palette.Muted, FontFamily = IlmenyxTheme.Mono };
@@ -188,7 +190,17 @@ public sealed partial class ShellWindow : Window
         readout.Children.Add(cpuIcon); Grid.SetColumn(temp, 1); readout.Children.Add(temp); Grid.SetColumn(load, 2); readout.Children.Add(load);
         Grid.SetRow(state, 1); Grid.SetColumnSpan(state, 3); state.Margin = new Thickness(0, 4, 0, 0); readout.Children.Add(state);
         // The original shows the reason and a CORRIGIR button when CPU temperature/power are missing; here: reason + command (never run).
-        var help = new Button { Name = "SensorHelp", Content = "Liberar sensores da CPU", FontSize = 11, Foreground = Palette.AccentText, Background = Brushes.Transparent, Padding = new Thickness(0, 6, 0, 0), IsVisible = false };
+        // A visible call to action (a small text link was missed by the owner in a real test, 2026-11-07).
+        var help = new Button
+        {
+            Name = "SensorHelp", IsVisible = false, Background = Palette.WarnBg, Foreground = Palette.Warn, HorizontalAlignment = HorizontalAlignment.Stretch,
+            HorizontalContentAlignment = HorizontalAlignment.Left, Padding = new Thickness(10, 7), Margin = new Thickness(0, 8, 0, 0), CornerRadius = new CornerRadius(IlmenyxTheme.ControlRadius),
+            Content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = {
+                UiKit.Icon(Icons.Blocked, 15, Palette.Warn),
+                new StackPanel { Children = {
+                    new TextBlock { Text = "Liberar sensores da CPU", FontSize = 12, FontWeight = FontWeight.SemiBold, Foreground = Palette.Warn },
+                    new TextBlock { Text = "consumo/temperatura bloqueados", FontSize = 10.5, Foreground = Palette.Warn, Opacity = 0.8 } } } } },
+        };
         AutomationProperties.SetName(help, "Por que a temperatura ou o consumo da CPU não aparecem");
         help.Click += async (_, _) => await new SensorHelpDialog(CurrentFixes(), PrivilegedFix.Available ? script => PrivilegedFix.RunAsync(script, stop.Token) : null).ShowDialog(this);
         usage.Updated += () => help.IsVisible = CurrentFixes().Count > 0;
@@ -241,6 +253,29 @@ public sealed partial class ShellWindow : Window
         AutomationProperties.SetName(chip, "Este computador: " + model + " — abrir Sistema");
         chip.Click += (_, _) => Select("system");
         return chip;
+    }
+
+    /// <summary>
+    /// First run: once the first reading shows what is blocked, offer every fix together (one password). Shown at most once per user
+    /// (settings PermissionsAsked); the sidebar button keeps the same fixes for later. ILMENYX_NO_ONBOARDING=1 skips it (automated runs).
+    /// </summary>
+    private void OfferPermissionsOnce()
+    {
+        if (appSettings.PermissionsAsked || Environment.GetEnvironmentVariable("ILMENYX_NO_ONBOARDING") == "1" || !PrivilegedFix.Available) return;
+        void OnUpdated()
+        {
+            if (usage.Last is null) return;
+            usage.Updated -= OnUpdated;
+            var fixes = CurrentFixes().Where(f => f.Apply is { Length: > 0 }).ToList();
+            if (fixes.Count == 0) return; // nothing blocked now; ask the first time something is
+            Avalonia.Threading.Dispatcher.UIThread.Post(async () =>
+            {
+                try { IlmenyxSettings.Update(settingsPath, s => s.PermissionsAsked = true); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+                appSettings.PermissionsAsked = true;
+                await new PermissionsOnboardingDialog(fixes, script => PrivilegedFix.RunAsync(script, stop.Token)).ShowDialog(this);
+            });
+        }
+        usage.Updated += OnUpdated;
     }
 
     private IReadOnlyList<SensorFix> CurrentFixes()

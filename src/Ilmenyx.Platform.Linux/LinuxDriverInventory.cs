@@ -8,6 +8,8 @@ namespace Ilmenyx.Platform.Linux;
 /// <summary>Installed drivers from sysfs: PCI and USB devices with the kernel module bound to each. Read-only; no modinfo, no root.</summary>
 public sealed partial class LinuxDriverInventory(string sysRoot = "/sys", string procRoot = "/proc", string etcRoot = "/etc")
 {
+    private readonly string etcRoot = HostSpawn.HostPath(etcRoot); // Flatpak: the host's /etc (/run/host/etc)
+
     private string Sys(string p) => Path.Combine(sysRoot, p);
     private static string Attr(string path, int max = 160) => SysfsText.Read(path, max).Replace("\n", " ").Trim();
 
@@ -77,7 +79,7 @@ public sealed partial class LinuxDriverInventory(string sysRoot = "/sys", string
         {
             if (!Attr(Path.Combine(dir, "class"), 16).StartsWith("0x03", StringComparison.Ordinal)) continue;
             string vendor = Attr(Path.Combine(dir, "vendor"), 8), device = Attr(Path.Combine(dir, "device"), 8), drv = DriverName(dir);
-            var g = new GpuDriverStatus { GpuName = ids.Device(vendor, device) ?? $"GPU {vendor}:{device}", Driver = drv.Length > 0 ? drv : "sem driver" };
+            var g = new GpuDriverStatus { GpuName = ids.Device(vendor, device) ?? $"GPU {vendor}:{device}", Driver = drv.Length > 0 ? drv : "sem driver", DeviceId = device.ToLowerInvariant().Replace("0x", "") };
             switch (vendor.ToLowerInvariant().Replace("0x", ""))
             {
                 case "10de":
@@ -85,7 +87,7 @@ public sealed partial class LinuxDriverInventory(string sysRoot = "/sys", string
                     bool proprietary = drv.StartsWith("nvidia", StringComparison.Ordinal); // nouveau must not inherit the proprietary module's version
                     var m = NvrmVersion().Match(proprietary && File.Exists(Path.Combine(procRoot, "driver/nvidia/version")) ? Safe(Path.Combine(procRoot, "driver/nvidia/version")) : "");
                     g.Installed = m.Success ? m.Groups[1].Value : proprietary ? Attr(Sys("module/nvidia/version"), 64) : "";
-                    if (g.Installed.Length == 0) g.Message = drv == "nouveau" ? "Driver livre nouveau em uso (sem o proprietário NVIDIA)." : "Driver proprietário NVIDIA não detectado.";
+                    if (g.Installed.Length == 0) g.Message = drv == "nouveau" ? GpuTelemetrySensors.NouveauReason : "Driver proprietário NVIDIA não detectado.";
                     break;
                 case "1002": g.Vendor = "AMD"; g.OfficialPage = "https://www.amd.com/en/support/download/drivers.html"; g.Installed = $"{g.Driver} · kernel {KernelRelease()}"; g.Message = "Driver amdgpu/Mesa acompanha o kernel e as atualizações da sua distribuição."; break;
                 case "8086": g.Vendor = "Intel"; g.OfficialPage = "https://www.intel.com/content/www/us/en/download-center/home.html"; g.Installed = $"{g.Driver} · kernel {KernelRelease()}"; g.Message = "Driver i915/xe e Mesa acompanham o kernel e as atualizações da sua distribuição."; break;

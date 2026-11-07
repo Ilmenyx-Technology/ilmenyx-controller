@@ -1,0 +1,4 @@
+11:54:07 MUDOU: app=fechado rapl_perm=-r-------- rapl_leitura=negado regra_udev=nao pkexec=-
+11:54:09 MUDOU: app=aberto rapl_perm=-r-------- rapl_leitura=negado regra_udev=nao pkexec=-
+11:56:12 MUDOU: app=aberto rapl_perm=-r-------- rapl_leitura=negado regra_udev=nao pkexec=aguardando-senha
+11:56:17 MUDOU: app=aberto rapl_perm=-r-----r-- rapl_leitura=ok regra_udev=sim pkexec=-

@@ -1,0 +1,16 @@
+$ ilmenyx nvidia-driver status   # 2026-11-07T05:03:29-03:00, 6.14.0-37-generic, usuário comum (sem root)
+Driver NVIDIA · Funcionando · driver 580.178.04
+GeForce 940MX (Maxwell · GM108) usa o driver NVIDIA 580.178.04; o nvidia-smi responde.
+Estado: Working
+  · GPU NVIDIA: GM108M [GeForce 940MX] [10de:134d] · Maxwell GM108 · driver em uso: nvidia · ramo indicado: 580
+  · Outra GPU: Intel HD Graphics 620 (i915) (notebook/PC híbrido: PRIME)
+  · Sistema: Linux Mint 22.3 (base Ubuntu, apt) · kernel em uso 6.14.0-37-generic (x86_64)
+  · Cabeçalhos do kernel em uso: completos
+  · Pacote do driver: nvidia-driver-580 580.178.04-0ubuntu0.24.04.1 · em dia (é o candidato do gerenciador de pacotes para este ramo)
+  · DKMS: nvidia/580.178.04 · 6.14.0-37-generic · installed
+  · Módulo carregado: nvidia 580.178.04
+  · nvidia-smi: responde (driver 580.178.04)
+  · Secure Boot: desligado
+  · PRIME (prime-select): on-demand
+Ações possíveis: VOLTAR AO NOUVEAU  (detalhes: ilmenyx nvidia-driver plan)
+(código de saída: 0)

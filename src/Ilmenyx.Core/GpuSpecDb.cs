@@ -58,6 +58,9 @@ public static class GpuSpecDb
         },
         ["1002:7480"] = new[] { new GpuSpec("Navi 33", "RDNA 3", "TSMC 6 nm", 204, 13.3, 2048, 64, 128, "GDDR6", 1720, 2655, 165, "25/05/2023") },
         ["1002:164E"] = new[] { new GpuSpec("Raphael (iGPU)", "RDNA 2", "TSMC 6 nm", 122, 3.4, 128, 4, 8, "Memória do sistema (DDR5)", 400, 2200, 0, "27/09/2022") },
+        // GeForce 940MX (GM108, Maxwell): public reference values; die/transistors not used (0 → "—"). Checked on real hardware
+        // (Dell Inspiron 7460, 2026-11-07): PCI 10de:134d, nvidia-smi max clocks 1189 MHz core / 2000 MHz memory, 4096 MiB, compute 5.0.
+        ["10DE:134D"] = new[] { new GpuSpec("GM108", "Maxwell", "TSMC 28 nm", 0, 0, 384, 8, 24, "GDDR5 / DDR3", 1122, 1242, 0, "2016") },
         // Mendocino (Ryzen 7020, Radeon 610M): public reference values; transistor count not published (0 → "—").
         // Checked on real hardware (ASUS E1504FA, 2026-11-06): PCI 1002:1506, pp_dpm_sclk max 1900 MHz, RADV reports an integrated RDNA 2 GPU.
         ["1002:1506"] = new[] { new GpuSpec("Mendocino (iGPU · Radeon 610M)", "RDNA 2", "TSMC 6 nm", 100, 0, 128, 4, 8, "Memória do sistema (LPDDR5)", 400, 1900, 0, "20/09/2022") },
@@ -69,6 +72,7 @@ public static class GpuSpecDb
         ["Blackwell"] = "DLSS 4 (Multi Frame Generation) · Ray Tracing 4ª ger. · Tensor 5ª ger. · Reflex 2 · NVENC 9ª ger.",
         ["Ada Lovelace"] = "DLSS 3 (Frame Generation) · Ray Tracing 3ª ger. · Tensor 4ª ger. · Reflex · NVENC AV1",
         ["Ampere"] = "DLSS 2 · Ray Tracing 2ª ger. · Tensor 3ª ger. · Reflex · Resizable BAR",
+        ["Maxwell"] = "Optimus (PRIME) · NVENC 5ª ger. (parcial em GPUs de notebook) · sem ray tracing · driver atual: ramo 580",
         ["RDNA 4"] = "FSR 4 · Ray Accelerators 3ª ger. · AI Accelerators · Anti-Lag 2 · AV1",
         ["RDNA 3"] = "FSR 3 · Ray Accelerators 2ª ger. · AI Accelerators · AV1",
         ["RDNA 2"] = "FSR · Ray Accelerators 1ª ger.",

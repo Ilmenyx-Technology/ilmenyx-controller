@@ -1,0 +1,55 @@
+$ ilmenyx nvidia-driver plan   # 2026-11-07T05:03:30-03:00, 6.14.0-37-generic, usuário comum (sem root)
+Driver NVIDIA · Funcionando · driver 580.178.04
+GeForce 940MX (Maxwell · GM108) usa o driver NVIDIA 580.178.04; o nvidia-smi responde.
+Estado: Working
+  · GPU NVIDIA: GM108M [GeForce 940MX] [10de:134d] · Maxwell GM108 · driver em uso: nvidia · ramo indicado: 580
+  · Outra GPU: Intel HD Graphics 620 (i915) (notebook/PC híbrido: PRIME)
+  · Sistema: Linux Mint 22.3 (base Ubuntu, apt) · kernel em uso 6.14.0-37-generic (x86_64)
+  · Cabeçalhos do kernel em uso: completos
+  · Pacote do driver: nvidia-driver-580 580.178.04-0ubuntu0.24.04.1 · em dia (é o candidato do gerenciador de pacotes para este ramo)
+  · DKMS: nvidia/580.178.04 · 6.14.0-37-generic · installed
+  · Módulo carregado: nvidia 580.178.04
+  · nvidia-smi: responde (driver 580.178.04)
+  · Secure Boot: desligado
+  · PRIME (prime-select): on-demand
+
+== VOLTAR AO NOUVEAU: Voltar ao nouveau (remover o driver NVIDIA)
+  - Remover (purge) os pacotes do driver NVIDIA: libnvidia-cfg1-580, libnvidia-common-580, libnvidia-compute-580, libnvidia-decode-580, libnvidia-encode-580, libnvidia-extra-580, libnvidia-fbc1-580, libnvidia-gl-580, nvidia-compute-utils-580, nvidia-dkms-580 e mais 6.
+  - Com isso a regra que bloqueia o nouveau sai junto; no próximo boot a placa volta ao nouveau (driver livre do kernel).
+  - O kernel, o nvidia-prime e o nvidia-settings não são removidos.
+  ! Sem o driver NVIDIA: jogos e programas que dependem de CUDA/NVENC deixam de usar a placa; o nouveau tem desempenho bem menor e, em placas Maxwell ou mais novas, não controla o clock.
+Simulação real: apt-get -s purge libnvidia-cfg1-580 libnvidia-common-580 libnvidia-compute-580 libnvidia-decode-580 libnvidia-encode-580 libnvidia-extra-580 libnvidia-fbc1-580 libnvidia-gl-580 nvidia-compute-utils-580 nvidia-dkms-580 nvidia-driver-580 nvidia-firmware-580-580.178.04 nvidia-kernel-common-580 nvidia-kernel-source-580 nvidia-utils-580 xserver-xorg-video-nvidia-580
+    Purg nvidia-driver-580 580.178.04-0ubuntu0.24.04.1
+    Purg xserver-xorg-video-nvidia-580 580.178.04-0ubuntu0.24.04.1
+    Purg libnvidia-cfg1-580 580.178.04-0ubuntu0.24.04.1
+    Purg libnvidia-gl-580 580.178.04-0ubuntu0.24.04.1
+    Purg libnvidia-gl-580 580.178.04-0ubuntu0.24.04.1
+    Purg libnvidia-common-580 580.178.04-0ubuntu0.24.04.1
+    Purg nvidia-utils-580 580.178.04-0ubuntu0.24.04.1
+    Purg nvidia-compute-utils-580 580.178.04-0ubuntu0.24.04.1
+    Purg libnvidia-compute-580 580.178.04-0ubuntu0.24.04.1
+    Purg libnvidia-encode-580 580.178.04-0ubuntu0.24.04.1
+    Purg libnvidia-decode-580 580.178.04-0ubuntu0.24.04.1
+    Purg libnvidia-extra-580 580.178.04-0ubuntu0.24.04.1
+    Purg libnvidia-fbc1-580 580.178.04-0ubuntu0.24.04.1
+    Purg nvidia-dkms-580 580.178.04-0ubuntu0.24.04.1
+    Purg nvidia-kernel-common-580 580.178.04-0ubuntu0.24.04.1
+    Purg nvidia-firmware-580-580.178.04 580.178.04-0ubuntu0.24.04.1
+    Purg nvidia-kernel-source-580 580.178.04-0ubuntu0.24.04.1
+    0 upgraded, 0 newly installed, 17 to remove and 435 not upgraded.
+  Simulação aceita: nenhum kernel instalado ou removido.
+Script fixo (rodaria por pkexec só após clique e confirmação na interface):
+    set -eu
+    export DEBIAN_FRONTEND=noninteractive
+    export LC_ALL=C
+    echo '== Ilmenyx 1/4: simulação de segurança (apt-get -s): nenhum kernel novo, o kernel em uso fica'
+    SIM=$(apt-get -s 'purge' 'libnvidia-cfg1-580' 'libnvidia-common-580' 'libnvidia-compute-580' 'libnvidia-decode-580' 'libnvidia-encode-580' 'libnvidia-extra-580' 'libnvidia-fbc1-580' 'libnvidia-gl-580' 'nvidia-compute-utils-580' 'nvidia-dkms-580' 'nvidia-driver-580' 'nvidia-firmware-580-580.178.04' 'nvidia-kernel-common-580' 'nvidia-kernel-source-580' 'nvidia-utils-580' 'xserver-xorg-video-nvidia-580' 2>&1) || { printf '%s\n' "$SIM"; echo 'ABORTADO: a simulação do apt falhou; nada foi alterado.'; exit 3; }
+    if printf '%s\n' "$SIM" | grep -Eq '^Inst linux-(image|modules|objects|signatures|main-modules)-|^(Remv|Purg) linux-image-|^(Remv|Purg) linux-(modules|modules-extra|headers)-6\.14\.0-37-generic( |$)'; then printf '%s\n' "$SIM" | grep -E '^(Inst|Remv|Purg) linux-' || true; echo 'ABORTADO: o apt quer instalar ou remover um kernel; nada foi alterado.'; exit 3; fi
+    echo '== Ilmenyx 2/4: apt-get -y purge libnvidia-cfg1-580 libnvidia-common-580 libnvidia-compute-580 libnvidia-decode-580 libnvidia-encode-580 libnvidia-extra-580 libnvidia-fbc1-580 libnvidia-gl-580 nvidia-compute-utils-580 nvidia-dkms-580 nvidia-driver-580 nvidia-firmware-580-580.178.04 nvidia-kernel-common-580 nvidia-kernel-source-580 nvidia-utils-580 xserver-xorg-video-nvidia-580'
+    apt-get -y 'purge' 'libnvidia-cfg1-580' 'libnvidia-common-580' 'libnvidia-compute-580' 'libnvidia-decode-580' 'libnvidia-encode-580' 'libnvidia-extra-580' 'libnvidia-fbc1-580' 'libnvidia-gl-580' 'nvidia-compute-utils-580' 'nvidia-dkms-580' 'nvidia-driver-580' 'nvidia-firmware-580-580.178.04' 'nvidia-kernel-common-580' 'nvidia-kernel-source-580' 'nvidia-utils-580' 'xserver-xorg-video-nvidia-580'
+    echo '== Ilmenyx 3/4: verificação'
+    dpkg -l | grep -E '^.. +(lib)?nvidia-[a-z0-9.+-]*-[0-9]{3}' || echo 'OK: nenhum pacote do driver NVIDIA restante.'
+    echo '== Ilmenyx 4/4: PRIME'
+    echo 'PRIME: sem alteração.'
+    echo '== Ilmenyx: driver NVIDIA removido. Reinicie o computador para voltar ao nouveau.'
+(código de saída: 0)

@@ -108,7 +108,12 @@ public sealed class OptimizePage : StackPanel
 
     private long AvailableMemory() { var l = usage.Last; return l?.MemoryTotal is { } t && l.MemoryUsed is { } u ? t - u : 0; }
 
-    private void Save() { try { settings.Save(settingsPath); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { result.Text = "Não foi possível salvar o backup dos ajustes: " + e.Message; } }
+    /// <summary>Applies the backup change to the current file (atomic, keeps what other pages saved) and refreshes this page's copy.</summary>
+    private void Save(Action<IlmenyxSettings> change)
+    {
+        try { settings.TweakBackup = IlmenyxSettings.Update(settingsPath, change).TweakBackup; }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { change(settings); result.Text = "Não foi possível salvar o backup dos ajustes: " + e.Message; }
+    }
 
     public async Task RefreshTweaksAsync()
     {
@@ -118,7 +123,7 @@ public sealed class OptimizePage : StackPanel
             Description = "Mantém a CPU pronta para subir o clock na hora, sem economia agressiva de energia (power-profiles-daemon, sem root).",
             Effect = "Menos engasgos e 1% low melhor em alguns jogos. Em notebooks gasta mais bateria.", Status = plan is null ? "power-profiles-daemon indisponível." : "Atual: " + LinuxPowerReader.ProfileName(plan) }, async on =>
         {
-            if (!settings.TweakBackup.ContainsKey("power")) { settings.TweakBackup["power"] = plan ?? "balanced"; Save(); }
+            if (!settings.TweakBackup.ContainsKey("power")) Save(s => s.TweakBackup.TryAdd("power", plan ?? "balanced")); // first original wins, also across instances
             return await services.SetPowerProfile(on ? "performance" : (settings.TweakBackup["power"] is "performance" or null ? "balanced" : settings.TweakBackup["power"]!), lifetime);
         });
         string? mouse = LinuxOptimizer.IsGnome() ? await optimizer.MouseAccelProfileAsync(lifetime) : null;
@@ -127,7 +132,7 @@ public sealed class OptimizePage : StackPanel
             Effect = "Não muda FPS, mas deixa a mira consistente em jogos de tiro. Em KDE/outros desktops ajuste em Configurações > Mouse (perfil plano).",
             Status = mouse is null ? "Disponível só no GNOME (gsettings)." : "Atual: " + mouse }, async on =>
         {
-            if (!settings.TweakBackup.ContainsKey("mouse")) { settings.TweakBackup["mouse"] = mouse ?? "default"; Save(); }
+            if (!settings.TweakBackup.ContainsKey("mouse")) Save(s => s.TweakBackup.TryAdd("mouse", mouse ?? "default"));
             return await optimizer.SetMouseAccelProfileAsync(on ? "flat" : (settings.TweakBackup["mouse"] is "flat" or null ? "default" : settings.TweakBackup["mouse"]!), lifetime);
         });
         foreach (var t in optimizer.ReadOnlyTweaks()) AddTweak(t, null);
@@ -158,7 +163,8 @@ public sealed class OptimizePage : StackPanel
         var done = new List<string>();
         if (settings.TweakBackup.TryGetValue("power", out var plan) && plan is not null && await services.SetPowerProfile(plan, lifetime)) done.Add("perfil de energia");
         if (settings.TweakBackup.TryGetValue("mouse", out var mouse) && mouse is not null && await optimizer.SetMouseAccelProfileAsync(mouse, lifetime)) done.Add("aceleração do mouse");
-        settings.TweakBackup.Clear(); Save();
+        var restored = settings.TweakBackup.Keys.ToList();
+        Save(s => { foreach (var k in restored) s.TweakBackup.Remove(k); });
         result.Text = done.Count > 0 ? "Restaurado: " + string.Join(", ", done) + "." : "Nada para restaurar (nenhum ajuste foi alterado pelo Ilmenyx).";
         await RefreshTweaksAsync();
     }
