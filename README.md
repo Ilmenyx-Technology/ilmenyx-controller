@@ -152,7 +152,7 @@ O que o RESET EXPLODE original faz foi portado ou substituído por um equivalent
 
 | Item | Situação | Motivo |
 |---|---|---|
-| Benchmark de GPU com ray tracing | **Bloqueado** | Precisa de GPU AMD RX 6000+ ou NVIDIA RTX para ser testado |
+| Benchmark de GPU com ray tracing | **Portado (Vulkan, ray query); validado só numa APU Radeon 610M** | Falta GPU dedicada AMD RX 6000+ / NVIDIA RTX; score não comparável ao Windows |
 | GPU AMD/NVIDIA em hardware real | **Não testado** | O desenvolvimento usou só GPU Intel integrada |
 | RGB (Corsair, Razer) | Substituído pelo OpenRGB | Os SDKs originais são do Windows; o controle real de LEDs não foi testado |
 | Ajustes do Windows (Game DVR, HAGS, registro) | Não se aplica | Não existem no Linux |

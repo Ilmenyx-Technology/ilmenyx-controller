@@ -1,0 +1,8 @@
+## stdout
+Ray tracing · Failed · AMD Radeon 610M (RADV RAPHAEL_MENDOCINO)
+ABORTADO: CPU a 51.3 °C, limite 50 °C
+## stderr (progresso; \r convertido em linhas)
+Corte por temperatura: CPU a 50 °C (GPU integrada: vale a temperatura da CPU).
+Ray tracing · AMD Radeon 610M (RADV RAPHAEL_MENDOCINO) · Normal 1920×1080 · aquecimento 3 s + 3×10 s
+Aquecendo · 0 % · 0.0 FPS      
+Temperatura máxima lida (CPU): 51.3 °C

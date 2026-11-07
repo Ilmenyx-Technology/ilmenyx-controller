@@ -1,0 +1,46 @@
+## stdout
+Ray tracing · Completed · AMD Radeon 610M (RADV RAPHAEL_MENDOCINO)
+Normal · 1920×1080 · nota 45 · 4.51 FPS (mediana) · 1% low 3.86
+Variação entre passadas: 1.2% · confiável
+Raios por segundo (estimado): 0.112 bilhões · tempo de quadro: timestamps da GPU
+Passada 1: 4.48 FPS · 1% low 3.81 · 22 quadros
+Passada 2: 4.51 FPS · 1% low 3.86 · 22 quadros
+Passada 3: 4.53 FPS · 1% low 3.87 · 22 quadros
+Experimental: port Vulkan (ray query) do teste DXR 1.1 do original; não comparável a scores do Windows nem entre drivers sem validação.
+## stderr (progresso; \r convertido em linhas)
+Corte por temperatura: CPU a 90 °C (GPU integrada: vale a temperatura da CPU).
+Ray tracing · AMD Radeon 610M (RADV RAPHAEL_MENDOCINO) · Normal 1920×1080 · aquecimento 3 s + 3×5 s
+Aquecendo · 0 % · 0.0 FPS      
+Aquecendo · 4 % · 3.8 FPS      
+Aquecendo · 10 % · 4.1 FPS      
+Aquecendo · 15 % · 5.1 FPS      
+Aquecendo · 21 % · 4.8 FPS      
+Aquecendo · 26 % · 4.2 FPS      
+Passada 1 de 3 · 25 % · 0.0 FPS      
+Passada 1 de 3 · 29 % · 4.1 FPS      
+Passada 1 de 3 · 31 % · 4.0 FPS      
+Passada 1 de 3 · 35 % · 4.3 FPS      
+Passada 1 de 3 · 38 % · 5.0 FPS      
+Passada 1 de 3 · 41 % · 5.3 FPS      
+Passada 1 de 3 · 44 % · 4.8 FPS      
+Passada 1 de 3 · 47 % · 4.5 FPS      
+Passada 1 de 3 · 50 % · 4.0 FPS      
+Passada 2 de 3 · 50 % · 0.0 FPS      
+Passada 2 de 3 · 54 % · 4.1 FPS      
+Passada 2 de 3 · 57 % · 4.1 FPS      
+Passada 2 de 3 · 61 % · 4.4 FPS      
+Passada 2 de 3 · 64 % · 5.4 FPS      
+Passada 2 de 3 · 66 % · 5.4 FPS      
+Passada 2 de 3 · 70 % · 4.7 FPS      
+Passada 2 de 3 · 73 % · 4.2 FPS      
+Passada 2 de 3 · 76 % · 3.9 FPS      
+Passada 3 de 3 · 75 % · 0.0 FPS      
+Passada 3 de 3 · 79 % · 4.1 FPS      
+Passada 3 de 3 · 82 % · 4.1 FPS      
+Passada 3 de 3 · 86 % · 4.4 FPS      
+Passada 3 de 3 · 89 % · 5.4 FPS      
+Passada 3 de 3 · 91 % · 5.4 FPS      
+Passada 3 de 3 · 95 % · 4.7 FPS      
+Passada 3 de 3 · 98 % · 4.3 FPS      
+Passada 3 de 3 · 100 % · 3.9 FPS      
+Temperatura máxima lida (CPU): 55 °C

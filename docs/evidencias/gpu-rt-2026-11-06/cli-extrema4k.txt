@@ -1,0 +1,7 @@
+## stdout
+Ray tracing · Unavailable · AMD Radeon 610M (RADV RAPHAEL_MENDOCINO)
+Esta GPU levaria cerca de 7.8 s por quadro em Extrema 3840×2160; o limite é 2 s por quadro para não acionar o reinício do driver. Escolha um preset ou resolução menor.
+## stderr (progresso; \r convertido em linhas)
+Corte por temperatura: CPU a 90 °C (GPU integrada: vale a temperatura da CPU).
+Ray tracing · AMD Radeon 610M (RADV RAPHAEL_MENDOCINO) · Extrema 3840×2160 · aquecimento 3 s + 3×5 s
+Temperatura máxima lida (CPU): 52.4 °C
