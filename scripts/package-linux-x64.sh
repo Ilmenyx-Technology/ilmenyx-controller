@@ -32,6 +32,14 @@ cp -r -- "$components_cache/out" "$bundle/components"
 mkdir -p -- "$bundle/licenses/components"
 cp -- "$bundle/components/mangohud/LICENSE" "$bundle/licenses/components/MangoHud-LICENSE-MIT.txt"
 cp -- "$bundle/components/openrgb/LICENSE" "$bundle/licenses/components/OpenRGB-LICENSE-GPL-2.0.txt"
+# Notices not carried by a NuGet package folder: .NET runtime pack (LICENSE + THIRD-PARTY-NOTICES), Inter font (OFL 1.1, via
+# Avalonia.Fonts.Inter) and the Apache-2.0 text for the Material Design Icons path data (src/Ilmenyx.Desktop/Icons.cs).
+runtime_pack=$(ls -d "${NUGET_PACKAGES:-$HOME/.nuget/packages}"/microsoft.netcore.app.runtime.linux-x64/10.* 2>/dev/null | sort -V | tail -1)
+[[ -n $runtime_pack && -f $runtime_pack/THIRD-PARTY-NOTICES.TXT ]] || { echo 'Avisos do runtime .NET ausentes no cache' >&2; exit 1; }
+mkdir -p -- "$bundle/licenses/dotnet-runtime"
+cp -- "$runtime_pack/LICENSE.TXT" "$runtime_pack/THIRD-PARTY-NOTICES.TXT" "$bundle/licenses/dotnet-runtime/"
+cp -- "$repo/packaging/licenses/Inter-OFL-1.1.txt" "$bundle/licenses/Inter-font-OFL-1.1.txt"
+cp -- "$repo/packaging/licenses/Apache-2.0.txt" "$bundle/licenses/MaterialDesignIcons-Apache-2.0.txt"
 # Desktop integration (app ID io.github.bismuth_technology.Ilmenyx): .desktop, hicolor icons, AppStream and the
 # opt-in per-user installer. Copied only; nothing is installed by this script.
 cp -r -- "$repo/packaging/linux" "$bundle/linux"

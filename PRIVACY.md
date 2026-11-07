@@ -53,3 +53,12 @@ direitos e eventual aplicação de LGPD/ANPD: PENDENTE DE REVISÃO humana confor
 - O SteamDB não é consultado (proíbe acesso automatizado); o app só abre a página dele no navegador se você clicar.
 - Relatos são de terceiros anônimos: texto puro, com pastas pessoais (`/home/...`) ocultadas. Opções de inicialização só podem ser
   aplicadas na Steam quando formadas por variáveis de ambiente, wrappers conhecidos e argumentos do jogo, sempre com confirmação e backup.
+
+## Outros acessos à internet (sempre por ação sua)
+
+- **Estimativa de FPS com HowManyFPS (opcional):** só se você cadastrar a sua chave. Envia a `howmanyfps.com` o **modelo da CPU, o
+  modelo da GPU, o jogo e a resolução**, junto com a sua chave. Sem chave, a estimativa é 100% local.
+- **Teste de rede (página Rede):** baixa e envia cerca de 100 MB de/para `speed.cloudflare.com` e mede a latência até `1.1.1.1` e
+  `8.8.8.8`. Esses serviços veem o seu IP, como em qualquer teste de velocidade.
+- **Driver NVIDIA:** a verificação da versão mais recente consulta `download.nvidia.com` (lista pública de versões); nada sobre o
+  seu PC é enviado além da requisição em si.

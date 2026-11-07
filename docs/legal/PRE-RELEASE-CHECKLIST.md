@@ -6,7 +6,7 @@ não equivalem a conformidade legal. Publicação permanece sem autorização ne
 
 | Item | Evidência/data | Estado | Bloqueio/ação humana |
 |---|---|---|---|
-| [ ] Busca INPI Ilmenyx e Bismuth Technology, radicais/fonética/classes (avaliar 9/42 conforme atividade) | Não realizada; 2026-10-21 | PENDENTE DE REVISÃO | Titular/especialista definir abrangência/decisão; sem afirmar marca livre/registrada |
+| [~] Busca INPI Ilmenyx e Bismuth Technology, radicais/fonética/classes (avaliar 9/42 conforme atividade) | `docs/legal/BUSCA-MARCA-2026-11-07.md` (INPI, USPTO, web, domínios); WIPO/TMview/EUIPO exigem consulta manual | PARCIAL: Ilmenyx risco baixo; Bismuth risco médio | Titular/especialista definir abrangência/decisão; sem afirmar marca livre/registrada |
 | [ ] Busca internacional, uso comercial, handles/domínios | Não realizada | PENDENTE DE REVISÃO | Domínio/handle livre não comprova direito |
 | [ ] Eventual depósito/titular/custeio | Nenhuma ação/registro | PENDENTE DE REVISÃO | Aprovação formal; sem símbolo de registro |
 | [ ] Autoria/cessões/contribuições/identidade | OWNERSHIP-AND-CONTRIBUTIONS.md | PENDENTE DE REVISÃO | Não presumir pessoa jurídica ou transferência de direitos |
