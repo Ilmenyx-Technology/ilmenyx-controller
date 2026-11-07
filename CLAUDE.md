@@ -31,6 +31,9 @@
 - **Teste gráfico:**
   - X11: `dotnet run --project tools/Ilmenyx.UiSmoke -c Release --no-build -- /tmp/saida-nova`
   - Wayland: o mesmo comando, prefixado por `env -u DISPLAY ILMENYX_DISPLAY_BACKEND=wayland`.
+  - Numa sessão X11 sem Wayland, um compositor aninhado serve, sem instalar nada: `muffin --wayland --nested --no-x11 &` (Cinnamon;
+    `mutter --wayland --nested` no GNOME) e então `env -u DISPLAY WAYLAND_DISPLAY=wayland-N ...`. Controle o compositor pelo PID: `pkill -f`
+    com o nome casa com a própria linha de comando do shell.
 
 ## Regras para validar em outro PC
 

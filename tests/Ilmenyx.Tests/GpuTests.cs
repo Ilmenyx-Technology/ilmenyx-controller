@@ -93,6 +93,78 @@ public sealed class GpuTests : IDisposable
         Assert.DoesNotContain(rows, r => r.Name == "Memória" && r.Category.StartsWith("Temperatura"));
     }
 
+    // Values copied from the real sysfs of an ASUS Vivobook Go E1504FA (Radeon 610M, Mendocino, amdgpu, kernel 6.14) on 2026-11-06.
+    private static readonly byte[] MendocinoGpuMetricsHeader = [120, 0, 2, 1];
+    private const string MendocinoMclk = "0: 400Mhz \n1: 687Mhz \n2: 800Mhz *\n3: 687Mhz \n";
+
+    private string Mendocino(string sys, string device = "0x1506")
+    {
+        string d = Gpu(sys, "0000:03:00.0", "0x1002", device, "amdgpu", new()
+        {
+            ["gpu_busy_percent"] = "0", ["mem_info_vram_total"] = "536870912", ["mem_info_vram_used"] = "218750976", ["mem_info_gtt_total"] = "3781308416",
+            ["pp_dpm_mclk"] = MendocinoMclk.TrimEnd('\n'),
+        });
+        File.WriteAllBytes(Path.Combine(d, "gpu_metrics"), MendocinoGpuMetricsHeader.Concat(new byte[116]).ToArray());
+        string hw = Path.Combine(d, "hwmon/hwmon6"); Directory.CreateDirectory(hw);
+        foreach (var (f, v) in new[] { ("temp1_input", "41000"), ("temp1_label", "edge"), ("power1_input", "3167000"), ("power1_label", "PPT"), ("freq1_input", "1900000000"), ("freq1_label", "sclk"), ("in0_input", "810"), ("in0_label", "vddgfx") })
+            File.WriteAllText(Path.Combine(hw, f), v + "\n");
+        return d;
+    }
+
+    [Fact]
+    public async Task MendocinoApuIsIntegratedWithPackagePowerMemoryClockAndReservedVram()
+    {
+        string sys = Path.Combine(root, "sys-apu"); Mendocino(sys);
+        var ids = PciIds.Parse("1002  Advanced Micro Devices, Inc. [AMD/ATI]\n\t1506  Mendocino\n");
+        var collector = new LinuxGpuCollector(sys, Path.Combine(root, "p"), []);
+        var (raw, card) = collector.Collect(ids).Single();
+        Assert.True(raw.Integrated);
+        string V(string s, string k) => card.Sections.Single(x => x.Header == s).Children.First(c => c.Header == k).Value;
+        Assert.Equal("Mendocino (iGPU · Radeon 610M)", V("IDENTIFICAÇÃO", "Chip")); Assert.Equal("RDNA 2", V("IDENTIFICAÇÃO", "Arquitetura"));
+        Assert.Equal("—", V("IDENTIFICAÇÃO", "Transistores")); // not published: never "0 bilhões"
+        Assert.Equal("512 MB", V("MEMÓRIA", "Reservada (dedicada)")); Assert.Contains("interna", V("BARRAMENTO", "Interface"));
+        Assert.Equal("2", V("UNIDADES DE PROCESSAMENTO", "Compute units"));
+
+        var t = await collector.TelemetryAsync(raw);
+        Assert.True(t.Integrated); Assert.True(t.PowerIsPackage);
+        Assert.Equal(3.167, t.PowerW); Assert.Equal(800, t.MemMHz); Assert.Equal(1900, t.CoreMHz); Assert.Equal(41, t.TempC); Assert.Equal(0, t.LoadPercent);
+        Assert.Equal(0.81, t.CoreVoltageV);
+        Assert.Null(t.TempHotspotC); Assert.Null(t.FanRpm); Assert.Null(t.FanPercent); // an APU has no GPU fan or junction sensor: unavailable, not zero
+        var rows = GpuLive.Rows(t);
+        Assert.Contains(rows, r => r.Name == "Pacote (CPU+GPU)" && r.Value == "3.2 W"); Assert.DoesNotContain(rows, r => r.Name == "Consumo");
+        Assert.Contains(rows, r => r.Category == "VRAM reservada · " && r.Name == "Total" && r.Value == "512 MB");
+        Assert.Contains(rows, r => r.Category == "Clock · " && r.Name == "Memória" && r.Value == "800 MHz");
+    }
+
+    [Fact]
+    public void UnknownAmdDeviceIsIntegratedOnlyWhenGpuMetricsHasTheApuFormat()
+    {
+        var ids = PciIds.Parse("1002  Advanced Micro Devices, Inc. [AMD/ATI]\n");
+        string apu = Path.Combine(root, "sys-apu2"); Mendocino(apu, "0x15bf"); // not in the reference table: decided by the gpu_metrics header
+        Assert.True(new LinuxGpuCollector(apu, Path.Combine(root, "p"), []).Collect(ids).Single().Raw.Integrated);
+        string dgpu = Path.Combine(root, "sys-dgpu"); string d = Mendocino(dgpu, "0x73ff");
+        File.WriteAllBytes(Path.Combine(d, "gpu_metrics"), [100, 0, 1, 3]);
+        Assert.False(new LinuxGpuCollector(dgpu, Path.Combine(root, "p"), []).Collect(ids).Single().Raw.Integrated);
+        string none = Path.Combine(root, "sys-none"); File.Delete(Path.Combine(Mendocino(none, "0x73ef"), "gpu_metrics"));
+        Assert.False(new LinuxGpuCollector(none, Path.Combine(root, "p"), []).Collect(ids).Single().Raw.Integrated); // unknown stays dedicated (previous behaviour)
+    }
+
+    [Theory]
+    [InlineData(new byte[] { 120, 0, 2, 1 }, true)]
+    [InlineData(new byte[] { 0, 1, 3, 0 }, true)]
+    [InlineData(new byte[] { 100, 0, 1, 3 }, false)]
+    [InlineData(new byte[] { 100, 0, 9, 0 }, null)]
+    [InlineData(new byte[] { 120, 0 }, null)]
+    public void GpuMetricsHeaderFormat(byte[] header, bool? apu) => Assert.Equal(apu, LinuxGpuCollector.GpuMetricsIsApu(header));
+
+    [Theory]
+    [InlineData(MendocinoMclk, 800.0)]
+    [InlineData("0: 200Mhz \n1: 1900Mhz *\n2: 1899Mhz \n", 1900.0)]
+    [InlineData("0: 96Mhz\n1: 456Mhz\n2: 1000Mhz\n", null)]
+    [InlineData("0: 2.5GT/s, x8 *\n", null)]
+    [InlineData("", null)]
+    public void ActiveDpmLevel(string text, double? mhz) => Assert.Equal(mhz, LinuxGpuCollector.ActiveDpmMHz(text));
+
     [Fact]
     public void LiveExtrasUseThePerfCapRulesOfTheOriginal()
     {

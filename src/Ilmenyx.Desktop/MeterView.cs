@@ -1,4 +1,4 @@
-// New Ilmenyx additions (visual follows the original Meter template: label, mono value, 4 px bar): see LICENSING.md.
+// New Ilmenyx additions (visual follows the original Meter template: label, mono value, 4 px rounded accent bar): see LICENSING.md.
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
@@ -8,18 +8,18 @@ namespace Ilmenyx.Desktop;
 
 public sealed class MeterView : Grid
 {
-    private readonly TextBlock value = new() { FontFamily = new FontFamily("monospace"), HorizontalAlignment = HorizontalAlignment.Right, TextTrimming = TextTrimming.CharacterEllipsis };
-    private readonly Border fill = new() { Background = Palette.Fg, HorizontalAlignment = HorizontalAlignment.Left, Height = 4 };
-    private readonly Grid track = new() { Height = 4, Margin = new Thickness(0, 6, 0, 0), Background = Palette.Line };
+    private readonly TextBlock value = new() { FontFamily = IlmenyxTheme.Mono, FontSize = 12.5, HorizontalAlignment = HorizontalAlignment.Right, TextTrimming = TextTrimming.CharacterEllipsis };
+    private readonly Border fill = new() { Background = Palette.Accent, HorizontalAlignment = HorizontalAlignment.Left, Height = 4, CornerRadius = new CornerRadius(2) };
+    private readonly Grid track = new() { Height = 4, Margin = new Thickness(0, 7, 0, 0) };
     public string Label { get; }
 
     public MeterView(string label, string? name = null)
     {
         Label = label; Margin = new Thickness(0, 0, 0, 12); RowDefinitions = new("Auto,Auto"); ColumnDefinitions = new("Auto,*");
         if (name is not null) Name = name;
-        Children.Add(new TextBlock { Text = label, Foreground = Palette.Muted, Margin = new Thickness(0, 0, 12, 0) });
+        Children.Add(new TextBlock { Text = label, Foreground = Palette.Muted, FontSize = 12.5, Margin = new Thickness(0, 0, 12, 0) });
         Grid.SetColumn(value, 1); Children.Add(value);
-        track.Children.Add(fill); Grid.SetRow(track, 1); Grid.SetColumnSpan(track, 2); Children.Add(track);
+        track.Children.Add(new Border { Background = Palette.Hover, CornerRadius = new CornerRadius(2) }); track.Children.Add(fill); Grid.SetRow(track, 1); Grid.SetColumnSpan(track, 2); Children.Add(track);
         track.SizeChanged += (_, _) => Apply();
         Set("—", 0);
     }

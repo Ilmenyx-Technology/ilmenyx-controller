@@ -1,0 +1,201 @@
+# Reconhecimento 2026-11-06T11:49:20-05:00
+Linux 6.14.0-37-generic
+PRETTY_NAME="Linux Mint 22.3"
+session=x11 desktop=X-Cinnamon
+model name	: AMD Ryzen 5 40 with Radeon Graphics
+MemTotal:        7385368 kB
+03:00.0 VGA compatible controller [0300]: Advanced Micro Devices, Inc. [AMD/ATI] Mendocino [1002:1506] (rev c1)
+	Subsystem: ASUSTeK Computer Inc. Mendocino [1043:282d]
+	Kernel driver in use: amdgpu
+	Kernel modules: amdgpu
+amdgpu              19730432  15
+k10temp                16384  0
+nvidia-smi: ausente
+== /sys/class/drm/card1/device
+vendor=0x1002
+device=0x1506
+subsystem_vendor=0x1043
+subsystem_device=0x282d
+revision=0xc1
+gpu_busy_percent=0
+mem_info_vram_total=536870912
+mem_info_vram_used=218750976
+mem_info_vis_vram_total=536870912
+mem_info_gtt_total=3781308416
+mem_info_gtt_used=54071296
+power_dpm_force_performance_level=auto
+current_link_speed=16.0 GT/s PCIe
+current_link_width=16
+pp_dpm_sclk:
+0: 200Mhz 
+1: 1900Mhz *
+2: 1899Mhz 
+pp_dpm_mclk:
+0: 400Mhz 
+1: 687Mhz 
+2: 800Mhz *
+3: 687Mhz 
+-- /sys/class/drm/card1/device/hwmon/hwmon6 name=amdgpu
+freq1_input=1900000000
+freq1_label=sclk
+in0_input=810
+in0_label=vddgfx
+in1_input=765
+in1_label=vddnb
+name=amdgpu
+power1_input=3167000
+power1_label=PPT
+temp1_input=41000
+temp1_label=edge
+== hwmon geral
+/sys/class/hwmon/hwmon0 AC0
+/sys/class/hwmon/hwmon1 acpitz
+/sys/class/hwmon/hwmon2 BAT0
+/sys/class/hwmon/hwmon3 nvme
+/sys/class/hwmon/hwmon4 k10temp
+/sys/class/hwmon/hwmon5 asus
+/sys/class/hwmon/hwmon6 amdgpu
+== vulkan
+/usr/bin/vulkaninfo
+==========
+VULKANINFO
+==========
+
+Vulkan Instance Version: 1.3.275
+
+
+Instance Extensions: count = 24
+-------------------------------
+VK_EXT_acquire_drm_display             : extension revision 1
+VK_EXT_acquire_xlib_display            : extension revision 1
+VK_EXT_debug_report                    : extension revision 10
+VK_EXT_debug_utils                     : extension revision 2
+VK_EXT_direct_mode_display             : extension revision 1
+VK_EXT_display_surface_counter         : extension revision 1
+VK_EXT_headless_surface                : extension revision 1
+VK_EXT_surface_maintenance1            : extension revision 1
+VK_EXT_swapchain_colorspace            : extension revision 5
+VK_KHR_device_group_creation           : extension revision 1
+VK_KHR_display                         : extension revision 23
+VK_KHR_external_fence_capabilities     : extension revision 1
+VK_KHR_external_memory_capabilities    : extension revision 1
+VK_KHR_external_semaphore_capabilities : extension revision 1
+VK_KHR_get_display_properties2         : extension revision 1
+VK_KHR_get_physical_device_properties2 : extension revision 2
+VK_KHR_get_surface_capabilities2       : extension revision 1
+VK_KHR_portability_enumeration         : extension revision 1
+VK_KHR_surface                         : extension revision 25
+VK_KHR_surface_protected_capabilities  : extension revision 1
+VK_KHR_wayland_surface                 : extension revision 6
+VK_KHR_xcb_surface                     : extension revision 6
+VK_KHR_xlib_surface                    : extension revision 6
+VK_LUNARG_direct_driver_loading        : extension revision 1
+
+Instance Layers: count = 3
+--------------------------
+VK_LAYER_INTEL_nullhw       INTEL NULL HW                1.1.73   version 1
+VK_LAYER_MESA_device_select Linux device selection layer 1.4.303  version 1
+VK_LAYER_MESA_overlay       Mesa Overlay layer           1.4.303  version 1
+
+Devices:
+========
+GPU0:
+	apiVersion         = 1.4.305
+	driverVersion      = 25.0.7
+	vendorID           = 0x1002
+	deviceID           = 0x1506
+	deviceType         = PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU
+	deviceName         = AMD Radeon 610M (RADV RAPHAEL_MENDOCINO)
+	driverID           = DRIVER_ID_MESA_RADV
+gfxstream_vk_icd.x86_64.json
+intel_hasvk_icd.x86_64.json
+intel_icd.x86_64.json
+lvp_icd.x86_64.json
+nouveau_icd.x86_64.json
+radeon_icd.x86_64.json
+virtio_icd.x86_64.json
+== glx
+/usr/bin/glxinfo
+name of display: :0
+display: :0  screen: 0
+direct rendering: Yes
+Extended renderer info (GLX_MESA_query_renderer):
+    Vendor: AMD (0x1002)
+    Device: AMD Radeon 610M (radeonsi, raphael_mendocino, LLVM 20.1.2, DRM 3.61, 6.14.0-37-generic) (0x1506)
+    Version: 25.0.7
+    Accelerated: yes
+    Video memory: 512MB
+    Unified memory: no
+    Preferred profile: core (0x1)
+    Max core profile version: 4.6
+    Max compat profile version: 4.6
+    Max GLES1 profile version: 1.1
+    Max GLES[23] profile version: 3.2
+Memory info (GL_ATI_meminfo):
+    VBO free memory - total: 299 MB, largest block: 299 MB
+    VBO free aux. memory - total: 3552 MB, largest block: 3552 MB
+    Texture free memory - total: 299 MB, largest block: 299 MB
+    Texture free aux. memory - total: 3552 MB, largest block: 3552 MB
+== ferramentas
+sensors: /usr/bin/sensors
+radeontop: ausente
+mangohud: ausente
+gamemoderun: /usr/games/gamemoderun
+smartctl: ausente
+dmidecode: /usr/sbin/dmidecode
+flatpak: /usr/bin/flatpak
+openrgb: ausente
+amdgpu_top: ausente
+nvtop: ausente
+== dotnet
+dotnet ausente
+== extensões Vulkan relevantes
+	VK_KHR_acceleration_structure                      : extension revision 13
+	VK_KHR_acceleration_structure                 : extension revision 13
+	VK_KHR_ray_query                                   : extension revision 1
+	VK_KHR_ray_query                              : extension revision 1
+	VK_KHR_ray_tracing_pipeline                        : extension revision 1
+	VK_KHR_ray_tracing_pipeline                   : extension revision 1
+	maxComputeWorkGroupInvocations                  = 1024
+		size   = 1439391744 (0x55cb6000) (1.34 GiB)
+		size   = 2878787584 (0xab96d000) (2.68 GiB)
+		heapIndex     = 1
+		heapIndex     = 1
+		heapIndex     = 0
+		heapIndex     = 1
+		heapIndex     = 1
+== sensors
+amdgpu-pci-0300
+Adapter: PCI adapter
+vddgfx:      810.00 mV 
+vddnb:       765.00 mV 
+edge:         +41.0°C  
+PPT:           5.13 W  
+
+k10temp-pci-00c3
+Adapter: PCI adapter
+Tctl:         +41.2°C  
+
+BAT0-acpi-0
+Adapter: ACPI interface
+in0:          13.18 V  
+curr1:       153.00 mA 
+
+nvme-pci-0100
+Adapter: PCI adapter
+Composite:    +30.9°C  (low  = -273.1°C, high = +85.8°C)
+                       (crit = +92.8°C)
+Sensor 1:     +30.9°C  (low  = -273.1°C, high = +65261.8°C)
+Sensor 2:     +32.9°C  (low  = -273.1°C, high = +65261.8°C)
+
+acpitz-acpi-0
+Adapter: ACPI interface
+temp1:        +40.0°C  
+
+== DMI
+ASUSTeK COMPUTER INC.
+Vivobook Go E1504FA_E1504FA
+E1504FA
+== power_supply
+AC0
+BAT0

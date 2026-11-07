@@ -6,7 +6,7 @@ namespace Ilmenyx.Platform.Linux;
 
 /// <summary>
 /// GPU facts from sysfs (PCI ids, link, amdgpu/i915 attributes, hwmon) and, for NVIDIA, one read-only <c>nvidia-smi</c> CSV query.
-/// No P/Invoke, no root, nothing written. AMD/NVIDIA paths are covered by fixtures only (no such hardware available).
+/// No P/Invoke, no root, nothing written. AMD APU path checked on a real Radeon 610M (Mendocino, 2026-11-06); AMD dedicated and NVIDIA are fixtures only.
 /// </summary>
 public sealed class LinuxGpuCollector(string sysRoot = "/sys", string procRoot = "/proc", IEnumerable<string>? libraryDirs = null)
 {
@@ -57,6 +57,44 @@ public sealed class LinuxGpuCollector(string sysRoot = "/sys", string procRoot =
             catch (Exception e) when (e is IOException or FileNotFoundException or TimeoutException or System.ComponentModel.Win32Exception) { return null; }
         }
         return null;
+    }
+
+    /// <summary>
+    /// amdgpu gpu_metrics header (u16 size, u8 format_revision, u8 content_revision): format 2 and 3 are the APU tables, 1 the dedicated-GPU table.
+    /// Null when the header is short or of an unknown format (no guess).
+    /// </summary>
+    public static bool? GpuMetricsIsApu(ReadOnlySpan<byte> header) => header.Length < 4 ? null : header[2] switch { 2 or 3 => true, 1 => false, _ => null };
+
+    /// <summary>Active level ("1: 800Mhz *") of an amdgpu pp_dpm_* list, in MHz; null when no level is marked or the text is not in that format.</summary>
+    public static double? ActiveDpmMHz(string text)
+    {
+        foreach (var line in text.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Take(32))
+        {
+            int colon = line.IndexOf(':');
+            if (!line.EndsWith('*') || colon <= 0) continue;
+            string value = line[(colon + 1)..^1].Trim();
+            if (!value.EndsWith("mhz", StringComparison.OrdinalIgnoreCase)) return null;
+            return double.TryParse(value[..^3].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double mhz) && double.IsFinite(mhz) && mhz is > 0 and < 100_000 ? mhz : null;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// AMD GPU on the CPU die. The reference table is checked first (no I/O); otherwise the gpu_metrics header, only for amdgpu-bound devices.
+    /// Unknown stays false: the card is then shown as a dedicated GPU, exactly as before this check existed.
+    /// </summary>
+    private static bool AmdApu(string dir, string vendor, string device, string name, string driver)
+    {
+        if (vendor != "1002") return false;
+        if (GpuSpecDb.Find(vendor, device, name) is { } spec) return spec.MemType.StartsWith("Memória do sistema", StringComparison.Ordinal);
+        if (driver != "amdgpu") return false;
+        try
+        {
+            using var file = new FileStream(Path.Combine(dir, "gpu_metrics"), FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 1, false);
+            Span<byte> header = stackalloc byte[4];
+            return file.ReadAtLeast(header, 4, throwOnEndOfStream: false) == 4 && GpuMetricsIsApu(header) == true;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return false; }
     }
 
     private string DriverName(string dir)
@@ -140,7 +178,8 @@ public sealed class LinuxGpuCollector(string sysRoot = "/sys", string procRoot =
             }
             if (driverVersion.Length == 0)
                 driverVersion = vendor == "10de" && drv.StartsWith("nvidia", StringComparison.Ordinal) && Attr(Sys("module/nvidia/version"), 64) is { Length: > 0 } nv ? nv : drv.Length > 0 ? $"módulo {drv} · kernel {kernel}" : "";
-            var raw = new GpuRaw(name, vendor, device, subV, subD, rev, address, drv, driverVersion, vbios, vram, gtt, vendor == "8086", maxGen, maxW, curGen, curW,
+            bool integrated = vendor == "8086" || AmdApu(dir, vendor, device, name, drv);
+            var raw = new GpuRaw(name, vendor, device, subV, subD, rev, address, drv, driverVersion, vbios, vram, gtt, integrated, maxGen, maxW, curGen, curW,
                 maxCore, maxMem, maxVideo, plim, pdef, pmin, pmax, cap, cuda, Apis(vendor), drv.Length > 0 ? LinuxDriverInventory.Flags(taint) : "");
             list.Add((raw, GpuCardBuilder.Build(raw)));
         }
@@ -174,7 +213,14 @@ public sealed class LinuxGpuCollector(string sysRoot = "/sys", string procRoot =
         double? fanRpm = hw.Length > 0 && Num(Path.Combine(hw, "fan1_input")) is { } fr and >= 0 ? fr : null;
         double? fanPct = hw.Length > 0 && Num(Path.Combine(hw, "pwm1")) is { } pwm and >= 0 and <= 255 ? Math.Round(pwm * 100.0 / 255) : null;
         double? sclk = hw.Length > 0 && Num(Path.Combine(hw, "freq1_input")) is { } f1 and > 0 ? f1 / 1_000_000.0 : card.Length > 0 && (Num(Path.Combine(card, "gt_cur_freq_mhz")) ?? Num(Path.Combine(card, "gt/gt0/rps_cur_freq_mhz"))) is { } ic and > 0 ? ic : null;
-        double? mclk = hw.Length > 0 && Num(Path.Combine(hw, "freq2_input")) is { } f2 and > 0 ? f2 / 1_000_000.0 : null;
-        return new(load, Milli("temp1_input"), Milli("temp2_input"), Milli("temp3_input"), sclk, mclk, used, total, power, raw.PowerLimitW, fanPct, fanRpm, null, null, null, null, null, raw.CurGen, raw.CurWidth);
+        // APUs have no freq2_input; amdgpu still marks the active memory clock level in pp_dpm_mclk (read-only).
+        double? mclk = hw.Length > 0 && Num(Path.Combine(hw, "freq2_input")) is { } f2 and > 0 ? f2 / 1_000_000.0
+            : raw.VendorId == "1002" ? ActiveDpmMHz(SysfsText.Read(Path.Combine(dir, "pp_dpm_mclk"), 1024)) : null;
+        // amdgpu documents power1 on APUs as the SoC power including the CPU: flag it instead of calling it GPU power.
+        bool package = raw.Integrated && raw.VendorId == "1002" && power is not null;
+        // amdgpu in0 = vddgfx in mV (seen: in0_label "vddgfx", 810 on the Radeon 610M); only taken when the label says so.
+        double? volt = hw.Length > 0 && Attr(Path.Combine(hw, "in0_label"), 16) == "vddgfx" && Num(Path.Combine(hw, "in0_input")) is { } mv and > 0 and < 2000 ? mv / 1000.0 : null;
+        return new(load, Milli("temp1_input"), Milli("temp2_input"), Milli("temp3_input"), sclk, mclk, used, total, power, raw.PowerLimitW, fanPct, fanRpm, null, null, null, null, null, raw.CurGen, raw.CurWidth,
+            raw.Integrated, package, volt);
     }
 }

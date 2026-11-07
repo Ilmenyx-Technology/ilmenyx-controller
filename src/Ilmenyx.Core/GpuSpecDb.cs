@@ -58,6 +58,9 @@ public static class GpuSpecDb
         },
         ["1002:7480"] = new[] { new GpuSpec("Navi 33", "RDNA 3", "TSMC 6 nm", 204, 13.3, 2048, 64, 128, "GDDR6", 1720, 2655, 165, "25/05/2023") },
         ["1002:164E"] = new[] { new GpuSpec("Raphael (iGPU)", "RDNA 2", "TSMC 6 nm", 122, 3.4, 128, 4, 8, "Memória do sistema (DDR5)", 400, 2200, 0, "27/09/2022") },
+        // Mendocino (Ryzen 7020, Radeon 610M): public reference values; transistor count not published (0 → "—").
+        // Checked on real hardware (ASUS E1504FA, 2026-11-06): PCI 1002:1506, pp_dpm_sclk max 1900 MHz, RADV reports an integrated RDNA 2 GPU.
+        ["1002:1506"] = new[] { new GpuSpec("Mendocino (iGPU · Radeon 610M)", "RDNA 2", "TSMC 6 nm", 100, 0, 128, 4, 8, "Memória do sistema (LPDDR5)", 400, 1900, 0, "20/09/2022") },
     };
 
     /// <summary>Recursos por arquitetura, para a linha "Tecnologias".</summary>

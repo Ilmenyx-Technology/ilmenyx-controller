@@ -1,0 +1,84 @@
+DESKTOP ASSEMBLY DIRECTORY ~/Ilmenyx/tools/Ilmenyx.UiSmoke/bin/Release/net10.0
+PASS system page: category list, drive rings, offline dmidecode import (relative path refused), EXPO estimate, no serial in UI
+PASS disks page: verdict cards, bounded SMART query without privilege, offline SMART import raises the verdict with raw metrics
+PASS energy page: power card always present, battery cards when the kernel reports batteries
+PASS driver page: offline inventory, GPU/board cards, never-executed install hint, read-only fwupd listing (network and browser actions not clicked)
+PASS gpu page: chips, highlight card, 8 GPU-Z style sections, live sensors poll or honest 'no counters' text, notice kept; readable at the 900x560 minimum
+PASS bottleneck page: balance, live verdict and meters, timed session produces a distribution and advice (FPS honestly unavailable)
+PASS startup page: system entry disabled by user override (system file untouched), declined removal keeps entry, confirmed removal + restore round trip; real list read-only
+PASS maker pages: serial ports listed (or honest empty state) without opening any port; chip family modules, environment checks and official pages (not opened)
+PASS launcher page: library scan, manual executable validation, profile persistence, Steam launch options with backup, helper, stubbed launch; real library read-only
+PASS stress GPU: box enabled only with a usable engine, confirmation names the adapter and limits, GPU temperature and engine-failure aborts stop the load (fake engine; no Vulkan work)
+PASS stress page: invalid limits refused, declined confirmation keeps the load off, CPU temperature abort, timed completion, no-sensor warning; GPU box disabled without an engine, GPU path covered by StressGpuAsync; no real load generated
+PASS network page: confirmation lists endpoints, declined test uses no network, fake probe yields the verdict card; real probe never clicked
+PASS optimize page: only own desktop apps and suggested helpers listed, SIGTERM only after confirmation, reversible power profile with backup/restore, root-only tweaks read-only with commands; real page read-only
+PASS fps page: local estimate from catalog tables, option chips recompute, API query only after key + confirmation naming the endpoint, fake handler results shown; real service never contacted
+PASS compat page: offline index search and similar-hardware ranking, unsafe options locked, home paths hidden, online query only after confirmation (fixed hosts), apply/undo on a fake Steam config, verified export update (fake HTTP; no network)
+PASS apps page: Flathub added only after confirmation (user scope), installed apps locked, declined install runs nothing, confirmed install uses user-scope noninteractive flatpak calls; real flatpak never installs
+PASS bench page: every test needs a visible confirmation, declined/stopped/aborted runs publish nothing, temperature guard cuts the run, tmpfs folders refused, results kept in the local history; real load never started
+PASS oc page: GPU limits validated and shown as commands (never run), verifier needs confirmation, stable/unstable verdicts from temperature, memory and kernel-log errors, BIOS guide from DMI board; no real stress or journal read
+PASS oc GPU: GPU target appears only with a usable GPU engine, GPU-only verification never starts the CPU engine and publishes the GPU score (fake engines)
+PASS report page: real read-only collection exported to new HTML (12430 chars) and valid JSON, cancelled destination writes nothing, existing file is never overwritten, host name and scripts absent
+PASS overlay page: item picker and presets persist, Ilmenyx overlay window shows/hides with FPS from the frame source, MangoHud config and launch option generated into Ilmenyx's own file (user MangoHud.conf untouched)
+PASS lighting page: nothing connects or is sent before the click, control needs confirmation, effect frames reach the OpenRGB server, every device is handed back to its original mode (fake loopback server; no real RGB hardware)
+PASS blocked page: one card per blocked feature, state chips, (!) toggles the reason, Windows-only items are not applicable
+PASS overview: performance card from the local benchmark history with delta, real read-only health checklist, occupancy rings and recent events
+PASS theme: light/dark toggle recolours the live window, choice persisted to the settings file (fixture directory), default is dark
+PASS toasts: baseline read is silent, connect/remove notices appear bottom-right and queue, disabling stops them, toggle persisted (fake device source)
+PASS shell: grouped sidebar, 10 pages reachable, overview chart/chips/components, live process table, GPU notice, pause/resume without sampling, classic diagnostics and About
+PASS keyboard save dialog: Space opens, Enter saves, Tab/Shift+Tab cycle, Escape cancels, error help/focus, automation peer name, focus restored
+PASS keyboard About: arrow selects document; Tab cycles selector/reader/close; F4 opens list; Escape closes list then dialog; named text and restored focus
+PASS requirements: idle on open; explicit real probe equals doctor; read-only; keyboard cycle/Escape/focus; close during pending probe suppresses result
+PASS Ilmenyx identity, by Bismuth Technology, live About/attribution/MIT/dependency documents and close
+ACTUAL WINDOW IMPLEMENTATION Avalonia.Wayland.WindowImpl
+DISPLAY BACKEND requested=auto; handle=
+PASS visible notice: GPUs dedicadas AMD/NVIDIA · Testes não realizados em hardware real
+PASS hardware UI export and overwrite refusal
+PASS HTML UI export, same snapshot, cancel, extension validation and overwrite refusal
+PASS CPU cancel control
+EXPORTED cpu.json
+PASS CPU real render, cancelled picker and UI export
+PASS cpu HTML UI: same JSON report, cancellation, extension, overwrite refusal and real export
+EXPORTED memory.json
+PASS memory validation: no autostart, real bounded result, cancel control, cancelled dialog and JSON export
+PASS memory HTML UI: same JSON report, cancellation, extension, overwrite refusal and real export
+EXPORTED sim.json
+PASS GameSim: no autostart; cancel; 256 entities/16 steps; immutable final preview; oracle hash; cancelled dialog; JSON export
+PASS sim HTML UI: same JSON report, cancellation, extension, overwrite refusal and real export
+PASS sensors HTML: real polling changes snapshot during dialog; stale selection refused without file
+EXPORTED sensors.json
+PASS sensors HTML UI: same JSON report, cancellation, extension, overwrite refusal and real export
+PASS sensor keyboard order: JSON/HTML reachable, disabled stop skipped, reverse Tab works
+EXPORTED smart-import.json
+PASS SMART import UI: no autostart; mismatch refused; explicit file import; JSON/HTML export
+PASS panel keyboard order: CPU/memory/sim JSON/HTML reachable; disabled cancellation controls skipped; reverse Tab works
+PASS sensor monitor start/stop and UI export
+LAYOUT dashboard factor=1 actual=640, 480 renderScaling=1
+LAYOUT save factor=1 actual=440, 360 renderScaling=1
+LAYOUT license document=0 factor=1 readingHeight=221
+LAYOUT license document=1 factor=1 readingHeight=221
+LAYOUT license document=2 factor=1 readingHeight=221
+LAYOUT license document=3 factor=1 readingHeight=221
+LAYOUT About heading origin=20, 20 bounds=440, 17 text=216,66193181818178x16,94318181818182
+LAYOUT about factor=1 actual=480, 360 renderScaling=1
+PASS requirements minimum layout factor=1 actual=480, 360
+LAYOUT dashboard factor=1,5 actual=640, 480 renderScaling=1
+LAYOUT save factor=1,5 actual=440, 360 renderScaling=1
+LAYOUT license document=0 factor=1,5 readingHeight=197
+LAYOUT license document=1 factor=1,5 readingHeight=197
+LAYOUT license document=2 factor=1,5 readingHeight=197
+LAYOUT license document=3 factor=1,5 readingHeight=197
+LAYOUT About heading origin=20, 20 bounds=440, 26 text=324,9928977272727x25,414772727272727
+LAYOUT about factor=1,5 actual=480, 360 renderScaling=1
+PASS requirements minimum layout factor=1,5 actual=480, 360
+LAYOUT dashboard factor=2 actual=640, 480 renderScaling=1
+LAYOUT save factor=2 actual=440, 360 renderScaling=1
+LAYOUT license document=0 factor=2 readingHeight=173
+LAYOUT license document=1 factor=2 readingHeight=173
+LAYOUT license document=2 factor=2 readingHeight=173
+LAYOUT license document=3 factor=2 readingHeight=173
+LAYOUT About heading origin=20, 20 bounds=440, 34 text=433,32386363636357x33,88636363636364
+LAYOUT about factor=2 actual=480, 360 renderScaling=1
+PASS requirements minimum layout factor=2 actual=480, 360
+PASS layout minimum sizes, text factors 1/1.5/2: dashboard buttons, save field/error/actions, About selector/text/close reachable; reading area >=120 DIP
+PASS /tmp/ilx-final-wl/ilmenyx-ui-81575643de8445a0a30920337d5f8dd1

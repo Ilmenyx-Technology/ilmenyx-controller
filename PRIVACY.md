@@ -41,3 +41,15 @@ sujeitos à plataforma e à visibilidade escolhida; contato privado/retenção 
 Inventário e limites: docs/security/PRIVACY-SECURITY-AUDIT.md. Testes de fixtures não certificam
 privacidade em todo hardware. Obrigações relacionadas a dados de terceiros, base/retenção/canal de
 direitos e eventual aplicação de LGPD/ANPD: PENDENTE DE REVISÃO humana conforme operação real.
+
+## Compatibilidade de jogos (página Compatibilidade e `ilmenyx compat`)
+
+- Sem rede por padrão. Só depois de uma confirmação que nomeia os endereços:
+  - **Consultar online:** envia apenas o ID Steam do jogo a `www.protondb.com` (nota), `store.steampowered.com` (Steam Deck) e
+    baixa a lista pública do AreWeAntiCheatYet de `raw.githubusercontent.com`. Respostas ficam 7 dias em `~/.cache/ilmenyx/compat/online/`.
+  - **Baixar base de relatos:** lista `api.github.com/repos/bdefore/protondb-data` e baixa o arquivo mensal (~70 MB) de `raw.githubusercontent.com`,
+    confere o hash git publicado, monta um índice local (~30 MB em `~/.cache/ilmenyx/compat/`) e apaga o arquivo.
+- Nada sobre o seu hardware é enviado: a comparação com os relatos (GPU, distro, driver) acontece só no seu PC.
+- O SteamDB não é consultado (proíbe acesso automatizado); o app só abre a página dele no navegador se você clicar.
+- Relatos são de terceiros anônimos: texto puro, com pastas pessoais (`/home/...`) ocultadas. Opções de inicialização só podem ser
+  aplicadas na Steam quando formadas por variáveis de ambiente, wrappers conhecidos e argumentos do jogo, sempre com confirmação e backup.

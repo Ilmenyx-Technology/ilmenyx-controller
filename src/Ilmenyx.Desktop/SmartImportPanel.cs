@@ -13,16 +13,16 @@ public sealed class SmartImportPanel : Border
     public SmartImportPanel(SmartImportViewModel model, Func<string, Task<string?>> chooseDestination, CancellationToken lifetime)
     {
         DataContext = model;
-        Background = Palette.Card; CornerRadius = new CornerRadius(12); Padding = new Thickness(20); Margin = new Thickness(0, 0, 12, 0);
-        var deviceLabel = new TextBlock { Text = "Disco declarado no relatório (ex.: nvme0n1 ou sda)", TextWrapping = TextWrapping.Wrap };
+        Background = Palette.Card; BorderBrush = Palette.Line; BorderThickness = new Thickness(1); CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius); Padding = new Thickness(20, 16); Margin = new Thickness(0, 0, 0, 12);
+        var deviceLabel = new TextBlock { Text = "Disco declarado no relatório (ex.: nvme0n1 ou sda)", TextWrapping = TextWrapping.Wrap, FontSize = 12, Foreground = Palette.Muted, Margin = new Thickness(0, 4, 0, -4) };
         var device = new TextBox { Name = "SmartImportDevice", PlaceholderText = "nvme0n1" };
         AutomationProperties.SetName(device, "Disco declarado no relatório SMART");
         AutomationProperties.SetLabeledBy(device, deviceLabel);
-        var pathLabel = new TextBlock { Text = "Caminho completo do relatório JSON do smartctl", TextWrapping = TextWrapping.Wrap };
+        var pathLabel = new TextBlock { Text = "Caminho completo do relatório JSON do smartctl", TextWrapping = TextWrapping.Wrap, FontSize = 12, Foreground = Palette.Muted, Margin = new Thickness(0, 4, 0, -4) };
         var path = new TextBox { Name = "SmartImportPath", PlaceholderText = "/pasta/smartctl.json" };
         AutomationProperties.SetName(path, "Caminho completo do relatório SMART JSON");
         AutomationProperties.SetLabeledBy(path, pathLabel);
-        var import = new Button { Name = "ImportSmart", Content = "Importar relatório", Margin = new Thickness(0, 0, 8, 8) };
+        var import = UiKit.Primary("ImportSmart", "Importar relatório"); import.Margin = new Thickness(0, 0, 8, 8);
         var export = new Button { Name = "ExportSmartImport", Content = "Exportar SMART importado JSON", Margin = new Thickness(0, 0, 8, 8) };
         var exportHtml = new Button { Name = "ExportSmartImportHtml", Content = "Exportar SMART importado HTML", Margin = new Thickness(0, 0, 8, 8) };
         import.Bind(IsEnabledProperty, new Binding(nameof(model.CanImport)));
@@ -44,18 +44,18 @@ public sealed class SmartImportPanel : Border
                 if (IsEffectivelyVisible && button.IsEffectivelyEnabled && !lifetime.IsCancellationRequested) button.Focus();
             }
         }
-        var status = new TextBlock { Name = "SmartImportStatus", TextWrapping = TextWrapping.Wrap };
+        var status = new TextBlock { Name = "SmartImportStatus", TextWrapping = TextWrapping.Wrap, FontSize = 12, Foreground = Palette.Muted };
         status.Bind(TextBlock.TextProperty, new Binding(nameof(model.Status)));
         AutomationProperties.SetLiveSetting(status, AutomationLiveSetting.Polite);
-        var values = new TextBlock { Name = "SmartImportValues", TextWrapping = TextWrapping.Wrap, FontSize = 13 };
+        var values = new TextBlock { Name = "SmartImportValues", TextWrapping = TextWrapping.Wrap, FontSize = 12, FontFamily = IlmenyxTheme.Mono };
         values.Bind(TextBlock.TextProperty, new Binding(nameof(model.Text)));
         Child = new StackPanel
         {
             Spacing = 10,
             Children =
             {
-                new TextBlock { Text = "SMART · IMPORTAÇÃO OFFLINE", TextWrapping = TextWrapping.Wrap, FontSize = 14, FontWeight = FontWeight.Bold },
-                new TextBlock { Text = "Lê somente o arquivo JSON que você indicar (até 64 KiB, arquivo regular). Não executa smartctl nem acessa o disco. A data original da coleta não é confirmada e o relato não garante saúde atual.", TextWrapping = TextWrapping.Wrap, Foreground = Palette.Muted },
+                new TextBlock { Text = "SMART · IMPORTAÇÃO OFFLINE", TextWrapping = TextWrapping.Wrap, FontSize = 14, FontWeight = FontWeight.SemiBold },
+                new TextBlock { Text = "Lê somente o arquivo JSON que você indicar (até 64 KiB, arquivo regular). Não executa smartctl nem acessa o disco. A data original da coleta não é confirmada e o relato não garante saúde atual.", TextWrapping = TextWrapping.Wrap, Foreground = Palette.Muted, FontSize = 12 },
                 deviceLabel, device, pathLabel, path,
                 new WrapPanel { Children = { import, export, exportHtml } }, status,
                 new ScrollViewer { MaxHeight = 200, Content = values }

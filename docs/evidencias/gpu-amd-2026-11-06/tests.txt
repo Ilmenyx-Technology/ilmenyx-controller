@@ -1,0 +1,5 @@
+Execução de teste para ~/Ilmenyx/tests/Ilmenyx.Tests/bin/Release/net10.0/Ilmenyx.Tests.dll (.NETCoreApp,Version=v10.0)
+1 arquivos de teste no total corresponderam ao padrão especificado.
+Arquivo de resultados: ~/Ilmenyx/docs/evidencias/gpu-amd-2026-11-06/tests.trx
+
+Aprovado!  – Com falha:     0, Aprovado:   838, Ignorado:     0, Total:   838, Duração: 5 s - Ilmenyx.Tests.dll (net10.0)

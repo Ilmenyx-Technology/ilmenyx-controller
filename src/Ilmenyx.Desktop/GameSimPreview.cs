@@ -13,10 +13,10 @@ public sealed class GameSimPreview : Control
     static GameSimPreview() => AffectsRender<GameSimPreview>(StateProperty);
     public override void Render(DrawingContext context)
     {
-        base.Render(context); context.DrawRectangle(Brushes.Black, null, new Rect(Bounds.Size));
+        base.Render(context); context.DrawRectangle(Palette.Panel, new Pen(Palette.Line, 1), new Rect(Bounds.Size).Deflate(0.5), IlmenyxTheme.ControlRadius, IlmenyxTheme.ControlRadius);
         if (State is not { } state) return;
         foreach (var entity in state.Entities)
-            context.DrawEllipse(entity.Team == 0 ? Brushes.White : Brushes.LightSkyBlue, null,
+            context.DrawEllipse(entity.Team == 0 ? Palette.Fg : Palette.DataCpu, null,
                 new Point(entity.X / 1000 * Bounds.Width, entity.Y / 1000 * Bounds.Height), 1.5, 1.5);
     }
 }

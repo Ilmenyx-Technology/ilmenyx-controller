@@ -1,0 +1,14 @@
+  Ilmenyx.Contracts -> ~/Ilmenyx/src/Ilmenyx.Contracts/bin/Release/net10.0/Ilmenyx.Contracts.dll
+  Ilmenyx.Core -> ~/Ilmenyx/src/Ilmenyx.Core/bin/Release/net10.0/Ilmenyx.Core.dll
+  Ilmenyx.Platform.Linux -> ~/Ilmenyx/src/Ilmenyx.Platform.Linux/bin/Release/net10.0/Ilmenyx.Platform.Linux.dll
+  Ilmenyx.Gpu.Vulkan -> ~/Ilmenyx/src/Ilmenyx.Gpu.Vulkan/bin/Release/net10.0/Ilmenyx.Gpu.Vulkan.dll
+  Ilmenyx.Cli -> ~/Ilmenyx/src/Ilmenyx.Cli/bin/Release/net10.0/linux-x64/ilmenyx.dll
+  Ilmenyx.Cli -> /tmp/ilx-pacote/Ilmenyx-linux-x64/cli/
+  Ilmenyx.Contracts -> ~/Ilmenyx/src/Ilmenyx.Contracts/bin/Release/net10.0/Ilmenyx.Contracts.dll
+  Ilmenyx.Core -> ~/Ilmenyx/src/Ilmenyx.Core/bin/Release/net10.0/Ilmenyx.Core.dll
+  Ilmenyx.Platform.Linux -> ~/Ilmenyx/src/Ilmenyx.Platform.Linux/bin/Release/net10.0/Ilmenyx.Platform.Linux.dll
+  Ilmenyx.Gpu.Vulkan -> ~/Ilmenyx/src/Ilmenyx.Gpu.Vulkan/bin/Release/net10.0/Ilmenyx.Gpu.Vulkan.dll
+  Ilmenyx.Desktop -> ~/Ilmenyx/src/Ilmenyx.Desktop/bin/Release/net10.0/linux-x64/Ilmenyx.Desktop.dll
+  Ilmenyx.Desktop -> /tmp/ilx-pacote/Ilmenyx-linux-x64/desktop/
+Componentes prontos em ~/Ilmenyx/.artifacts/components-cache/out
+Pacote local: /tmp/ilx-pacote/Ilmenyx-linux-x64-local.tar.gz

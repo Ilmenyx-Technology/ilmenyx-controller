@@ -4,6 +4,7 @@ using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Path = Avalonia.Controls.Shapes.Path;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Ilmenyx.Core;
@@ -14,7 +15,8 @@ namespace Ilmenyx.Desktop;
 
 public sealed partial class ShellWindow : Window
 {
-    private readonly UsageViewModel usage = new(new LinuxUsageProvider());
+    private static readonly LinuxUsageProvider usageProvider = new();
+    private readonly UsageViewModel usage = new(usageProvider);
     private readonly DashboardViewModel hardware = new(LinuxPlatform.CreateHardwareProvider());
     private readonly SensorMonitorViewModel sensors = new(LinuxPlatform.CreateSensorProvider());
     private readonly CpuValidationViewModel cpu = new(LinuxPlatform.CreateHardwareProvider(), new CpuBenchmarkRunner());
@@ -25,7 +27,7 @@ public sealed partial class ShellWindow : Window
     private readonly Dictionary<string, Button> nav = new();
     private readonly Dictionary<string, (string Title, Func<Control> Build, Control? Page)> pages = new();
     private readonly Grid host = new();
-    private readonly TextBlock titlePage = new() { Name = "TitlePage", Foreground = Palette.Faint, FontSize = 13, Margin = new Thickness(16, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+    private readonly TextBlock titlePage = new() { Name = "TitlePage", Foreground = Palette.Muted, FontSize = 13, FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center };
     private CpuValidationPanel? cpuPanel;
     private StressPage? stressPage;
     private DashboardWindow? classic;
@@ -41,33 +43,36 @@ public sealed partial class ShellWindow : Window
         settingsPath = IlmenyxSettings.DefaultPath(); appSettings = IlmenyxSettings.Load(settingsPath);
         if (appSettings.ThemeLight) Palette.Apply(true);
         BuildPages();
-        var theme = new Button { Name = "ToggleTheme", Content = Palette.IsLight ? "Tema escuro" : "Tema claro", Padding = new Thickness(14, 6), Margin = new Thickness(0, 0, 8, 0) };
+        // Header actions: round icon buttons; their accessible name (and Tag) is the action they perform.
+        var theme = UiKit.IconButton("ToggleTheme", Palette.IsLight ? Icons.Moon : Icons.Sun, Palette.IsLight ? "Tema escuro" : "Tema claro");
         theme.Click += (_, _) =>
         {
-            Palette.Apply(!Palette.IsLight); appSettings.ThemeLight = Palette.IsLight; if (Content is Grid shellRoot) shellRoot.Background = IlmenyxTheme.Ambient(); theme.Content = Palette.IsLight ? "Tema escuro" : "Tema claro";
+            Palette.Apply(!Palette.IsLight); appSettings.ThemeLight = Palette.IsLight; RebuildAmbient();
+            foreach (var (k, button) in nav) Style(k, button, k == CurrentPage);
+            UiKit.SetAction(theme, Palette.IsLight ? Icons.Moon : Icons.Sun, Palette.IsLight ? "Tema escuro" : "Tema claro");
             try { appSettings.Save(settingsPath); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
         };
-        var pause = new Button { Name = "ToggleMonitor", Content = "Pausar monitor", Padding = new Thickness(14, 6) };
+        var pause = UiKit.IconButton("ToggleMonitor", Icons.Pause, "Pausar monitor");
         pause.Click += async (_, _) =>
         {
             if (usage.IsRunning) await usage.StopAsync(); else usage.Start(stop.Token);
-            pause.Content = usage.IsRunning ? "Pausar monitor" : "Retomar monitor";
+            UiKit.SetAction(pause, usage.IsRunning ? Icons.Pause : Icons.Play, usage.IsRunning ? "Pausar monitor" : "Retomar monitor");
             if (IsVisible && !stop.IsCancellationRequested) pause.Focus();
         };
-        var header = new Grid { ColumnDefinitions = new("*,Auto"), Margin = new Thickness(30, 10, 16, 6) };
-        var brand = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
-        if (AppIcon.Symbol is { } symbol)
-            brand.Children.Add(new Image { Name = "ProductSymbol", Source = symbol, Height = 22, Margin = new Thickness(0, 0, 10, 0), VerticalAlignment = VerticalAlignment.Center });
-        brand.Children.Add(new TextBlock { Name = "ProductName", Text = ProductIdentity.Name, FontWeight = FontWeight.Bold, FontSize = 15, VerticalAlignment = VerticalAlignment.Center });
-        brand.Children.Add(new TextBlock { Name = "MaintainerSignature", Text = ProductIdentity.Signature, FontWeight = FontWeight.Light, FontSize = 13, Margin = new Thickness(10, 0, 0, 0), Foreground = Palette.Muted, VerticalAlignment = VerticalAlignment.Center });
-        brand.Children.Add(titlePage);
-        header.Children.Add(brand); var actions = new StackPanel { Orientation = Orientation.Horizontal, Children = { theme, pause } }; Grid.SetColumn(actions, 1); header.Children.Add(actions);
+        var header = new Grid { Name = "ShellHeader", ColumnDefinitions = new("Auto,*,Auto"), Margin = new Thickness(0, 18, 22, 14) };
+        header.Children.Add(new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 18, 0), Children = { titlePage } });
+        var searchBox = SearchBox(); Grid.SetColumn(searchBox, 1); header.Children.Add(searchBox);
+        var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(16, 0, 0, 0), Children = { theme, pause, MachineChip() } };
+        Grid.SetColumn(actions, 2); header.Children.Add(actions);
 
-        var body = new Grid { ColumnDefinitions = new("250,*") };
-        var sidebar = Sidebar(); body.Children.Add(sidebar);
-        host.Margin = new Thickness(18, 0, 18, 14); Grid.SetColumn(host, 1); body.Children.Add(host);
-        var root = new Grid { Name = "ShellRoot", RowDefinitions = new("Auto,*"), Background = IlmenyxTheme.Ambient() };
-        Grid.SetRow(body, 1); root.Children.Add(header); root.Children.Add(body);
+        var main = new Grid { RowDefinitions = new("Auto,*") };
+        main.Children.Add(header);
+        host.Margin = new Thickness(0, 0, 22, 18); Grid.SetRow(host, 1); main.Children.Add(host);
+        var body = new Grid { ColumnDefinitions = new("214,*") };
+        body.Children.Add(Sidebar()); Grid.SetColumn(main, 1); body.Children.Add(main);
+        var root = new Grid { Name = "ShellRoot", Background = Palette.Bg };
+        foreach (var layer in IlmenyxTheme.AmbientLayers()) root.Children.Add(layer);
+        root.Children.Add(body);
         Content = root;
         Select("dash");
         Opened += async (_, _) =>
@@ -92,75 +97,165 @@ public sealed partial class ShellWindow : Window
         if (entry.Page is null) { var page = entry.Build(); pages[key] = entry = (entry.Title, entry.Build, page); host.Children.Add(page); }
         foreach (var (k, e) in pages) if (e.Page is { } p) p.IsVisible = k == key;
         if (key == "dash") overviewRefresh?.Invoke();
-        foreach (var (k, button) in nav) Style(button, k == key);
+        foreach (var (k, button) in nav) Style(k, button, k == key);
         CurrentPage = key; titlePage.Text = entry.Title;
     }
 
-    private static void Style(Button b, bool on)
+    private readonly Dictionary<string, (TextBlock Label, Path Icon, Border Bar)> navParts = new();
+    private static readonly Dictionary<string, string> NavIcons = new()
     {
-        b.Background = on ? Palette.Card : Brushes.Transparent; b.Foreground = on ? Palette.Fg : Palette.Muted;
-        b.FontWeight = on ? FontWeight.SemiBold : FontWeight.Normal;
+        ["dash"] = Icons.Overview, ["system"] = Icons.System, ["sensors"] = Icons.Sensors, ["gpu"] = Icons.Gpu, ["disks"] = Icons.Disks, ["energy"] = Icons.Energy, ["net"] = Icons.Network,
+        ["procs"] = Icons.Processes, ["launcher"] = Icons.Games, ["compat"] = Icons.Compat, ["fps"] = Icons.Fps, ["bottleneck"] = Icons.Bottleneck, ["bench"] = Icons.Bench, ["oc"] = Icons.Oc,
+        ["overlay"] = Icons.Overlay, ["validate"] = Icons.Validate, ["stress"] = Icons.Stress, ["makerports"] = Icons.Ports, ["makerdrv"] = Icons.SerialDrivers, ["optimize"] = Icons.Optimize,
+        ["lighting"] = Icons.Lighting, ["startup"] = Icons.Startup, ["apps"] = Icons.Apps, ["driver"] = Icons.Drivers, ["report"] = Icons.Report, ["blocked"] = Icons.Blocked, ["tools"] = Icons.About,
+    };
+
+    /// <summary>Active item: a small accent bar at the left edge, accent text and icon. No filled capsule.</summary>
+    private void Style(string key, Button b, bool on)
+    {
+        // Dark: only the bar and accent text. Light (white reference): also a pale accent capsule.
+        var a = ((ISolidColorBrush)Palette.Accent).Color;
+        b.Background = on && Palette.IsLight ? new SolidColorBrush(Color.FromArgb(0x1C, a.R, a.G, a.B)) : Brushes.Transparent;
+        if (!navParts.TryGetValue(key, out var p)) return;
+        p.Label.Foreground = on ? Palette.AccentText : Palette.Muted; p.Label.FontWeight = on ? FontWeight.SemiBold : FontWeight.Medium;
+        p.Icon.Fill = on ? Palette.AccentText : Palette.Faint; p.Bar.Opacity = on ? 1 : 0;
     }
+
+    private void SetNavLabel(string key, string text) { if (navParts.TryGetValue(key, out var p)) p.Label.Text = text; }
 
     private Button NavItem(string key, string label)
     {
+        var bar = new Border { Width = 3, Height = 18, CornerRadius = new CornerRadius(2), Background = Palette.Accent, Opacity = 0, VerticalAlignment = VerticalAlignment.Center,
+            Transitions = new Avalonia.Animation.Transitions { new Avalonia.Animation.DoubleTransition { Property = OpacityProperty, Duration = IlmenyxTheme.Normal, Easing = IlmenyxTheme.Premium } } };
+        var icon = UiKit.Icon(NavIcons.GetValueOrDefault(key, Icons.ChevronRight), 17, Palette.Faint);
+        var text = new TextBlock { Text = label, FontSize = 12.5, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
+        var row = new Grid { ColumnDefinitions = new("14,26,*") };
+        row.Children.Add(bar); Grid.SetColumn(icon, 1); row.Children.Add(icon); Grid.SetColumn(text, 2); row.Children.Add(text);
         var b = new Button
         {
-            Name = "Nav" + key, Content = label, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Left,
-            Padding = new Thickness(14, 9), CornerRadius = new CornerRadius(IlmenyxTheme.Pill), BorderThickness = new Thickness(0), Margin = new Thickness(0, 1)
+            Name = "Nav" + key, Content = row, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch,
+            Padding = new Thickness(0, 8, 10, 8), CornerRadius = new CornerRadius(IlmenyxTheme.ControlRadius), BorderThickness = new Thickness(0), Margin = new Thickness(0, 1), Background = Brushes.Transparent,
         };
         AutomationProperties.SetName(b, label);
         b.Click += (_, _) => Select(key);
-        nav[key] = b; Style(b, false); return b;
+        nav[key] = b; navParts[key] = (text, icon, bar); Style(key, b, false); return b;
     }
 
-    private Border Sidebar()
+    /// <summary>Sidebar on the same surface as the content: brand, grouped navigation and a compact live readout; separation by spacing only.</summary>
+    private Control Sidebar()
     {
-        var items = new StackPanel { Margin = new Thickness(10, 12, 10, 8) };
+        var brand = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(22, 22, 12, 20) };
+        if (AppIcon.Symbol is { } symbol)
+            brand.Children.Add(new Image { Name = "ProductSymbol", Source = symbol, Height = 26, Margin = new Thickness(0, 0, 10, 0), VerticalAlignment = VerticalAlignment.Center });
+        brand.Children.Add(new StackPanel { VerticalAlignment = VerticalAlignment.Center, Children = {
+            new TextBlock { Name = "ProductName", Text = ProductIdentity.Name, FontWeight = FontWeight.Bold, FontSize = 16 },
+            new TextBlock { Name = "MaintainerSignature", Text = ProductIdentity.Signature, FontSize = 10, Foreground = Palette.Faint } } });
+
+        var items = new StackPanel { Margin = new Thickness(8, 0, 12, 8) };
         items.Children.Add(NavItem("dash", "Visão geral"));
         void Group(string title, params (string Key, string Label)[] entries)
         {
-            var list = new StackPanel { Margin = new Thickness(8, 0, 0, 4) };
+            var list = new StackPanel();
             foreach (var (key, label) in entries) list.Children.Add(NavItem(key, label));
-            var head = new Button { Content = title, Background = Brushes.Transparent, Foreground = Palette.Faint, FontSize = 11, FontWeight = FontWeight.Bold, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 10, 0, 2), Padding = new Thickness(14, 6) };
+            var chevron = UiKit.Icon(Icons.ChevronDown, 12, Palette.Faint);
+            var head = new Button
+            {
+                Content = new Grid { ColumnDefinitions = new("*,Auto"), Children = { new TextBlock { Text = title, FontSize = 10.5, FontWeight = FontWeight.SemiBold, Foreground = Palette.Faint, LetterSpacing = 0.8 }, chevron } },
+                Background = Brushes.Transparent, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch, Margin = new Thickness(0, 14, 0, 2), Padding = new Thickness(14, 4, 10, 4),
+            };
+            Grid.SetColumn(chevron, 1);
             AutomationProperties.SetName(head, "Grupo " + title);
-            head.Click += (_, _) => list.IsVisible = !list.IsVisible;
+            head.Click += (_, _) => { list.IsVisible = !list.IsVisible; chevron.Data = Geometry.Parse(list.IsVisible ? Icons.ChevronDown : Icons.ChevronRight); };
             items.Children.Add(head); items.Children.Add(list);
         }
         Group("DIAGNÓSTICO", ("system", "Sistema"), ("sensors", "Sensores"), ("gpu", "GPU"), ("disks", "Discos"), ("energy", "Energia"), ("net", "Rede"), ("procs", "Processos"));
-        Group("JOGOS", ("launcher", "Jogos"), ("fps", "Estimativa de FPS"), ("bottleneck", "Detector de gargalo"));
+        Group("JOGOS", ("launcher", "Jogos"), ("compat", "Compatibilidade"), ("fps", "Estimativa de FPS"), ("bottleneck", "Detector de gargalo"));
         Group("DESEMPENHO", ("bench", "Benchmark"), ("oc", "OC"), ("overlay", "Overlay"), ("validate", "Validações reduzidas"), ("stress", "Stress test"));
         Group("MAKER", ("makerports", "Portas"), ("makerdrv", "Drivers seriais"));
         Group("FERRAMENTAS", ("optimize", "Otimiza"), ("lighting", "Integração"), ("startup", "Inicialização"), ("apps", "Instalar apps"), ("driver", "Drivers"), ("report", "Relatório"), ("blocked", "Bloqueados (!)"), ("tools", "Requisitos e sobre"));
 
-        var temp = new TextBlock { Name = "SideTemp", Text = "—", FontSize = 12, FontFamily = new FontFamily("monospace") };
-        var load = new TextBlock { Name = "SideLoad", Text = "—", FontSize = 12, Foreground = Palette.Muted, FontFamily = new FontFamily("monospace") };
-        var state = new TextBlock { Name = "SideMonitor", Text = "monitor parado", FontSize = 12, FontFamily = new FontFamily("monospace") };
+        var temp = new TextBlock { Name = "SideTemp", Text = "—", FontSize = 12, FontFamily = IlmenyxTheme.Mono };
+        var load = new TextBlock { Name = "SideLoad", Text = "—", FontSize = 12, Foreground = Palette.Muted, FontFamily = IlmenyxTheme.Mono };
+        var state = new TextBlock { Name = "SideMonitor", Text = "monitor parado", FontSize = 11, Foreground = Palette.Faint };
         usage.Updated += () =>
         {
             temp.Text = usage.Last?.CpuTempC is { } t ? t.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " °C" : "—";
             load.Text = UsageViewModel.Pct(usage.Last?.CpuPercent);
         };
         usage.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(usage.IsRunning)) state.Text = usage.IsRunning ? "monitor ativo" : "monitor parado"; };
-        var grid = new Grid { ColumnDefinitions = new("46,*,Auto"), RowDefinitions = new("Auto,Auto") };
-        void Cell(Control c, int col, int row, int span = 1) { Grid.SetColumn(c, col); Grid.SetRow(c, row); Grid.SetColumnSpan(c, span); grid.Children.Add(c); }
-        Cell(new TextBlock { Text = "CPU", Foreground = Palette.Faint, FontSize = 10.5, FontWeight = FontWeight.Bold, Margin = new Thickness(0, 3) }, 0, 0);
-        Cell(temp, 1, 0); Cell(load, 2, 0);
-        Cell(new TextBlock { Text = "TESTE", Foreground = Palette.Faint, FontSize = 10.5, FontWeight = FontWeight.Bold, Margin = new Thickness(0, 3) }, 0, 1);
-        Cell(state, 1, 1, 2);
+        var readout = new Grid { ColumnDefinitions = new("Auto,*,Auto"), RowDefinitions = new("Auto,Auto") };
+        var cpuIcon = UiKit.Icon(Icons.Cpu, 15, Palette.Faint); cpuIcon.Margin = new Thickness(0, 0, 8, 0);
+        readout.Children.Add(cpuIcon); Grid.SetColumn(temp, 1); readout.Children.Add(temp); Grid.SetColumn(load, 2); readout.Children.Add(load);
+        Grid.SetRow(state, 1); Grid.SetColumnSpan(state, 3); state.Margin = new Thickness(0, 4, 0, 0); readout.Children.Add(state);
+        // The original shows the reason and a CORRIGIR button when CPU temperature/power are missing; here: reason + command (never run).
+        var help = new Button { Name = "SensorHelp", Content = "Liberar sensores da CPU", FontSize = 11, Foreground = Palette.AccentText, Background = Brushes.Transparent, Padding = new Thickness(0, 6, 0, 0), IsVisible = false };
+        AutomationProperties.SetName(help, "Por que a temperatura ou o consumo da CPU não aparecem");
+        help.Click += async (_, _) => await new SensorHelpDialog(CurrentFixes(), PrivilegedFix.Available ? script => PrivilegedFix.RunAsync(script, stop.Token) : null).ShowDialog(this);
+        usage.Updated += () => help.IsVisible = CurrentFixes().Count > 0;
+        Grid.SetRow(help, 2); Grid.SetColumnSpan(help, 3); readout.RowDefinitions.Add(new RowDefinition(GridLength.Auto)); readout.Children.Add(help);
         var footer = new StackPanel
         {
-            Margin = new Thickness(16, 6, 16, 16),
+            Margin = new Thickness(14, 6, 14, 18),
             Children =
             {
-                new Border { Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(14), Padding = new Thickness(14, 10), Child = grid },
-                new TextBlock { Name = "SideVersion", Text = "v" + (typeof(ShellWindow).Assembly.GetName().Version is { } v ? $"{v.Major}.{v.Minor}.{v.Build}" : "?"), Foreground = Palette.Faint, FontSize = 11, Margin = new Thickness(4, 10, 0, 0) }
+                new Border { Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), Padding = new Thickness(14, 11), Child = readout },
+                new TextBlock { Name = "SideVersion", Text = "v" + (typeof(ShellWindow).Assembly.GetName().Version is { } v ? $"{v.Major}.{v.Minor}.{v.Build}" : "?"), Foreground = Palette.Faint, FontSize = 10.5, Margin = new Thickness(6, 10, 0, 0) }
             }
         };
-        var dock = new DockPanel();
+        var dock = new DockPanel { Name = "Sidebar" };
+        DockPanel.SetDock(brand, Dock.Top); dock.Children.Add(brand);
         DockPanel.SetDock(footer, Dock.Bottom); dock.Children.Add(footer);
         dock.Children.Add(new ScrollViewer { Name = "NavScroll", Content = items });
-        return new Border { Name = "Sidebar", Margin = new Thickness(14, 0, 0, 14), Background = Palette.Glass, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.ContainerRadius), Child = dock };
+        return dock;
+    }
+
+    /// <summary>Page finder: type part of a page name and pick it (offline, nothing leaves the app).</summary>
+    private Control SearchBox()
+    {
+        var box = new AutoCompleteBox
+        {
+            Name = "GlobalSearch", PlaceholderText = "Buscar no Ilmenyx (páginas e ferramentas)", HorizontalAlignment = HorizontalAlignment.Stretch, MinimumPrefixLength = 1,
+            FilterMode = AutoCompleteFilterMode.ContainsOrdinal, ItemsSource = pages.Select(p => p.Value.Title).OrderBy(t => t, StringComparer.CurrentCulture).ToList(), Padding = new Thickness(34, 7, 10, 7),
+        };
+        box.SelectionChanged += (_, _) =>
+        {
+            if (box.SelectedItem is string title && pages.FirstOrDefault(p => p.Value.Title == title).Key is { } key) { Select(key); box.Text = ""; }
+        };
+        var icon = UiKit.Icon(Icons.Search, 16, Palette.Faint); icon.HorizontalAlignment = HorizontalAlignment.Left; icon.Margin = new Thickness(12, 0, 0, 0); icon.IsHitTestVisible = false;
+        // Flexible: shrinks with the window (at 900 px it must not run under the header actions), up to 460 px.
+        return new Grid { HorizontalAlignment = HorizontalAlignment.Stretch, MinWidth = 160, MaxWidth = 460, Children = { box, icon } };
+    }
+
+    /// <summary>Where the reference has the user profile: this machine (DMI product name, read-only). Opens the System page.</summary>
+    private Button MachineChip()
+    {
+        string model = "Este PC";
+        try { if (File.Exists("/sys/class/dmi/id/product_name") && File.ReadAllText("/sys/class/dmi/id/product_name").Trim() is { Length: > 0 and < 80 } m) model = m.Split('_')[0]; }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+        var avatar = new Border { Width = 30, Height = 30, CornerRadius = new CornerRadius(15), Background = Palette.AccentContainer, Child = UiKit.Icon(Icons.System, 16, Palette.OnAccentContainer) };
+        var chip = new Button
+        {
+            Name = "MachineChip", Background = Brushes.Transparent, Padding = new Thickness(4, 2, 8, 2), CornerRadius = new CornerRadius(IlmenyxTheme.Pill),
+            Content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, Children = { avatar, new TextBlock { Text = model, FontSize = 12.5, VerticalAlignment = VerticalAlignment.Center, MaxWidth = 170, TextTrimming = TextTrimming.CharacterEllipsis }, UiKit.Icon(Icons.ChevronDown, 12, Palette.Faint) } },
+        };
+        AutomationProperties.SetName(chip, "Este computador: " + model + " — abrir Sistema");
+        chip.Click += (_, _) => Select("system");
+        return chip;
+    }
+
+    private IReadOnlyList<SensorFix> CurrentFixes()
+    {
+        var access = usageProvider.CpuPowerState switch { RaplState.Available => CpuPowerAccess.Available, RaplState.NoPermission => CpuPowerAccess.NoPermission, RaplState.NotPresent => CpuPowerAccess.NotPresent, _ => CpuPowerAccess.Unknown };
+        bool vm = File.Exists("/sys/class/dmi/id/sys_vendor") && SysfsText.Read("/sys/class/dmi/id/sys_vendor", 128) is var v && (v.Contains("QEMU") || v.Contains("VMware") || v.Contains("innotek") || v.Contains("Microsoft Corporation") || v.Contains("Xen"));
+        return SensorHelp.Build(usage.Last is { } l && l.CpuTempC is null, access, usage.Last?.CpuModel, usageProvider.CpuPowerZone, vm);
+    }
+
+    private void RebuildAmbient()
+    {
+        if (Content is not Grid root) return;
+        foreach (var old in root.Children.OfType<Border>().Where(b => b.Name?.StartsWith("Ambient", StringComparison.Ordinal) == true).ToList()) root.Children.Remove(old);
+        var layers = IlmenyxTheme.AmbientLayers();
+        for (int i = 0; i < layers.Count; i++) root.Children.Insert(i, layers[i]);
     }
 
     private Func<string, Task<string?>> Destination(string stem) => extension => JsonSaveDialog.ChooseAsync(this, $"ilmenyx-{stem}-{DateTime.Now:yyyyMMdd-HHmmss}{extension}", extension);

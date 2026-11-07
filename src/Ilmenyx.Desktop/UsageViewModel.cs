@@ -13,7 +13,7 @@ public sealed class UsageViewModel(IUsageProvider provider, TimeSpan? interval =
     public const int MaxHistory = 900;
     private readonly TimeSpan period = interval ?? TimeSpan.FromSeconds(1);
     private readonly CancellationTokenSource stop = new();
-    private readonly List<double> cpu = [], memory = [], disk = [], net = [], temp = [];
+    private readonly List<double> cpu = [], memory = [], disk = [], net = [], temp = [], power = [];
     private CancellationTokenSource? run;
     private Task? loop;
     private bool disposed;
@@ -23,7 +23,7 @@ public sealed class UsageViewModel(IUsageProvider provider, TimeSpan? interval =
     public bool IsRunning { get; private set; }
     public bool SortByMemory { get; private set; }
     public IReadOnlyList<double> CpuSeries => cpu; public IReadOnlyList<double> MemorySeries => memory;
-    public IReadOnlyList<double> TempSeries => temp; public IReadOnlyList<double> DiskSeries => disk; public IReadOnlyList<double> NetSeries => net;
+    public IReadOnlyList<double> TempSeries => temp; public IReadOnlyList<double> PowerSeries => power; public IReadOnlyList<double> DiskSeries => disk; public IReadOnlyList<double> NetSeries => net;
     public IReadOnlyList<ProcessRow> Rows { get; private set; } = [];
     public string CpuLine { get; private set; } = "Aguardando amostras…";
     public string CpuModel { get; private set; } = "";
@@ -87,7 +87,7 @@ public sealed class UsageViewModel(IUsageProvider provider, TimeSpan? interval =
     private void Apply(UsageSample s)
     {
         Last = s;
-        Push(cpu, s.CpuPercent); Push(temp, s.CpuTempC);
+        Push(cpu, s.CpuPercent); Push(temp, s.CpuTempC); Push(power, s.CpuPowerW);
         Push(memory, s.MemoryTotal is > 0 && s.MemoryUsed is { } u ? 100.0 * u / s.MemoryTotal.Value : null);
         Push(disk, s.DiskReadBps is { } r && s.DiskWriteBps is { } w ? r + w : null);
         Push(net, s.NetRxBps is { } rx && s.NetTxBps is { } tx ? rx + tx : null);

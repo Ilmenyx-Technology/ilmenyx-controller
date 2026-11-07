@@ -1,0 +1,10 @@
+Máquina: notebook com APU AMD Ryzen 5 (Mendocino), 8 GB de RAM (7 GiB visíveis)
+GPU: AMD Radeon 610M (RADV RAPHAEL_MENDOCINO), RDNA2, 2 CUs, integrada · vendorID 0x1002 deviceID 0x1506 · /sys/class/drm/card1
+Driver: Mesa 25.0.7-0ubuntu0.24.04.2 (RADV), Vulkan 1.4.305; também existe llvmpipe (LLVM 20.1.2) como adaptador 1 (CPU)
+Extensões usadas: VK_KHR_acceleration_structure, VK_KHR_ray_query, VK_KHR_deferred_host_operations (features rayQuery, accelerationStructure e bufferDeviceAddress ativas)
+Sistema: Linux Mint 22.3, kernel 6.14.0-37-generic x86_64, sessão Cinnamon X11 (DISPLAY=:0)
+.NET SDK 10.0.403 (scripts/env-local-sdk.sh, em /tmp, sem instalação)
+Shaders: glslc (shaderc v2026.4) e spirv-val do Vulkan SDK 1.4.363.1 baixado em /tmp (sem instalação), scripts/build-gpu-shaders.sh
+Sensores registrados a cada 1 s em paralelo: /sys/class/drm/card1/device/gpu_busy_percent, /sys/class/drm/card1/device/hwmon/hwmon*/temp1_input (GPU),
+  /sys/class/hwmon/hwmon4/temp1_input (k10temp, Tctl da CPU)
+Autorização: o dono do PC autorizou cargas curtas e limitadas nesta máquina (2026-11-06); limite de parada combinado 90 °C.

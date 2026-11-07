@@ -1,4 +1,4 @@
-// New Ilmenyx additions (layout follows the original Network page: TESTAR, progress bar, status, diagnostic card, note): see LICENSING.md.
+// New Ilmenyx additions (layout follows the original Network page: TESTAR, progress bar, status, diagnostic card, note; cinematic surfaces 2026-11-06): see LICENSING.md.
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
@@ -14,28 +14,29 @@ public sealed class NetworkPage : StackPanel
     private readonly Func<Window?> owner;
     private readonly CancellationToken lifetime;
     private readonly Button test = UiKit.Primary("BtnNetTest", "TESTAR", 22, 9);
-    private readonly Border progress = new() { Name = "NetProgress", Background = Palette.Fg, HorizontalAlignment = HorizontalAlignment.Left, Height = 3 };
-    private readonly Grid track = new() { Height = 3, Margin = new Thickness(0, 0, 0, 8), Background = Palette.Line };
-    private readonly TextBlock status = new() { Name = "NetStatus", Text = "Pronto. O teste leva cerca de 30 segundos.", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 16) };
+    private readonly Border progress = new() { Name = "NetProgress", Background = Palette.Accent, HorizontalAlignment = HorizontalAlignment.Left, Height = 4, CornerRadius = new CornerRadius(2) };
+    private readonly Grid track = new() { Height = 4, Margin = new Thickness(0, 10, 0, 10) };
+    private readonly TextBlock status = new() { Name = "NetStatus", Text = "Pronto. O teste leva cerca de 30 segundos.", Foreground = Palette.Muted, FontSize = 12.5, TextWrapping = TextWrapping.Wrap };
     private readonly StackPanel cards = new() { Name = "NetCards" };
     private readonly UsageChart chart = new() { Name = "NetChart", Height = 160 };
-    private readonly TextBlock live = new() { Name = "NetLine", FontSize = 16, TextWrapping = TextWrapping.Wrap };
+    private readonly TextBlock live = new() { Name = "NetLine", FontSize = 18, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) };
     private readonly TextBlock liveSub = new() { Name = "NetSub", Foreground = Palette.Muted, FontSize = 12 };
     private CancellationTokenSource? running; private double fraction;
     public HealthCard? LastResult { get; private set; }
 
     public NetworkPage(INetworkProbe probe, UsageViewModel usage, Func<Window?> owner, CancellationToken lifetime)
     {
-        this.probe = probe; this.usage = usage; this.owner = owner; this.lifetime = lifetime; Spacing = 4;
-        test.HorizontalAlignment = HorizontalAlignment.Right; test.VerticalAlignment = VerticalAlignment.Top;
+        this.probe = probe; this.usage = usage; this.owner = owner; this.lifetime = lifetime;
         test.Click += async (_, _) => { if (running is not null) running.Cancel(); else await RunAsync(); };
-        var header = new Grid { Margin = new Thickness(0, 4, 0, 20) };
-        header.Children.Add(new StackPanel { Margin = new Thickness(0, 0, 160, 0), Children = { new TextBlock { Text = "Rede", FontSize = 32, FontWeight = FontWeight.Bold }, new TextBlock { Text = "Descubra se o lag vem do seu PC, do Wi-Fi ou do provedor", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap } } });
-        header.Children.Add(test);
+        Children.Add(UiKit.PageHeader("Rede", "Descubra se o lag vem do seu PC, do Wi-Fi ou do provedor", test));
+        track.Children.Add(new Border { Background = Palette.Hover, CornerRadius = new CornerRadius(2) });
         track.Children.Add(progress); track.SizeChanged += (_, _) => progress.Width = track.Bounds.Width * fraction;
-        Children.Add(header); Children.Add(track); Children.Add(status); Children.Add(cards);
-        Children.Add(new TextBlock { Text = "O teste envia " + NetworkEndpoints.Description + ". Feche downloads, streaming e jogos antes para um resultado fiel. Nada é gravado em disco.", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 16) });
-        Children.Add(UiKit.Card(new StackPanel { Spacing = 10, Children = { UiKit.Label("TRÁFEGO AO VIVO · ÚLTIMOS 5 MIN (SOMA DAS INTERFACES ATIVAS)"), chart, live, liveSub } }));
+        var head = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { UiKit.Icon(Icons.Network, 15, Palette.AccentText), UiKit.Label("DIAGNÓSTICO DE CONEXÃO") } };
+        Children.Add(UiKit.Card(new StackPanel { Children = { head, track, status } }));
+        Children.Add(cards);
+        Children.Add(new TextBlock { Text = "O teste envia " + NetworkEndpoints.Description + ". Feche downloads, streaming e jogos antes para um resultado fiel. Nada é gravado em disco.", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(2, 0, 0, 4) });
+        Children.Add(UiKit.SectionHeader("Tráfego ao vivo", new TextBlock { Text = "últimos 5 min · soma das interfaces ativas", FontSize = 11.5, Foreground = Palette.Faint, VerticalAlignment = VerticalAlignment.Center }));
+        Children.Add(UiKit.Card(new StackPanel { Spacing = 10, Children = { chart, live, liveSub } }));
         usage.Updated += () => { chart.SetValues(usage.NetSeries, null, 300); live.Text = usage.NetLine; liveSub.Text = usage.NetSub; };
         live.Text = usage.NetLine; liveSub.Text = usage.NetSub;
     }

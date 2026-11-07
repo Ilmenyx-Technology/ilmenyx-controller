@@ -4,6 +4,7 @@ using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Shapes;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
@@ -27,14 +28,16 @@ public sealed class StressPage : StackPanel
     private readonly TextBox gpuLimit = new() { Name = "GpuTempLimit", Text = "85", Width = 80, IsEnabled = false };
     private readonly TextBox duration = new() { Name = "TxtDuration", Text = "10", Width = 80 };
     private readonly Button start = UiKit.Primary("BtnStress", "INICIAR", 20, 12);
-    private readonly TextBlock hint = new() { Name = "StressHint", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, FontSize = 12, MaxWidth = 240, Margin = new Thickness(0, 10, 0, 0), TextAlignment = TextAlignment.Center };
-    private readonly Border statusCard = new() { Name = "StatusCard" };
-    private readonly TextBlock stStatus = new() { Name = "StStatus", Text = "Parado", FontSize = 18, FontWeight = FontWeight.SemiBold };
-    private readonly TextBlock stTemp = new() { Name = "StTemp", Text = "—", FontSize = 18 }, stTempMax = new() { Name = "StTempMax", Text = "máx. —", FontSize = 11, Foreground = Palette.Muted };
-    private readonly TextBlock stGpu = new() { Name = "StGpu", Text = "—", FontSize = 18 };
-    private readonly TextBlock stLoad = new() { Name = "StLoad", Text = "—", FontSize = 18 }, stRam = new() { Name = "StRam", Text = "—", FontSize = 18 };
+    private readonly TextBlock hint = new() { Name = "StressHint", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, FontSize = 12, MaxWidth = 220, Margin = new Thickness(0, 8, 0, 0), TextAlignment = TextAlignment.Right, HorizontalAlignment = HorizontalAlignment.Right };
+    private readonly Border statusCard;
+    private readonly Ellipse statusDot = new() { Width = 9, Height = 9, Fill = Palette.Faint, VerticalAlignment = VerticalAlignment.Center };
+    private readonly TextBlock stStatus = new() { Name = "StStatus", Text = "Parado", FontSize = 30, FontWeight = FontWeight.Bold };
+    private readonly TextBlock stTemp = new() { Name = "StTemp", Text = "—", FontSize = 30, FontWeight = FontWeight.Bold }, stTempMax = new() { Name = "StTempMax", Text = "máx. —", FontSize = 12, Foreground = Palette.Muted };
+    private readonly TextBlock stGpu = new() { Name = "StGpu", Text = "—" };
+    private readonly TextBlock stLoad = new() { Name = "StLoad", Text = "—" }, stRam = new() { Name = "StRam", Text = "—" };
     private readonly UsageChart chart = new() { Name = "TempChart", Height = 150 };
     private readonly StackPanel log = new() { Name = "StressLog" };
+    private readonly TextBlock logEmpty = new() { Text = "Nenhum evento ainda.", FontSize = 12, Foreground = Palette.Faint };
     private readonly List<double> temps = [];
     private UiKit.ChipGroup<double>? ramChips; private double ramFraction = 0.6;
     private StressLimits? limits; private DateTime startedAt; private double maxTemp;
@@ -51,7 +54,7 @@ public sealed class StressPage : StackPanel
     public StressPage(IStressEngine engine, UsageViewModel usage, Func<Window?> owner, Func<long> availableMemory, CancellationToken lifetime, IGpuStressEngine? gpuEngine = null, Func<double?>? gpuTemperature = null)
     {
         this.gpuEngine = gpuEngine; this.gpuTemperature = gpuTemperature; this.engine = engine; this.usage = usage; this.owner = owner; this.availableMemory = availableMemory; this.lifetime = lifetime; Spacing = 4;
-        Children.Add(new StackPanel { Margin = new Thickness(0, 4, 0, 20), Children = { new TextBlock { Text = "Stress test", FontSize = 32, FontWeight = FontWeight.Bold }, new TextBlock { Text = "Carga máxima com corte automático por temperatura", Foreground = Palette.Muted } } });
+        Children.Add(UiKit.PageHeader("Stress test", "Carga máxima com corte automático por temperatura"));
 
         ramChips = new("RamFractionPanel", [("40%", 0.4), ("60%", 0.6), ("80%", 0.8)], 0.6, v => ramFraction = v);
         ramChips.Panel.IsEnabled = false;
@@ -60,46 +63,63 @@ public sealed class StressPage : StackPanel
         chkGpu.IsEnabled = gpuUsable;
         ToolTip.SetTip(chkGpu, gpuUsable ? $"Stress de GPU (estilo FurMark, Vulkan) em {gpuEngine!.AdapterName}. Carga máxima na GPU." : "Stress de GPU indisponível: " + (gpuEngine?.UnavailableReason ?? "módulo Vulkan não carregado") + ".");
         chkGpu.IsCheckedChanged += (_, _) => gpuLimit.IsEnabled = chkGpu.IsChecked == true && !running;
-        Control Field(string label, Control c) => new StackPanel { Margin = new Thickness(0, 0, 28, 8), Children = { UiKit.Label(label), new Border { Height = 4 }, c } };
-        foreach (var c in new Control[] { cpuLimit, gpuLimit, duration }) AutomationProperties.SetName(c, "Campo do stress test");
+        Control Field(string label, Control c) => new StackPanel { Margin = new Thickness(0, 0, 24, 8), Children = { UiKit.Label(label), new Border { Height = 4 }, c } };
+        foreach (var c in new Control[] { cpuLimit, gpuLimit, duration }) { AutomationProperties.SetName(c, "Campo do stress test"); c.HorizontalAlignment = HorizontalAlignment.Left; }
+        start.MinWidth = 150; start.HorizontalContentAlignment = HorizontalAlignment.Center; start.Click += async (_, _) => { if (running) Stop("Parado pelo usuário"); else await StartAsync(); };
+
+        // Hero: state and CPU temperature dominate, with the single start/stop action.
+        var state = new StackPanel { Spacing = 2, Children = {
+            new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { statusDot, UiKit.Label("STATUS") } }, stStatus } };
+        var temp = new StackPanel { Spacing = 2, Margin = new Thickness(0, 14, 0, 0), Children = {
+            new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { UiKit.Icon(Icons.Temperature, 14, Palette.DataTemperature), UiKit.Label("TEMP. CPU") } },
+            new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, Children = { stTemp, stTempMax } } } };
+        stTempMax.VerticalAlignment = VerticalAlignment.Bottom; stTempMax.Margin = new Thickness(0, 0, 0, 6);
+        var action = new StackPanel { HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(16, 0, 0, 0), Children = { start, hint } };
+        var heroGrid = new Grid { ColumnDefinitions = new("*,Auto"), RowDefinitions = new("Auto,Auto") };
+        Grid.SetRow(temp, 1); Grid.SetColumn(action, 1); Grid.SetRowSpan(action, 2);
+        heroGrid.Children.Add(state); heroGrid.Children.Add(temp); heroGrid.Children.Add(action);
+        statusCard = BenchPage.Themed(UiKit.Hero(heroGrid, height: double.NaN, name: "StatusCard"));
+        Children.Add(statusCard);
+
+        var stats = new UniformGrid { Columns = 3, Margin = new Thickness(-5, 12, -5, 0) };
+        foreach (var (label, value, note, icon) in new (string, TextBlock, string, string)[] { ("CARGA CPU", stLoad, "uso total", Icons.Cpu), ("TEMP. / FPS GPU", stGpu, "Vulkan · offscreen", Icons.Gpu), ("RAM", stRam, "passes / erros", Icons.Memory) })
+        {
+            value.FontSize = 20;
+            var tile = UiKit.StatTile(label, value, new TextBlock { Text = note, Foreground = Palette.Faint }, icon); tile.Margin = new Thickness(5, 0); stats.Children.Add(tile);
+        }
+        Children.Add(stats);
+
+        Children.Add(UiKit.SectionHeader("Temperatura da CPU · últimos 5 min"));
+        Children.Add(UiKit.Card(new StackPanel { Children = { chart, new TextBlock { Text = "Consumo da CPU (RAPL) e sensores de GPU não são lidos neste teste.", FontSize = 11, Foreground = Palette.Faint, Margin = new Thickness(0, 6, 0, 0), TextWrapping = TextWrapping.Wrap } } }));
+
+        // Limits: one compact card.
         var config = new WrapPanel
         {
             Children =
             {
-                Field("COMPONENTES", new StackPanel { Orientation = Orientation.Horizontal, Spacing = 20, Children = { chkCpu, chkRam, chkGpu } }),
+                Field("COMPONENTES", new StackPanel { Orientation = Orientation.Horizontal, Spacing = 16, Children = { chkCpu, chkRam, chkGpu } }),
                 Field("USO DA RAM DISPONÍVEL", ramChips.Panel), Field("LIMITE CPU °C", cpuLimit), Field("LIMITE GPU °C", gpuLimit), Field("DURAÇÃO (MIN · 0 = SEM LIMITE)", duration)
             }
         };
-        start.MinWidth = 150; start.Click += async (_, _) => { if (running) Stop("Parado pelo usuário"); else await StartAsync(); };
-        var side = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(20, 0, 0, 0), Children = { start, hint } };
-        var row = new Grid { ColumnDefinitions = new("*,Auto") }; Grid.SetColumn(side, 1); row.Children.Add(config); row.Children.Add(side);
-        Children.Add(UiKit.Card(row));
-
-        Border Stat(string label, params Control[] parts)
-        {
-            var inner = new StackPanel(); inner.Children.Add(UiKit.Label(label)); foreach (var part in parts) inner.Children.Add(part);
-            return new Border { Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), Padding = new Thickness(14), Margin = new Thickness(4, 0), Child = inner };
-        }
-        statusCard.Background = Palette.Card; statusCard.BorderBrush = Palette.Line; statusCard.BorderThickness = new Thickness(1); statusCard.CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius); statusCard.Padding = new Thickness(14); statusCard.Margin = new Thickness(4, 0); statusCard.Child = new StackPanel { Children = { UiKit.Label("STATUS"), stStatus } };
-        var stats = new UniformGrid { Columns = 5, Margin = new Thickness(-4, 0, -4, 14) };
-        stats.Children.Add(statusCard); stats.Children.Add(Stat("TEMP. CPU", stTemp, stTempMax)); stats.Children.Add(Stat("CARGA CPU", stLoad, new TextBlock { Text = "uso total", FontSize = 11, Foreground = Palette.Muted }));
-        stats.Children.Add(Stat("TEMP. / FPS GPU", stGpu, new TextBlock { Text = "Vulkan · offscreen", FontSize = 11, Foreground = Palette.Muted }));
-        stats.Children.Add(Stat("RAM", stRam, new TextBlock { Text = "passes / erros", FontSize = 11, Foreground = Palette.Muted }));
-        Children.Add(stats);
-        Children.Add(UiKit.Card(new StackPanel { Children = { UiKit.Label("TEMPERATURA DA CPU — ÚLTIMOS 5 MIN"), new Border { Height = 6 }, chart, new TextBlock { Text = "Consumo da CPU (RAPL) e sensores de GPU não são lidos neste teste.", FontSize = 11, Foreground = Palette.Faint, Margin = new Thickness(0, 6, 0, 0) } } }));
-        Children.Add(UiKit.Card(new StackPanel { Children = { UiKit.Label("REGISTRO"), log } }));
+        Children.Add(UiKit.SectionHeader("Componentes e limites"));
+        Children.Add(UiKit.Card(config));
+        Children.Add(UiKit.SectionHeader("Registro"));
+        Children.Add(UiKit.Card(new StackPanel { Children = { logEmpty, log } }));
         timer.Tick += (_, _) => Tick();
     }
 
     private void Log(string message)
     {
-        log.Children.Add(new TextBlock { Text = $"{DateTime.Now:HH:mm:ss}  {message}", FontFamily = new FontFamily("monospace"), FontSize = 12, TextWrapping = TextWrapping.Wrap });
+        logEmpty.IsVisible = false;
+        log.Children.Add(new TextBlock { Text = $"{DateTime.Now:HH:mm:ss}  {message}", FontFamily = IlmenyxTheme.Mono, FontSize = 12, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2) });
         if (log.Children.Count > 200) log.Children.RemoveAt(0);
     }
 
     private void SetStatus(string text, bool alert)
     {
-        stStatus.Text = text; statusCard.Background = alert ? Palette.Fg : Palette.Card; stStatus.Foreground = alert ? Palette.OnFg : Palette.Fg;
+        stStatus.Text = text;
+        var tone = alert ? Palette.Error : running ? Palette.Success : Palette.Fg;
+        stStatus.Foreground = tone; statusDot.Fill = alert ? Palette.Error : running ? Palette.Success : Palette.Faint;
     }
 
     private void Controls(bool running)

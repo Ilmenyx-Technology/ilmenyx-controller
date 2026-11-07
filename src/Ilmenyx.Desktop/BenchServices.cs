@@ -16,7 +16,9 @@ public sealed record BenchServices(
     Func<string> MountsText,
     Func<GpuSceneOptions, CancellationToken, IProgress<GpuSceneProgress>?, Task<GpuSceneResult>> GpuScene,
     Func<GpuBenchInfo> GpuInfo,
-    Func<double?> GpuTemp)
+    Func<double?> GpuTemp,
+    Func<GpuRtOptions, CancellationToken, IProgress<GpuRtProgress>?, Task<GpuRtResult>>? GpuRt = null,
+    Func<GpuRtInfo>? RtInfo = null)
 {
     [System.Runtime.Versioning.SupportedOSPlatform("linux")]
     public static BenchServices Real() => new(
@@ -28,7 +30,19 @@ public sealed record BenchServices(
         () => { try { return File.ReadAllText("/proc/mounts"); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return ""; } },
         (options, ct, progress) => new GpuScene().RunAsync(options, ct, progress),
         () => GpuBenchInfo.Detect(),
-        () => null);
+        () => null,
+        (options, ct, progress) => new GpuRtBench().RunAsync(options, ct, progress),
+        () => GpuRtInfo.Detect());
+}
+
+/// <summary>Adapter for the ray tracing test (inline ray query), or the readable reason it cannot run. Never a CPU (llvmpipe) adapter.</summary>
+public sealed record GpuRtInfo(string? Reason, int AdapterIndex, string AdapterName, bool SharesCpuThermals, uint VendorId = 0, uint DeviceId = 0)
+{
+    public static GpuRtInfo Detect(VulkanDeviceList? devices = null)
+    {
+        var (adapter, why) = GpuRtSupport.Pick(devices ?? VulkanDevices.List());
+        return adapter is null ? new(why ?? "Ray tracing indisponível.", -1, "", false) : new(null, adapter.Index, adapter.Name, adapter.Kind == "GPU integrada", adapter.VendorId, adapter.DeviceId);
+    }
 }
 
 /// <summary>What the GPU benchmark needs to know about the machine before it starts.</summary>

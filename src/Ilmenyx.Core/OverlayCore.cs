@@ -15,9 +15,11 @@ public static class OverlayMetrics
     [
         new("fps", "FPS", "FPS", true), new("frametime", "FPS", "Frametime (ms)", true), new("low1", "FPS", "1% low", true), new("graph", "FPS", "Gráfico de frametime", true),
         new("gpu_load", "GPU", "Uso", true), new("gpu_temp", "GPU", "Temperatura", true), new("gpu_hotspot", "GPU", "Hotspot", false), new("gpu_clock", "GPU", "Clock do núcleo", true),
-        new("gpu_memclock", "GPU", "Clock da memória", false), new("gpu_power", "GPU", "Consumo", true), new("gpu_fan", "GPU", "Ventoinha", false),
-        new("vram_used", "VRAM", "Usada (GB)", true), new("vram_pct", "VRAM", "Uso (%)", false),
-        new("cpu_load", "CPU", "Uso total", true), new("cpu_maxcore", "CPU", "Núcleo mais ocupado", false), new("cpu_temp", "CPU", "Temperatura", true), new("cpu_clock", "CPU", "Clock médio", true), new("cpu_power", "CPU", "Consumo", true),
+        new("gpu_memclock", "GPU", "Clock da memória", false), new("gpu_power", "GPU", "Consumo", true), new("gpu_volt", "GPU", "Tensão do núcleo", false), new("gpu_fan", "GPU", "Ventoinha", false),
+        new("gpu_perfcap", "GPU", "Limitador (NVIDIA)", false),
+        new("vram_used", "VRAM", "Usada (GB)", true), new("vram_pct", "VRAM", "Uso (%)", false), new("vram_temp", "VRAM", "Temperatura", false),
+        new("cpu_load", "CPU", "Uso total", true), new("cpu_maxcore", "CPU", "Núcleo mais ocupado", false), new("cpu_temp", "CPU", "Temperatura", true), new("cpu_clock", "CPU", "Clock médio", true),
+        new("cpu_clockmax", "CPU", "Clock máximo (núcleo)", false), new("cpu_power", "CPU", "Consumo", true),
         new("ram_used", "RAM", "Usada (GB)", true), new("ram_pct", "RAM", "Uso (%)", false),
         new("game", "Outros", "Nome do jogo", true), new("clock", "Outros", "Hora", false),
     ];
@@ -55,12 +57,15 @@ public static class OverlayLines
         if (show.Contains("gpu_clock")) g.Add(gpu?.CoreMHz is double c ? c.ToString("0", CultureInfo.InvariantCulture) + " MHz" : "— MHz");
         if (show.Contains("gpu_memclock")) g.Add(gpu?.MemMHz is double m ? "mem " + m.ToString("0", CultureInfo.InvariantCulture) + " MHz" : "mem —");
         if (show.Contains("gpu_power")) g.Add(gpu?.PowerW is double w ? w.ToString("0", CultureInfo.InvariantCulture) + " W" : "— W");
+        if (show.Contains("gpu_volt")) g.Add(gpu?.CoreVoltageV is double vv ? vv.ToString("0.000", CultureInfo.InvariantCulture) + " V" : "— V");
+        if (show.Contains("gpu_perfcap")) g.Add(gpu?.ThrottleMask is ulong mask ? GpuCardBuilder.PerfCap(mask) : "limitador —"); // nvidia-smi only
         if (show.Contains("gpu_fan")) g.Add(gpu?.FanRpm is double rpm && rpm > 0 ? rpm.ToString("0", CultureInfo.InvariantCulture) + " RPM" : gpu?.FanPercent is double fp ? "fan " + fp.ToString("0", CultureInfo.InvariantCulture) + "%" : "fan —");
         Line("GPU", g);
 
         var vram = new List<string>();
         if (show.Contains("vram_used")) vram.Add(gpu?.VramUsed is ulong u ? (u / 1073741824.0).ToString("0.0", CultureInfo.InvariantCulture) + " GB" : "—");
         if (show.Contains("vram_pct")) vram.Add(gpu is { VramUsed: ulong used, VramTotal: ulong total and > 0 } ? P(100.0 * used / total) : "—");
+        if (show.Contains("vram_temp")) vram.Add(T(gpu?.TempMemC));
         Line("VRAM", vram);
 
         var cpu = new List<string>();
@@ -68,7 +73,8 @@ public static class OverlayLines
         if (show.Contains("cpu_maxcore")) cpu.Add(usage?.CpuMaxCorePercent is double mx ? "núcleo " + mx.ToString("0", CultureInfo.InvariantCulture) + "%" : "núcleo —");
         if (show.Contains("cpu_temp")) cpu.Add(T(usage?.CpuTempC));
         if (show.Contains("cpu_clock")) cpu.Add(usage?.CpuMhz is double mhz ? (mhz / 1000).ToString("0.00", CultureInfo.InvariantCulture) + " GHz" : "— GHz");
-        if (show.Contains("cpu_power")) cpu.Add("— W"); // RAPL needs privileges on current kernels; never guessed
+        if (show.Contains("cpu_clockmax")) cpu.Add(usage?.CpuMaxMhz is double mxz ? "máx " + (mxz / 1000).ToString("0.00", CultureInfo.InvariantCulture) + " GHz" : "máx —");
+        if (show.Contains("cpu_power")) cpu.Add(usage?.CpuPowerW is double cw ? cw.ToString("0", CultureInfo.InvariantCulture) + " W" : "— W"); // RAPL, only when the kernel lets this user read it
         Line("CPU", cpu);
 
         var ram = new List<string>();
@@ -100,18 +106,20 @@ public static class MangoHudConfig
         sb.Append("font_scale=").Append(scale.ToString("0.0#", CultureInfo.InvariantCulture)).Append('\n');
         Flag(show.Contains("fps"), "fps"); Flag(show.Contains("frametime"), "frametime"); Flag(show.Contains("low1"), "fps_metrics=avg,0.01");
         Flag(show.Contains("graph"), "frame_timing");
-        if (show.Overlaps(["gpu_load", "gpu_temp", "gpu_clock", "gpu_memclock", "gpu_power", "gpu_fan", "gpu_hotspot"]))
+        if (show.Overlaps(["gpu_load", "gpu_temp", "gpu_clock", "gpu_memclock", "gpu_power", "gpu_fan", "gpu_hotspot", "gpu_volt", "gpu_perfcap"]))
         {
             Flag(true, "gpu_stats"); Flag(show.Contains("gpu_temp"), "gpu_temp"); Flag(show.Contains("gpu_hotspot"), "gpu_junction_temp");
-            Flag(show.Contains("gpu_clock"), "gpu_core_clock"); Flag(show.Contains("gpu_memclock"), "gpu_mem_clock"); Flag(show.Contains("gpu_power"), "gpu_power"); Flag(show.Contains("gpu_fan"), "gpu_fan");
+            Flag(show.Contains("gpu_clock"), "gpu_core_clock"); Flag(show.Contains("gpu_memclock"), "gpu_mem_clock"); Flag(show.Contains("gpu_power"), "gpu_power"); Flag(show.Contains("gpu_fan"), "gpu_fan"); Flag(show.Contains("gpu_volt"), "gpu_voltage"); Flag(show.Contains("gpu_perfcap"), "throttling_status");
         }
-        Flag(show.Contains("vram_used") || show.Contains("vram_pct"), "vram");
-        if (show.Overlaps(["cpu_load", "cpu_maxcore", "cpu_temp", "cpu_clock", "cpu_power"]))
+        Flag(show.Contains("vram_used") || show.Contains("vram_pct") || show.Contains("vram_temp"), "vram"); Flag(show.Contains("vram_temp"), "gpu_mem_temp");
+        if (show.Overlaps(["cpu_load", "cpu_maxcore", "cpu_temp", "cpu_clock", "cpu_clockmax", "cpu_power"]))
         {
-            Flag(true, "cpu_stats"); Flag(show.Contains("cpu_temp"), "cpu_temp"); Flag(show.Contains("cpu_clock"), "cpu_mhz"); Flag(show.Contains("cpu_power"), "cpu_power");
+            Flag(true, "cpu_stats"); Flag(show.Contains("cpu_temp"), "cpu_temp"); Flag(show.Contains("cpu_clock") || show.Contains("cpu_clockmax"), "cpu_mhz"); Flag(show.Contains("cpu_power"), "cpu_power");
         }
         Flag(show.Contains("ram_used") || show.Contains("ram_pct"), "ram"); Flag(show.Contains("clock"), "time");
         Flag(!show.Contains("game"), "hide_engine_names"); // keeps the layout compact; the game name is shown by the Ilmenyx overlay
+        // Same toggle as the original overlay (Ctrl+Shift+O). MangoHud reads it through X11, which covers XWayland/Proton games.
+        sb.Append("toggle_hud=").Append(ToggleKeys).Append('\n');
         if (logFolder is not null)
         {
             if (!Path.IsPathRooted(logFolder) || logFolder.Contains('\n') || logFolder.Contains('\r')) throw new ArgumentException("Pasta de log inválida.", nameof(logFolder));
@@ -119,6 +127,8 @@ public static class MangoHudConfig
         }
         return sb.ToString();
     }
+
+    public const string ToggleKeys = "Control_L+Shift_L+o", ToggleLabel = "Ctrl + Shift + O";
 
     public static string LaunchOption(string configPath) => $"MANGOHUD_CONFIGFILE={configPath} mangohud %command%";
 }

@@ -1,0 +1,3 @@
+[0] AMD Radeon 610M (RADV RAPHAEL_MENDOCINO) · GPU integrada · Vulkan 1.4.305 · ray tracing
+[1] llvmpipe (LLVM 20.1.2, 256 bits) · CPU (software) · Vulkan 1.4.305 · renderização por CPU · ray tracing
+exit=0

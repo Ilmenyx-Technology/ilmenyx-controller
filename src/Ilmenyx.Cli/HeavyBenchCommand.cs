@@ -14,11 +14,14 @@ public static class HeavyBenchCommand
           bench gpu-burn --allow-gpu-load [--adapter N] [--seconds 1..600] [--shells 1..256] [--iterations 0..512] [--msaa 1|2|4|8] [--width W --height H] [--json]
           bench gpu-scene --allow-gpu-load [--adapter N] [--seconds 1..300] [--width W --height H] [--shadow 512..4096] [--trees 0..200000] [--json]
           bench gpu-snapshot --allow-gpu-load --output ARQUIVO.png [--t 0..1] [--adapter N] [--width W --height H] [--shadow N] [--trees N]
+          bench gpu-rt --allow-gpu-load [--adapter N] [--preset normal|alta|extrema] [--resolution 1080p|1440p|4k] [--warmup-seconds 0..60] [--pass-seconds 1..60] [--passes 1..5] [--temp-limit 50..105] [--json]
+          bench gpu-rt-snapshot --allow-gpu-load --output ARQUIVO.png [--t 0..1] [--adapter N] [--preset P] [--resolution R]
           bench disk --directory PASTA --allow-disk-load [--size-mb 64..8192] [--phase-seconds 1..10] [--timeout-seconds N] [--json]
+        gpu-rt: ray tracing Vulkan (ray query), aquecimento + passadas, nota = FPS mediano × 10; nunca escolhe llvmpipe sem --adapter; corte a 90 °C (CPU se a GPU for integrada).
         memory-full: aloca ~2,3 GiB (recusa sem 1 GiB de reserva livre). disk: um arquivo temporário novo (0600) na pasta indicada, E/S direta, apagado ao final; nunca dispositivos.
         """;
 
-    public static bool Handles(string[] args) => args is ["bench", "disk" or "memory-full" or "gpu-list" or "gpu-burn" or "gpu-scene" or "gpu-snapshot", ..];
+    public static bool Handles(string[] args) => args is ["bench", "disk" or "memory-full" or "gpu-list" or "gpu-burn" or "gpu-scene" or "gpu-snapshot" or "gpu-rt" or "gpu-rt-snapshot", ..];
 
     [System.Runtime.Versioning.SupportedOSPlatform("linux")]
     public static async Task<int> RunAsync(string[] args, CancellationToken ct)
@@ -33,13 +36,14 @@ public static class HeavyBenchCommand
             flags[flag] = boolean ? null : args[++i];
         }
         bool json = flags.ContainsKey("--json");
+        if (args[1] is "gpu-rt" or "gpu-rt-snapshot") return await GpuRtCommand.RunAsync(args[1], flags, ct);
         try
         {
             if (args[1] == "gpu-list")
             {
                 var list = Ilmenyx.Gpu.Vulkan.VulkanDevices.List();
                 Console.WriteLine(json ? JsonSerializer.Serialize(list, new JsonSerializerOptions { WriteIndented = true }) :
-                    list.Error ?? (list.Adapters.Count == 0 ? "Nenhum adaptador Vulkan." : string.Join("\n", list.Adapters.Select(a => $"[{a.Index}] {a.Description}" + (a.SupportsVulkan13 ? "" : " · SEM Vulkan 1.3") + (a.SupportsRayTracingPipeline ? " · ray tracing" : "")))));
+                    list.Error ?? (list.Adapters.Count == 0 ? "Nenhum adaptador Vulkan." : string.Join("\n", list.Adapters.Select(a => $"[{a.Index}] {a.Description}" + (a.SupportsVulkan13 ? "" : " · SEM Vulkan 1.3") + (a.SupportsRayTracingPipeline ? " · ray tracing" : "") + (a.SupportsRayQuery ? " · ray query" : "")))));
                 return list.Error is null ? 0 : 1;
             }
             if (args[1] == "gpu-burn")

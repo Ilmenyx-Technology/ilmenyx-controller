@@ -1,0 +1,9 @@
+{
+  "Status": 0,
+  "Adapter": "AMD Radeon 610M (RADV RAPHAEL_MENDOCINO)",
+  "Frames": 263,
+  "Seconds": 8.1024405,
+  "AverageFps": 32.45935591875065,
+  "Reason": null
+}
+exit=0
