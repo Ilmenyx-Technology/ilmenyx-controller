@@ -1,6 +1,6 @@
 # Validação em notebook híbrido Intel + NVIDIA — Dell Inspiron 7460, 2026-11-07
 
-i7-7500U, 16 GB, **Intel HD 620** (i915) + **GeForce 940MX** (GM108, Maxwell, 2 GB), Linux Mint 22.3, kernel 6.14, X11 (Cinnamon).
+i7-7500U, 16 GB, **Intel HD 620** (i915) + **GeForce 940MX** (GM108, Maxwell, 4 GB: 4096 MiB no nvidia-smi), Linux Mint 22.3, kernel 6.14, X11 (Cinnamon).
 A NVIDIA está com o driver livre **nouveau** (o proprietário não foi instalado: exige a senha do dono; ver Sem_teste.md).
 
 | Arquivo | Conteúdo |

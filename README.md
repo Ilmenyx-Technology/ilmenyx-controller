@@ -24,6 +24,7 @@ rede) e mede o desempenho dele. Tem um **aplicativo desktop** e uma **linha de c
 - [Usando a linha de comando](#usando-a-linha-de-comando)
 - [Benchmarks](#benchmarks)
 - [O que ainda não funciona](#o-que-ainda-não-funciona)
+- [Confiabilidade: o que ainda não é muito confiável e como melhorar](docs/CONFIABILIDADE.md)
 - [Estrutura do projeto](#estrutura-do-projeto)
 - [Documentação](#documentação)
 - [Privacidade e segurança](#privacidade-e-segurança)
