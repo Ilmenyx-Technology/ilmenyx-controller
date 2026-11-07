@@ -247,3 +247,36 @@ public sealed class PrimeOffloadTests
         Assert.Contains(new KeyValuePair<string, string>("__NV_PRIME_RENDER_OFFLOAD", "1"), Ilmenyx.Core.GameLaunchOptions.GpuEnvironment("NVIDIA"));
     }
 }
+
+public sealed class NvidiaSmiDriverDriftTests
+{
+    // Real row of a GeForce 940MX with driver 580.178.04 (Dell Inspiron 7460, 2026-11-07), after the refused fields were dropped.
+    private const string Row940 = "0, 00000000:01:00.0, NVIDIA GeForce 940MX, 580.178.04, 4096, 5, 0, 0, [N/A], [N/A], 54, N/A, 135, 405, 1189, 2000, [N/A], [N/A], 200.00, 0.00, 200.00, [N/A], P8, 0x0000000000000001, 1, 3, 4, 4, 82.08.77.00.DD, 5.0";
+
+    [Fact]
+    public async Task RefusedFieldsAreDroppedAndTheQueryStillWorks()
+    {
+        Ilmenyx.Platform.Linux.LinuxGpuCollector.ResetResolvedFields();
+        var asked = new List<string>();
+        Task<(int, string)> Run(IReadOnlyList<string> args, CancellationToken ct)
+        {
+            string fields = args[0]["--query-gpu=".Length..]; asked.Add(fields);
+            if (fields.Contains("clocks.max.video")) return Task.FromResult((2, "Field \"clocks.max.video\" is not a valid field to query.\n"));
+            return Task.FromResult((0, Row940 + "\n"));
+        }
+        var smi = await Ilmenyx.Platform.Linux.LinuxGpuCollector.QuerySmiAsync(Run);
+        Assert.NotNull(smi); Assert.Equal(2, asked.Count);
+        Assert.DoesNotContain("clocks_throttle_reasons.active", asked[1]); // only one generation of the throttle field is asked
+        var m = smi!["01:00.0"];
+        Assert.Equal("54", m["temperature.gpu"]); Assert.Equal("135", m["clocks.current.graphics"]); Assert.Equal("4096", m["memory.total"]); Assert.Equal("0x0000000000000001", m["{THROTTLE}"]);
+        Assert.False(m.ContainsKey("power.draw")); Assert.False(m.ContainsKey("temperature.memory")); // [N/A] and N/A are absent, never zero
+        Ilmenyx.Platform.Linux.LinuxGpuCollector.ResetResolvedFields();
+    }
+
+    [Fact]
+    public void RefusedFieldIsReadFromTheErrorMessage()
+    {
+        Assert.Equal("clocks.max.video", Ilmenyx.Platform.Linux.LinuxGpuCollector.RefusedField("Field \"clocks.max.video\" is not a valid field to query."));
+        Assert.Null(Ilmenyx.Platform.Linux.LinuxGpuCollector.RefusedField("NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver."));
+    }
+}
