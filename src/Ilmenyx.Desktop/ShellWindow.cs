@@ -50,7 +50,8 @@ public sealed partial class ShellWindow : Window
             Palette.Apply(!Palette.IsLight); appSettings.ThemeLight = Palette.IsLight; RebuildAmbient();
             foreach (var (k, button) in nav) Style(k, button, k == CurrentPage);
             UiKit.SetAction(theme, Palette.IsLight ? Icons.Moon : Icons.Sun, Palette.IsLight ? "Tema escuro" : "Tema claro");
-            try { appSettings.Save(settingsPath); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+            bool light = appSettings.ThemeLight;
+            try { IlmenyxSettings.Update(settingsPath, s => s.ThemeLight = light); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
         };
         var pause = UiKit.IconButton("ToggleMonitor", Icons.Pause, "Pausar monitor");
         pause.Click += async (_, _) =>

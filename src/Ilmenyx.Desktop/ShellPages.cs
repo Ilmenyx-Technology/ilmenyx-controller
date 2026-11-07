@@ -537,7 +537,8 @@ public sealed partial class ShellWindow
         toastToggle.IsCheckedChanged += (_, _) =>
         {
             appSettings.DeviceToasts = toastToggle.IsChecked == true; if (toasts is not null) toasts.Enabled = appSettings.DeviceToasts;
-            try { appSettings.Save(settingsPath); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+            bool on = appSettings.DeviceToasts;
+            try { IlmenyxSettings.Update(settingsPath, s => s.DeviceToasts = on); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
         };
         return Scroll("ToolsScroll", new StackPanel
         {

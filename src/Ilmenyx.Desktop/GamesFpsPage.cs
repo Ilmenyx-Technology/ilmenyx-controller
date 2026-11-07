@@ -135,9 +135,9 @@ public sealed class GamesFpsPage : StackPanel
     private void SaveKey()
     {
         settings.HowManyFpsKey = string.IsNullOrWhiteSpace(keyBox.Text) ? null : keyBox.Text.Trim(); api.ApiKey = settings.HowManyFpsKey;
-        // Keep what other pages wrote since this page loaded (the Launcher records measured sessions in the same file).
-        if (File.Exists(settingsPath)) settings.FpsSessions = IlmenyxSettings.Load(settingsPath).FpsSessions;
-        try { settings.Save(settingsPath); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { sourceText.Text = "Não foi possível salvar a chave: " + e.Message; return; }
+        // Only the key is written; everything else in the file (sessions recorded by the Launcher, other pages) is kept as it is now.
+        string? key = settings.HowManyFpsKey;
+        try { settings.FpsSessions = IlmenyxSettings.Update(settingsPath, s => s.HowManyFpsKey = key).FpsSessions; } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { sourceText.Text = "Não foi possível salvar a chave: " + e.Message; return; }
         RefreshLocal();
     }
 

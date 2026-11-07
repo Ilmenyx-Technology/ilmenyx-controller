@@ -277,8 +277,9 @@ public sealed class OcPage : StackPanel
         rows.Add(result.Errors.Error is null ? $"Erros de hardware no log do kernel: {result.Errors.Total}" : "Erros de hardware no log do kernel: NÃO VERIFICADO");
         if (result.Note is not null) rows.Add(result.Note);
         verdictRows.Text = string.Join("\n", rows); verdictCard.IsVisible = true;
-        settings.AddBenchRun(new(now(), "OC", (stable ? "estável" : "INSTÁVEL") + " · " + (options.Label.Length > 0 ? options.Label : "sem descrição") + (result.CpuScore is double s2 ? " · CPU " + s2.ToString("N0", CultureInfo.InvariantCulture) : "") + (result.GpuScore is double gs2 ? " · GPU " + gs2.ToString("N0", CultureInfo.InvariantCulture) : ""), stable ? 1.0 : 0.15));
-        try { settings.Save(settingsPath); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { status.Text += " · Histórico não salvo: " + e.Message; }
+        var run = new BenchRunEntry(now(), "OC", (stable ? "estável" : "INSTÁVEL") + " · " + (options.Label.Length > 0 ? options.Label : "sem descrição") + (result.CpuScore is double s2 ? " · CPU " + s2.ToString("N0", CultureInfo.InvariantCulture) : "") + (result.GpuScore is double gs2 ? " · GPU " + gs2.ToString("N0", CultureInfo.InvariantCulture) : ""), stable ? 1.0 : 0.15);
+        try { settings.BenchRuns = IlmenyxSettings.Update(settingsPath, s => s.AddBenchRun(run)).BenchRuns; }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { settings.AddBenchRun(run); status.Text += " · Histórico não salvo: " + e.Message; }
         BuildHistory(); await RefreshRecentAsync();
     }
 }
