@@ -4,6 +4,10 @@ Lista para continuar em qualquer máquina. Repositório: https://github.com/Bism
 Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes que faltam por área: `Sem_teste.md` e `docs/CONFIABILIDADE.md`.
 
 ## 0. Como retomar numa máquina nova
+- **No seu PC pessoal (clone em `/mnt/HDD/Github/Ilmenyx`)**: o repositório mudou de dono. Aponte o clone para o endereço novo e
+  traga tudo: `git remote set-url origin https://github.com/Bismuth-Technology/ilmenyx.git && git fetch --all && git checkout main && git pull`.
+  (O GitHub Desktop também aceita: Repository → Repository settings → Remote.) A cópia `ilmenyx-repo.tar.gz` deste pendrive é de
+  2026-11-07 (commit cce044b) e serve se estiver sem internet.
 1. `git clone https://github.com/Bismuth-Technology/ilmenyx.git` e `cd ilmenyx`.
 2. SDK local (sem instalar nada no sistema): `bash scripts/get-local-sdk.sh` e `source scripts/env-local-sdk.sh`; depois `dotnet restore Ilmenyx.slnx`.
 3. Build e testes: `dotnet build Ilmenyx.slnx -c Release` e `dotnet test Ilmenyx.slnx -c Release --no-build`.
