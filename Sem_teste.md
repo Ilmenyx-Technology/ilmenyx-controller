@@ -578,3 +578,5 @@ três processos .NET reais gravando 300 atualizações cada no mesmo arquivo (90
   (`docs/evidencias/flatpak-2026-11-07/`). Achados corrigidos: /sys/module ausente no sandbox, travamento em Jogos, grupos 65534.
 - NÃO TESTADO no Flatpak: senha do pkexec pela ponte, jogos reais/MangoHud/PRIME/GameMode, OpenRGB, benchmarks Vulkan, Wayland nativo,
   instalação --system e outras distros. Ver `docs/flatpak.md`.
+
+- LIC-01 (2026-11-07): licença PolyForm NC + permissão adicional, SPDX/REUSE: `reuse lint` NÃO TESTADO (ferramenta e pip ausentes no host); verificado por script local equivalente. Rodar `reuse lint` quando a ferramenta estiver disponível.

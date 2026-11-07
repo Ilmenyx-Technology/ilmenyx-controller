@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# New Ilmenyx additions: see LICENSING.md. Read-only diagnostics, exports only to a new directory.
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+# Read-only diagnostics, exports only to a new directory.
 # Does not install, elevate, start GUI/workloads/SMART or claim a machine is a clean VM.
 set -euo pipefail
 export DOTNET_CLI_TELEMETRY_OPTOUT=1

@@ -1,4 +1,6 @@
-// New Ilmenyx additions: see LICENSING.md; reused components keep their existing terms.
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// Reused components keep their existing terms.
 using Ilmenyx.Contracts;
 using Ilmenyx.Core;
 using Ilmenyx.Core.Benchmarks;

@@ -1,4 +1,6 @@
-// New Ilmenyx additions: see LICENSING.md. Runs the ray tracing benchmark adapted from RESET EXPLODE GpuRtBench (MIT, see NOTICE.md).
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// Runs the ray tracing benchmark adapted from RESET EXPLODE GpuRtBench (MIT, see NOTICE.md).
 using System.Globalization;
 using System.Text.Json;
 using Ilmenyx.Gpu.Vulkan;

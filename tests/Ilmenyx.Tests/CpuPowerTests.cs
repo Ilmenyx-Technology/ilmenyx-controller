@@ -1,4 +1,6 @@
-// New Ilmenyx additions: see LICENSING.md. RAPL layout copied from a real ASUS E1504FA (AMD Mendocino, kernel 6.14): package-0 + core.
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// RAPL layout copied from a real ASUS E1504FA (AMD Mendocino, kernel 6.14): package-0 + core.
 using Ilmenyx.Core;
 using Ilmenyx.Platform.Linux;
 using Xunit;

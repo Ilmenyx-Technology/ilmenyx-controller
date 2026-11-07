@@ -54,7 +54,7 @@ Pacotes de teste não devem compor distribuição do aplicativo.
 Consulta NuGet --vulnerable --include-transitive nesta sessão não reportou pacotes vulneráveis;
 isso não certifica ausência de falhas nem cobre o runtime/OS. Use patches oficiais atuais em produção.
 
-Upstream MIT: Copyright (c) 2026 Gustavo (GustavoReset). Licença integral em upstream/ResetExplode/LICENSE.
+Upstream MIT: Copyright (c) 2026 Gustavo (GustavoReset). Licença integral em LICENSES/MIT.txt e upstream/ResetExplode/LICENSE.
 Drivers têm termos próprios; não autorizados pela MIT do aplicativo.
 
 
@@ -76,7 +76,7 @@ exige revisão dos termos do pacote; MIT do Silex não relicencia a ferramenta e
 ## Algoritmos de RAM e fixture
 
 MemoryBench.cs de RESET EXPLODE (GustavoReset, MIT, commit fixado) é a referência dos algoritmos
-RAM adaptados para validação reduzida no Core. A atribuição permanece no runner e na LICENSE.
+RAM adaptados para validação reduzida no Core. A atribuição permanece no runner e em LICENSES/MIT.txt.
 O gerador MemoryReference compila apenas métodos RAM extraídos em temporário com dimensões menores;
 nenhum método de I/O/driver é incluído. Fixture memory-reference.json é derivada dessa execução
 limitada, não de métricas reais de desempenho. Não há certificação clean-room estrita.
@@ -86,7 +86,7 @@ limitada, não de métricas reais de desempenho. Não há certificação clean-r
 
 GameSimStateEngine adapta métodos de GameSimBench.cs do RESET EXPLODE, copyright (c) 2026
 Gustavo (GustavoReset), MIT, commit ce1d9b30518bbe75bb5e6cb792d1b1e365aaddd6. Aviso preservado
-no código e LICENSE. Fixture gamesim-reference.json deriva da execução reduzida do original;
+no código e em LICENSES/MIT.txt. Fixture gamesim-reference.json deriva da execução reduzida do original;
 oracle em temporário não compõe distribuição. Sem assets originais, nova dependência ou
 certificação clean-room estrita. Ver docs/gamesim-metodologia.md.
 

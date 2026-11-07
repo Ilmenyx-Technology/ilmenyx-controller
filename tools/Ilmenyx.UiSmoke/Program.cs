@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
 using System.Diagnostics;
 using System.Text.Json;
 using Avalonia;
@@ -209,9 +211,9 @@ public sealed class UiSmokeApp : Application
         var (name, expected) = index switch
         {
             0 => ("AttributionText", ProductIdentity.Attribution + "\n\n" + File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "NOTICE.md"))),
-            1 => ("LicenseText", File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "LICENSE"))),
+            1 => ("LicenseText", File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "LICENSES", "MIT.txt"))),
             2 => ("DependenciesText", File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "THIRD-PARTY-NOTICES.md"))),
-            _ => ("OwnTermsText", File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "LICENSING.md")) + "\n\n" + File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "LICENSE-ILMENYX.md")))
+            _ => ("OwnTermsText", LicenseDocuments.OwnTerms(file => File.ReadAllText(Path.Combine(AppContext.BaseDirectory, file))))
         };
         var text = Find<TextBox>(about, "LicenseTextContent");
         if (text.Text != expected || !text.IsReadOnly) throw new InvalidOperationException("License document changed or is editable: " + name);
@@ -1461,7 +1463,7 @@ public sealed class UiSmokeApp : Application
         if (!Find<TextBox>(about, "LicenseTextContent").Text!.Contains("Avalonia.Wayland"))
             throw new InvalidOperationException("Third-party notices missing from About.");
         selector.SelectedIndex = 3; await Task.Delay(60);
-        if (!Find<TextBox>(about, "LicenseTextContent").Text!.Contains("Usos permitidos, inclusive em trabalho remunerado"))
+        if (!Find<TextBox>(about, "LicenseTextContent").Text!.Contains("Uso como ferramenta em trabalho pago") || !Find<TextBox>(about, "LicenseTextContent").Text!.Contains("PolyForm Noncommercial License 1.0.0"))
             throw new InvalidOperationException("Own usage and commercialization terms missing from About.");
         selector.SelectedIndex = 0; await Task.Delay(60); Capture(about, "about.png");
         Click(about, "CloseAbout"); await Until(() => !about.IsVisible);

@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# New Ilmenyx additions: see LICENSING.md. Local CLI acceptance regression, no workloads/SMART.
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+# Local CLI acceptance regression, no workloads/SMART.
 # Positive cases execute the real package; negative cases mutate only a newly created copy.
 set -euo pipefail
 if [[ $# != 2 || $1 != /* || $2 != /* ]]; then

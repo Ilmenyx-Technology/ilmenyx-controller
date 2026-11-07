@@ -1,4 +1,6 @@
-// New Ilmenyx additions: see LICENSING.md. Methodology and limits: docs/fps-estimativa.md.
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// Methodology and limits: docs/fps-estimativa.md.
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;

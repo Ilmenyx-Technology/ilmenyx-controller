@@ -1,4 +1,6 @@
-// New Ilmenyx additions: see LICENSING.md. Silk.NET (MIT) provides the Vulkan bindings.
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// Silk.NET (MIT) provides the Vulkan bindings.
 using System.Reflection;
 using System.Runtime.InteropServices;
 using Silk.NET.Core.Native;

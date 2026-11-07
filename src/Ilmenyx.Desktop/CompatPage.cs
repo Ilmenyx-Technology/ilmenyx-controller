@@ -1,4 +1,5 @@
-// New Ilmenyx additions: see LICENSING.md.
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
 // Game compatibility page: ProtonDB (summary + local index of the ODbL export), Steam Deck (Valve) and AreWeAntiCheatYet (MIT).
 // Network only after a confirmation that names the hosts; SteamDB is only a link the user opens (it forbids automated access).
 // Cinematic layout since 2026-11-06: the open game is the hero (local Steam artwork when present), the three verdicts are stat tiles.

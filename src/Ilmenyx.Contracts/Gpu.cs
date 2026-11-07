@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
 namespace Ilmenyx.Contracts;
 
 public sealed record GpuInfo(string Device, Reading<string> VendorId, Reading<string> DeviceId, Reading<string> PciClass,

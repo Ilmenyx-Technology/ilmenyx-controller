@@ -55,7 +55,7 @@ Microsoft.NETCore.App 10.0 e bibliotecas nativas do SO. Não há runtime autocon
 no cache disponível. O teste usou o runtime 10.0.0 do SDK isolado da sessão;
 nenhuma instalação automática. Não certifica qualquer versão de distro/glibc.
 
-Copiados LICENSE, NOTICE, LICENSING, LICENSE-ILMENYX e THIRD-PARTY-NOTICES na raiz
+Copiados LICENSE, LICENSES/, NOTICE, LICENSING e THIRD-PARTY-NOTICES na raiz (até 2026-11-07 também LICENSE-ILMENYX)
 e junto de cada executável. dependencies.tsv inventaria 19 pacotes runtime
 resolvidos pelos deps.json. licenses/ preserva manifests nuspec e arquivos
 LICENSE/NOTICE/COPYING/THIRD-PARTY disponíveis na raiz de cada pacote do cache,

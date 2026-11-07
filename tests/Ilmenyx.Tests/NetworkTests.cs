@@ -1,4 +1,6 @@
-// New Ilmenyx additions: see LICENSING.md. Sonda falsa: nenhum teste envia um pacote ou abre uma conexão.
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// Sonda falsa: nenhum teste envia um pacote ou abre uma conexão.
 using System.Net;
 using System.Net.Http;
 using Ilmenyx.Core;

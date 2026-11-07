@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT AND PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Gustavo (GustavoReset)
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
 // New Ilmenyx additions (layout follows the original bottleneck page: balance, live verdict, live meters, session analysis; live verdict as the hero since 2026-11-06): see LICENSING.md.
 using System.Globalization;
 using Avalonia;

@@ -1,23 +1,23 @@
-# Política comercial esclarecida pelo mantenedor
+# Política de uso comercial
 
-2026-10-21: a primeira solicitação foi restringir monetização. O esclarecimento posterior
-permite usar Ilmenyx como ferramenta em serviços remunerados (diagnóstico/manutenção/relatórios)
-e proíbe vender o programa, cobrar por acesso ou usar/copiar o código próprio para gerar
-produto/serviço pago. Essa definição prevalece sobre a formulação inicial excessivamente ampla.
+**Substituída em 2026-11-07.** A regra de uso comercial agora está na licença:
+PolyForm Noncommercial 1.0.0 ([LICENSE](../../LICENSE)) mais a permissão adicional
+([LICENSES/LicenseRef-Ilmenyx-Permissao-Adicional.txt](../../LICENSES/LicenseRef-Ilmenyx-Permissao-Adicional.txt)).
+A explicação em linguagem simples está em [LICENSING.md](../../LICENSING.md), que prevalece sobre este arquivo.
 
-IMPLEMENTADO: LICENSE-ILMENYX.md e mapa LICENSING.md, sem proibir o trabalho remunerado do
-usuário. Exemplos permitidos: técnico cobra diagnóstico usando o app/CLI; entrega relatório ao
-cliente. Exemplos não autorizados sobre material próprio: revender app/cópias, paywall, wrapper
-SaaS ou incorporar código para serviço/produto pago. Isso não restringe MIT/terceiros anteriores.
+Resumo das decisões do mantenedor (2026-11-07, ver [RELATORIO-LICENCA-2026-11-07.md](RELATORIO-LICENCA-2026-11-07.md)):
 
-A política futura substitui a intenção MIT global para contribuições próprias novas, mas não
-reescreve o passado. LICENSE original/copyright continuam intactos. Metadados não anunciam MIT
-como licença única do conjunto; Sobre fornece termos próprios e MIT separadamente.
+| Situação | Permitido? |
+|---|---|
+| Usar como ferramenta em trabalho pago (diagnóstico, manutenção, relatório ao cliente) | Sim |
+| Técnico instalar no PC do cliente e cobrar pela visita, não pelo app, deixando a licença junto | Sim |
+| Vídeos, tutoriais e artigos monetizados sobre o Ilmenyx | Sim |
+| Terceiros redistribuírem os pacotes sem modificação, de graça, sem exigir cadastro ou anúncio para baixar, com licença e avisos | Sim |
+| Empresa modificar para uso interno, sem vender nem oferecer a terceiros | Sim |
+| Vender o app, cópias ou versões modificadas; cobrar pelo acesso; oferecer como serviço pago; usar o código em produto/serviço pago | Não |
+| Trechos MIT do RESET EXPLODE | Continuam MIT para todos (inclusive uso comercial) |
 
-PENDENTE DE REVISÃO / BLOQUEIA PUBLICAÇÃO: titulares, fronteiras/autoria e eficácia/alcance do
-texto. Bismuth Technology é identidade mantenedora, sem presunção de pessoa jurídica/cessão.
-A política restritiva não é open source OSI. MIT permite uso comercial e direitos concedidos
-não são retirados por simples mudança de arquivo. Fontes consultadas em 2026-10-21:
-[MIT](https://choosealicense.com/licenses/mit/), [OSI](https://opensource.org/osd).
-
-Nenhum parecer jurídico, contato externo, publicação ou registro de marca foi realizado.
+Histórico: em 2026-10-21 havia termos próprios em `LICENSE-ILMENYX.md`, aplicados só a "contribuições
+futuras". Como nenhuma cópia do código saiu do controle do mantenedor, todo o código dele, desde o primeiro
+commit, passou para a nova licença. Doações e patrocínio ao mantenedor são aceitos (decisão 10-A): são
+voluntários, não dão direitos extras nem recursos pagos e não mudam os termos não comerciais para os outros.

@@ -1,4 +1,6 @@
-// New Ilmenyx additions: see LICENSING.md. Temporary files only; the real ~/.config/ilmenyx/settings.json is never touched.
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// Temporary files only; the real ~/.config/ilmenyx/settings.json is never touched.
 using System.Diagnostics;
 using Ilmenyx.Core;
 using Xunit;

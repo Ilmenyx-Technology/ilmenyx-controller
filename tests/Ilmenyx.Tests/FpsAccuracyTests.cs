@@ -1,4 +1,6 @@
-// New Ilmenyx additions: see LICENSING.md. Synthetic MangoHud logs and hardware names only; no game is run.
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// Synthetic MangoHud logs and hardware names only; no game is run.
 using System.Globalization;
 using System.Text;
 using Ilmenyx.Core;

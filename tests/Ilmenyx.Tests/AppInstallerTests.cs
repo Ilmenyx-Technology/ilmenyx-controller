@@ -1,4 +1,6 @@
-// New Ilmenyx additions: see LICENSING.md. Executor falso: nenhum flatpak real é executado e nada é instalado.
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// Executor falso: nenhum flatpak real é executado e nada é instalado.
 using Ilmenyx.Core;
 using Ilmenyx.Platform.Linux;
 using Xunit;

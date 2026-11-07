@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT AND PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Gustavo (GustavoReset)
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
 // New Ilmenyx additions, adapted from the logic of the original SystemInfoCollector.CollectRam (MIT, see NOTICE): see LICENSING.md.
 using System.Globalization;
 using System.Text.RegularExpressions;

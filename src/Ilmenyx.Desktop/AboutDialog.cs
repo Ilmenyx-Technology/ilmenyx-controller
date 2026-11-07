@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Input;
@@ -21,9 +23,9 @@ public sealed class AboutDialog : Window
         var documents = new[]
         {
             (Title: "Origem", Text: ProductIdentity.Attribution + "\n\n" + Read("NOTICE.md")),
-            (Title: "MIT", Text: Read("LICENSE")),
+            (Title: "MIT (partes do RESET EXPLODE)", Text: Read("LICENSES/MIT.txt")),
             (Title: "Dependências", Text: Read("THIRD-PARTY-NOTICES.md")),
-            (Title: "Termos Ilmenyx", Text: Read("LICENSING.md") + "\n\n" + Read("LICENSE-ILMENYX.md"))
+            (Title: "Licença Ilmenyx", Text: LicenseDocuments.OwnTerms(Read))
         };
         var selector = new ComboBox
         {
@@ -65,4 +67,11 @@ public sealed class AboutDialog : Window
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         { return "Indisponível: arquivo de atribuição não encontrado no pacote: " + file + ". Consulte o código-fonte e revise o empacotamento."; }
     }
+}
+/// <summary>Texts of the Ilmenyx license shown in About: explanation, additional permission and the PolyForm text in LICENSE.</summary>
+public static class LicenseDocuments
+{
+    public const string AdditionalPermission = "LICENSES/LicenseRef-Ilmenyx-Permissao-Adicional.txt";
+    public static string OwnTerms(Func<string, string> read) =>
+        read("LICENSING.md") + "\n\n" + read(AdditionalPermission) + "\n\n" + read("LICENSE");
 }

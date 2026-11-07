@@ -1,4 +1,5 @@
-// New Ilmenyx additions: see LICENSING.md.
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
 // "Driver NVIDIA" tab: from a read-only diagnosis, a plan in plain language (what will be done and why, with the risks) and the FIXED root
 // scripts that carry it out through polkit. Scripts are built only from values validated against lists/regexes (branch from the table,
 // package names, kernel version); no free text, report or network value reaches them (AGENTS.md, "Correções de sensores com um clique").

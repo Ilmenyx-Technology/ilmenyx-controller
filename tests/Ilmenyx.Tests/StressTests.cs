@@ -1,4 +1,6 @@
-// New Ilmenyx additions: see LICENSING.md. Nenhum destes testes inicia carga de CPU/RAM: só planejamento, guardas e a lógica de verificação em blocos minúsculos.
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// Nenhum destes testes inicia carga de CPU/RAM: só planejamento, guardas e a lógica de verificação em blocos minúsculos.
 using Ilmenyx.Core;
 using Xunit;
 

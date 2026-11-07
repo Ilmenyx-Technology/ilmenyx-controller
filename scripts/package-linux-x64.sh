@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# New Ilmenyx additions: see LICENSING.md; third-party components retain their terms.
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+# Third-party components retain their terms.
 # Local review bundle only. Never installs, restores, elevates or publishes remotely.
 set -euo pipefail
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
@@ -43,9 +45,11 @@ cp -- "$repo/packaging/licenses/Apache-2.0.txt" "$bundle/licenses/MaterialDesign
 # Desktop integration (app ID io.github.bismuth_technology.Ilmenyx): .desktop, hicolor icons, AppStream and the
 # opt-in per-user installer. Copied only; nothing is installed by this script.
 cp -r -- "$repo/packaging/linux" "$bundle/linux"
-for file in LICENSE NOTICE.md LICENSING.md LICENSE-ILMENYX.md THIRD-PARTY-NOTICES.md; do
+for file in LICENSE NOTICE.md LICENSING.md THIRD-PARTY-NOTICES.md; do
   cp -- "$repo/$file" "$bundle/$file"
 done
+# REUSE layout: PolyForm Noncommercial 1.0.0, additional permission, MIT (RESET EXPLODE portions), brand terms.
+cp -r -- "$repo/LICENSES" "$bundle/LICENSES"
 cache=${NUGET_PACKAGES:-$HOME/.nuget/packages}
 printf 'package\tcache-path\tnotice-status\n' > "$bundle/dependencies.tsv"
 jq -r '.libraries[] | select(.type == "package") | .path' \
@@ -84,8 +88,8 @@ Menu e icone (opcional, so para o seu usuario, sem sudo): bash linux/install-use
 Nao inclui SDK, smartctl, drivers, instalador ou garantias de portabilidade.
 MangoHud (overlay) e OpenRGB (iluminacao) acompanham o pacote em components/ e o GameMode tem versao embutida no app; os do sistema, quando existem, tem prioridade.
 Flatpak (pagina Apps) depende do sistema e nao e embutivel: o app indica quando falta e mostra o comando.
-Leia LICENSE, NOTICE.md, LICENSING.md, LICENSE-ILMENYX.md e THIRD-PARTY-NOTICES.md.
-MIT/terceiros e direitos anteriores preservados. Revisao humana antes de distribuir.
+Licenca: PolyForm Noncommercial 1.0.0 + permissao adicional (LICENSES/); partes do RESET EXPLODE tambem MIT.
+Leia LICENSE, LICENSES/, NOTICE.md, LICENSING.md e THIRD-PARTY-NOTICES.md e mantenha-os junto ao redistribuir.
 Licencas coletadas do cache e dependencies.tsv sao inventario, nao liberacao juridica.
 Nao execute cargas completas para validar instalacao. Nao exige root.
 Verificar integridade neste diretorio: sha256sum --check SHA256SUMS

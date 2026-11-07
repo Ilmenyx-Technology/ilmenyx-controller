@@ -1,4 +1,5 @@
 # Relatório de licenciamento do Ilmenyx: 2026-11-07
+<!-- REUSE-IgnoreStart -->
 
 > **Aviso:** este relatório é uma orientação técnica e didática. Não é parecer jurídico e não substitui
 > um advogado. Ao final digo em que pontos vale a pena pagar por uma revisão profissional.
@@ -452,3 +453,4 @@ Vale pagar uma consulta (de preferência com quem trabalha com propriedade intel
 
 Para todo o resto (avisos de terceiros, SPDX, OpenRGB, privacidade e contribuições), o checklist acima
 basta e você mesmo consegue fazer.
+<!-- REUSE-IgnoreEnd -->

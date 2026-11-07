@@ -1,0 +1,32 @@
+Ilmenyx — nome e identidade visual / name and visual identity
+SPDX: LicenseRef-Ilmenyx-Marca
+
+Copyright (c) 2026 Flávio (mantido como Bismuth Technology) — https://github.com/Bismuth-Technology/ilmenyx
+
+PORTUGUÊS (esta versão prevalece)
+
+O nome Ilmenyx, o logo, o símbolo, os ícones do aplicativo e o manual de marca (arquivos marcados
+com LicenseRef-Ilmenyx-Marca) pertencem ao titular acima. Todos os direitos reservados, exceto:
+
+- você pode copiar e redistribuir esses arquivos sem modificação junto com cópias do Ilmenyx
+  permitidas pela LICENSE e pela permissão adicional; e
+- você pode usar o nome e o logo para se referir ao próprio Ilmenyx (por exemplo em artigos,
+  vídeos, análises e lojas de aplicativos), sem sugerir endosso ou afiliação.
+
+O nome e o logo não são licenciados para produtos, serviços ou versões modificadas de outras
+pessoas: uma versão modificada distribuída por terceiros deve usar outro nome e outro ícone.
+Este texto não afirma que exista registro de marca.
+
+ENGLISH (translation; the Portuguese version prevails)
+
+The name Ilmenyx, the logo, the symbol, the application icons and the brand manual (files marked
+LicenseRef-Ilmenyx-Marca) belong to the holder above. All rights reserved, except:
+
+- you may copy and redistribute these files unmodified together with copies of Ilmenyx allowed by
+  LICENSE and the additional permission; and
+- you may use the name and the logo to refer to Ilmenyx itself (for example in articles, videos,
+  reviews and app stores), without suggesting endorsement or affiliation.
+
+The name and the logo are not licensed for other people's products, services or modified
+versions: a modified version distributed by a third party must use another name and icon.
+This text does not claim that any trademark is registered.

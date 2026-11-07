@@ -209,19 +209,26 @@ Veja [PRIVACY.md](PRIVACY.md) e [SECURITY.md](SECURITY.md).
 
 ## Licença e créditos
 
+O Ilmenyx é **gratuito, mas não é open source**: o código próprio está sob a
+[PolyForm Noncommercial 1.0.0](LICENSE) com uma [permissão adicional](LICENSES/LicenseRef-Ilmenyx-Permissao-Adicional.txt).
+
+- **Pode:** usar de graça; usar como ferramenta em trabalho pago (por exemplo, diagnosticar o PC de um
+  cliente e cobrar pelo serviço); instalar no PC do cliente sem cobrar pelo app; fazer vídeos e
+  tutoriais monetizados; redistribuir os pacotes sem modificação de graça, sem exigir cadastro ou
+  anúncio para baixar; modificar para uso interno da empresa.
+- **Não pode:** vender o app ou versões modificadas, cobrar pelo acesso, oferecê-lo como serviço pago ou
+  usar o código dele em produto ou serviço pago.
+- Explicação completa, em português (que prevalece) e inglês: [LICENSING.md](LICENSING.md).
+
 O Ilmenyx é uma adaptação **independente e não oficial** do
 [RESET EXPLODE](https://github.com/GustavoReset/ResetExplode), criado por Gustavo (GustavoReset), sem
 afiliação ou endosso da equipe RESET. O original fica no submódulo `upstream/ResetExplode`, com
-licença e histórico preservados.
+licença e histórico preservados. Os trechos que vêm dele continuam sob a **MIT**
+([LICENSES/MIT.txt](LICENSES/MIT.txt)); a lista desses arquivos está em [NOTICE.md](NOTICE.md).
+Componentes de terceiros: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). Nome e logo:
+[LICENSES/LicenseRef-Ilmenyx-Marca.txt](LICENSES/LicenseRef-Ilmenyx-Marca.txt). Cada arquivo traz um
+cabeçalho SPDX ([REUSE](https://reuse.software)); os que não podem trazer estão em [REUSE.toml](REUSE.toml).
 
-- A parte original continua sob a **MIT** ([LICENSE](LICENSE)).
-- A parte própria tem [termos específicos](LICENSE-ILMENYX.md): pode ser usada como ferramenta
-  profissional, inclusive em serviços pagos de diagnóstico, mas não pode ser vendida, ter o acesso
-  cobrado nem ser copiada para um produto pago.
-- O mapa completo está em [LICENSING.md](LICENSING.md). O conjunto **não** é anunciado como open source OSI.
-- Créditos e avisos: [NOTICE.md](NOTICE.md) e [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
-
-**Pendente de revisão humana:** contato de segurança, titularidade das contribuições, Manual de Marca
-(a identidade visual atual é provisória) e licenças de assets. Veja o
-[checklist pré-publicação](docs/legal/PRE-RELEASE-CHECKLIST.md). Material sem direitos comprovados não
-deve ser redistribuído até essa revisão.
+Contribuições de código externas não são aceitas por enquanto; issues são bem-vindas
+([CONTRIBUTING.md](CONTRIBUTING.md)). Pendências antes de tornar o repositório público:
+[checklist pré-publicação](docs/legal/PRE-RELEASE-CHECKLIST.md).

@@ -11,7 +11,7 @@ CLI real e regressões Wayland/X11. Não há botão novo HTML de resultados na U
 
 A política própria permite usar Ilmenyx como ferramenta em serviços pagos, inclusive diagnóstico
 e entrega de relatórios. Não autoriza vender o programa, cobrar acesso nem copiar/incorporar o
-código próprio para produto/serviço pago. [Termos](../LICENSE-ILMENYX.md) e [mapa](../LICENSING.md);
+código próprio para produto/serviço pago. Termos então em LICENSE-ILMENYX.md (substituído em 2026-11-07 pela PolyForm Noncommercial 1.0.0 + permissão adicional: [LICENSING.md](../LICENSING.md));
 MIT/terceiros e direitos já concedidos preservados, revisão jurídica antes de publicação.
 
 Pasta/repositório local: `/mnt/HDD/Github/Ilmenyx`; branch `feat/ilmenyx-linux`. O repositório

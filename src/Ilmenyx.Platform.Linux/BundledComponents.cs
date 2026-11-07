@@ -1,4 +1,6 @@
-// New Ilmenyx additions: see LICENSING.md; third-party components retain their terms (MangoHud: MIT, OpenRGB: GPL-2.0-only).
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// Third-party components retain their terms (MangoHud: MIT, OpenRGB: GPL-2.0-only).
 using System.Text;
 using Ilmenyx.Core;
 

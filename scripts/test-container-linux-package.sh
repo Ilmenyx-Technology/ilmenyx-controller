@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# New Ilmenyx additions: see LICENSING.md. Local non-root container diagnostics only.
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+# Local non-root container diagnostics only.
 set -euo pipefail
 if [[ $# != 4 || $2 != /* || $3 != /* || $4 != /* ]]; then
   echo 'Uso: bash scripts/test-container-linux-package.sh IMAGEM_LOCAL /bundle /runtime-sem-sdk /saida-nova' >&2

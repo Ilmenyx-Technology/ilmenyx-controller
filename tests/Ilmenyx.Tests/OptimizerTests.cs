@@ -1,4 +1,6 @@
-// New Ilmenyx additions: see LICENSING.md. Nenhum sinal real é enviado: o envio de SIGTERM é injetado e opera só sobre diretórios de fixture.
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// Nenhum sinal real é enviado: o envio de SIGTERM é injetado e opera só sobre diretórios de fixture.
 using Ilmenyx.Core;
 using Ilmenyx.Platform.Linux;
 using Xunit;

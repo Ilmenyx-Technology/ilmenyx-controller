@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
 // New Ilmenyx additions (the original OSD is a transparent always-on-top click-through window): see LICENSING.md.
 using Avalonia;
 using Avalonia.Controls;

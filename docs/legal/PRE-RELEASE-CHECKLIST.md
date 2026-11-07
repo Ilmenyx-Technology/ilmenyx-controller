@@ -9,8 +9,8 @@ não equivalem a conformidade legal. Publicação permanece sem autorização ne
 | [~] Busca INPI Ilmenyx e Bismuth Technology, radicais/fonética/classes (avaliar 9/42 conforme atividade) | `docs/legal/BUSCA-MARCA-2026-11-07.md` (INPI, USPTO, web, domínios); WIPO/TMview/EUIPO exigem consulta manual | PARCIAL: Ilmenyx risco baixo; Bismuth risco médio | Titular/especialista definir abrangência/decisão; sem afirmar marca livre/registrada |
 | [ ] Busca internacional, uso comercial, handles/domínios | Não realizada | PENDENTE DE REVISÃO | Domínio/handle livre não comprova direito |
 | [ ] Eventual depósito/titular/custeio | Nenhuma ação/registro | PENDENTE DE REVISÃO | Aprovação formal; sem símbolo de registro |
-| [ ] Autoria/cessões/contribuições/identidade | OWNERSHIP-AND-CONTRIBUTIONS.md | PENDENTE DE REVISÃO | Não presumir pessoa jurídica ou transferência de direitos |
-| [ ] LICENSE/copyright/upstream/Sobre | Arquivos preservados e testes; validação técnica local | IMPLEMENTADO; revisão final humana pendente | Conferir pacote e provenance antes de release |
+| [~] Autoria/cessões/contribuições/identidade | OWNERSHIP-AND-CONTRIBUTIONS.md, COPYRIGHT-AND-CONTRIBUTIONS.md, CONTRIBUTING.md (sem código externo), 2026-11-07 | Titular: mantenedor pessoa física; Silex = mantenedor | Falta o nome civil completo nos avisos (PENDENCIAS #3); cessão à empresa só por contrato |
+| [x] Licença: LICENSE/LICENSES/SPDX/REUSE/Sobre/pacotes | PolyForm Noncommercial 1.0.0 + permissão adicional (PT prevalece); MIT do RESET em LICENSES/MIT.txt; cabeçalho SPDX em src/tests/tools/scripts/packaging; REUSE.toml; metainfo `MIT AND PolyForm-Noncommercial-1.0.0`; 2026-11-07 | IMPLEMENTADO | Revisão breve da permissão adicional por advogado antes de criar a empresa (PENDENCIAS #4) |
 | [ ] Dependências/assets/fontes/drivers/binários | THIRD-PARTY-INVENTORY.md | BLOQUEADO onde direitos não demonstrados | BLOQUEIA REDISTRIBUIÇÃO ATÉ REVISÃO; excluir itens desconhecidos |
 | [ ] Dados/privacidade/evidências históricas | PRIVACY.md e auditoria inicial | IMPLEMENTADO; PENDENTE DE REVISÃO | Rever logs/histórico, contatos, retenção e obrigações reais |
 | [ ] Segurança, benchmarks, cancelamento e vulnerabilidades | Testes/limites e consulta NuGet nesta sessão | IMPLEMENTADO parcialmente; full NÃO TESTADO | Definir canal privado e validar casos Sem_teste.md sem stress automático |
@@ -29,7 +29,8 @@ Consulta de guias não é pesquisa de anterioridade, registro ou parecer de disp
 
 ## Política comercial posterior
 
-[PENDENTE DE REVISÃO / BLOQUEIA PUBLICAÇÃO] Revisar LICENSE-ILMENYX.md e LICENSING.md, titulares
-e fronteiras próprias/MIT. Pedido esclarecido: uso como ferramenta em trabalho remunerado
-permitido; venda/acesso pago/derivação comercial de código próprio não autorizados. Não é
-open source OSI nem proibição sobre o material original MIT. Nenhuma cessão inferida.
+IMPLEMENTADO em 2026-11-07: a política comercial está na própria licença (PolyForm Noncommercial 1.0.0 +
+permissão adicional) e é explicada em LICENSING.md. LICENSE-ILMENYX.md foi removido. Uso como ferramenta
+em trabalho pago, instalação no PC do cliente, vídeos monetizados, redistribuição gratuita e modificação
+interna são permitidos; venda, acesso pago e derivados comerciais não. Os trechos MIT continuam MIT.
+Não é open source OSI. Não é parecer jurídico.

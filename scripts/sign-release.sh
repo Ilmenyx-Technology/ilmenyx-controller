@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# New Ilmenyx additions: see LICENSING.md.
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
 # Detached ASCII signatures (<file>.asc) for release files, made with the Ilmenyx release signing subkey (docs/assinatura-gpg.md).
 # The primary key stays offline with the maintainer; this machine only holds the signing subkey. Signs; publishes nothing.
 set -euo pipefail

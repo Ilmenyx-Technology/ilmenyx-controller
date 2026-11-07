@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT AND PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Gustavo (GustavoReset)
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
 // New Ilmenyx additions (layout follows the original System page: category list, detail card, drive rings; machine hero 2026-11-06): see LICENSING.md.
 using Avalonia;
 using Avalonia.Automation;

@@ -1,4 +1,6 @@
-// New Ilmenyx additions: see LICENSING.md. Manipulador HTTP falso: nenhuma requisição real é feita.
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// Manipulador HTTP falso: nenhuma requisição real é feita.
 using System.Net;
 using System.Net.Http;
 using Ilmenyx.Core;

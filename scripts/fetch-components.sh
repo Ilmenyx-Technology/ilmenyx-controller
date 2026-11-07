@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# New Ilmenyx additions: see LICENSING.md; third-party components retain their terms.
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+# Third-party components retain their terms.
 # Developer/packaging step (not run by the app, tests or CI): downloads the pinned upstream builds that travel inside the package.
 # Every download is verified against a pinned SHA-256 before use. Nothing is installed or elevated.
 set -euo pipefail
