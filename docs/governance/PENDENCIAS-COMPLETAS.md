@@ -64,3 +64,9 @@ Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes qu
 - [ ] **Tornar o repositório e a release públicos** quando eu disser que a validação está suficiente.
 - [ ] Problemas encontrados que o app pode detectar e oferecer correção: `docs/problemas-conhecidos.md` (botão "Forçar fechamento do
   jogo", aviso de temperatura alta no jogo — a CPU chegou a 100 °C, Wi-Fi gerando milhares de erros PCIe no log, Alt+Tab).
+- [ ] **HowManyFPS**: o cliente do app provavelmente usa a API errada (host/campos supostos, nunca testado com chave real). Pedir acesso
+  pelo "Get API Access" do site explicando o Ilmenyx (app gratuito, não comercial), obter a documentação real, corrigir o cliente e só
+  então decidir sobre chave compartilhada via proxy com cache (precisa de autorização escrita deles). Não embutir chave no app.
+  Detalhes: `docs/pesquisa-linuxtoys-howmanyfps-2026-11-07.md`.
+- [ ] **Ideias do LinuxToys** (só ideias; o código é GPL-3.0, incompatível): diagnóstico "por que o Proton/Flatpak não abre", cache de
+  shader maior por usuário, mais apps de jogo no instalador, ZRAM pela via oficial da distro, opções por jogo (Proton Wayland, low-latency).
