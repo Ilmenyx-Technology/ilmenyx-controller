@@ -1,0 +1,16 @@
+2026-11-07T23:22:41-03:00
+$ lsusb
+Bus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
+Bus 001 Device 003: ID 0bda:9201 Realtek Semiconductor Corp. RTL9201
+Bus 001 Device 004: ID 0bda:5689 Realtek Semiconductor Corp. Integrated Webcam
+Bus 001 Device 005: ID 0bda:0129 Realtek Semiconductor Corp. RTS5129 Card Reader Controller
+Bus 001 Device 006: ID 0cf3:e007 Qualcomm Atheros Communications 
+Bus 002 Device 001: ID 1d6b:0003 Linux Foundation 3.0 root hub
+Bus 002 Device 003: ID 0951:1666 Kingston Technology DataTraveler 100 G3/G4/SE9 G2/50 Kyson
+
+Dispositivos USB com idVendor da lista RGB do Ilmenyx e as classes das interfaces (03 = HID, 08 = armazenamento):
+2-1 0951:1666 Kingston / DataTraveler 3.0
+  interface 2-1:1.0 bInterfaceClass=08
+
+$ command -v openrgb
+(não instalado no sistema)

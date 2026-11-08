@@ -62,7 +62,7 @@ public class HelpContentTests
     {
         var keys = ShellPageKeys();
         var tour = HelpContent.For(language).Tour;
-        Assert.InRange(tour.Count, 8, 10);
+        Assert.InRange(tour.Count, 10, 14);
         Assert.Equal(tour.Count, tour.Select(t => t.Id).Distinct().Count());
         foreach (var step in tour)
         {
@@ -72,16 +72,25 @@ public class HelpContentTests
             Assert.False(string.IsNullOrWhiteSpace(step.Title), step.Id);
             // 2–3 short sentences: count sentence ends (., ? or ! followed by a space or the end).
             int sentences = Regex.Matches(step.Body.Trim(), @"[.?!](\s|$)").Count;
-            Assert.InRange(sentences, 1, 3);
+            Assert.InRange(sentences, 2, 3);
         }
     }
 
-    [Fact]
-    public void TheTourCoversTheMainAreas()
+    [Theory, MemberData(nameof(AllLanguages))]
+    public void TheTourCoversEverySidebarPage(string language)
     {
-        var pagesVisited = HelpContent.For().Tour.SelectMany(t => t.Highlights.Append(t.PageKey)).ToHashSet();
-        foreach (var key in new[] { "dash", "sensorfix", "system", "launcher", "compat", "fps", "bench", "stress", "overlay", "optimize", "driver", "apps", "search", "theme", "help" })
-            Assert.Contains(key, pagesVisited);
+        var tour = HelpContent.For(language).Tour;
+        var pagesVisited = tour.SelectMany(t => t.Highlights.Append(t.PageKey)).ToHashSet();
+        foreach (var key in ShellPageKeys()) Assert.True(pagesVisited.Contains(key), "no tour step covers the sidebar page " + key);
+        foreach (var anchor in new[] { "sensorfix", "search", "theme", "pagehelp" }) Assert.Contains(anchor, pagesVisited);
+        // A highlighted page is named in its step, so the user reads what the outlined tab is for.
+        var titles = HelpContent.For(language).Sections.ToDictionary(s => s.Key, s => s.Title);
+        foreach (var step in tour)
+            foreach (var h in step.Highlights.Where(titles.ContainsKey).Where(h => step.Highlights.Count > 1 && h != "help"))
+            {
+                string name = titles[h].Replace("Maker · ", "").Replace(" (!)", "").Split(' ')[0];
+                Assert.True(step.Body.Contains(name, StringComparison.OrdinalIgnoreCase), $"{step.Id}: body does not name {h} ({name})");
+            }
     }
 
     [Fact]

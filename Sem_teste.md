@@ -588,3 +588,9 @@ três processos .NET reais gravando 300 atualizações cada no mesmo arquivo (90
 - "Instalar jogo de Windows" (fast exec: instalador num prefixo descartável, destino como D:, limpeza): testes de unidade e de
   interface ok. NÃO TESTADO: um instalador real até o fim.
 - Tour de boas-vindas e Central de ajuda (`docs/tutorial.md`): textos em `HelpContent`, testes unitários e smoke com eventos no processo. NÃO TESTADO: primeira execução real (permissões + boas-vindas em sequência numa instalação limpa), teclado físico e leitor de tela (Orca).
+- Bloqueados + tour (2026-11-07, `docs/evidencias/bloqueados-2026-11-07/`): os dois "Teste disponível" do Dell rodados — NVIDIA 940MX
+  validada de novo (sensores = nvidia-smi, stress 6 s 29,4 FPS, cena 6 s nota 172, CPU máx. 76 °C, 0 Xid) e o item virou "NVIDIA de
+  desktop/RTX"; RGB era falso positivo (pendrive Kingston; a sonda agora exige interface HID). Item AMD separa integrada (validada) de
+  dedicada (não testada). Saíram da lista os itens "não se aplica" e o WinRAR (`docs/bloqueados-removidos.md`); PeaZip no catálogo.
+  Tour com 13 passos cobrindo todas as páginas do menu. NÃO TESTADO: instalar o PeaZip pelo app e abrir um .rar de verdade; sonda
+  de AMD dedicada (gpu_metrics/ventoinha) e de RGB HID só com fixtures; tour com leitor de tela.

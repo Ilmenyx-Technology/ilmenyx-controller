@@ -572,6 +572,7 @@ public sealed class UiSmokeApp : Application
         if (OperatingSystem.IsLinux()) await OverviewSummaryAsync(shell);
         await TourAndHelpAsync(shell, desktop);
         await ThemeAsync(shell);
+        if (OperatingSystem.IsLinux()) await BlockedAndFullTourAsync(shell);
         await ToastAsync(shell);
         Click(shell, "SortMemory"); await Until(() => Find<Button>(shell, "SortMemory").Content!.ToString()!.Contains('▼'));
         Click(shell, "ToggleMonitor");
@@ -1037,8 +1038,7 @@ public sealed class UiSmokeApp : Application
         {
             var chip = (TextBlock)Find<Border>(shell, "BlockedChip_" + f.Id).Child!;
             string text = chip.Text ?? "";
-            if (!(text.Contains("BLOQUEADO") || text.Contains("TESTE DISPONÍVEL") || text.Contains("NÃO SE APLICA"))) throw new InvalidOperationException("Unexpected state text for " + f.Id + ": " + text);
-            if (f.Kind == Ilmenyx.Core.BlockReason.WindowsOnly && !text.Contains("NÃO SE APLICA")) throw new InvalidOperationException(f.Id + " must be not applicable.");
+            if (!(text.Contains("BLOQUEADO") || text.Contains("TESTE DISPONÍVEL"))) throw new InvalidOperationException("Unexpected state text for " + f.Id + ": " + text);
         }
         var details = Find<StackPanel>(shell, "BlockedDetails_rt-bench"); bool before = details.IsVisible;
         Click(shell, "BlockedWhy_rt-bench"); if (details.IsVisible == before) throw new InvalidOperationException("(!) must toggle the reason.");
@@ -1046,7 +1046,7 @@ public sealed class UiSmokeApp : Application
         string summary = Find<TextBlock>(shell, "BlockedSummary").Text ?? "";
         if (summary.Length == 0) throw new InvalidOperationException("Summary missing.");
         shell.Select("dash");
-        Console.WriteLine("PASS blocked page: one card per blocked feature, state chips, (!) toggles the reason, Windows-only items are not applicable");
+        Console.WriteLine("PASS blocked page: one card per blocked feature, state chips, (!) toggles the reason");
     }
 
     private static async Task LightingAsync(ShellWindow shell, IClassicDesktopStyleApplicationLifetime desktop)
@@ -1765,5 +1765,46 @@ public sealed class UiSmokeApp : Application
         await Task.Delay(80); Capture(window, "validation-panels.png");
         Console.WriteLine("PASS sensor monitor start/stop and UI export");
         await LayoutAsync(window, desktop);
+    }
+
+    /// <summary>Bloqueados without "não se aplica"/WinRAR, the precise AMD item, PeaZip in the apps catalogue, and a tour that reaches every sidebar page.</summary>
+    private static async Task BlockedAndFullTourAsync(ShellWindow shell)
+    {
+        if (Ilmenyx.Core.BlockedCatalog.All.Any(f => f.Id is "windows-tweaks" or "usb-cleaner" or "winrar")) throw new InvalidOperationException("Items that do not exist on Linux must not be listed.");
+        if (!Ilmenyx.Core.AppCatalog.Default().Any(a => a.FlatpakId == "io.github.peazip.PeaZip")) throw new InvalidOperationException("PeaZip must replace WinRAR in the apps catalogue.");
+        double w = shell.Width, h = shell.Height;
+        shell.Width = 900; shell.Height = 560; await Task.Delay(400);
+        shell.Select("blocked"); await Task.Delay(300);
+        var texts = Find<StackPanel>(shell, "BlockedList").GetLogicalDescendants().OfType<TextBlock>().Select(t => t.Text ?? "").ToList();
+        if (texts.Any(t => t.Contains("NÃO SE APLICA") || t.Contains("WinRAR"))) throw new InvalidOperationException("Blocked page still shows a not-applicable or WinRAR item.");
+        var amd = Find<StackPanel>(shell, "BlockedDetails_gpu-amd");
+        if (!amd.IsVisible) Click(shell, "BlockedWhy_gpu-amd");
+        if (!amd.Children.OfType<TextBlock>().Any(t => (t.Text ?? "").Contains("integrada foi validada") && (t.Text ?? "").Contains("dedicada não foi testada"))) throw new InvalidOperationException("AMD item must separate integrated (validated) from dedicated (untested).");
+        await Task.Delay(300); Capture(shell, "blocked-dark-900x560.png");
+        Click(shell, "ToggleTheme"); await Until(() => Palette.IsLight); await Task.Delay(400); Capture(shell, "blocked-light-900x560.png");
+        Click(shell, "ToggleTheme"); await Until(() => !Palette.IsLight);
+        Click(shell, "BlockedWhy_gpu-amd");
+        var tour = HelpContent.For().Tour; var covered = new HashSet<string>();
+        shell.StartTour(); await Until(() => shell.TourStepIndex == 0);
+        for (int i = 0; i < tour.Count; i++)
+        {
+            await Until(() => shell.TourStepIndex == i && shell.CurrentPage == tour[i].PageKey && Find<TextBlock>(shell, "TourTitle").Text == tour[i].Title);
+            await Task.Delay(350);
+            var card = Find<Border>(shell, "TourCard"); var at = card.TranslatePoint(default, shell)!.Value;
+            if (at.Y < 0 || at.Y + card.Bounds.Height > shell.Bounds.Height + 0.5 || at.X + card.Bounds.Width > shell.Bounds.Width + 0.5) throw new InvalidOperationException($"Tour card outside the 900x560 window at step {tour[i].Id}.");
+            if (!shell.GetVisualDescendants().OfType<Border>().Any(b => b.Name == "TourRing" && b.IsEffectivelyVisible)) throw new InvalidOperationException("Tour step without a highlight: " + tour[i].Id);
+            foreach (var key in tour[i].Highlights.Append(tour[i].PageKey)) covered.Add(key);
+            if (tour[i].Id is "maker" or "tools" or "install" or "report")
+            {
+                Capture(shell, $"tour-{tour[i].Id}-dark.png");
+                Click(shell, "ToggleTheme"); await Until(() => Palette.IsLight); await Task.Delay(400); Capture(shell, $"tour-{tour[i].Id}-light.png");
+                Click(shell, "ToggleTheme"); await Until(() => !Palette.IsLight); await Task.Delay(200);
+            }
+            if (i < tour.Count - 1) Click(shell, "TourNext");
+        }
+        var missing = shell.PageKeys.Where(k => !covered.Contains(k)).ToList();
+        if (missing.Count > 0) throw new InvalidOperationException("Tour does not cover: " + string.Join(", ", missing));
+        shell.EndTour(); shell.Width = w; shell.Height = h; shell.Select("dash"); await Task.Delay(300);
+        Console.WriteLine($"PASS blocked page and full tour: no not-applicable/WinRAR items, AMD integrated vs dedicated explained, PeaZip in the catalogue; {tour.Count} tour steps cover all {shell.PageKeys.Count} sidebar pages, card and highlight inside 900x560 in both themes");
     }
 }
