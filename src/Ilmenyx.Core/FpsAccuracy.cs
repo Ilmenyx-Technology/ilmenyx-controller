@@ -128,7 +128,7 @@ public static class FpsAccuracy
 
 /// <summary>Local hardware facts the FPS page uses for alerts. Null = could not be read (no alert is shown from a guess).</summary>
 public sealed record FpsContext(string GpuName, string GpuVendorId, string GpuDeviceId, string GpuDriver, bool GpuIntegrated, ulong GpuVramBytes,
-    string? OtherIntegratedGpu, bool? OnBattery, int ProfilesWithPrime, int Profiles);
+    string? OtherIntegratedGpu, bool? OnBattery, int ProfilesWithPrime, int Profiles, string GpuDriverVersion = "", int? GpuMaxCoreMHz = null);
 
 public sealed record FpsAlert(string Title, string Text);
 
@@ -221,11 +221,12 @@ public static class MangoHudSession
     }
 
     /// <summary>Session to keep, or null when it does not count (no samples or shorter than <see cref="FpsSession.MinSeconds"/>).</summary>
-    public static FpsSession? ToSession(MangoHudSessionStats? stats, string game, DateTimeOffset at, string? resolution)
+    public static FpsSession? ToSession(MangoHudSessionStats? stats, string game, DateTimeOffset at, string? resolution, string? preset = null, string? upscaling = null)
     {
         if (stats is null || stats.Samples == 0 || stats.DurationSeconds < FpsSession.MinSeconds || !double.IsFinite(stats.AvgFps) || stats.AvgFps <= 0) return null;
         string name = game.Trim(); if (name.Length == 0) return null;
         return new(name.Length > 120 ? name[..120] : name, at, Math.Round(stats.AvgFps, 1), double.IsFinite(stats.Low1Fps) ? Math.Round(stats.Low1Fps, 1) : 0,
-            Math.Round(stats.DurationSeconds), stats.Gpu, resolution is { } r && r != "default" ? r : null);
+            Math.Round(stats.DurationSeconds), stats.Gpu, resolution is { } r && r != "default" ? r : null,
+            preset is "Baixo" or "Médio" or "Alto" or "Ultra" ? preset : null, upscaling is "Native" or "Quality" or "Performance" ? upscaling : null);
     }
 }

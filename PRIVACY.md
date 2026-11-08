@@ -62,8 +62,8 @@ direitos e eventual aplicação de LGPD/ANPD: PENDENTE DE REVISÃO humana confor
 
 ## Outros acessos à internet (sempre por ação sua)
 
-- **Estimativa de FPS com HowManyFPS (opcional):** só se você cadastrar a sua chave. Envia a `howmanyfps.com` o **modelo da CPU, o
-  modelo da GPU, o jogo e a resolução**, junto com a sua chave. Sem chave, a estimativa é 100% local.
+- **Estimativa de FPS:** não usa a internet; tudo é calculado no seu PC. (A consulta opcional à HowManyFPS, com chave do usuário,
+  foi removida em 2026-11-08; uma chave salva por versões antigas é apagada do `settings.json` na próxima gravação.)
 - **Teste de rede (página Rede):** baixa e envia cerca de 100 MB de/para `speed.cloudflare.com` e mede a latência até `1.1.1.1` e
   `8.8.8.8`. Esses serviços veem o seu IP, como em qualquer teste de velocidade.
 - **Driver NVIDIA:** a verificação da versão mais recente consulta `download.nvidia.com` (lista pública de versões); nada sobre o

@@ -6,11 +6,13 @@ namespace Ilmenyx.Core;
 
 /// <summary>
 /// Jogo do catálogo. Valores de referência APROXIMADOS (compilados de benchmarks públicos) usados só
-/// pela estimativa local, quando a API da HowManyFPS não está configurada:
+/// pela estimativa local (calculada no PC, sem internet):
 /// GpuRef = FPS médio em 1080p/Alto numa RTX 4070 (índice 100); CpuCap = teto de FPS limitado pela CPU
 /// num Ryzen 7 7700X (índice 100); EngineCap = trava de FPS do próprio jogo (0 = sem trava).
+/// GpuExp = sensibilidade do jogo à força da GPU (Ilmenyx, 2026-11-08): FPS da GPU = GpuRef × (índice/100)^GpuExp. 1 = proporcional
+/// (jogos pesados); menor que 1 = jogo leve, que cai bem menos que o índice em GPUs fracas. Fontes e contas: docs/fps-estimativa.md.
 /// </summary>
-public record GameInfo(string Name, string Genre, double GpuRef, double CpuCap, double EngineCap = 0);
+public record GameInfo(string Name, string Genre, double GpuRef, double CpuCap, double EngineCap = 0, double GpuExp = 1.0);
 
 public enum Bottleneck { None, Gpu, Cpu, Engine }
 
@@ -18,14 +20,19 @@ public record FpsEstimate(double Avg, double Low1, Bottleneck Limiter);
 
 public static class GameCatalog
 {
-    // O nome é enviado à API como está, então segue a grafia usada pela HowManyFPS.
+    // Os nomes seguem a grafia das lojas; sessões medidas casam com eles pelo nome normalizado (FpsAccuracy.LatestSession).
     public static readonly GameInfo[] Games =
     {
         new("Counter-Strike 2", "FPS competitivo", 340, 420),
-        new("Valorant", "FPS competitivo", 600, 650),
+        // GpuExp 0,73: ajuste aos três níveis oficiais da Riot (30 FPS Intel HD 4000, 60 FPS GT 730, 144 FPS GTX 1050 Ti;
+        // support.riotgames.com/en-us/valorant/support-tools/minimum-recommended-pc-specs, lido em 2026-11-08), supondo Alto/1080p.
+        new("Valorant", "FPS competitivo", 600, 650, 0, LightValorant),
         new("Fortnite", "Battle royale", 160, 250),
-        new("League of Legends", "MOBA", 420, 480),
-        new("Dota 2", "MOBA", 260, 280),
+        // GpuExp 0,55: a Riot recomenda Intel UHD 630 para Alto/1920x1080 (support.riotgames.com/en-us/league-of-legends/performance/
+        // minimum-and-recommended-system-requirements-league-of-legends, lido em 2026-11-08); supondo "recomendado" = 60 FPS.
+        // Antes (expoente 1) a 940MX dava 16–44 FPS no Baixo; o mantenedor observa > 100 FPS nesse hardware.
+        new("League of Legends", "MOBA", 420, 480, 0, LightLol),
+        new("Dota 2", "MOBA", 260, 280, 0, LightClass), // expoente da classe "leve" (sem fonte oficial com FPS para o jogo)
         new("Apex Legends", "Battle royale", 220, 300),
         new("PUBG: Battlegrounds", "Battle royale", 180, 220),
         new("Call of Duty: Black Ops 6", "FPS", 140, 220),
@@ -34,9 +41,9 @@ public static class GameCatalog
         new("Rainbow Six Siege", "FPS tático", 350, 430),
         new("Overwatch 2", "FPS heroico", 280, 380),
         new("Marvel Rivals", "FPS heroico", 110, 160),
-        new("Rocket League", "Esporte", 400, 450),
+        new("Rocket League", "Esporte", 400, 450, 0, LightClass), // idem; requisitos da Epic (GTX 760 / GTX 1060) não dizem FPS
         new("EA Sports FC 25", "Esporte", 220, 260),
-        new("Minecraft", "Sandbox", 300, 340),
+        new("Minecraft", "Sandbox", 300, 340, 0, LightClass), // idem
         new("GTA V", "Mundo aberto", 160, 190),
         new("Red Dead Redemption 2", "Mundo aberto", 95, 160),
         new("Cyberpunk 2077", "RPG mundo aberto", 95, 150),
@@ -54,6 +61,9 @@ public static class GameCatalog
         new("Assassin's Creed Shadows", "Ação mundo aberto", 65, 110),
         new("Borderlands 4", "Looter shooter", 55, 110),
     };
+
+    /// <summary>Expoentes de GPU dos jogos leves (ver GameInfo.GpuExp e docs/fps-estimativa.md, seção "Jogos leves").</summary>
+    public const double LightValorant = 0.73, LightLol = 0.55, LightClass = 0.64;
 
     // Desempenho relativo em jogos (raster), RTX 4070 = 100. Aproximado.
     private static readonly (string Key, double Index)[] GpuIndex =
@@ -121,7 +131,8 @@ public static class GameCatalog
 
     public static double ResolutionFactor(string res) => res switch
     {
-        "2560x1440" => 0.72, "3840x2160" => 0.42, _ => 1.0
+        // 720p (Ilmenyx, 2026-11-08): mesma curva do 1440p (0,72 para 0,5625× os pixels → expoente 0,57), 2,25× os pixels → ×1,59.
+        "1280x720" => 1.59, "2560x1440" => 0.72, "3840x2160" => 0.42, _ => 1.0
     };
 
     public static double PresetFactor(string preset) => preset switch
@@ -140,7 +151,7 @@ public static class GameCatalog
     /// <summary>FPS = menor entre o teto da GPU, o teto da CPU e a trava do jogo.</summary>
     public static FpsEstimate Estimate(GameInfo g, double gpuIdx, double cpuIdx, string res, string preset, string upscaling)
     {
-        double gpuFps = g.GpuRef * gpuIdx / 100 * ResolutionFactor(res) * PresetFactor(preset) * UpscalingFactor(upscaling, res);
+        double gpuFps = g.GpuRef * Math.Pow(Math.Max(gpuIdx, 0.01) / 100, g.GpuExp) * ResolutionFactor(res) * PresetFactor(preset) * UpscalingFactor(upscaling, res);
         double cpuFps = g.CpuCap * cpuIdx / 100 * (preset == "Baixo" ? 1.1 : preset == "Ultra" ? 0.95 : 1.0);
 
         double fps = Math.Min(gpuFps, cpuFps);
