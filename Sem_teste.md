@@ -588,3 +588,4 @@ três processos .NET reais gravando 300 atualizações cada no mesmo arquivo (90
 - "Instalar jogo de Windows" (fast exec: instalador num prefixo descartável, destino como D:, limpeza): testes de unidade e de
   interface ok. NÃO TESTADO: um instalador real até o fim.
 - Tour de boas-vindas e Central de ajuda (`docs/tutorial.md`): textos em `HelpContent`, testes unitários e smoke com eventos no processo. NÃO TESTADO: primeira execução real (permissões + boas-vindas em sequência numa instalação limpa), teclado físico e leitor de tela (Orca).
+- Estimativa de FPS com catálogo fixo (rolagem encadeada + botão voltar ao topo), Overlay salvando sozinho (sem botão de gerar) e Relatório com mais contraste (2026-11-07): testes de unidade e smoke com eventos de roda/teclado no processo, 900x560 e 1280x820, claro e escuro. NÃO TESTADO: touchpad real (rolagem suave/inércia), roda física, leitor de tela (Orca), MangoHud real lendo a configuração salva sozinha.

@@ -572,6 +572,7 @@ public sealed class UiSmokeApp : Application
         if (OperatingSystem.IsLinux()) await OverviewSummaryAsync(shell);
         await TourAndHelpAsync(shell, desktop);
         await ThemeAsync(shell);
+        if (OperatingSystem.IsLinux()) await FpsScrollAndContrastAsync(shell);
         await ToastAsync(shell);
         Click(shell, "SortMemory"); await Until(() => Find<Button>(shell, "SortMemory").Content!.ToString()!.Contains('▼'));
         Click(shell, "ToggleMonitor");
@@ -1014,19 +1015,28 @@ public sealed class UiSmokeApp : Application
         if (page.Lines.FirstOrDefault(l => l.Label == "FPS")?.Value.Contains("FPS") == true) throw new InvalidOperationException("Unchecked item must disappear.");
         Click(host, "OvPresetMin"); await page.TickAsync();
         if (page.Lines.Count != 1 || page.Lines[0].Label != "FPS" || !Find<TextBlock>(host, "OverlayPreview").Text!.Contains("98")) throw new InvalidOperationException("Minimal preset must show only the FPS line.");
+        // No button: the selection is saved by itself after a short delay (a burst of clicks writes once).
+        if (host.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnMangoConfig")) throw new InvalidOperationException("The MangoHud config button was removed: saving is automatic.");
+        if (!Find<TextBox>(host, "OvLaunchOption").IsVisible || !Find<TextBox>(host, "OvLaunchOption").Text!.EndsWith("mangohud %command%")) throw new InvalidOperationException("The Steam launch option line must be shown from the start.");
+        await Until(() => !page.SavePending && page.SaveCount >= 1 && File.Exists(config) && Find<TextBlock>(host, "OvSaved").Opacity > 0.5);
+        if (page.SaveCount != 1) throw new InvalidOperationException($"Quick successive changes must be written once (debounced), got {page.SaveCount} saves.");
         if (IlmenyxSettings.Load(settingsPath).OverlayItems is not { } saved || !saved.SequenceEqual(["fps", "frametime", "low1"])) throw new InvalidOperationException("Selection must be persisted.");
         Click(host, "BtnOverlayToggle"); await Until(() => desktop.Windows.OfType<OverlayWindow>().Any(w => w.IsVisible) && Find<Button>(host, "BtnOverlayToggle").Content!.ToString() == "OCULTAR OVERLAY");
         var overlay = desktop.Windows.OfType<OverlayWindow>().Single(w => w.IsVisible);
         await Until(() => overlay.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text!.StartsWith("144 FPS")));
         Click(host, "BtnOverlayToggle"); await Until(() => !overlay.IsVisible && Find<Button>(host, "BtnOverlayToggle").Content!.ToString() == "MOSTRAR OVERLAY");
-        Click(host, "BtnMangoConfig"); await Until(() => File.Exists(config) && Find<TextBox>(host, "OvLaunchOption").IsVisible);
         string text = File.ReadAllText(config);
         if (!text.Contains("position=top-left") || !text.Contains("fps_metrics=avg,0.01") || !text.Contains($"output_folder={logs}") || !Find<TextBox>(host, "OvLaunchOption").Text!.EndsWith("mangohud %command%")) throw new InvalidOperationException("Generated MangoHud config and launch option must follow the selection.");
         if (File.GetUnixFileMode(config) != (UnixFileMode.UserRead | UnixFileMode.UserWrite)) throw new InvalidOperationException("Config must be user-only.");
+        // Corner change: saved by itself into the same file, without any button.
+        Find<StackPanel>(host, "OvCornerPanel").Children.OfType<Button>().Single(b => b.Content?.ToString() == "INFERIOR DIR.").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => !page.SavePending && page.SaveCount == 2 && File.ReadAllText(config).Contains("position=bottom-right"));
+        if (IlmenyxSettings.Load(settingsPath).OverlayCorner != "bottom-right") throw new InvalidOperationException("Corner must be persisted automatically.");
+        await Task.Delay(200); Capture(host, "overlay-autosave.png");
         host.Close();
         Find<Button>(shell, "Navoverlay").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await Until(() => shell.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnOverlayToggle"));
-        Console.WriteLine("PASS overlay page: item picker and presets persist, Ilmenyx overlay window shows/hides with FPS from the frame source, MangoHud config and launch option generated into Ilmenyx's own file (user MangoHud.conf untouched)");
+        Console.WriteLine("PASS overlay page: item picker and presets persist, Ilmenyx overlay window shows/hides with FPS from the frame source, MangoHud config and launch option saved automatically (debounced, one write per burst, \"Salvo\" shown) into Ilmenyx's own file (user MangoHud.conf untouched), no generate button");
     }
     private static async Task BlockedAsync(ShellWindow shell)
     {
@@ -1230,7 +1240,7 @@ public sealed class UiSmokeApp : Application
         var fixture = new Ilmenyx.Core.IlmenyxSettings(); fixture.AddFpsSession(new("Dota 2", new DateTimeOffset(2026, 11, 6, 21, 0, 0, TimeSpan.Zero), 87.4, 52, 1800, "NVIDIA GeForce RTX 4070", "1920x1080")); fixture.Save(settingsPath);
         var ctx = new Ilmenyx.Core.FpsContext("NVIDIA GeForce RTX 4070", "10de", "2786", "nvidia", false, 2UL << 30, null, true, 0, 0);
         var page = new GamesFpsPage(client, new Ilmenyx.Core.IlmenyxSettings(), settingsPath, () => host, () => ("AMD Ryzen 7 7700X 8-Core Processor", "NVIDIA GeForce RTX 4070"), CancellationToken.None, () => ctx);
-        host = new Window { Width = 1100, Height = 900, Content = new ScrollViewer { Content = page } }; host.Show();
+        host = new Window { Width = 1100, Height = 900, Content = page }; host.Show(); // the page scrolls by itself (sticky catalogue)
         await Until(() => page.Rows.Count > 20 && page.Rows.Any(r => r.Fps > 0));
         if (page.GpuIndex != 100 || page.CpuIndex != 100) throw new InvalidOperationException("Hardware indices not resolved from the catalog tables.");
         string CardFps(string name) => host.GetVisualDescendants().OfType<Border>().Single(b => b.Name == "Game_" + LauncherPage.SafeName(name)).GetVisualDescendants().OfType<TextBlock>().First(t => t.FontSize == 28).Text!;
@@ -1765,5 +1775,81 @@ public sealed class UiSmokeApp : Application
         await Task.Delay(80); Capture(window, "validation-panels.png");
         Console.WriteLine("PASS sensor monitor start/stop and UI export");
         await LayoutAsync(window, desktop);
+    }
+    /// <summary>
+    /// Estimativa de FPS chained scrolling (page, then sticky catalogue; up: catalogue first), back-to-top button, keyboard, at 900x560 and
+    /// 1280x820 in both themes; plus screenshots of the Overlay and Relatório pages. Wheel and keys are routed events inside this process.
+    /// </summary>
+    private static async Task FpsScrollAndContrastAsync(ShellWindow shell)
+    {
+        double w0 = shell.Width, h0 = shell.Height; bool light0 = Palette.IsLight;
+        var mouse = new Avalonia.Input.Pointer(Avalonia.Input.Pointer.GetNextFreeId(), Avalonia.Input.PointerType.Mouse, true);
+        foreach (var (w, h) in new[] { (900.0, 560.0), (1280.0, 820.0) })
+        foreach (bool light in new[] { false, true })
+        {
+            if (Palette.IsLight != light) { Click(shell, "ToggleTheme"); await Until(() => Palette.IsLight == light); }
+            shell.Width = w; shell.Height = h;
+            Find<Button>(shell, "Navfps").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            await Until(() => shell.GetVisualDescendants().OfType<GamesFpsPage>().Any(p => p.IsVisible && p.Rows.Count > 20));
+            var page = shell.GetVisualDescendants().OfType<GamesFpsPage>().Single();
+            await Until(() => shell.GetVisualDescendants().OfType<Border>().Any(b => b.Name?.StartsWith("Game_", StringComparison.Ordinal) == true && b.IsEffectivelyVisible));
+            page.ScrollToTop(); await Until(() => page.PageOffset == 0 && page.CatalogOffset == 0); await Task.Delay(400);
+            string tag = $"{w:0}x{h:0}-{(light ? "light" : "dark")}";
+            var scroll = Find<ScrollViewer>(shell, "FpsScroll"); var header = Find<Grid>(shell, "FpsCatalogHeader");
+            var cardsScroll = Find<ScrollViewer>(shell, "GameCardsScroll");
+            if (page.ToTopVisible) throw new InvalidOperationException("Back-to-top must be hidden at the top.");
+            if (page.CatalogViewport < scroll.Viewport.Height - header.Bounds.Height - 45) throw new InvalidOperationException($"Catalogue must fill the window below its header ({tag}): {page.CatalogViewport:0} of {scroll.Viewport.Height:0}.");
+            Capture(shell, $"fps-scroll-{tag}-top.png");
+            var card = shell.GetVisualDescendants().OfType<Border>().First(b => b.Name?.StartsWith("Game_", StringComparison.Ordinal) == true && b.IsEffectivelyVisible);
+            void Wheel(double notches) => card.RaiseEvent(new Avalonia.Input.PointerWheelEventArgs(card, mouse, shell, new Point(10, 10), 0, new Avalonia.Input.PointerPointProperties(), KeyModifiers.None, new Vector(0, notches)));
+            double catalogHeight = cardsScroll.Bounds.Height, last = 0; int guard = 0;
+            // Down over the catalogue: the page scrolls first (catalogue stays at its top) until the header reaches the top.
+            while (page.PageOffset < page.PageMax - 0.5)
+            {
+                Wheel(-1); await Task.Delay(30);
+                if (page.CatalogOffset != 0 && page.PageOffset < page.PageMax - 0.5) throw new InvalidOperationException($"Catalogue scrolled before the page reached the sticky point ({tag}).");
+                if (page.PageOffset < last) throw new InvalidOperationException($"Page offset went backwards while scrolling down: jitter ({tag}).");
+                last = page.PageOffset; if (++guard > 400) throw new InvalidOperationException("Page never reached the sticky point.");
+            }
+            double stickyY() => header.TranslatePoint(new Point(0, 0), scroll)!.Value.Y;
+            double y0 = stickyY();
+            if (Math.Abs(y0 - header.Margin.Top) > 2) throw new InvalidOperationException($"Catalogue header must sit at the top when sticky ({tag}): y={y0:0.0}.");
+            for (int i = 0; i < 4; i++) { Wheel(-1); await Task.Delay(30); }
+            if (page.CatalogOffset < 100 || Math.Abs(page.PageOffset - page.PageMax) > 0.5 || Math.Abs(stickyY() - y0) > 0.5) throw new InvalidOperationException($"Past the sticky point only the catalogue scrolls and the header stays fixed ({tag}).");
+            if (Math.Abs(cardsScroll.Bounds.Height - catalogHeight) > 0.5) throw new InvalidOperationException("Catalogue height changed while scrolling (jitter).");
+            await Until(() => page.ToTopVisible); await Task.Delay(250);
+            Capture(shell, $"fps-scroll-{tag}-sticky.png");
+            // Up: the catalogue returns to its own top first, only then the page above comes back.
+            double pageMax = page.PageOffset; guard = 0;
+            while (page.CatalogOffset > 0)
+            {
+                Wheel(1); await Task.Delay(30);
+                if (page.CatalogOffset > 0 && page.PageOffset < pageMax - 0.5) throw new InvalidOperationException($"Page moved before the catalogue was back at its top ({tag}).");
+                if (++guard > 400) throw new InvalidOperationException("Catalogue never returned to its top.");
+            }
+            Wheel(1); await Task.Delay(30);
+            if (page.PageOffset >= pageMax - 1) throw new InvalidOperationException($"After the catalogue top, scrolling up must move the page ({tag}).");
+            // Keyboard: PageDown/End/Home from the page (focus on the scroll area, as after a click on it).
+            scroll.Focus(); await Task.Delay(30);
+            double before = page.PageOffset; Key(shell, Avalonia.Input.Key.PageDown); await Task.Delay(30);
+            if (page.PageOffset + page.CatalogOffset <= before) throw new InvalidOperationException("PageDown must scroll the page.");
+            Key(shell, Avalonia.Input.Key.End); await Task.Delay(30);
+            if (Math.Abs(page.PageOffset - page.PageMax) > 0.5 || Math.Abs(page.CatalogOffset - page.CatalogMax) > 0.5) throw new InvalidOperationException("End must reach the end of the catalogue.");
+            Key(shell, Avalonia.Input.Key.Home); await Until(() => page.PageOffset == 0 && page.CatalogOffset == 0);
+            // Back-to-top button: one click, animated, then hidden.
+            Key(shell, Avalonia.Input.Key.End); await Until(() => page.ToTopVisible);
+            Click(shell, "BtnFpsToTop"); await Task.Delay(60);
+            if (page.PageOffset == 0 && page.CatalogOffset == 0) throw new InvalidOperationException("Back to top should animate (not jump) when feasible.");
+            await Until(() => page.PageOffset == 0 && page.CatalogOffset == 0 && !page.ToTopVisible);
+            if (w == 900)
+            {
+                foreach (var key in new[] { "overlay", "report" }) { Find<Button>(shell, "Nav" + key).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); await Task.Delay(500); Capture(shell, $"page-{key}-{tag}.png"); }
+                var reportTexts = shell.GetVisualDescendants().OfType<Border>().Where(b => b.Name is "ReportIncluded" or "ReportExcluded").SelectMany(b => b.GetVisualDescendants().OfType<TextBlock>()).ToList();
+                if (reportTexts.Count < 4 || reportTexts.Any(t => t.Foreground != Palette.Fg && t.Foreground != Palette.Muted)) throw new InvalidOperationException("Report titles must use Fg and descriptions Muted (never Faint).");
+            }
+        }
+        if (Palette.IsLight != light0) { Click(shell, "ToggleTheme"); await Until(() => Palette.IsLight == light0); }
+        shell.Width = w0; shell.Height = h0; await Task.Delay(200);
+        Console.WriteLine("PASS fps sticky catalogue: page scrolls first, header sticks, catalogue fills the window and scrolls alone, up returns catalogue first; wheel + PageDown/End/Home; animated back-to-top hidden at top; 900x560 and 1280x820, dark and light; overlay/report screenshots; report text Fg/Muted");
     }
 }
