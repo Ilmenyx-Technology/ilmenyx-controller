@@ -659,7 +659,7 @@ public sealed class UiSmokeApp : Application
             (g, p, v, status, learned, ct) => { launched = g.Key + "|" + p.WinMode; status("stub launched"); return Task.FromResult<Ilmenyx.Core.FpsSession?>(new(g.Name, DateTimeOffset.UtcNow, 61.5, 44, 95, "Fixture GPU", null)); }, () => host, "AMD", true, CancellationToken.None)
         {
             FindSteamId = (name, _) => Task.FromResult<(string, string)?>(name == "Hollow Knight - Silksong" ? ("1030300", "Hollow Knight: Silksong") : null),
-            ConfirmRemove = _ => Task.FromResult(true), UmuProton = () => null,
+            ConfirmRemove = _ => Task.FromResult(true), UmuProton = () => null, AskName = _ => Task.FromResult<string?>("Silksong (teste)"),
         };
         host = new Window { Width = 1100, Height = 800, Content = page }; host.Show();
         await Until(() => page.Games.Count == 1);
@@ -675,6 +675,11 @@ public sealed class UiSmokeApp : Application
         await Until(() => page.Games.Count == 3 && Find<TextBlock>(host, "LTitle").Text == "Hollow Knight - Silksong" && Find<TextBox>(host, "LProtonId").Text == "1030300");
         if (Find<TextBox>(host, "LExePath").Text != winExe) throw new InvalidOperationException("The executable path of a hand-added game must be shown, not left empty.");
         if (!Find<TextBlock>(host, "LProtonIdStatus").Text!.Contains("Hollow Knight: Silksong")) throw new InvalidOperationException("The found Steam ID must say which store game it matched.");
+        Find<TextBox>(host, "LProtonId").Text = "1234567";
+        await Until(() => Find<TextBlock>(host, "LProtonIdStatus").Text!.StartsWith("ID salvo") && page.Profile!.ProtonGameId == "1234567");
+        Click(host, "BtnRenameGame");
+        await Until(() => Find<TextBlock>(host, "LTitle").Text == "Silksong (teste)" && Ilmenyx.Core.IlmenyxSettings.Load(settingsPath).CustomGames.Any(c => c.Exe == winExe && c.Name == "Silksong (teste)"));
+        if (page.Profile!.ProtonGameId != "1234567") throw new InvalidOperationException("Renaming must keep the game's profile.");
         if (!Find<Button>(host, "BtnRemoveGame").IsVisible) throw new InvalidOperationException("A hand-added game must offer REMOVER.");
         Click(host, "BtnRemoveGame");
         await Until(() => page.Games.Count == 2 && Ilmenyx.Core.IlmenyxSettings.Load(settingsPath).CustomGames.All(c => c.Exe != winExe));

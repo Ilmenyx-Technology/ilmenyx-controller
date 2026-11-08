@@ -61,11 +61,14 @@ public sealed class LauncherPage : Grid
     private readonly StackPanel protonBox = new() { Name = "LProtonBox", IsVisible = false, Margin = new Thickness(0, 10, 0, 0) };
     private readonly TextBlock protonIdStatus = new() { Name = "LProtonIdStatus", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) };
     private readonly Button removeGame = new() { Name = "BtnRemoveGame", Content = "REMOVER", FontSize = 11, Padding = new Thickness(12, 6), IsVisible = false };
+    private readonly Button renameGame = new() { Name = "BtnRenameGame", Content = "RENOMEAR", FontSize = 11, Padding = new Thickness(12, 6), IsVisible = false };
     private static readonly SteamAppLookup SteamIds = new();
     /// <summary>Steam ID search by name (default: the Steam store search). Settable for fixtures, so tests never go online.</summary>
     public Func<string, CancellationToken, Task<(string Id, string Name)?>>? FindSteamId { get; init; }
     /// <summary>Asks before removing a game (default: a confirmation dialog). Settable for fixtures.</summary>
     public Func<string, Task<bool>>? ConfirmRemove { get; init; }
+    /// <summary>Asks the new name of a game (default: a text dialog; null = cancelled). Settable for fixtures.</summary>
+    public Func<string, Task<string?>>? AskName { get; init; }
     private readonly TextBlock preview = new() { Name = "LPreview", FontFamily = new FontFamily("monospace"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 10) };
     private readonly TextBlock steamNow = new() { Name = "LSteamNow", Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8) };
     private readonly StackPanel steamBox = new() { Name = "LSteamBox", IsVisible = false };
@@ -195,13 +198,18 @@ public sealed class LauncherPage : Grid
         title.FontSize = 26; title.MaxLines = 2; title.TextTrimming = TextTrimming.CharacterEllipsis;
         sub.FontSize = 12.5; sub.MaxLines = 2; sub.TextTrimming = TextTrimming.CharacterEllipsis; sub.Margin = new Thickness(0, 4, 0, 0);
         play.VerticalAlignment = VerticalAlignment.Bottom; play.Margin = new Thickness(16, 0, 0, 0); play.FontSize = 14;
-        var bottom = new Grid { ColumnDefinitions = new("*,Auto,Auto"), VerticalAlignment = VerticalAlignment.Bottom, Children = { new StackPanel { VerticalAlignment = VerticalAlignment.Bottom, Children = { title, sub } } } };
+        var bottom = new Grid { ColumnDefinitions = new("*,Auto,Auto,Auto"), VerticalAlignment = VerticalAlignment.Bottom, Children = { new StackPanel { VerticalAlignment = VerticalAlignment.Bottom, Children = { title, sub } } } };
         // Games the user added by hand can leave the library again (the files on disk are never touched).
         removeGame.VerticalAlignment = VerticalAlignment.Bottom; removeGame.Margin = new Thickness(16, 0, 0, 0);
         ToolTip.SetTip(removeGame, "Tira o jogo da biblioteca do Ilmenyx. Os arquivos do jogo não são apagados.");
         removeGame.Click += async (_, _) => await RemoveCurrentAsync();
-        Grid.SetColumn(removeGame, 1); bottom.Children.Add(removeGame);
-        Grid.SetColumn(play, 2); bottom.Children.Add(play);
+        renameGame.VerticalAlignment = VerticalAlignment.Bottom; renameGame.Margin = new Thickness(16, 0, 0, 0);
+        ToolTip.SetTip(renameGame, "Muda o nome que aparece na biblioteca.");
+        renameGame.Click += async (_, _) => await RenameCurrentAsync();
+        Grid.SetColumn(renameGame, 1); bottom.Children.Add(renameGame);
+        removeGame.Margin = new Thickness(8, 0, 0, 0);
+        Grid.SetColumn(removeGame, 2); bottom.Children.Add(removeGame);
+        Grid.SetColumn(play, 3); bottom.Children.Add(play);
         var heroContent = new Grid { RowDefinitions = new("Auto,*,Auto"), Children = { heroTags } };
         Grid.SetRow(bottom, 2); heroContent.Children.Add(bottom);
         hero = UiKit.Hero(heroContent, height: 232, name: "LHero");
@@ -264,6 +272,7 @@ public sealed class LauncherPage : Grid
             string digits = new((protonId.Text ?? "").Where(char.IsAsciiDigit).ToArray());
             if (digits != (protonId.Text ?? "")) { protonId.Text = digits; return; }
             profile.ProtonGameId = digits.Length > 0 ? digits : null; SaveProfile(current, profile); UpdateTags();
+            protonIdStatus.Foreground = Palette.Faint; protonIdStatus.Text = digits.Length > 0 ? "ID salvo. Vale na próxima vez que o jogo abrir." : "";
         };
         var presets = new WrapPanel { Name = "LExtraPresets", Margin = new Thickness(0, 8, 0, 14), ItemSpacing = 6, LineSpacing = 6 };
         foreach (var (label, token, hint) in new (string, string, string?)[] { ("Pular intro (-novid)", "-novid", null), ("Sem limite de FPS (+fps_max 0)", "+fps_max 0", null), ("Sem joystick (-nojoy)", "-nojoy", null), ("Abrir console (-console)", "-console", null),
@@ -412,7 +421,7 @@ public sealed class LauncherPage : Grid
         chkPlan.IsChecked = p.HighPerfPlan; chkGpu.IsChecked = p.GpuHigh && multiGpu; chkGameMode.IsChecked = p.GameMode; chkMango.IsChecked = p.MangoHud; chkGuard.IsChecked = p.FullscreenGuard; chkGuard.IsVisible = multiGpu && gpuVendor == "NVIDIA";
         modeChips!.Select(p.WinMode); resChips!.Select(p.Res); hzChips!.Select(p.Hz); styleChips!.Select(p.Style); gfxPresetChips!.Select(p.GfxPreset ?? ""); gfxUpChips!.Select(p.GfxUpscaling ?? ""); extra.Text = p.Extra; exePath.Text = p.ExePath ?? g.ExePath ?? "";
         protonBox.IsVisible = g.IsWindowsManual; protonId.Text = p.ProtonGameId ?? ""; protonIdStatus.Text = "";
-        removeGame.IsVisible = g.Store == "Manual";
+        removeGame.IsVisible = renameGame.IsVisible = g.Store == "Manual";
         chkWayland.IsChecked = p.ProtonWayland; chkLowLat.IsChecked = p.LowLatency; extrasBox.IsVisible = g.IsSteam || g.IsWindowsManual;
         protonName = g.IsSteam ? steam.CompatToolName(g.Id) : g.IsWindowsManual ? (UmuProton ?? (() => LinuxGameExtras.UmuProtonName()))() : null;
         RebuildHelpers();
@@ -521,7 +530,9 @@ public sealed class LauncherPage : Grid
         if (current is not { IsWindowsManual: true } game || profile is not { } p) return;
         if (automatic && p.ProtonGameId is { Length: > 0 }) return;
         protonIdStatus.Foreground = Palette.Faint; protonIdStatus.Text = "Buscando o ID Steam…";
-        var found = await (FindSteamId ?? ((n, ct) => SteamIds.FindAsync(n, ct)))(game.Name, lifetime);
+        var find = FindSteamId ?? ((n, ct) => SteamIds.FindAsync(n, ct));
+        var found = await find(game.Name, lifetime);
+        if (found is null && GameNameFromFolder(game.Id) is { } folderName && folderName != game.Name) found = await find(folderName, lifetime); // "MK10" → "Mortal Kombat XL"
         if (current != game) return;
         if (found is { } f)
         {
@@ -529,7 +540,23 @@ public sealed class LauncherPage : Grid
             p.ProtonGameId = f.Id; SaveProfile(game, p); UpdateTags();
             protonIdStatus.Text = $"ID encontrado na loja Steam: {f.Name}.";
         }
-        else protonIdStatus.Text = automatic ? "" : "Nenhum jogo com esse nome na loja Steam. Informe o ID manualmente.";
+        else protonIdStatus.Text = automatic ? "" : p.ProtonGameId is { Length: > 0 } kept ? $"Nenhum jogo com esse nome na loja Steam. O ID {kept} continua salvo." : "Nenhum jogo com esse nome na loja Steam. Digite o ID no campo.";
+    }
+
+    /// <summary>Renames the selected hand-added game in the library (its profile and files stay the same).</summary>
+    private async Task RenameCurrentAsync()
+    {
+        if (current is not { Store: "Manual" } game) return;
+        string? name = AskName is { } ask ? await ask(game.Name)
+            : owner() is { } window ? await TextInputDialog.AskAsync(window, "Renomear jogo", "Nome que aparece na biblioteca", game.Name) : null;
+        name = name?.Trim();
+        if (string.IsNullOrEmpty(name) || name == game.Name) return;
+        if (name.Length > 80) name = name[..80];
+        string exe = game.Id;
+        void rename(IlmenyxSettings s) { foreach (var c in s.CustomGames.Where(c => c.Exe == exe)) c.Name = name; }
+        if (Save(rename) is { } fresh) settings.CustomGames = fresh.CustomGames; else rename(settings);
+        await ScanAsync(); Select(games.FirstOrDefault(g => g.Store == "Manual" && g.Id == exe));
+        status.Text = "Nome alterado.";
     }
 
     /// <summary>Removes the selected hand-added game (and its profile) from the library after confirmation. Never deletes files.</summary>
