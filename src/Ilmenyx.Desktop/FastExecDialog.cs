@@ -61,7 +61,8 @@ public sealed class FastExecDialog : Window
         var mode = new ComboBox { Name = "FxProtonMode", SelectedIndex = 0, HorizontalAlignment = HorizontalAlignment.Stretch, ItemsSource = new[] {
             "Padrão (Proton mais novo, já instalado)",
             "Clássico de 32 bits (recomendado para instaladores grandes; baixa ~470 MB na 1ª vez)",
-            "GE-Proton mais novo (baixado na 1ª vez)" } };
+            "GE-Proton mais novo (baixado na 1ª vez)",
+            "Wine comum, como o Bottles (para instaladores que falham no Proton)" } };
         AutomationProperties.SetName(mode, "Proton usado para rodar o instalador");
         var ge = new StackPanel { Spacing = 4, Children = { UiKit.Label("PROTON DO INSTALADOR"), mode } };
         var status = new TextBlock { Name = "FxStatus", FontSize = 12, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap };
@@ -87,7 +88,14 @@ public sealed class FastExecDialog : Window
                 { status.Foreground = Palette.Warn; status.Text = "Não consegui preparar o Proton clássico: " + e.Message; start.IsEnabled = true; return; }
                 finally { start.IsEnabled = true; }
             }
-            try { plan = FastExec.Plan((installer.Text ?? "").Trim(), (destination.Text ?? "").Trim(), find, tempRoot, geProton: mode.SelectedIndex == 2, protonPath: mode.SelectedIndex == 1 ? ClassicProton.Folder(classicRoot) : null); }
+            string? wine = null;
+            if (mode.SelectedIndex == 3 && (wine = PlainWine.Find()) is null)
+            {
+                status.Foreground = Palette.Warn;
+                status.Text = "Nenhum Wine comum encontrado. Por enquanto o Ilmenyx usa o Wine que o Bottles baixa (Soda): abra o Bottles uma vez para ele baixar, ou escolha um Proton acima.";
+                return;
+            }
+            try { plan = FastExec.Plan((installer.Text ?? "").Trim(), (destination.Text ?? "").Trim(), find, tempRoot, geProton: mode.SelectedIndex == 2, protonPath: mode.SelectedIndex == 1 ? ClassicProton.Folder(classicRoot) : null, wineBin: wine); }
             catch (Exception e) when (e is ArgumentException or InvalidOperationException) { status.Foreground = Palette.Warn; status.Text = e.Message; return; }
             start.IsEnabled = false; installer.IsEnabled = destination.IsEnabled = pickInstaller.IsEnabled = pickDestination.IsEnabled = false; results.Children.Clear();
             close.Content = "Cancelar"; var cts = running = new CancellationTokenSource();
@@ -100,9 +108,9 @@ public sealed class FastExecDialog : Window
                 status.Foreground = Palette.Muted; status.Text = "Colocando o instalador dentro do Windows temporário…";
                 await Task.Run(() => FastExec.StageInstaller(plan));
                 status.Foreground = Palette.Muted;
-                status.Text = "Instalador aberto. Na primeira vez o Proton prepara o Windows temporário (leva um minuto). Siga as dicas acima.";
+                status.Text = (wine is null ? "Instalador aberto. Na primeira vez o Proton prepara" : $"Instalador aberto com o {PlainWine.Name(wine)}. O Wine prepara") + " o Windows temporário (leva um minuto). Siga as dicas acima.";
                 int code = await this.run(plan, cts.Token);
-                status.Text = code == 0 ? "Instalador finalizado." : $"O instalador terminou com o código {code}." + (FastExec.LatestLog(tempRoot) is { } log ? (mode.SelectedIndex != 1 && ClassicProton.LogShowsAddressSpaceExhaustion(log) ? " O registro mostra que o instalador ficou sem memória de 32 bits: tente de novo com \"Clássico de 32 bits\"." : "") + " Registro: " + log : "");
+                status.Text = code == 0 ? "Instalador finalizado." : $"O instalador terminou com o código {code}." + (FastExec.LatestLog(tempRoot) is { } log ? (mode.SelectedIndex != 3 ? " Se ele mostrou erro de descompactação (ISDone, CRC, unarc), tente de novo com \"Wine comum, como o Bottles\"." : "") + " Registro: " + log : "");
                 finished = code == 0; // a failed installer leaves a half-installed game: do not move it, just clean up
             }
             catch (OperationCanceledException) { status.Text = "Instalação cancelada."; }

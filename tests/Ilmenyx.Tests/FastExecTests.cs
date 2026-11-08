@@ -35,7 +35,7 @@ public sealed class FastExecTests : IDisposable
     public void InstallerRunsInCompatibilityModeWithALogAndOptionalGeProton()
     {
         var plan = FastExec.Plan(Installer, Path.Combine(root, "J"), n => "/usr/bin/" + n, Path.Combine(root, "fx"), "c1");
-        foreach (var k in new[] { "PROTON_NO_FSYNC", "PROTON_NO_ESYNC", "PROTON_NO_NTSYNC" }) Assert.Contains(new KeyValuePair<string, string>(k, "1"), plan.Environment);
+        Assert.DoesNotContain(plan.Environment, e => e.Key.StartsWith("PROTON_NO_", StringComparison.Ordinal)); // fsync/esync stay on (speed)
         Assert.Contains(new KeyValuePair<string, string>("PROTON_USE_XALIA", "0"), plan.Environment);
         Assert.Contains(new KeyValuePair<string, string>("PROTON_LOG_DIR", Path.Combine(root, "fx", "logs")), plan.Environment);
         Assert.DoesNotContain(plan.Environment, e => e.Key == "PROTONPATH");
@@ -185,5 +185,49 @@ public sealed class FastExecTests : IDisposable
         var found = FastExec.NewExecutables(dest, since);
         Assert.Equal(Path.Combine(dest, "My Game/Binaries/Win64/MyGame.exe"), found[0]);
         Assert.DoesNotContain(found, f => f.Contains("unins") || f.Contains("vcredist"));
+    }
+
+    private string FakeRunner(string parent, string name, bool proton = false)
+    {
+        string dir = Path.Combine(parent, name, "bin"); Directory.CreateDirectory(dir);
+        File.WriteAllText(Path.Combine(dir, "wine"), "#!/bin/sh\necho \"wine ran $1\"\nexit 3\n");
+        File.WriteAllText(Path.Combine(dir, "wineserver"), "#!/bin/sh\necho \"waited $1\" >> \"$(dirname \"$0\")/../waited\"\n");
+        if (OperatingSystem.IsLinux()) foreach (var f in new[] { "wine", "wineserver" }) File.SetUnixFileMode(Path.Combine(dir, f), UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        if (proton) File.WriteAllText(Path.Combine(parent, name, "proton"), "#!/usr/bin/env python3");
+        return Path.Combine(dir, "wine");
+    }
+
+    [Fact]
+    public void PlainWineIsFoundInBottlesRunnersButNeverAProton()
+    {
+        string home = Path.Combine(root, "home"), runners = Path.Combine(home, ".var/app/com.usebottles.bottles/data/bottles/runners");
+        Assert.Null(PlainWine.Find(home));
+        FakeRunner(runners, "soda-9.0-1"); string newest = FakeRunner(runners, "soda-11.0-10"); FakeRunner(runners, "ge-proton9-27", proton: true);
+        Assert.Equal(newest, PlainWine.Find(home));
+        Assert.Equal("soda-11.0-10", PlainWine.Name(newest));
+        string own = FakeRunner(Path.Combine(home, ".local/share/ilmenyx/runners"), "wine-11.0-staging");
+        Assert.Equal(own, PlainWine.Find(home)); // the Ilmenyx's own Wine wins
+    }
+
+    [Fact]
+    public async Task PlainWinePlanNeedsNoUmuRunsFromTheStagedCopyAndWaitsForHelpers()
+    {
+        if (!OperatingSystem.IsLinux()) return;
+        string wine = FakeRunner(Path.Combine(root, "runners"), "soda-11.0-10");
+        string fx = Path.Combine(root, "fx");
+        var plan = FastExec.Plan(Installer, Path.Combine(root, "J"), _ => null, fx, "pw", wineBin: wine);
+        Assert.Equal("/bin/sh", plan.Program);
+        Assert.Equal(Path.Combine(plan.TempPrefix, "drive_c", "Instalador", "setup.exe"), plan.Arguments[^1]);
+        Assert.Contains(new KeyValuePair<string, string>("WINEPREFIX", plan.TempPrefix), plan.Environment);
+        Assert.Contains(plan.Environment, e => e.Key == "WINEDLLOVERRIDES" && e.Value.Contains("winemenubuilder.exe=d", StringComparison.Ordinal));
+        FastExec.Prepare(plan); FastExec.StageInstaller(plan);
+        Assert.Equal("../drive_c", new FileInfo(Path.Combine(plan.TempPrefix, "dosdevices", "c:")).LinkTarget); // plain Wine would not make C: itself
+        int code = await FastExec.RunAsync(plan, CancellationToken.None);
+        Assert.Equal(3, code); // the installer's own exit code comes back
+        string log = FastExec.LatestLog(fx)!;
+        Assert.Equal(Path.Combine(fx, "logs", "wine-pw.log"), log);
+        Assert.Contains("wine ran " + plan.Arguments[^1], File.ReadAllText(log));
+        Assert.Contains("waited -w", File.ReadAllText(Path.Combine(root, "runners", "soda-11.0-10", "waited"))); // wineserver -w ran after it
+        FastExec.Cleanup(plan);
     }
 }
