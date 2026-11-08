@@ -1537,10 +1537,11 @@ public sealed class UiSmokeApp : Application
         Window? host = null; var page = new AppsPage(installer, true, () => host, CancellationToken.None);
         host = new Window { Width = 1000, Height = 900, Content = new ScrollViewer { Content = page } }; host.Show();
         await Until(() => host.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnAppsFlathub" && b.IsVisible) && page.Apps.Any(a => a.Installed));
-        if (Find<Button>(host, "BtnAppsInstall").IsEnabled) throw new InvalidOperationException("Install must be disabled until Flathub exists.");
+        if (Find<CheckBox>(host, "App_com_valvesoftware_Steam").IsEnabled) throw new InvalidOperationException("Flathub apps must be unavailable until Flathub exists.");
+        if (!Find<CheckBox>(host, "App_gh_photocraft").IsEnabled) throw new InvalidOperationException("ArtCraft apps (distribution packages) must not need Flathub.");
         Click(host, "BtnAppsFlathub"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
         Click(desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible), "ConfirmYes");
-        await Until(() => flathub && Find<Button>(host, "BtnAppsInstall").IsEnabled);
+        await Until(() => flathub && Find<CheckBox>(host, "App_com_valvesoftware_Steam").IsEnabled);
         if (Find<CheckBox>(host, "App_org_videolan_VLC").IsEnabled) throw new InvalidOperationException("Already installed app must not be selectable.");
         Click(host, "BtnAppsInstall"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
         var no = desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible); Click(no, "ConfirmNo"); await Until(() => !no.IsVisible);

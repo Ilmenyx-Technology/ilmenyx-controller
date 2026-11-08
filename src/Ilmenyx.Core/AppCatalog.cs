@@ -29,8 +29,13 @@ public sealed class InstallableApp
     public string? Branch { get; set; }
     /// <summary>Reason the item cannot be installed here now (null = it can).</summary>
     public string? Unavailable { get; set; }
+    /// <summary>GitHub "owner/repo" whose latest release ships native Linux packages (.deb, .rpm, Arch, AppImage); installed per distribution.</summary>
+    public string GithubRepo { get; init; } = "";
+    /// <summary>Package and file name prefix of those release assets (also the installed command name).</summary>
+    public string PackageName { get; init; } = "";
+    public bool FromGithub => GithubRepo.Length > 0;
     public bool LinkOnly => LinkUrl.Length > 0;
-    public string Key => FlatpakId.Length > 0 ? FlatpakId : "link." + new string(Name.Where(char.IsAsciiLetterOrDigit).ToArray()).ToLowerInvariant();
+    public string Key => FlatpakId.Length > 0 ? FlatpakId : FromGithub ? "gh." + PackageName : "link." + new string(Name.Where(char.IsAsciiLetterOrDigit).ToArray()).ToLowerInvariant();
     /// <summary>Flatpak ref to install: the id, or id//branch for an extension that must match an app's runtime.</summary>
     public string Ref => RuntimeFor.Length > 0 && Branch is { } b ? FlatpakId + "//" + b : FlatpakId;
     public bool Selected { get; set; }
@@ -43,7 +48,7 @@ public static partial class AppCatalog
     [GeneratedRegex("^[A-Za-z0-9][A-Za-z0-9._-]{2,119}\\z", RegexOptions.CultureInvariant)]
     private static partial Regex IdPattern();
     /// <summary>Order of the groups on the page.</summary>
-    public static readonly string[] Categories = ["Essenciais", "Jogos", "Streaming", "Periféricos"];
+    public static readonly string[] Categories = ["Essenciais", "Criação e escritório", "Jogos", "Streaming", "Periféricos"];
     public static bool ValidId(string id) => IdPattern().IsMatch(id) && id.Count(c => c == '.') >= 2;
 
     public static List<InstallableApp> Default() =>
@@ -55,6 +60,15 @@ public static partial class AppCatalog
         // WinRAR has no Linux version; PeaZip (LGPL-3.0, 7-Zip engine) opens and extracts .rar, .zip and .7z on any distribution.
         new() { Name = "PeaZip", Description = "Compactador de arquivos: abre e extrai RAR, ZIP e 7Z (no lugar do WinRAR).", FlatpakId = "io.github.peazip.PeaZip", NativeBinary = "peazip" },
         new() { Name = "VLC", Description = "Player de vídeo e música que abre qualquer formato.", FlatpakId = "org.videolan.VLC", NativeBinary = "vlc" },
+        // ArtCraft (storytold, Apache-2.0, checked 2026-11-08): open-source Rust apps for office, photo and video work. Not on Flathub; each
+        // release ships .deb, .rpm, Arch and AppImage packages with SHA256SUMS. Early alpha, so nothing is pre-selected.
+        Craft("ArtCraft Launcher", "Central que instala, atualiza e abre todos os apps ArtCraft.", "craft-launcher", "artcraft-launcher"),
+        Craft("WordCraft", "Editor de textos, alternativa ao Word.", "wordcraft", "wordcraft"),
+        Craft("GridCraft", "Planilhas, alternativa ao Excel.", "gridcraft", "gridcraft"),
+        Craft("DeckCraft", "Apresentações, alternativa ao PowerPoint.", "deckcraft", "deckcraft"),
+        Craft("PdfCraft", "Leitor e editor de PDF, alternativa ao Acrobat.", "pdfcraft", "pdfcraft"),
+        Craft("PhotoCraft", "Editor de imagens, alternativa ao Photoshop.", "photocraft", "photocraft"),
+        Craft("FilmCraft", "Editor de vídeo, alternativa ao Premiere.", "filmcraft", "filmcraft"),
         new() { Name = "Lutris", Description = "Biblioteca de jogos de várias lojas e emuladores.", FlatpakId = "net.lutris.Lutris", NativeBinary = "lutris", PreSelect = false, Category = "Jogos" },
         new() { Name = "Heroic Games Launcher", Description = "Cliente para jogos da Epic, GOG e Amazon.", FlatpakId = "com.heroicgameslauncher.hgl", NativeBinary = "heroic", PreSelect = false, Category = "Jogos" },
         new() { Name = "ProtonUp-Qt", Description = "Gerencia versões do Proton-GE e do Wine para Steam e Lutris.", FlatpakId = "net.davidotek.pupgui2", NativeBinary = "protonup-qt", PreSelect = false, Category = "Jogos", License = "GPL-3.0" },
@@ -76,6 +90,13 @@ public static partial class AppCatalog
         new() { Name = "input-remapper", Description = "Troca a função de teclas e botões de teclado, mouse e controle.", LinkUrl = "https://github.com/sezanzeb/input-remapper", NativeBinary = "input-remapper-gtk", PreSelect = false, Category = "Periféricos",
             Caveat = "Não está no Flathub porque usa um serviço root. Instale pelo pacote input-remapper da sua distribuição; o Ilmenyx só abre a página do projeto." },
     ];
+
+    private static InstallableApp Craft(string name, string description, string repo, string package) => new()
+    {
+        Name = name, Description = description, GithubRepo = "storytold/" + repo, PackageName = package, NativeBinary = package, PreSelect = false,
+        Category = "Criação e escritório", License = "Apache-2.0",
+        Caveat = "Em fase alfa: pode faltar recursos e ter falhas. Instala o pacote oficial da sua distribuição (pede a senha do sistema).",
+    };
 
     /// <summary>Application ids from <c>flatpak list --app --columns=application</c> (one per line).</summary>
     public static IReadOnlySet<string> ParseFlatpakList(string output) =>

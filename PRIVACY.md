@@ -42,6 +42,14 @@ Inventário e limites: docs/security/PRIVACY-SECURITY-AUDIT.md. Testes de fixtur
 privacidade em todo hardware. Obrigações relacionadas a dados de terceiros, base/retenção/canal de
 direitos e eventual aplicação de LGPD/ANPD: PENDENTE DE REVISÃO humana conforme operação real.
 
+## Apps ArtCraft (página Instalar apps)
+
+- Só ao clicar em INSTALAR SELECIONADOS e confirmar: consulta `api.github.com/repos/storytold/<app>/releases/latest`, baixa de
+  `github.com/storytold/<app>/releases` o pacote da sua distribuição (.deb, .rpm, Arch ou AppImage) e a lista `SHA256SUMS.txt`, e só
+  instala se a soma SHA-256 conferir. O download fica numa pasta temporária em `~/.cache/ilmenyx/downloads` e é apagado depois.
+  .deb/.rpm/Arch são instalados para todo o sistema pela ferramenta da distribuição (apt, dnf/zypper, pacman) com a senha pedida pelo
+  sistema (pkexec); o Ilmenyx não vê a senha. AppImage vai para `~/Applications`, sem senha.
+
 ## ID Steam de jogos de Windows adicionados à mão (página Jogos)
 
 - Ao adicionar um jogo de Windows (ou ao clicar em BUSCAR ao lado do ID), o Ilmenyx envia **apenas o nome do jogo** à busca pública da

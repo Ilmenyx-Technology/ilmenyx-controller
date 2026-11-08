@@ -9,9 +9,11 @@ namespace Ilmenyx.Platform.Linux;
 public delegate Task<(int Code, string Output)> ProgramRunner(string program, IReadOnlyList<string> arguments, TimeSpan timeout, CancellationToken ct);
 
 /// <summary>Flatpak (user installation) based installer. Network and disk writes happen only when a method that installs is called by an explicit click.</summary>
-public sealed class LinuxAppInstaller(ProgramRunner? run = null, Func<string, bool>? nativeExists = null)
+public sealed class LinuxAppInstaller(ProgramRunner? run = null, Func<string, bool>? nativeExists = null, GithubAppInstaller? github = null)
 {
     private readonly ProgramRunner runner = run ?? ((program, args, timeout, ct) => BoundedProcess.RunAsync(program, args, timeout, 262144, ct));
+    /// <summary>Apps that come from a GitHub release (ArtCraft): the package of this distribution.</summary>
+    public GithubAppInstaller Github { get; } = github ?? new GithubAppInstaller(run ?? ((program, args, timeout, ct) => BoundedProcess.RunAsync(program, args, timeout, 262144, ct)));
     private readonly Func<string, bool> native = nativeExists ?? (name => BoundedProcess.Find(name) is not null);
 
     /// <summary>Install command for Flatpak on the running distribution (needs root, so it is only shown). Unknown distribution: lists the common ones.</summary>
@@ -36,6 +38,7 @@ public sealed class LinuxAppInstaller(ProgramRunner? run = null, Func<string, bo
             catch (Exception e) when (e is IOException or FileNotFoundException or TimeoutException or System.ComponentModel.Win32Exception) { }
         var list = apps as IReadOnlyList<InstallableApp> ?? apps.ToList();
         AppCatalog.MarkInstalled(list, ids, native);
+        foreach (var a in list.Where(a => a.FromGithub && !a.Installed && Github.AppImageInstalled(a))) { a.Installed = true; a.Selected = false; }
         // Extensions that must match an app's runtime (Gamescope layer for the Steam Flatpak): find that runtime branch, then the installed refs.
         var addons = list.Where(a => a.RuntimeFor.Length > 0).ToList();
         if (addons.Count == 0) return;
@@ -85,8 +88,9 @@ public sealed class LinuxAppInstaller(ProgramRunner? run = null, Func<string, bo
         return upgrade ? ["update", "--user", "-y", "--noninteractive", app.Ref] : ["install", "--user", "-y", "--noninteractive", "flathub", app.Ref];
     }
 
-    public async Task<(bool Ok, string Message)> InstallAsync(InstallableApp app, CancellationToken ct, bool upgrade = false)
+    public async Task<(bool Ok, string Message)> InstallAsync(InstallableApp app, CancellationToken ct, bool upgrade = false, IProgress<double>? progress = null)
     {
+        if (app.FromGithub) return await Github.InstallAsync(app, progress, ct);
         if (app.LinkOnly) return (false, "Este item não é instalado pelo Ilmenyx: abra a página oficial.");
         if (app.RuntimeFor.Length > 0 && app.Branch is null) return (false, app.Unavailable ?? "Precisa da Steam instalada em Flatpak.");
         var (code, output) = await runner("flatpak", InstallArguments(app, upgrade), TimeSpan.FromMinutes(20), ct);
