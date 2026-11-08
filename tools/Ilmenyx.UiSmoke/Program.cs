@@ -428,7 +428,7 @@ public sealed class UiSmokeApp : Application
         else if (Find<Button>(shell, "DashMetricPower").IsEnabled) throw new InvalidOperationException("Unavailable power metric must stay disabled.");
         Click(shell, "GoMemory"); await Until(() => shell.CurrentPage == "system");
         var expected = new (string Key, string Control)[] { ("dash", "OverviewChart"), ("system", "SysRefresh"), ("sensors", "RefreshSensors"), ("gpu", "GpuValidationNotice"), ("disks", "BtnDiskRefresh"),
-            ("energy", "BtnEnergyRefresh"), ("net", "BtnNetTest"), ("procs", "ProcessRows"), ("launcher", "BtnScanGames"), ("fps", "BtnApiKey"), ("stress", "BtnStress"), ("optimize", "BtnOptimize"), ("apps", "BtnAppsInstall"), ("bottleneck", "BtnBnSession"), ("validate", "ValidateCpu"), ("makerports", "BtnMakerPortScan"), ("makerdrv", "BtnMakerDrvScan"), ("startup", "BtnStartupScan"), ("driver", "BtnDrvScan"), ("tools", "About") };
+            ("energy", "BtnEnergyRefresh"), ("net", "BtnNetTest"), ("procs", "ProcessRows"), ("launcher", "BtnScanGames"), ("fps", "GameSourceTitle"), ("stress", "BtnStress"), ("optimize", "BtnOptimize"), ("apps", "BtnAppsInstall"), ("bottleneck", "BtnBnSession"), ("validate", "ValidateCpu"), ("makerports", "BtnMakerPortScan"), ("makerdrv", "BtnMakerDrvScan"), ("startup", "BtnStartupScan"), ("driver", "BtnDrvScan"), ("tools", "About") };
         foreach (var (key, control) in expected)
         {
             var nav = Find<Button>(shell, "Nav" + key);
@@ -1233,23 +1233,16 @@ public sealed class UiSmokeApp : Application
         await Task.Delay(300); Capture(shell, "shell-overview.png");
         Console.WriteLine("PASS overview: performance card from the local benchmark history with delta, real read-only health checklist, occupancy rings and recent events");
     }
-    private sealed class FakeHttp : HttpMessageHandler
-    {
-        public int Calls;
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) { Interlocked.Increment(ref Calls); return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new StringContent("{\"avgFps\":111,\"min1Fps\":80}") }); }
-    }
-
     [System.Runtime.Versioning.SupportedOSPlatform("linux")]
     private static async Task FpsAsync(ShellWindow shell, IClassicDesktopStyleApplicationLifetime desktop)
     {
-        // Fake HTTP handler: the real HowManyFPS service is never contacted by the smoke test.
+        // The page is fully local (HowManyFPS was removed on 2026-11-08): no HTTP handler at all.
         string root = Path.Combine(Program.OutputDirectory, "fps-fixture"); Directory.CreateDirectory(root);
-        var http = new FakeHttp(); var client = new Ilmenyx.Core.HowManyFpsClient(Path.Combine(root, "cache.json"), http);
         string settingsPath = Path.Combine(root, "settings.json"); Window? host = null;
         // A session measured on this PC (as the Launcher records it) for Dota 2; nothing is played.
         var fixture = new Ilmenyx.Core.IlmenyxSettings(); fixture.AddFpsSession(new("Dota 2", new DateTimeOffset(2026, 11, 6, 21, 0, 0, TimeSpan.Zero), 87.4, 52, 1800, "NVIDIA GeForce RTX 4070", "1920x1080")); fixture.Save(settingsPath);
         var ctx = new Ilmenyx.Core.FpsContext("NVIDIA GeForce RTX 4070", "10de", "2786", "nvidia", false, 2UL << 30, null, true, 0, 0);
-        var page = new GamesFpsPage(client, new Ilmenyx.Core.IlmenyxSettings(), settingsPath, () => host, () => ("AMD Ryzen 7 7700X 8-Core Processor", "NVIDIA GeForce RTX 4070"), CancellationToken.None, () => ctx);
+        var page = new GamesFpsPage(new Ilmenyx.Core.IlmenyxSettings(), settingsPath, () => ("AMD Ryzen 7 7700X 8-Core Processor", "NVIDIA GeForce RTX 4070"), () => ctx);
         host = new Window { Width = 1100, Height = 900, Content = page }; host.Show(); // the page scrolls by itself (sticky catalogue)
         await Until(() => page.Rows.Count > 20 && page.Rows.Any(r => r.Fps > 0));
         if (page.GpuIndex != 100 || page.CpuIndex != 100) throw new InvalidOperationException("Hardware indices not resolved from the catalog tables.");
@@ -1265,20 +1258,15 @@ public sealed class UiSmokeApp : Application
         await Task.Delay(300); Capture(host, "fps-fixture.png");
         foreach (var chip in host.GetVisualDescendants().OfType<Button>().Where(b => b.Content?.ToString() == "1440p")) chip.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await Until(() => CardFps("Counter-Strike 2") is var t && !RangeAround(t, 340) && RangeAround(t, page.Rows.Single(r => r.Name == "Counter-Strike 2").Fps) && CardFps("Dota 2") == "87");
-        if (Find<Button>(host, "BtnFpsQuery").IsEnabled) throw new InvalidOperationException("API query must be disabled without a key.");
-        Find<TextBox>(host, "ApiKeyBox").Text = "fixture-key"; Click(host, "BtnApiKey");
-        await Until(() => Find<Button>(host, "BtnFpsQuery").IsEnabled && File.Exists(settingsPath));
-        Click(host, "BtnFpsQuery"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
-        var dlg = desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible); if (!Find<TextBlock>(dlg, "ConfirmText").Text!.Contains("howmanyfps.com")) throw new InvalidOperationException("Confirmation must name the endpoint.");
-        Click(dlg, "ConfirmNo"); await Until(() => !dlg.IsVisible); if (http.Calls != 0) throw new InvalidOperationException("Declined confirmation still used the network.");
-        Click(host, "BtnFpsQuery"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
-        Click(desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible), "ConfirmYes");
-        await Until(() => http.Calls >= 20 && page.Rows.All(r => r.Source == "HOWMANYFPS" || r.Name == "Dota 2" && r.Source == "MEDIDO NESTE PC") && CardFps("Counter-Strike 2") == "111" && CardFps("Dota 2") == "87");
+        // No API key box, no query button, no mention of the removed service; the source card says the estimate is local.
+        if (host.GetVisualDescendants().OfType<Control>().Any(c => c.Name is "ApiKeyBox" or "BtnApiKey" or "BtnFpsQuery")) throw new InvalidOperationException("The removed HowManyFPS controls are still on the page.");
+        if (host.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text?.Contains("HowManyFPS", StringComparison.OrdinalIgnoreCase) == true || t.Text?.Contains("CONSULTAR API", StringComparison.Ordinal) == true)) throw new InvalidOperationException("A text still mentions the removed HowManyFPS API.");
+        if (Find<TextBlock>(host, "GameSourceTitle").Text != "Fonte: estimativa local (aproximada)" || !Find<TextBlock>(host, "GameSourceText").Text!.Contains("sem usar a internet", StringComparison.Ordinal)) throw new InvalidOperationException("Source card must say the estimate is local.");
         host.Close();
         Find<Button>(shell, "Navfps").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        await Until(() => shell.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnFpsQuery" && !b.IsEnabled || b.Name == "BtnApiKey"));
-        if (Ilmenyx.Core.IlmenyxSettings.Load(settingsPath).FpsSessions.Count != 1) throw new InvalidOperationException("Saving the API key dropped the measured sessions.");
-        Console.WriteLine("PASS fps page: local estimate as range + confidence from catalog tables, measured session has priority, VRAM/battery alerts, option chips recompute, API query only after key + confirmation naming the endpoint, fake handler results shown; real service never contacted");
+        await Until(() => shell.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "GameSourceTitle" && t.IsVisible));
+        if (Ilmenyx.Core.IlmenyxSettings.Load(settingsPath).FpsSessions.Count != 1) throw new InvalidOperationException("Opening the page changed the measured sessions.");
+        Console.WriteLine("PASS fps page: local estimate as range + confidence from catalog tables, measured session has priority, VRAM/battery alerts, option chips recompute, fully local (no HowManyFPS key/query controls or texts), sessions untouched");
     }
     private sealed class CompatFakeHttp(Func<HttpRequestMessage, HttpResponseMessage> respond) : HttpMessageHandler
     {

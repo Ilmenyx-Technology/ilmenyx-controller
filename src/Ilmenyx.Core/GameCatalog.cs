@@ -6,7 +6,7 @@ namespace Ilmenyx.Core;
 
 /// <summary>
 /// Jogo do catálogo. Valores de referência APROXIMADOS (compilados de benchmarks públicos) usados só
-/// pela estimativa local, quando a API da HowManyFPS não está configurada:
+/// pela estimativa local (calculada no PC, sem internet):
 /// GpuRef = FPS médio em 1080p/Alto numa RTX 4070 (índice 100); CpuCap = teto de FPS limitado pela CPU
 /// num Ryzen 7 7700X (índice 100); EngineCap = trava de FPS do próprio jogo (0 = sem trava).
 /// </summary>
@@ -18,7 +18,7 @@ public record FpsEstimate(double Avg, double Low1, Bottleneck Limiter);
 
 public static class GameCatalog
 {
-    // O nome é enviado à API como está, então segue a grafia usada pela HowManyFPS.
+    // Os nomes seguem a grafia das lojas; sessões medidas casam com eles pelo nome normalizado (FpsAccuracy.LatestSession).
     public static readonly GameInfo[] Games =
     {
         new("Counter-Strike 2", "FPS competitivo", 340, 420),

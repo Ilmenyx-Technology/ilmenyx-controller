@@ -53,7 +53,7 @@ public static partial class HelpContent
                     "O botão \"?\" ao lado do título abre esta ajuda já na parte da página em que você está.",
                     "Para ver o passeio de novo, clique em Refazer o tour no topo desta página.",
                 ],
-                Q("privacy", "O Ilmenyx envia meus dados para algum lugar?", "Não há telemetria. A internet só é usada quando você clica em algo que precisa dela, como o teste de Rede ou as consultas online de Compatibilidade, FPS e Drivers."),
+                Q("privacy", "O Ilmenyx envia meus dados para algum lugar?", "Não há telemetria. A internet só é usada quando você clica em algo que precisa dela, como o teste de Rede ou as consultas online de Compatibilidade e Drivers."),
                 Q("auto", "Algum teste pesado roda sozinho?", "Não. Benchmark, Stress test e a verificação de OC só começam depois do seu clique e de uma confirmação que diz o que vai acontecer."),
                 Q("password", "Quando o Ilmenyx pede senha?", "Só em ações que mudam o sistema, como liberar os sensores da CPU ou instalar o driver NVIDIA. Quem pede é a janela do próprio sistema; o Ilmenyx nunca vê a senha.")),
 
@@ -183,7 +183,7 @@ public static partial class HelpContent
                     "Role a página: ao chegar em Jogos do catálogo, o título e a busca ficam fixos no alto e só a lista de jogos rola. A seta redonda no canto inferior direito volta ao topo.",
                     "Leia a faixa e a confiança (média, baixa ou muito baixa).",
                     "Jogos abertos pela página Jogos com MangoHud ligado mostram \"Medido neste PC\": o FPS real das suas sessões.",
-                    "Opcional: com uma chave da HowManyFPS, CONSULTAR API traz o FPS medido por outros jogadores (usa a internet só ao clicar).",
+                    "Tudo é calculado no seu PC: esta página não usa a internet.",
                 ],
                 Q("range", "Por que aparece uma faixa e não um número exato?", "Porque é uma estimativa calculada a partir do desempenho relativo da sua GPU e CPU, não uma medição. Cena, driver e configurações mudam o resultado."),
                 Q("none", "Por que aparece SEM ESTIMATIVA?", "Quando a sua GPU ou CPU não está na tabela de referência, o Ilmenyx não calcula: seria um número inventado."),

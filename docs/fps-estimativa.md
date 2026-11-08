@@ -1,15 +1,14 @@
 # Estimativa de FPS — metodologia e limites
 
 Página **Estimativa de FPS** (JOGOS). Objetivo: dar ao usuário uma expectativa realista do FPS no hardware dele, sem apresentar
-um palpite como se fosse medição. Código: `src/Ilmenyx.Core/GameCatalog.cs`, `FpsAccuracy.cs`, `HowManyFpsClient.cs` (`GameFpsRow`),
+um palpite como se fosse medição. Código: `src/Ilmenyx.Core/GameCatalog.cs`, `FpsAccuracy.cs`, `GameFpsRow.cs`,
 `src/Ilmenyx.Desktop/GamesFpsPage.cs`; sessões medidas: `LinuxGameLauncher.RunAsync` e `MangoHudLogReader.ReadSession`.
 
-Cada cartão mostra exatamente uma de quatro fontes, nesta ordem de prioridade:
+Tudo é calculado no PC, sem internet. Cada cartão mostra exatamente uma de três fontes, nesta ordem de prioridade:
 
 | Fonte no cartão | De onde vem | Como aparece |
 |---|---|---|
 | **MEDIDO NESTE PC** | Sessão real registrada pelo MangoHud ao jogar pela página Jogos | `47 FPS`, `1% low 31`, `última sessão dd/MM · 42 min` (borda verde) |
-| **HOWMANYFPS** | API externa, só com chave e após confirmação | FPS médio e 1% low medidos por outros jogadores |
 | **ESTIMATIVA** | Cálculo local pelas tabelas de referência | Faixa `38–52 FPS` + `confiança média/baixa/muito baixa` |
 | **SEM ESTIMATIVA** | GPU ou CPU fora das tabelas | `—`; nenhum número é inventado |
 
@@ -75,6 +74,8 @@ cenas diferentes, limites de energia). Não há dados de validação suficientes
 - A estimativa assume o driver proprietário/adequado, RAM em dois canais e o notebook na tomada.
 - O 1% low medido vem de amostras de 100 ms (ver acima). A GPU registrada é a que o MangoHud reporta; não foi conferido qual nome ele
   escreve no nouveau ou com PRIME offload.
-- Páginas diferentes guardam o mesmo `settings.json`; a página de FPS relê as sessões ao abrir e ao salvar a chave, mas outras gravações
+- Páginas diferentes guardam o mesmo `settings.json`; a página de FPS relê as sessões ao abrir, mas outras gravações
   concorrentes do arquivo (pré-existentes) podem sobrescrever campos de outras páginas.
 - O caminho real de sessão (jogo + MangoHud + leitura ao fechar) **não foi testado** com um jogo; ver `Sem_teste.md` (FPS-02).
+- A consulta à API da HowManyFPS foi **removida** em 2026-11-08 (o acesso à API exige um pedido formal e não havia como testá-la).
+  Opções para estimar melhor sem API paga ou fechada: [`fps-estimativa-metodos.md`](fps-estimativa-metodos.md).

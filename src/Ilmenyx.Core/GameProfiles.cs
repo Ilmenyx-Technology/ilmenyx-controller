@@ -163,8 +163,8 @@ public sealed class IlmenyxSettings
     public List<CustomGame> CustomGames { get; set; } = [];
     /// <summary>Original values of user-level tweaks before the first change ("&lt;absent&gt;" = unknown), so "Restaurar originais" can undo them.</summary>
     public Dictionary<string, string?> TweakBackup { get; set; } = [];
-    /// <summary>HowManyFPS API key. Stored in this user-only (0600) file; never exported or logged.</summary>
-    public string? HowManyFpsKey { get; set; }
+    // "HowManyFpsKey" (the HowManyFPS API key, removed on 2026-11-08) may still be in old files: unknown keys are ignored on load and
+    // the value is dropped on the next save.
     /// <summary>Local benchmark history (newest first, at most <see cref="BenchRunEntry.MaxEntries"/>). Never sent anywhere.</summary>
     public List<BenchRunEntry> BenchRuns { get; set; } = [];
     /// <summary>Overlay items (null = defaults), corner (top-left, top-right, bottom-left, bottom-right) and text scale.</summary>
