@@ -6,7 +6,11 @@ using System.Globalization;
 
 namespace Ilmenyx.Core;
 
-public sealed record DriverRow(string Device, string Class, string Vendor, string Version, string Driver, string Flags);
+/// <param name="Bus">"PCI" or "USB" (empty in older exports).</param>
+/// <param name="Id">vendor:device in hex ("10de:134d"), PCI or USB.</param>
+/// <param name="ClassCode">PCI class ("0x028000") or the USB interface classes ("e0,e0").</param>
+/// <param name="Wireless">A Wi-Fi interface (net/*/wireless or phy80211) belongs to this device.</param>
+public sealed record DriverRow(string Device, string Class, string Vendor, string Version, string Driver, string Flags, string Bus = "", string Id = "", string ClassCode = "", bool Wireless = false);
 public sealed record DriverInventoryReport(string SchemaVersion, DateTimeOffset ExportedAt, string Note, IReadOnlyList<DriverRow> Drivers);
 
 public sealed class GpuDriverStatus
@@ -20,6 +24,8 @@ public sealed class GpuDriverStatus
     public string Message { get; set; } = "";
     /// <summary>PCI device id (hex, no "0x"): for NVIDIA it selects the driver branch that supports the generation.</summary>
     public string DeviceId { get; set; } = "";
+    /// <summary>vendor:device ("10de:134d"), the same key as <see cref="DriverRow.Id"/>.</summary>
+    public string PciId { get; set; } = "";
     /// <summary>NVIDIA branch that supports this card (580 for Maxwell–Volta, 595 for Turing+, 470 for Kepler), null otherwise.</summary>
     public string? SupportedBranch => Vendor == "NVIDIA" ? NvidiaGenerations.Support(NvidiaGenerations.Classify(DeviceId).Generation).Branch : null;
     /// <summary>Latest is the newest version of <see cref="SupportedBranch"/> (never the global latest, which may not support the card).</summary>

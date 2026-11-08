@@ -43,6 +43,20 @@ public sealed partial class LinuxDriverInventory(string sysRoot = "/sys", string
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or NotSupportedException) { return ""; }
     }
 
+    private static string Hex(string id) => id.ToLowerInvariant().Replace("0x", "");
+
+    /// <summary>A Wi-Fi interface lives under the device: net/&lt;if&gt;/wireless or ieee80211/phy*.</summary>
+    private static bool IsWireless(string deviceDir)
+    {
+        try
+        {
+            if (Directory.Exists(Path.Combine(deviceDir, "ieee80211"))) return true;
+            string net = Path.Combine(deviceDir, "net");
+            return Directory.Exists(net) && Directory.EnumerateDirectories(net).Take(8).Any(i => Directory.Exists(Path.Combine(i, "wireless")) || Directory.Exists(Path.Combine(i, "phy80211")));
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return false; }
+    }
+
     private string KernelRelease() => Attr(Path.Combine(procRoot, "sys/kernel/osrelease"), 80);
 
     public IReadOnlyList<DriverRow> Inventory(PciIds ids)
@@ -57,7 +71,8 @@ public sealed partial class LinuxDriverInventory(string sysRoot = "/sys", string
                 string drv = DriverName(dir);
                 string version = drv.Length > 0 && Attr(Sys($"module/{drv}/version"), 64) is { Length: > 0 } v ? v : (drv.Length > 0 ? $"kernel {KernelRelease()}" : "—");
                 string taint = drv.Length > 0 ? Attr(Sys($"module/{drv}/taint"), 16) : "";
-                rows.Add(new(ids.Device(vendor, device) ?? $"Dispositivo PCI {vendor}:{device}", cls, ids.Vendor(vendor) ?? vendor, version, drv.Length > 0 ? drv : "sem driver", drv.Length > 0 ? Flags(taint) : "sem driver carregado"));
+                rows.Add(new(ids.Device(vendor, device) ?? $"Dispositivo PCI {vendor}:{device}", cls, ids.Vendor(vendor) ?? vendor, version, drv.Length > 0 ? drv : "sem driver", drv.Length > 0 ? Flags(taint) : "sem driver carregado",
+                    "PCI", Hex(vendor) + ":" + Hex(device), Attr(Path.Combine(dir, "class"), 16), IsWireless(dir)));
             }
         string usb = Sys("bus/usb/devices");
         if (Directory.Exists(usb))
@@ -65,7 +80,10 @@ public sealed partial class LinuxDriverInventory(string sysRoot = "/sys", string
             {
                 string product = Attr(Path.Combine(dir, "product"), 80); if (product.Length == 0) continue;
                 var drivers = Directory.EnumerateDirectories(dir, Path.GetFileName(dir) + ":*").Take(16).Select(DriverName).Where(d => d.Length > 0).Distinct().ToList();
-                rows.Add(new(product, "USB", Attr(Path.Combine(dir, "manufacturer"), 80) is { Length: > 0 } mf ? mf : "—", $"kernel {KernelRelease()}", drivers.Count > 0 ? string.Join(", ", drivers) : "sem driver", drivers.Count > 0 ? "módulo do kernel" : "sem driver carregado"));
+                var interfaces = Directory.EnumerateDirectories(dir, Path.GetFileName(dir) + ":*").Take(16).ToList();
+                string classes = string.Join(",", interfaces.Select(i => Attr(Path.Combine(i, "bInterfaceClass"), 4)).Where(c => c.Length > 0).Distinct());
+                rows.Add(new(product, "USB", Attr(Path.Combine(dir, "manufacturer"), 80) is { Length: > 0 } mf ? mf : "—", $"kernel {KernelRelease()}", drivers.Count > 0 ? string.Join(", ", drivers) : "sem driver", drivers.Count > 0 ? "módulo do kernel" : "sem driver carregado",
+                    "USB", Hex(Attr(Path.Combine(dir, "idVendor"), 8)) + ":" + Hex(Attr(Path.Combine(dir, "idProduct"), 8)), classes, interfaces.Any(IsWireless)));
             }
         return rows.OrderBy(r => r.Class, StringComparer.Ordinal).ThenBy(r => r.Device, StringComparer.Ordinal).ToList();
     }
@@ -82,7 +100,7 @@ public sealed partial class LinuxDriverInventory(string sysRoot = "/sys", string
         {
             if (!Attr(Path.Combine(dir, "class"), 16).StartsWith("0x03", StringComparison.Ordinal)) continue;
             string vendor = Attr(Path.Combine(dir, "vendor"), 8), device = Attr(Path.Combine(dir, "device"), 8), drv = DriverName(dir);
-            var g = new GpuDriverStatus { GpuName = ids.Device(vendor, device) ?? $"GPU {vendor}:{device}", Driver = drv.Length > 0 ? drv : "sem driver", DeviceId = device.ToLowerInvariant().Replace("0x", "") };
+            var g = new GpuDriverStatus { GpuName = ids.Device(vendor, device) ?? $"GPU {vendor}:{device}", Driver = drv.Length > 0 ? drv : "sem driver", DeviceId = Hex(device), PciId = Hex(vendor) + ":" + Hex(device) };
             switch (vendor.ToLowerInvariant().Replace("0x", ""))
             {
                 case "10de":
