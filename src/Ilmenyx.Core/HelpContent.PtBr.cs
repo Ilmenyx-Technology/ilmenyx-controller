@@ -176,8 +176,8 @@ public static partial class HelpContent
             S("fps", "games", "Estimativa de FPS",
                 "Mostra quantos FPS (quadros por segundo) esperar em cada jogo neste PC, como uma faixa com o nível de confiança.",
                 [
-                    "Busque o jogo ou veja a lista.",
                     "Escolha resolução, qualidade e upscaling para refazer a conta.",
+                    "Role a página: ao chegar em Jogos do catálogo, o título e a busca ficam fixos no alto e só a lista de jogos rola. A seta redonda no canto inferior direito volta ao topo.",
                     "Leia a faixa e a confiança (média, baixa ou muito baixa).",
                     "Jogos abertos pela página Jogos com MangoHud ligado mostram \"Medido neste PC\": o FPS real das suas sessões.",
                     "Opcional: com uma chave da HowManyFPS, CONSULTAR API traz o FPS medido por outros jogadores (usa a internet só ao clicar).",
@@ -224,10 +224,11 @@ public static partial class HelpContent
                 [
                     "Escolha os itens, o canto e o tamanho.",
                     "MOSTRAR OVERLAY abre uma janela pequena do Ilmenyx com as métricas do sistema.",
-                    "Para ver dentro do jogo, marque MangoHud no perfil do jogo (página Jogos): a configuração é criada sozinha. GERAR CONFIGURAÇÃO DO MANGOHUD aplica nela os itens e o canto escolhidos aqui.",
+                    "Para ver dentro do jogo, marque MangoHud no perfil do jogo (página Jogos): a configuração é criada sozinha. O que você muda aqui é salvo sozinho (aparece \"Salvo\") e vale também para o MangoHud.",
+                    "Se você abre o jogo direto pela Steam, copie a linha de opção de inicialização mostrada nesta página.",
                 ],
                 Q("fullscreen", "Por que o overlay não fica por cima do jogo em tela cheia?", "Isso depende do gerenciador de janelas (no Wayland, quem decide é o compositor). Dentro do jogo, use o MangoHud."),
-                Q("nofps", "Por que o FPS não aparece no overlay?", "O FPS só existe para jogos iniciados com o MangoHud e a configuração do Ilmenyx: marque MangoHud no perfil do jogo na página Jogos, ou gere a configuração nesta página.")),
+                Q("nofps", "Por que o FPS não aparece no overlay?", "O FPS só existe para jogos iniciados com o MangoHud e a configuração do Ilmenyx: marque MangoHud no perfil do jogo na página Jogos, ou copie a opção de inicialização desta página na Steam.")),
 
             S("validate", "perf", "Validações reduzidas",
                 "Testes curtos que conferem se os cálculos de CPU, memória e GameSim dão o resultado esperado. Não medem desempenho nem saúde.",
@@ -366,7 +367,7 @@ public static partial class HelpContent
             new("perf", "bench", ["bench", "oc", "stress"], "Benchmark, OC e Stress",
                 "Benchmark mede o desempenho, OC confere a estabilidade e Stress test põe o PC em carga máxima. Nenhum teste começa sem a sua confirmação, e eles param sozinhos se a temperatura passar do limite."),
             new("overlay", "overlay", ["overlay"], "Overlay",
-                "Mostra FPS, temperatura e uso por cima da tela. Escolha os itens e o canto; para ver dentro do jogo, gere a configuração do MangoHud."),
+                "Mostra FPS, temperatura e uso por cima da tela. Escolha os itens e o canto (salvos sozinhos); dentro do jogo, quem desenha é o MangoHud."),
             new("tools", "optimize", ["optimize", "driver", "nvdriver", "apps"], "Ferramentas",
                 "Otimiza fecha programas que atrapalham e liga ajustes para jogos; RESTAURAR ORIGINAIS desfaz tudo. Drivers mostra os drivers em uso e Driver NVIDIA instala o certo para a sua placa. Instalar apps instala os essenciais pelo Flathub."),
             new("help", "help", ["search", "theme", "pagehelp", "help"], "Busca, tema e ajuda",
