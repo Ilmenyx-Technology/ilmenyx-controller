@@ -5,7 +5,8 @@ using System.Diagnostics;
 namespace Ilmenyx.Platform.Linux;
 
 /// <summary>What one disposable installer run needs: the umu command, its environment and the two folders involved.</summary>
-public sealed record FastExecPlan(string Program, IReadOnlyList<string> Arguments, IReadOnlyList<KeyValuePair<string, string>> Environment, string TempPrefix, string Destination);
+/// <param name="SourceInstaller">The installer the user picked; <c>Arguments[0]</c> is its copy inside the temporary Windows (C:\Instalador).</param>
+public sealed record FastExecPlan(string Program, IReadOnlyList<string> Arguments, IReadOnlyList<KeyValuePair<string, string>> Environment, string TempPrefix, string Destination, string SourceInstaller = "");
 
 /// <summary>
 /// "Fast exec": runs a Windows installer (setup.exe) once with Proton in a throwaway prefix, so nothing of the installer stays behind.
@@ -37,20 +38,17 @@ public static class FastExec
             throw new ArgumentException("Escolha uma pasta própria para os jogos (por exemplo ~/Jogos), não a pasta pessoal inteira nem uma pasta do sistema.");
         string umu = find("umu-run") ?? throw new InvalidOperationException("O umu-launcher (Proton fora da Steam) não foi encontrado.");
         string prefix = Path.Combine(tempRoot ?? TempRoot(), PrefixPrefix + (id ?? Guid.NewGuid().ToString("N")[..12]));
-        return new(umu, [installer], [
+        string staged = Path.Combine(prefix, "drive_c", "Instalador", Path.GetFileName(installer));
+        return new(umu, [staged], [
             new("WINEPREFIX", prefix), new("GAMEID", "umu-default"), new("STORE", "none"),
             new("WINEDLLOVERRIDES", "winemenubuilder.exe=d"), // no menu entries, icons or file associations from the installer
             // Installers need stability, not game performance: Proton's fsync/esync (and ntsync) shortcuts made a multi-threaded
             // installer fail its own CRC check (2026-11-08) while plain Wine worked; Xalia (gamepad UI helper) only burns CPU here.
             new("PROTON_NO_FSYNC", "1"), new("PROTON_NO_ESYNC", "1"), new("PROTON_NO_NTSYNC", "1"), new("PROTON_USE_XALIA", "0"),
-            // Proton forces LARGE_ADDRESS_AWARE on every 32-bit program by default. Installers whose decompressor sizes its buffers from
-            // the address space it sees then grow towards 4 GB and run out of it (VmPeak 3.8 GB, "allocate_virtual_memory out of memory",
-            // 2026-11-08); plain Wine (Bottles/soda) leaves the installer at 2 GB, where it sizes itself to fit. Installers keep their own flag.
-            new("PROTON_FORCE_LARGE_ADDRESS_AWARE", "0"),
             new("PROTON_LOG", "1"), new("PROTON_LOG_DIR", LogFolder(tempRoot)),
             .. (protonPath is { Length: > 0 } pp ? new KeyValuePair<string, string>[] { new("PROTONPATH", pp) } // e.g. the classic Proton 9 folder
                 : geProton ? [new("PROTONPATH", "GE-Proton")] : []), // umu downloads the latest GE-Proton
-        ], prefix, dest);
+        ], prefix, dest, installer);
     }
 
     /// <summary>Where the Proton log of each installer run is kept (outside the throwaway prefix, so it survives the cleanup).</summary>
@@ -74,6 +72,52 @@ public static class FastExec
         string d = Path.Combine(dosdevices, "d:");
         if (File.Exists(d) || Directory.Exists(d)) File.Delete(d);
         File.CreateSymbolicLink(d, plan.Destination);
+    }
+
+    private static readonly string[] BroadFolders = ["Downloads", "Transferências", "Desktop", "Área de trabalho", "Área de Trabalho", "Documents", "Documentos"];
+
+    /// <summary>
+    /// Puts the installer's folder inside the temporary Windows (C:\Instalador) before it runs. Installers read their data files from
+    /// their own folder; read through a drive mapped to a Linux path (with spaces and [brackets] in the name) one failed its own CRC check
+    /// in Proton AND in Bottles, while the same verified files installed from inside the Windows drive (owner, 2026-11-08). Same disk:
+    /// hard links (instant, no extra space, originals untouched — installers only read). Other disk: copy, after a free-space check.
+    /// A loose installer in Downloads/Desktop/the home folder brings only its own folder's files, never subfolders.
+    /// </summary>
+    public static void StageInstaller(FastExecPlan plan)
+    {
+        if (plan.SourceInstaller.Length == 0) return;
+        string source = Path.GetDirectoryName(plan.SourceInstaller)!, target = Path.GetDirectoryName(plan.Arguments[0])!;
+        string home = Path.GetFullPath(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)).TrimEnd('/');
+        string full = Path.GetFullPath(source).TrimEnd('/');
+        bool broad = full == home || full == "/" || BroadFolders.Any(b => full == Path.Combine(home, b));
+        var files = new DirectoryInfo(source).EnumerateFiles("*", new EnumerationOptions { RecurseSubdirectories = !broad, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.System })
+            .Where(f => f.LinkTarget is null).ToList();
+        if (files.Count > 20000) throw new IOException("A pasta do instalador tem arquivos demais; coloque o instalador numa pasta só dele.");
+        Directory.CreateDirectory(target);
+        bool linked = TryLink(files[0].FullName, Path.Combine(target, ".ilmenyx-linktest"));
+        if (linked) File.Delete(Path.Combine(target, ".ilmenyx-linktest"));
+        else
+        {
+            long need = files.Sum(f => f.Length);
+            var drive = new DriveInfo(target);
+            if (drive.AvailableFreeSpace < need + (1L << 30)) throw new IOException($"Sem espaço para copiar o instalador para dentro do Windows temporário (precisa de {need / 1e9:0.0} GB livres).");
+        }
+        foreach (var f in files)
+        {
+            string to = Path.Combine(target, Path.GetRelativePath(source, f.FullName));
+            Directory.CreateDirectory(Path.GetDirectoryName(to)!);
+            if (!linked || !TryLink(f.FullName, to)) File.Copy(f.FullName, to, overwrite: true);
+        }
+    }
+
+    [System.Runtime.InteropServices.DllImport("libc", SetLastError = true, EntryPoint = "link")]
+    private static extern int SysLink(string oldPath, string newPath);
+
+    private static bool TryLink(string from, string to)
+    {
+        if (!OperatingSystem.IsLinux()) return false;
+        try { if (File.Exists(to)) File.Delete(to); return SysLink(from, to) == 0; }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or DllNotFoundException or EntryPointNotFoundException) { return false; }
     }
 
     /// <summary>Runs the installer and waits until it and its helpers end. Cancel kills the whole process tree.</summary>

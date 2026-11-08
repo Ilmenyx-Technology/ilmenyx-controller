@@ -97,6 +97,8 @@ public sealed class FastExecDialog : Window
             {
                 FastExec.CleanupStale(tempRoot);
                 FastExec.Prepare(plan);
+                status.Foreground = Palette.Muted; status.Text = "Colocando o instalador dentro do Windows temporário…";
+                await Task.Run(() => FastExec.StageInstaller(plan));
                 status.Foreground = Palette.Muted;
                 status.Text = "Instalador aberto. Na primeira vez o Proton prepara o Windows temporário (leva um minuto). Siga as dicas acima.";
                 int code = await this.run(plan, cts.Token);

@@ -23,7 +23,8 @@ public sealed class FastExecTests : IDisposable
     {
         var plan = FastExec.Plan(Installer, Path.Combine(root, "Jogos"), n => "/usr/bin/" + n, Path.Combine(root, "fx"), "abc");
         Assert.Equal("/usr/bin/umu-run", plan.Program);
-        Assert.Equal([Installer], plan.Arguments);
+        Assert.Equal([Path.Combine(plan.TempPrefix, "drive_c", "Instalador", "setup.exe")], plan.Arguments);
+        Assert.Equal(Installer, plan.SourceInstaller);
         Assert.Equal(Path.Combine(root, "fx", "fx-abc"), plan.TempPrefix);
         Assert.Contains(new KeyValuePair<string, string>("WINEPREFIX", plan.TempPrefix), plan.Environment);
         Assert.Contains(new KeyValuePair<string, string>("WINEDLLOVERRIDES", "winemenubuilder.exe=d"), plan.Environment);
@@ -36,7 +37,6 @@ public sealed class FastExecTests : IDisposable
         var plan = FastExec.Plan(Installer, Path.Combine(root, "J"), n => "/usr/bin/" + n, Path.Combine(root, "fx"), "c1");
         foreach (var k in new[] { "PROTON_NO_FSYNC", "PROTON_NO_ESYNC", "PROTON_NO_NTSYNC" }) Assert.Contains(new KeyValuePair<string, string>(k, "1"), plan.Environment);
         Assert.Contains(new KeyValuePair<string, string>("PROTON_USE_XALIA", "0"), plan.Environment);
-        Assert.Contains(new KeyValuePair<string, string>("PROTON_FORCE_LARGE_ADDRESS_AWARE", "0"), plan.Environment);
         Assert.Contains(new KeyValuePair<string, string>("PROTON_LOG_DIR", Path.Combine(root, "fx", "logs")), plan.Environment);
         Assert.DoesNotContain(plan.Environment, e => e.Key == "PROTONPATH");
         var ge = FastExec.Plan(Installer, Path.Combine(root, "J"), n => "/usr/bin/" + n, Path.Combine(root, "fx"), "c2", geProton: true);
@@ -140,6 +140,29 @@ public sealed class FastExecTests : IDisposable
         Assert.False(Directory.Exists(plan.TempPrefix));
         Assert.True(File.Exists(Path.Combine(plan.Destination, "Tool", "tool.exe")));
     }
+
+    [Fact]
+    public void InstallerFolderIsPlacedInsideTheTemporaryWindowsWithoutTouchingTheOriginals()
+    {
+        if (!OperatingSystem.IsLinux()) return;
+        string src = Path.Combine(root, "My Installer [v1]"); Directory.CreateDirectory(Path.Combine(src, "MD5"));
+        string setup = Path.Combine(src, "setup.exe"); File.WriteAllBytes(setup, [0x4d, 0x5a, 1]);
+        File.WriteAllBytes(Path.Combine(src, "data-01.bin"), new byte[4096]); File.WriteAllText(Path.Combine(src, "MD5", "list.md5"), "x");
+        var plan = FastExec.Plan(setup, Path.Combine(root, "J"), n => "/usr/bin/" + n, Path.Combine(root, "fx"), "st");
+        FastExec.Prepare(plan); FastExec.StageInstaller(plan);
+        string staged = Path.GetDirectoryName(plan.Arguments[0])!;
+        Assert.True(File.Exists(plan.Arguments[0]));
+        Assert.True(File.Exists(Path.Combine(staged, "data-01.bin")));
+        Assert.True(File.Exists(Path.Combine(staged, "MD5", "list.md5")));
+        Assert.Equal(Inode(Path.Combine(src, "data-01.bin")), Inode(Path.Combine(staged, "data-01.bin"))); // hard link: no extra space
+        FastExec.Cleanup(plan);
+        Assert.False(Directory.Exists(plan.TempPrefix));
+        Assert.Equal(4096, new FileInfo(Path.Combine(src, "data-01.bin")).Length); // originals untouched
+        Assert.True(File.Exists(setup));
+    }
+
+    private static string Inode(string path) =>
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("stat", ["-c", "%i", path]) { RedirectStandardOutput = true })!.StandardOutput.ReadToEnd().Trim();
 
     [Fact]
     public void StaleCleanupOnlyTouchesItsOwnFolders()
