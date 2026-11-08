@@ -330,6 +330,9 @@ public static class LaunchOptionSafety
 
     public sealed record Verdict(bool Applicable, string? Reason);
 
+    /// <summary>Known wrapper program accepted before %command% (gamemoderun, mangohud…).</summary>
+    public static bool IsWrapper(string token) => Wrappers.Contains(token);
+
     public static Verdict Check(string? options)
     {
         string o = (options ?? "").Trim();
