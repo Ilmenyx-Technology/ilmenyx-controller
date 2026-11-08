@@ -16,14 +16,14 @@ Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes qu
    depois apague a chave principal dessa máquina de novo (veja `docs/assinatura-gpg.md`). Atualize a chave pública no repositório.
 
 ## 1. Código esperando aprovação/merge (você decide)
-- [ ] **PR #8** (`feat/rodada2`, inclui os PRs #6 e #7): tudo da sessão de 2026-11-07/08 — Proton fora da Steam, proteção contra
-  travamento em tela cheia (validada), "Instalar jogo de Windows", tutorial + Ajuda (tour cobrindo todas as abas), Compatibilidade
-  com banner e combinação sem conflitos, Estimativa de FPS com catálogo fixo e "voltar ao topo", Overlay salvando sozinho,
-  Relatório legível, Inicialização separada (sistema × seus programas), Drivers redesenhada, Bloqueados limpo (PeaZip no lugar do
-  WinRAR). Testes 1162, interface 63/63. Ao aprovar o #8, os PRs #6 e #7 podem ser fechados.
-- [ ] **Validar na tela**: tutorial, Compatibilidade, Estimativa de FPS, Inicialização, Drivers.
+- [ ] **PR #9** (`feat/rodada3`): HowManyFPS removido; nova Estimativa de FPS com calibração deste PC (benchmark), modelo pelas
+  especificações e correção pelas suas sessões, com aviso "não calibrado" e botão CALIBRAR AGORA; LoL e jogos leves corrigidos;
+  "Instalar jogo de Windows" instalando dentro do C:\Jogos e movendo depois, modo de compatibilidade, GE-Proton opcional e registro;
+  página "Jogo não abre?"; ZRAM; cache de shaders maior; mais apps de jogo; opções experimentais por jogo. Testes 1258, interface 68/68.
 
 ## 2. Testes que precisam de você (hardware/jogo real)
+- [ ] **LEMBRETE: CALIBRAR AGORA** na Estimativa de FPS (driver NVIDIA ligado) e depois jogar LoL/CS2 com MangoHud, com a
+  "Qualidade usada dentro do jogo" preenchida no perfil, para comparar a faixa estimada com o FPS real.
 - [ ] **LEMBRETE: testar de novo o "Instalar jogo de Windows"** (branch `feat/fastexec-c`): instalar em C:\Jogos; primeiro sem
   GE-Proton (modo de máxima compatibilidade), se falhar com o mesmo erro de CRC, de novo marcando "Usar o GE-Proton". O registro
   da falha fica em `~/.local/share/ilmenyx/fastexec/logs/`.
