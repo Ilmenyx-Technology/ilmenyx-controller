@@ -43,6 +43,10 @@ public static class FastExec
             // Installers need stability, not game performance: Proton's fsync/esync (and ntsync) shortcuts made a multi-threaded
             // installer fail its own CRC check (2026-11-08) while plain Wine worked; Xalia (gamepad UI helper) only burns CPU here.
             new("PROTON_NO_FSYNC", "1"), new("PROTON_NO_ESYNC", "1"), new("PROTON_NO_NTSYNC", "1"), new("PROTON_USE_XALIA", "0"),
+            // Proton forces LARGE_ADDRESS_AWARE on every 32-bit program by default. Installers whose decompressor sizes its buffers from
+            // the address space it sees then grow towards 4 GB and run out of it (VmPeak 3.8 GB, "allocate_virtual_memory out of memory",
+            // 2026-11-08); plain Wine (Bottles/soda) leaves the installer at 2 GB, where it sizes itself to fit. Installers keep their own flag.
+            new("PROTON_FORCE_LARGE_ADDRESS_AWARE", "0"),
             new("PROTON_LOG", "1"), new("PROTON_LOG_DIR", LogFolder(tempRoot)),
             .. (protonPath is { Length: > 0 } pp ? new KeyValuePair<string, string>[] { new("PROTONPATH", pp) } // e.g. the classic Proton 9 folder
                 : geProton ? [new("PROTONPATH", "GE-Proton")] : []), // umu downloads the latest GE-Proton
@@ -137,7 +141,7 @@ public static class FastExec
     public static string InstallFolder(FastExecPlan plan) => Path.Combine(plan.TempPrefix, "drive_c", "Jogos");
 
     /// <summary>Folders Wine itself creates in Program Files; anything else there came from the installer.</summary>
-    private static readonly string[] WineDefaults = ["common files", "internet explorer", "windows media player", "windows nt", "windowspowershell", "microsoft.net", "msbuild", "reference assemblies", "uninstall information", "windows defender", "windows mail", "windows photo viewer", "windows portable devices", "windows sidebar", "steam"]; // Proton creates Program Files (x86)\\Steam itself
+    private static readonly string[] WineDefaults = ["common files", "internet explorer", "windows media player", "windows nt", "windowspowershell", "microsoft.net", "msbuild", "reference assemblies", "uninstall information", "windows defender", "windows mail", "windows photo viewer", "windows portable devices", "windows sidebar", "steam", "microsoft"]; // Proton creates Program Files (x86)\\Steam itself
 
     /// <summary>
     /// What the installer put inside the temporary Windows: every folder in C:\Jogos and C:\Games, plus folders in Program Files that
@@ -154,6 +158,8 @@ public static class FastExec
                 if (new DirectoryInfo(d).LinkTarget is not null) continue;
                 if (skipWine && WineDefaults.Contains(Path.GetFileName(d).ToLowerInvariant())) continue;
                 if (!Directory.EnumerateFileSystemEntries(d, "*", SearchOption.AllDirectories).Any(e => File.Exists(e))) continue; // empty: nothing installed
+                // Program Files also gets Proton/Wine stubs (EdgeWebView, …): only a folder with a real program (an .exe over 1 MB) counts there.
+                if (skipWine && !Directory.EnumerateFiles(d, "*.exe", new EnumerationOptions { RecurseSubdirectories = true, MatchCasing = MatchCasing.CaseInsensitive, IgnoreInaccessible = true }).Any(f => new FileInfo(f).Length > 1_000_000)) continue;
                 list.Add(d);
             }
         }
