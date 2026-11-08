@@ -266,6 +266,7 @@ public sealed class LauncherPage : Grid
         var protonHelp = new TextBlock { Text = "Roda com Proton, sem a Steam. Com o ID Steam, o Proton aplica as correções conhecidas do jogo.", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0) };
         ToolTip.SetTip(protonHelp, "Na primeira vez o Proton é baixado (~1 GB) e o \"Windows\" do jogo é preparado; demora alguns minutos. O ID é o número em store.steampowered.com/app/ID; o Ilmenyx tenta achá-lo pelo nome quando o jogo é adicionado.");
         protonBox.Children.Add(protonHelp);
+        protonId.LostFocus += (_, _) => { if (current is { IsWindowsManual: true } cg && profile?.ProtonGameId is { Length: >= 3 } typed) FetchArtLater(cg, typed); };
         protonId.TextChanged += (_, _) =>
         {
             if (loading || profile is null) return;
@@ -378,7 +379,7 @@ public sealed class LauncherPage : Grid
 
     private Button Tile(LibGame g, bool large, bool selected)
     {
-        var art = g.IsSteam ? GameArt.Steam(steamRoot, g.Id, hero: false) : null;
+        var art = ArtFor(g, hero: false);
         var body = new StackPanel
         {
             Spacing = 2,
@@ -415,7 +416,8 @@ public sealed class LauncherPage : Grid
         if (!settings.GameProfiles.TryGetValue(SettingsKey(g), out var p)) { p = new GameProfile(); settings.GameProfiles[SettingsKey(g)] = p; }
         loading = true; profile = p;
         title.Text = g.Name; sub.Text = $"{g.Store} · {g.InstallDir}";
-        var art = g.IsSteam ? GameArt.Steam(steamRoot, g.Id, hero: true) : null; heroArt = art is not null;
+        var art = ArtFor(g, hero: true); heroArt = art is not null;
+        if (art is null && g.IsWindowsManual && p.ProtonGameId is { Length: > 0 } artId) FetchArtLater(g, artId);
         hero.Background = art is null ? UiKit.HeroBrush() : new ImageBrush { Source = art, Stretch = Stretch.UniformToFill };
         heroScrim.IsVisible = heroArt; title.Foreground = heroArt ? Brushes.White : Palette.Fg; sub.Foreground = heroArt ? GameArt.OnImageMuted : Palette.Muted;
         chkPlan.IsChecked = p.HighPerfPlan; chkGpu.IsChecked = p.GpuHigh && multiGpu; chkGameMode.IsChecked = p.GameMode; chkMango.IsChecked = p.MangoHud; chkGuard.IsChecked = p.FullscreenGuard; chkGuard.IsVisible = multiGpu && gpuVendor == "NVIDIA";
@@ -524,6 +526,34 @@ public sealed class LauncherPage : Grid
         return files.Count > 0 ? files[0].TryGetLocalPath() : null;
     }
 
+    /// <summary>Artwork of a library game: Steam's local cache; for a hand-added Windows game with a Steam ID, that ID's local Steam
+    /// cache or the image already downloaded for it (Steam CDN, kept in the Compatibility cache).</summary>
+    private Bitmap? ArtFor(LibGame g, bool hero)
+    {
+        if (g.IsSteam) return GameArt.Steam(steamRoot, g.Id, hero);
+        if (!g.IsWindowsManual || !settings.GameProfiles.TryGetValue(SettingsKey(g), out var gp) || gp.ProtonGameId is not { Length: > 0 } id) return null;
+        return GameArt.Steam(steamRoot, id, hero) ?? GameArt.FromFile(ArtCache.CachedArt(id), hero);
+    }
+
+    private static readonly CompatOnline ArtCache = new(CompatPaths.Folder());
+    private readonly HashSet<string> artTried = new(StringComparer.Ordinal);
+    /// <summary>Downloads the Steam artwork of an ID (default: Steam CDN through the Compatibility cache). Settable for fixtures.</summary>
+    public Func<string, CancellationToken, Task<string?>>? FetchArt { get; init; }
+
+    /// <summary>Once per ID and session: fetches the game's Steam image (only the ID goes in the address), then repaints the library and hero.</summary>
+    private void FetchArtLater(LibGame g, string id)
+    {
+        if (!artTried.Add(id)) return;
+        _ = Task.Run(async () =>
+        {
+            string? file = null;
+            try { file = await (FetchArt ?? ((i, ct) => ArtCache.ArtAsync(i, ct)))(id, lifetime); }
+            catch (Exception e) when (e is HttpRequestException or TaskCanceledException or IOException or UnauthorizedAccessException) { }
+            if (file is null) return;
+            Avalonia.Threading.Dispatcher.UIThread.Post(() => { Filter(); if (current?.Key == g.Key) Select(current); });
+        });
+    }
+
     /// <summary>Fills the Steam ID of the selected Windows game from its name (automatic: only when empty, quietly when nothing is found).</summary>
     private async Task LookUpSteamIdAsync(bool automatic)
     {
@@ -539,6 +569,7 @@ public sealed class LauncherPage : Grid
             loading = true; protonId.Text = f.Id; loading = false;
             p.ProtonGameId = f.Id; SaveProfile(game, p); UpdateTags();
             protonIdStatus.Text = $"ID encontrado na loja Steam: {f.Name}.";
+            FetchArtLater(game, f.Id);
         }
         else protonIdStatus.Text = automatic ? "" : p.ProtonGameId is { Length: > 0 } kept ? $"Nenhum jogo com esse nome na loja Steam. O ID {kept} continua salvo." : "Nenhum jogo com esse nome na loja Steam. Digite o ID no campo.";
     }
@@ -667,6 +698,16 @@ internal static class GameArt
             : [appId + "_header.jpg", Path.Combine(appId, "header.jpg"), appId + "_library_600x900.jpg", Path.Combine(appId, "library_600x900.jpg")];
         foreach (var n in names) if (Load(Path.Combine(dir, n), hero ? 1280 : 460) is { } b) return b;
         return null;
+    }
+
+    /// <summary>Artwork downloaded for a hand-added game (Steam CDN cache of the Compatibility page); a miss is not remembered, so a later download shows up.</summary>
+    public static Bitmap? FromFile(string? path, bool hero)
+    {
+        if (path is null || !File.Exists(path)) return null;
+        string key = path + "|" + (hero ? "1280" : "460");
+        lock (Cache) if (Cache.TryGetValue(key, out var hit) && hit is not null) return hit;
+        lock (Cache) Cache.Remove(key);
+        return Load(path, hero ? 1280 : 460);
     }
 
     private static Bitmap? Load(string path, int width)

@@ -659,7 +659,7 @@ public sealed class UiSmokeApp : Application
             (g, p, v, status, learned, ct) => { launched = g.Key + "|" + p.WinMode; status("stub launched"); return Task.FromResult<Ilmenyx.Core.FpsSession?>(new(g.Name, DateTimeOffset.UtcNow, 61.5, 44, 95, "Fixture GPU", null)); }, () => host, "AMD", true, CancellationToken.None)
         {
             FindSteamId = (name, _) => Task.FromResult<(string, string)?>(name == "Hollow Knight - Silksong" ? ("1030300", "Hollow Knight: Silksong") : null),
-            ConfirmRemove = _ => Task.FromResult(true), UmuProton = () => null, AskName = _ => Task.FromResult<string?>("Silksong (teste)"),
+            ConfirmRemove = _ => Task.FromResult(true), UmuProton = () => null, AskName = _ => Task.FromResult<string?>("Silksong (teste)"), FetchArt = (_, _) => Task.FromResult<string?>(null),
         };
         host = new Window { Width = 1100, Height = 800, Content = page }; host.Show();
         await Until(() => page.Games.Count == 1);

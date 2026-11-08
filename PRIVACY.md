@@ -55,6 +55,8 @@ direitos e eventual aplicação de LGPD/ANPD: PENDENTE DE REVISÃO humana confor
 - Ao adicionar um jogo de Windows (ou ao clicar em BUSCAR ao lado do ID), o Ilmenyx envia **apenas o nome do jogo** à busca pública da
   loja Steam (`store.steampowered.com/api/storesearch`). O ID só é preenchido quando o nome bate exatamente com um único jogo da loja.
   Nada é guardado além do ID no perfil do jogo. Sem internet, o campo fica vazio e pode ser preenchido à mão.
+- Com o ID preenchido, a imagem do jogo é baixada de `shared.akamai.steamstatic.com` (só o ID vai no endereço; JPEG/PNG/WebP de até
+  3 MB), guardada no mesmo cache da página Compatibilidade (`~/.cache/ilmenyx/compat/art/`). Se a Steam local já tiver a imagem, nada é baixado.
 
 ## Compatibilidade de jogos (página Compatibilidade e `ilmenyx compat`)
 
