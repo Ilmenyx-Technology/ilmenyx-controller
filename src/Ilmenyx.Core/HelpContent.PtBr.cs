@@ -168,9 +168,12 @@ public static partial class HelpContent
                     "Escolha um jogo da sua Steam ou busque pelo nome ou pelo ID da Steam.",
                     "BAIXAR BASE DE RELATOS traz os relatos de outros jogadores para o PC.",
                     "CONSULTAR ONLINE busca os dados mais recentes, só quando você clica.",
-                    "Copie as opções de inicialização sugeridas ou aplique na Steam; Desfazer volta ao que era.",
+                    "Em Combinação recomendada, aplique na Steam só as opções que combinam entre si; Desfazer volta ao que era.",
+                    "Alternativas mostram as opções que ficaram de fora e o motivo (brigam com outra, não servem para a sua placa ou falta um programa).",
                 ],
                 Q("guarantee", "A nota garante que o jogo vai rodar?", "Não. Ela conta relatos de outros jogadores, ordenados por semelhança de hardware: é um ponto de partida para testar, não uma garantia."),
+                Q("combo", "Por que algumas opções ficam em Alternativas?", "Cada relato usa as próprias opções, e algumas brigam entre si: PROTON_USE_WINED3D=1 troca o DXVK pelo OpenGL e anula as opções DXVK_ e VKD3D_; -dx11 e -dx12 pedem APIs diferentes; uma variável só guarda um valor. Outras só servem para placas NVIDIA (NVAPI) ou AMD (RADV_), ou precisam de um programa que não está instalado (como o mangohud). A combinação recomendada junta as mais usadas que funcionam juntas no seu PC."),
+                Q("art", "De onde vem a imagem do jogo?", "Da sua Steam, se o jogo estiver instalado. Se não, ela é baixada da Steam (shared.akamai.steamstatic.com) só depois de você aceitar CONSULTAR ONLINE, e fica guardada no PC por 30 dias."),
                 Q("anticheat", "O que é anti-cheat?", "É o programa que alguns jogos online usam contra trapaças. Alguns não aceitam Linux, e aí o modo online pode não abrir mesmo que o jogo rode bem.")),
 
             S("fps", "games", "Estimativa de FPS",

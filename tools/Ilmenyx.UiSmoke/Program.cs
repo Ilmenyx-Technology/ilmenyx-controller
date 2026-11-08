@@ -558,6 +558,7 @@ public sealed class UiSmokeApp : Application
         if (OperatingSystem.IsLinux()) await OptimizeAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await FpsAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await CompatAsync(desktop, Program.OutputDirectory);
+        if (OperatingSystem.IsLinux()) await CompatTriageAsync(desktop, Program.OutputDirectory);
         if (OperatingSystem.IsLinux()) await SensorHelpAsync(desktop);
         if (OperatingSystem.IsLinux()) await OnboardingAsync(desktop);
         if (OperatingSystem.IsLinux()) await AppsAsync(shell, desktop);
@@ -1851,5 +1852,79 @@ public sealed class UiSmokeApp : Application
         if (Palette.IsLight != light0) { Click(shell, "ToggleTheme"); await Until(() => Palette.IsLight == light0); }
         shell.Width = w0; shell.Height = h0; await Task.Delay(200);
         Console.WriteLine("PASS fps sticky catalogue: page scrolls first, header sticks, catalogue fills the window and scrolls alone, up returns catalogue first; wheel + PageDown/End/Home; animated back-to-top hidden at top; 900x560 and 1280x820, dark and light; overlay/report screenshots; report text Fg/Muted");
+    }
+
+    private static async Task CompatTriageAsync(IClassicDesktopStyleApplicationLifetime desktop, string output)
+    {
+        // Conflicting options from similar-hardware reports → one conflict-free recommended line; artwork only after the online consent. Fake HTTP and Steam.
+        static string R(int i, string options, string proton) =>
+            "{\"app\":{\"steam\":{\"appId\":\"570\"},\"title\":\"Dota 2\"},\"responses\":{\"verdict\":\"yes\",\"customProtonVersion\":\"" + proton + "\",\"launchOptions\":" + JsonSerializer.Serialize(options)
+            + "},\"timestamp\":" + (1793000000 - i) + ",\"systemInfo\":{\"gpu\":\"AMD Radeon 610M (radeonsi, raphael_mendocino)\",\"gpuDriver\":\"Mesa 25.0\",\"os\":\"Linux Mint 22.3\",\"kernel\":\"6.14\"}}";
+        byte[] export = CompatExport(
+            R(0, "DXVK_ASYNC=1 gamemoderun %command% -dx11", "GE-Proton10-29"), R(1, "DXVK_ASYNC=1 gamemoderun mangohud %command% -dx11", "GE-Proton10-29"),
+            R(2, "PROTON_USE_WINED3D=1 RADV_PERFTEST=gpl %command% -dx12", "Proton 9.0-4"), R(3, "PROTON_ENABLE_NVAPI=1 RADV_PERFTEST=gpl gamemoderun %command% -dx12", "GE-Proton10-29"));
+        byte[] png;
+        using (var rtb = new RenderTargetBitmap(new PixelSize(960, 310), new Vector(96, 96)))
+        {
+            var art = new Border { Width = 960, Height = 310, Background = new Avalonia.Media.LinearGradientBrush { StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative), EndPoint = new RelativePoint(1, 1, RelativeUnit.Relative),
+                GradientStops = { new Avalonia.Media.GradientStop(Avalonia.Media.Color.Parse("#B33A1E"), 0), new Avalonia.Media.GradientStop(Avalonia.Media.Color.Parse("#2B1638"), 0.6), new Avalonia.Media.GradientStop(Avalonia.Media.Color.Parse("#0E2A4A"), 1) } } };
+            art.Measure(new Size(960, 310)); art.Arrange(new Rect(0, 0, 960, 310)); rtb.Render(art);
+            using var ms = new MemoryStream(); rtb.Save(ms, PngBitmapEncoderOptions.Default); png = ms.ToArray();
+        }
+        var http = new CompatFakeHttp(req => req.RequestUri!.Host switch
+        {
+            "shared.akamai.steamstatic.com" => new(System.Net.HttpStatusCode.OK) { Content = new ByteArrayContent(png) { Headers = { ContentType = new("image/png") } } },
+            "www.protondb.com" => new(System.Net.HttpStatusCode.OK) { Content = new StringContent("{\"tier\":\"platinum\",\"confidence\":\"strong\",\"score\":0.9,\"total\":5000}") },
+            "store.steampowered.com" => new(System.Net.HttpStatusCode.OK) { Content = new StringContent("{\"success\":1,\"results\":{\"resolved_category\":3,\"resolved_items\":[]}}") },
+            _ => new(System.Net.HttpStatusCode.OK) { Content = new StringContent("[]") },
+        });
+        string folder = Path.Combine(output, "compat-triage-fixture");
+        var db = new CompatDatabase(Path.Combine(folder, "index"));
+        await using (var s = new MemoryStream(export)) await CompatDatabase.BuildAsync(s, db.Folder, new CompatDumpInfo("fixture", export.Length, "", "", null));
+        var steam = new Dictionary<string, string>(StringComparer.Ordinal) { ["570"] = "-novid" };
+        var services = new CompatServices(db, new CompatOnline(folder, http), () => new CompatHardware("AMD Mendocino (iGPU · Radeon 610M)", "Linux Mint 22.3", false),
+            _ => Task.FromResult<IReadOnlyList<LibGame>>([]), id => steam.GetValueOrDefault(id), (id, o) => { if (o.Length == 0) steam.Remove(id); else steam[id] = o; return null; }, (_, _) => Task.CompletedTask)
+            { ToolInstalled = t => t == "gamemoderun" };
+        Window? host = null; var page = new CompatPage(services, () => host, CancellationToken.None);
+        host = new Window { Width = 900, Height = 560, Background = Palette.Bg, Content = new ScrollViewer { Content = page } }; host.Show();
+        await page.ShowAsync("570", "Dota 2");
+        await Until(() => host.GetVisualDescendants().OfType<SelectableTextBlock>().Any(t => t.Name == "CompatRecommendedLine"));
+        const string expected = "DXVK_ASYNC=1 RADV_PERFTEST=gpl gamemoderun %command% -dx11";
+        if (Find<SelectableTextBlock>(host, "CompatRecommendedLine").Text != expected) throw new InvalidOperationException("Recommended line: " + Find<SelectableTextBlock>(host, "CompatRecommendedLine").Text);
+        var alternatives = Find<StackPanel>(host, "CompatAlternatives").GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text ?? "").ToList();
+        foreach (var must in new[] { "PROTON_USE_WINED3D=1", "PROTON_ENABLE_NVAPI=1", "mangohud", "-dx12", "Proton 9.0-4" })
+            if (!alternatives.Any(a => a.StartsWith(must, StringComparison.Ordinal))) throw new InvalidOperationException("Missing alternative " + must + ": " + string.Join(" | ", alternatives));
+        if (!Find<TextBlock>(host, "CompatRecommendedProton").Inlines!.OfType<Avalonia.Controls.Documents.Run>().Any(r => r.Text!.StartsWith("GE-Proton10-29", StringComparison.Ordinal))) throw new InvalidOperationException("Recommended Proton missing.");
+        if (http.Hosts.Count != 0 || !host.GetVisualDescendants().OfType<StackPanel>().Any(p => p.Name == "CompatHeroPlaceholder")) throw new InvalidOperationException("Without consent: placeholder and no network.");
+        ((ScrollViewer)host.Content!).Offset = new Vector(0, 0);
+        await Task.Delay(250); Capture(host, "compat-triage-placeholder-dark.png");
+
+        Click(host, "CompatApplyRecommended"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        var ask = desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible);
+        if (!Find<TextBlock>(ask, "ConfirmText").Text!.Contains(expected) || !Find<TextBlock>(ask, "ConfirmText").Text!.Contains("-novid")) throw new InvalidOperationException("Confirmation must show the new and current options.");
+        Click(ask, "ConfirmYes"); await Until(() => steam.GetValueOrDefault("570") == expected && Find<Button>(host, "CompatUndoRecommended").IsVisible);
+        Click(host, "CompatUndoRecommended"); await Until(() => steam.GetValueOrDefault("570") == "-novid");
+
+        Click(host, "CompatOnlineQuery"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        var consent = desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible);
+        if (!Find<TextBlock>(consent, "ConfirmText").Text!.Contains("shared.akamai.steamstatic.com")) throw new InvalidOperationException("Consent must name the image host.");
+        Click(consent, "ConfirmYes");
+        await Until(() => Find<TextBlock>(host, "CompatTier").Text == "Platina" && !host.GetVisualDescendants().OfType<StackPanel>().Any(p => p.Name == "CompatHeroPlaceholder") && host.GetVisualDescendants().OfType<Border>().Any(b => b.Name == "CompatHeroTagProtonDB"));
+        if (http.Hosts.Any(h => !CompatOnline.Hosts.Contains(h)) || !http.Hosts.Contains("shared.akamai.steamstatic.com")) throw new InvalidOperationException("Hosts: " + string.Join(",", http.Hosts));
+        if (services.Online.CachedArt("570") is null) throw new InvalidOperationException("Artwork must be cached on disk.");
+        await Task.Delay(250); Capture(host, "compat-triage-dark.png");
+        ((ScrollViewer)host.Content!).Offset = new Vector(0, Find<Border>(host, "CompatWorked").TranslatePoint(new Point(0, 0), page)!.Value.Y - 8); await Task.Delay(250); Capture(host, "compat-triage-recommended-dark.png");
+        ((ScrollViewer)host.Content!).Offset = new Vector(0, Find<StackPanel>(host, "CompatAlternatives").TranslatePoint(new Point(0, 0), page)!.Value.Y - 200); await Task.Delay(250); Capture(host, "compat-triage-alternatives-dark.png");
+
+        Palette.Apply(true);
+        int calls = http.Hosts.Count;
+        await page.ShowAsync("570", "Dota 2"); await Until(() => host.GetVisualDescendants().OfType<SelectableTextBlock>().Any(t => t.Name == "CompatRecommendedLine"));
+        if (host.GetVisualDescendants().OfType<StackPanel>().Any(p => p.Name == "CompatHeroPlaceholder")) throw new InvalidOperationException("Cached artwork must be reused.");
+        if (http.Hosts.Count != calls) throw new InvalidOperationException("Cached artwork must not be downloaded again.");
+        ((ScrollViewer)host.Content!).Offset = new Vector(0, 0); await Task.Delay(300); Capture(host, "compat-triage-light.png");
+        ((ScrollViewer)host.Content!).Offset = new Vector(0, Find<Border>(host, "CompatWorked").TranslatePoint(new Point(0, 0), page)!.Value.Y - 8); await Task.Delay(250); Capture(host, "compat-triage-recommended-light.png");
+        Palette.Apply(false);
+        host.Close();
+        Console.WriteLine("PASS compat triage: conflict-free recommended line (wined3d/NVAPI/second API/missing tool/second Proton moved to alternatives with reasons), apply/undo only that line, Steam artwork only after consent, cached and reused (fake HTTP; no network)");
     }
 }
