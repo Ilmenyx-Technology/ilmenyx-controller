@@ -159,13 +159,12 @@ O que o RESET EXPLODE original faz foi portado ou substituído por um equivalent
 | Item | Situação | Motivo |
 |---|---|---|
 | Benchmark de GPU com ray tracing | **Portado (Vulkan, ray query); validado só numa APU Radeon 610M** | Falta GPU dedicada AMD RX 6000+ / NVIDIA RTX; score não comparável ao Windows |
-| GPU AMD/NVIDIA em hardware real | **Não testado** | O desenvolvimento usou só GPU Intel integrada |
+| GPU AMD/NVIDIA em hardware real | **Parcial**: AMD integrada (Radeon 610M) e NVIDIA de notebook (GeForce 940MX) validadas | Falta GPU AMD dedicada (VRAM própria, ventoinha, limite de energia) e NVIDIA de desktop/RTX |
 | RGB (Corsair, Razer) | Substituído pelo OpenRGB | Os SDKs originais são do Windows; o controle real de LEDs não foi testado |
-| Ajustes do Windows (Game DVR, HAGS, registro) | Não se aplica | Não existem no Linux |
 | FPS em jogo real | **Não testado** | Vem do log do MangoHud |
 | Pacotes `.deb`, `.rpm`, PKGBUILD, ARM64, musl | Não feito | Hoje só há `tar.gz` linux-x64 |
 
-O aplicativo mostra essa lista na página **Bloqueados (!)**. A tabela completa está em
+O aplicativo mostra essa lista na página **Bloqueados (!)**. O que não existe no Linux (ajustes do Windows, limpeza de USB fantasma, WinRAR) saiu da lista: ver [docs/bloqueados-removidos.md](docs/bloqueados-removidos.md). A tabela completa está em
 [docs/portagem-completa.md](docs/portagem-completa.md) e tudo que falta validar, com o motivo e como
 retestar, está em [Sem_teste.md](Sem_teste.md). **Contribuições para esses itens são bem-vindas.**
 

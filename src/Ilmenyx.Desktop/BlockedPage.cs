@@ -38,12 +38,12 @@ public sealed class BlockedPage : StackPanel
             ? $"{BlockedCatalog.TestAvailableText}: {available} item(ns) destravado(s) pelo hardware deste computador. Siga a dica de cada cartão para concluir o port."
             : "Nenhum item pode ser concluído neste computador: o hardware que eles pedem não foi encontrado.";
         list.Children.Clear();
-        foreach (var f in BlockedCatalog.All.OrderBy(f => f.State(Probe) == BlockedState.TestAvailable ? 0 : f.State(Probe) == BlockedState.Blocked ? 1 : 2)) list.Children.Add(Card(f, f.State(Probe)));
+        foreach (var f in BlockedCatalog.All.OrderBy(f => f.State(Probe) == BlockedState.TestAvailable ? 0 : 1)) list.Children.Add(Card(f, f.State(Probe)));
     }
 
     private static Control Card(BlockedFeature f, BlockedState state)
     {
-        string chipText = state switch { BlockedState.TestAvailable => BlockedCatalog.TestAvailableText.ToUpperInvariant(), BlockedState.NotApplicable => "NÃO SE APLICA", _ => "BLOQUEADO" };
+        string chipText = state == BlockedState.TestAvailable ? BlockedCatalog.TestAvailableText.ToUpperInvariant() : "BLOQUEADO";
         var chip = new Border { Name = "BlockedChip_" + f.Id, CornerRadius = new CornerRadius(IlmenyxTheme.Pill), Padding = new Thickness(10, 3), Background = state == BlockedState.TestAvailable ? Palette.Accent : Palette.Line, Child = new TextBlock { Text = (state == BlockedState.Blocked ? "🔒 " : "") + chipText, FontSize = 11, FontWeight = FontWeight.Bold, Foreground = state == BlockedState.TestAvailable ? Palette.OnAccent : Palette.Muted } };
         var details = new StackPanel { Name = "BlockedDetails_" + f.Id, Spacing = 3, IsVisible = state == BlockedState.TestAvailable, Margin = new Thickness(0, 8, 0, 0) };
         details.Children.Add(new TextBlock { Text = f.KindLabel.ToUpperInvariant(), FontSize = 11, FontWeight = FontWeight.Bold, Foreground = Palette.Faint });

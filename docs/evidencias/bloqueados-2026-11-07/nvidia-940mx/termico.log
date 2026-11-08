@@ -1,0 +1,4 @@
+start gpu-burn CPU=48000
+end gpu-burn CPU=61000
+start gpu-scene CPU=61000
+end gpu-scene CPU=55000

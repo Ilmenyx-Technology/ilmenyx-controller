@@ -1,0 +1,4 @@
+[0] Intel(R) HD Graphics 620 (KBL GT2) · GPU integrada · Vulkan 1.4.318
+[1] NVIDIA GeForce 940MX · GPU dedicada · Vulkan 1.4.312
+[2] llvmpipe (LLVM 20.1.2, 256 bits) · CPU (software) · Vulkan 1.4.318 · renderização por CPU · ray tracing · ray query
+exit=0

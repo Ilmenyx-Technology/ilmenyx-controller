@@ -1,0 +1,3 @@
+    0 Aviso(s)
+    0 Erro(s)
+Aprovado!  – Com falha:     0, Aprovado:  1082, Ignorado:     0, Total:  1082, Duração: 8 s - Ilmenyx.Tests.dll (net10.0)
