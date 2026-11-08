@@ -23,7 +23,7 @@ public sealed class FastExecDialog : Window
 
     /// <param name="addToLibrary">Adds an installed game executable to the library (returns false if it was already there).</param>
     /// <param name="run">Runs the plan (tests inject a fake); default <see cref="FastExec.RunAsync"/>.</param>
-    public FastExecDialog(Func<string, Task<bool>> addToLibrary, Func<string, string?> find, Func<FastExecPlan, CancellationToken, Task<int>>? run = null, string? tempRoot = null)
+    public FastExecDialog(Func<string, Task<bool>> addToLibrary, Func<string, string?> find, Func<FastExecPlan, CancellationToken, Task<int>>? run = null, string? tempRoot = null, string? classicRoot = null)
     {
         this.run = run ?? FastExec.RunAsync;
         Icon = AppIcon.Window; Title = "Ilmenyx — Executar instalador do Windows"; Width = 660; MinWidth = 480; SizeToContent = SizeToContent.Height; MaxHeight = 760;
@@ -57,7 +57,13 @@ public sealed class FastExecDialog : Window
                 new TextBlock { Text = "2. Desmarque DirectX, .NET, Visual C++ e outros \"componentes do Windows\". O Proton já cuida do DirectX e do .NET, e o que o jogo precisar ele instala na hora de jogar.", Foreground = Palette.Warn, FontSize = 12, TextWrapping = TextWrapping.Wrap },
                 new TextBlock { Text = "3. Atalhos na área de trabalho e no menu não são criados no seu Linux. Quando o instalador terminar, feche-o normalmente.", Foreground = Palette.Warn, FontSize = 12, TextWrapping = TextWrapping.Wrap } } },
         };
-        var ge = new CheckBox { Name = "FxGeProton", Content = "Usar o GE-Proton (alternativa se o instalador falhar; baixado na primeira vez)", FontSize = 12 };
+        // Which Proton runs the installer. Classic (Proton 9, 32-bit Wine layout) is what large 32-bit installers need (see ClassicProton).
+        var mode = new ComboBox { Name = "FxProtonMode", SelectedIndex = 0, HorizontalAlignment = HorizontalAlignment.Stretch, ItemsSource = new[] {
+            "Padrão (Proton mais novo, já instalado)",
+            "Clássico de 32 bits (recomendado para instaladores grandes; baixa ~470 MB na 1ª vez)",
+            "GE-Proton mais novo (baixado na 1ª vez)" } };
+        AutomationProperties.SetName(mode, "Proton usado para rodar o instalador");
+        var ge = new StackPanel { Spacing = 4, Children = { UiKit.Label("PROTON DO INSTALADOR"), mode } };
         var status = new TextBlock { Name = "FxStatus", FontSize = 12, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap };
         var results = new StackPanel { Name = "FxResults", Spacing = 6 };
         var start = UiKit.Primary("FxStart", "EXECUTAR INSTALADOR");
@@ -67,7 +73,21 @@ public sealed class FastExecDialog : Window
         start.Click += async (_, _) =>
         {
             FastExecPlan plan;
-            try { plan = FastExec.Plan((installer.Text ?? "").Trim(), (destination.Text ?? "").Trim(), find, tempRoot, geProton: ge.IsChecked == true); }
+            if (mode.SelectedIndex == 1 && !ClassicProton.IsInstalled(classicRoot))
+            {
+                if (!await ConfirmDialog.AskAsync(this, "Proton clássico", $"Baixar o {ClassicProton.Version} (cerca de 470 MB) do GitHub do projeto GE-Proton?\n\nÉ feito uma vez só e fica em ~/.local/share/ilmenyx/runners. O arquivo é conferido pela soma oficial antes de ser usado.", "Baixar", "Cancelar")) return;
+                start.IsEnabled = false; status.Foreground = Palette.Muted;
+                try
+                {
+                    using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(30) };
+                    http.DefaultRequestHeaders.UserAgent.ParseAdd("Ilmenyx (+https://github.com/Bismuth-Technology/ilmenyx)");
+                    await ClassicProton.EnsureAsync(http, new Progress<double>(v => status.Text = $"Baixando o {ClassicProton.Version}… {v:P0}"), CancellationToken.None, classicRoot);
+                }
+                catch (Exception e) when (e is IOException or HttpRequestException or TaskCanceledException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
+                { status.Foreground = Palette.Warn; status.Text = "Não consegui preparar o Proton clássico: " + e.Message; start.IsEnabled = true; return; }
+                finally { start.IsEnabled = true; }
+            }
+            try { plan = FastExec.Plan((installer.Text ?? "").Trim(), (destination.Text ?? "").Trim(), find, tempRoot, geProton: mode.SelectedIndex == 2, protonPath: mode.SelectedIndex == 1 ? ClassicProton.Folder(classicRoot) : null); }
             catch (Exception e) when (e is ArgumentException or InvalidOperationException) { status.Foreground = Palette.Warn; status.Text = e.Message; return; }
             start.IsEnabled = false; installer.IsEnabled = destination.IsEnabled = pickInstaller.IsEnabled = pickDestination.IsEnabled = false; results.Children.Clear();
             close.Content = "Cancelar"; var cts = running = new CancellationTokenSource();
@@ -80,7 +100,7 @@ public sealed class FastExecDialog : Window
                 status.Foreground = Palette.Muted;
                 status.Text = "Instalador aberto. Na primeira vez o Proton prepara o Windows temporário (leva um minuto). Siga as dicas acima.";
                 int code = await this.run(plan, cts.Token);
-                status.Text = code == 0 ? "Instalador finalizado." : $"O instalador terminou com o código {code}." + (ge.IsChecked == true ? "" : " Tente de novo marcando \"Usar o GE-Proton\".") + (FastExec.LatestLog(tempRoot) is { } log ? " Registro: " + log : "");
+                status.Text = code == 0 ? "Instalador finalizado." : $"O instalador terminou com o código {code}." + (FastExec.LatestLog(tempRoot) is { } log ? (mode.SelectedIndex != 1 && ClassicProton.LogShowsAddressSpaceExhaustion(log) ? " O registro mostra que o instalador ficou sem memória de 32 bits: tente de novo com \"Clássico de 32 bits\"." : "") + " Registro: " + log : "");
                 finished = code == 0; // a failed installer leaves a half-installed game: do not move it, just clean up
             }
             catch (OperationCanceledException) { status.Text = "Instalação cancelada."; }

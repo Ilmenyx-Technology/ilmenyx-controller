@@ -27,7 +27,7 @@ public static class FastExec
     public static string DefaultDestination() => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Jogos");
 
     /// <summary>Command and environment for one run. Throws when the installer or the destination is not acceptable, or umu is missing.</summary>
-    public static FastExecPlan Plan(string installer, string destination, Func<string, string?> find, string? tempRoot = null, string? id = null, bool geProton = false)
+    public static FastExecPlan Plan(string installer, string destination, Func<string, string?> find, string? tempRoot = null, string? id = null, bool geProton = false, string? protonPath = null)
     {
         if (!LinuxGameLibrary.IsWindowsExe(installer)) throw new ArgumentException("Escolha o instalador do Windows (arquivo .exe).");
         if (!Path.IsPathFullyQualified(destination)) throw new ArgumentException("Escolha a pasta onde o jogo vai ficar.");
@@ -44,7 +44,8 @@ public static class FastExec
             // installer fail its own CRC check (2026-11-08) while plain Wine worked; Xalia (gamepad UI helper) only burns CPU here.
             new("PROTON_NO_FSYNC", "1"), new("PROTON_NO_ESYNC", "1"), new("PROTON_NO_NTSYNC", "1"), new("PROTON_USE_XALIA", "0"),
             new("PROTON_LOG", "1"), new("PROTON_LOG_DIR", LogFolder(tempRoot)),
-            .. (geProton ? new KeyValuePair<string, string>[] { new("PROTONPATH", "GE-Proton") } : []), // umu downloads the latest GE-Proton
+            .. (protonPath is { Length: > 0 } pp ? new KeyValuePair<string, string>[] { new("PROTONPATH", pp) } // e.g. the classic Proton 9 folder
+                : geProton ? [new("PROTONPATH", "GE-Proton")] : []), // umu downloads the latest GE-Proton
         ], prefix, dest);
     }
 

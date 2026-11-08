@@ -42,6 +42,45 @@ public sealed class FastExecTests : IDisposable
         Assert.Contains(new KeyValuePair<string, string>("PROTONPATH", "GE-Proton"), ge.Environment);
     }
 
+    [Fact]
+    public void ClassicProtonPathOverridesTheDefaultAndGe()
+    {
+        var plan = FastExec.Plan(Installer, Path.Combine(root, "J"), n => "/usr/bin/" + n, Path.Combine(root, "fx"), "cl", geProton: true, protonPath: "/r/GE-Proton9-27");
+        Assert.Single(plan.Environment, e => e.Key == "PROTONPATH");
+        Assert.Contains(new KeyValuePair<string, string>("PROTONPATH", "/r/GE-Proton9-27"), plan.Environment);
+        Assert.Equal(Path.Combine("/d", "ilmenyx", "runners", "GE-Proton9-27"), ClassicProton.Folder(ClassicProton.Root("/d")));
+    }
+
+    [Fact]
+    public void AddressSpaceExhaustionIsRecognisedInTheProtonLog()
+    {
+        string log = Path.Combine(root, "steam-default.log");
+        File.WriteAllLines(log, Enumerable.Repeat("73643.087:0128:02d4:err:virtual:allocate_virtual_memory out of memory for allocation, base (nil) size 50031000", 6));
+        Assert.True(ClassicProton.LogShowsAddressSpaceExhaustion(log));
+        File.WriteAllLines(log, ["err:virtual:allocate_virtual_memory out of memory for allocation", "fixme:x"]);
+        Assert.False(ClassicProton.LogShowsAddressSpaceExhaustion(log));
+        Assert.False(ClassicProton.LogShowsAddressSpaceExhaustion(Path.Combine(root, "missing.log")));
+    }
+
+    [Fact]
+    public async Task ClassicProtonDownloadIsRejectedWhenTheHashDoesNotMatch()
+    {
+        var handler = new FakeHttp(new byte[1024]);
+        using var http = new HttpClient(handler);
+        string runners = Path.Combine(root, "runners");
+        await Assert.ThrowsAsync<IOException>(() => ClassicProton.EnsureAsync(http, null, CancellationToken.None, runners));
+        Assert.False(ClassicProton.IsInstalled(runners));
+        Assert.Empty(Directory.GetFiles(runners)); // the bad download was discarded
+        Assert.Equal(ClassicProton.Url, handler.Requested);
+    }
+
+    private sealed class FakeHttp(byte[] body) : HttpMessageHandler
+    {
+        public string? Requested { get; private set; }
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        { Requested = request.RequestUri!.ToString(); return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new ByteArrayContent(body) }); }
+    }
+
     [Theory]
     [InlineData("/")]
     [InlineData("/usr")]

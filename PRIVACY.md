@@ -78,3 +78,6 @@ direitos e eventual aplicação de LGPD/ANPD: PENDENTE DE REVISÃO humana confor
   (`www.nvidia.com`, `github.com`) no seu navegador quando você clica; o Ilmenyx não baixa nada deles.
 - **Cache de shaders maior (Otimiza) e opções experimentais do Proton (Jogos):** não usam a rede. Só gravam um arquivo seu
   (`~/.config/environment.d/90-ilmenyx-shader-cache.conf`) ou as opções de inicialização do jogo, depois da confirmação.
+- **Instalar jogo de Windows · modo "Clássico de 32 bits":** só depois da sua confirmação, baixa uma vez o GE-Proton9-27 (~470 MB)
+  de `github.com/GloriousEggroll/proton-ge-custom` (releases), confere a soma SHA-512 oficial e guarda em `~/.local/share/ilmenyx/runners`.
+  Nada sobre o seu PC é enviado além da requisição em si. O modo "GE-Proton mais novo" é baixado pelo umu, do mesmo projeto.

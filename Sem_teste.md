@@ -584,7 +584,7 @@ três processos .NET reais gravando 300 atualizações cada no mesmo arquivo (90
   NÃO TESTADO: abrir pela interface do Ilmenyx com MangoHud/FPS medido, outras distros (Arch/Fedora/Debian), sistema sem python3.
 - Proteção contra travamento em tela cheia (vsync forçado no DXVK para jogos com Proton na NVIDIA via PRIME): validada no Dell
   com o MKX (sem ela o X11 travou duas vezes; com ela, 16 min em tela cheia sem travar). NÃO TESTADO: outros jogos, DX12 (VKD3D).
-- "Instalar jogo de Windows" (fast exec: instalador num prefixo descartável, instala em C:\Jogos dentro do Windows temporário e move o jogo pronto para a pasta escolhida, depois limpa): testes de unidade e de
+- "Instalar jogo de Windows" (modo clássico de 32 bits com GE-Proton9-27 para instaladores que ficam sem memória de 32 bits no Proton 10/11; fast exec: instalador num prefixo descartável, instala em C:\Jogos dentro do Windows temporário e move o jogo pronto para a pasta escolhida, depois limpa): testes de unidade e de
   interface ok. NÃO TESTADO: um instalador real até o fim.
 - Tour de boas-vindas e Central de ajuda (`docs/tutorial.md`): textos em `HelpContent`, testes unitários e smoke com eventos no processo. NÃO TESTADO: primeira execução real (permissões + boas-vindas em sequência numa instalação limpa), teclado físico e leitor de tela (Orca).
 - Estimativa de FPS com catálogo fixo (rolagem encadeada + botão voltar ao topo), Overlay salvando sozinho (sem botão de gerar) e Relatório com mais contraste (2026-11-07): testes de unidade e smoke com eventos de roda/teclado no processo, 900x560 e 1280x820, claro e escuro. NÃO TESTADO: touchpad real (rolagem suave/inércia), roda física, leitor de tela (Orca), MangoHud real lendo a configuração salva sozinha.
