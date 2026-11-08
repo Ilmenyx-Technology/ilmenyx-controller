@@ -68,6 +68,7 @@ Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes qu
   jogo", aviso de temperatura alta no jogo — a CPU chegou a 100 °C, Wi-Fi gerando milhares de erros PCIe no log, Alt+Tab).
 - [x] **HowManyFPS**: removido do app em 2026-11-08 (decisão do mantenedor: burocracia demais para obter acesso à API). Histórico:
   `docs/pesquisa-linuxtoys-howmanyfps-2026-11-07.md`.
-- [ ] **Estimativa de FPS sem API**: escolher entre as opções de `docs/fps-estimativa-metodos.md` (recomendação na seção final).
+- [x] **Estimativa de FPS sem API**: C, B e D implementados (2026-11-08), ver `docs/fps-estimativa.md` §0.
+- [ ] **Calibração de FPS**: clicar CALIBRAR AGORA nesta máquina (940MX com driver 580) e jogar LoL/CS2 com MangoHud e qualidade informada, para conferir a faixa.
 - [ ] **Ideias do LinuxToys** (só ideias; o código é GPL-3.0, incompatível): diagnóstico "por que o Proton/Flatpak não abre", cache de
   shader maior por usuário, mais apps de jogo no instalador, ZRAM pela via oficial da distro, opções por jogo (Proton Wayland, low-latency).

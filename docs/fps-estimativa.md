@@ -1,16 +1,81 @@
 # Estimativa de FPS — metodologia e limites
 
 Página **Estimativa de FPS** (JOGOS). Objetivo: dar ao usuário uma expectativa realista do FPS no hardware dele, sem apresentar
-um palpite como se fosse medição. Código: `src/Ilmenyx.Core/GameCatalog.cs`, `FpsAccuracy.cs`, `GameFpsRow.cs`,
+um palpite como se fosse medição. Código: `src/Ilmenyx.Core/GameCatalog.cs`, `FpsAccuracy.cs`, `FpsCalibration.cs`, `GameFpsRow.cs`,
 `src/Ilmenyx.Desktop/GamesFpsPage.cs`; sessões medidas: `LinuxGameLauncher.RunAsync` e `MangoHudLogReader.ReadSession`.
 
-Tudo é calculado no PC, sem internet. Cada cartão mostra exatamente uma de três fontes, nesta ordem de prioridade:
+Tudo é calculado no PC, sem internet. Desde 2026-11-08 a página tem uma **trava de calibração** (seção 0). Cada cartão mostra
+exatamente uma destas fontes, nesta ordem de prioridade:
 
 | Fonte no cartão | De onde vem | Como aparece |
 |---|---|---|
 | **MEDIDO NESTE PC** | Sessão real registrada pelo MangoHud ao jogar pela página Jogos | `47 FPS`, `1% low 31`, `última sessão dd/MM · 42 min` (borda verde) |
-| **ESTIMATIVA** | Cálculo local pelas tabelas de referência | Faixa `38–52 FPS` + `confiança média/baixa/muito baixa` |
+| **ESTIMATIVA** | PC calibrado: cálculo local com a base indicada no cartão | Faixa `38–52 FPS` + `confiança média/baixa/muito baixa` + `base: benchmark deste PC` / `especificações` / `tabela de referência` (+ `suas N sessões medidas`) |
+| **PROVISÓRIO** | PC ainda não calibrado (ou calibrado com outro hardware/driver) | Faixa em cinza e itálico, sem nota (JOGÁVEL etc.), "sem confiança" e `provisório — calibre o PC` |
 | **SEM ESTIMATIVA** | GPU ou CPU fora das tabelas | `—`; nenhum número é inventado |
+
+## 0. Trava de calibração (método C)
+
+Até o PC ser calibrado, o topo da página diz **"As estimativas ainda não são confiáveis: este PC não foi calibrado"** com o botão
+**CALIBRAR AGORA (≈1 min)**. A calibração (após confirmação) roda:
+
+- **GPU:** a cena Vulkan do Ilmenyx (`GpuScene`) por **15 s** em 1920×1080, sombras 4096, 40 000 árvores — as mesmas opções das cenas
+  em `docs/evidencias` — no adaptador Vulkan com o mesmo ID PCI da GPU da estimativa (senão a dedicada). Nota da cena → índice de GPU.
+- **CPU:** `GameSim` (30 000 entidades) em **uma thread** por **10 s** (+2 s de aquecimento). FPS da simulação → índice de CPU.
+- **Calor:** um verificador a cada 1 s lê a CPU (coretemp/k10temp) e a GPU; em **90 °C** cancela tudo e **nada é salvo**. Se o PC já
+  está a 90 °C ou mais, a calibração nem começa.
+- **Guardado** em `settings.json` (0600), campo `FpsCalibration`: data, impressão digital (ID PCI da GPU, módulo e versão do driver,
+  nome curto da CPU), adaptador, nota da cena e FPS da simulação. Se a impressão digital mudar (troca de GPU/CPU, atualização do driver
+  NVIDIA, troca nouveau ↔ nvidia), a página volta a **PROVISÓRIO** e pede **RECALIBRAR**. Limite: para `amdgpu`/`i915` a versão do
+  módulo é a do kernel; atualizar só o Mesa **não** pede recalibração.
+- Se a GPU não puder ser medida (ex.: 940MX com nouveau, sem Vulkan), salva só a CPU e a GPU usa a tabela ou as especificações.
+
+**Âncoras da conversão (dados próprios da equipe):**
+
+| Medida | Pontos | Ajuste |
+|---|---|---|
+| Cena → índice de GPU | 940MX 172 → 4,5; HD 620 109 → 2,5; Radeon 610M 150 → 3 (`docs/evidencias/gpu-nvidia-2026-11-07`, `gpu-amd-2026-11-06`) | índice = 0,0229 × nota (inclinação fixa em 1: a cena é trabalho fixo; ajuste livre dá 1,16 com só três pontos próximos). Conferência: RTX 4070 ≈ 4370 pontos ≈ 25× a 940MX; razão de FP32 = 31× |
+| GameSim 1 thread → índice de CPU | i7-7500U (índice 36): 22,09 / 22,06 / 21,33 FPS em 3 execuções de 10 s, 2026-11-08, Dell 7460 na tomada | índice = 36/22,06 × FPS. **Um só ponto**: CPUs muito diferentes podem errar mais |
+
+Confiança depois de calibrar: GPU medida = **baixa**, ±25 % + distância à referência (a cena já inclui limite de energia e RAM do
+notebook, mas é uma cena sintética); CPU medida tira o motivo "CPU de notebook". Muito longe da RTX 4070 (índice < ~9) continua
+**muito baixa**.
+
+## 0.1 Fallback por especificações (método B)
+
+Se a GPU não está na tabela nem foi medida, mas o ID PCI está no `GpuSpecDb`: índice = k_arquitetura × TFLOPS^0,703 (TFLOPS = shaders
+× 2 × clock de boost; o clock máximo do driver substitui o boost só quando é **menor**, como em notebooks). β e k ajustados por mínimos
+quadrados (log) às 29 GPUs que estão nas duas tabelas: erro ≤ 9 %. Maxwell e RDNA 2 têm um ponto cada. Confiança **muito baixa**, ±45 %.
+Base no cartão: `especificações`. Sem tabela, sem especificações e sem calibração → SEM ESTIMATIVA.
+
+## 0.2 Ajuste pessoal pelas sessões medidas (método D)
+
+O perfil do jogo (página Jogos) ganhou **"Qualidade usada dentro do jogo"**: qualidade gráfica (Baixo/Médio/Alto/Ultra) e upscaling.
+O Ilmenyx **não** aplica isso ao jogo; só grava com cada sessão MangoHud (campos `Preset` e `Upscaling` de `FpsSession`).
+
+Com o PC calibrado, para a qualidade escolhida na página: em cada jogo do catálogo, a sessão mais nova **com a mesma qualidade**, com
+resolução conhecida e da mesma GPU é comparada com a estimativa nas configurações da própria sessão. Só entram sessões cujo gargalo
+estimado é o mesmo do cartão (GPU com GPU, CPU com CPU; trava do motor não entra).
+`fator = exp(mediana(ln(medido/estimado)) × n/(n+2))`, limitado a 0,5…2 (uma sessão move só 1/3 do caminho). Com **3 ou mais**
+sessões a confiança sobe um nível e a faixa fica 20 % mais estreita. Cartão: `base: benchmark deste PC · suas N sessões medidas`.
+
+## 0.3 Jogos leves: expoente de GPU (auditoria de 2026-11-08)
+
+Problema relatado pelo mantenedor: nesta máquina (i7-7500U + GeForce 940MX, driver 580) a página dizia **League of Legends 16–44 FPS
+no Baixo**; o mantenedor observa **> 100 FPS** nesse hardware. Causa: o FPS da GPU era `GpuRef × índice/100`, proporcional. O índice
+de GPU vem de jogos pesados; jogos leves caem muito menos em GPUs fracas. Correção: `FPS da GPU = GpuRef × (índice/100)^GpuExp`.
+Na GPU de referência (índice 100) nada muda; jogos pesados continuam com expoente 1.
+
+| Jogo | GpuExp | Fonte (lida em 2026-11-08) e conta |
+|---|---|---|
+| Valorant | 0,73 | Riot, [requisitos](https://support.riotgames.com/en-us/valorant/support-tools/minimum-recommended-pc-specs): 30 FPS Intel HD 4000, 60 FPS GT 730, 144 FPS GTX 1050 Ti. Índices: HD 4000 ≈ 1,8 e GT 730 ≈ 3,3 pelas especificações (16 EU × 1150 MHz contra a HD 620 = 2,5; 384 núcleos × 902 MHz contra a 940MX = 4,5), GTX 1050 Ti = 18 (tabela). Ajuste de mínimos quadrados em log com a âncora RTX 4070 = 600; **suposto Alto/1080p** (a Riot não diz). Resultado: 32 / 50 / 172 FPS contra 30 / 60 / 144 |
+| League of Legends | 0,55 | Riot, [requisitos](https://support.riotgames.com/en-us/league-of-legends/performance/minimum-and-recommended-system-requirements-league-of-legends): recomendado Intel UHD 630 (índice 3) em **Alto, 1920x1080**. **Suposto** "recomendado" = 60 FPS (a Riot não diz FPS). Conferência: 940MX no Baixo 1080p = 122 FPS (observação do mantenedor: > 100); mínimo HD 4600 em Baixo/1024x768 ≈ 80 FPS |
+| Dota 2, Rocket League, Minecraft | 0,64 | **Sem fonte oficial com FPS** para estes jogos (os requisitos da Epic para Rocket League — GTX 760 / GTX 1060 — não dizem FPS). Usada a média dos dois expoentes acima, por serem jogos leves do mesmo tipo. Marcado como aproximação |
+| CS2, Fortnite e os demais | 1 | Sem fonte permitida para mudar; ficam como estavam. Fortnite tem o modo Desempenho (outro renderizador), que o catálogo não modela |
+
+**Índices auditados desta máquina** (sem mudança): 940MX = 4,5 (especificação: 0,95 TFLOPS, o modelo B dá 4,5; a cena dá 3,94);
+HD 620 = 2,5 (âncora da cena); i7-7500U = 36 (âncora do GameSim). A razão 940MX/HD 620 pela cena (1,58) fica a 12 % da tabela (1,8).
+Resolução 1280x720 passou a ter fator próprio (×1,59, mesma curva do 1440p) para as sessões gravadas em 720p.
 
 ## 1. Medido neste PC
 
@@ -70,7 +135,10 @@ cenas diferentes, limites de energia). Não há dados de validação suficientes
 
 ## Limites conhecidos
 
-- Tabelas de índice e `GpuRef`/`CpuCap` são aproximadas e não foram validadas contra FPS real neste projeto.
+- Tabelas de índice e `GpuRef`/`CpuCap` são aproximadas e não foram validadas contra FPS real neste projeto. A calibração mede a
+  máquina com cenas sintéticas, não com jogos; o ajuste pessoal só existe depois de sessões reais com a qualidade informada.
+- A calibração real (cena + GameSim pela página) só foi exercitada com um executor falso no smoke; a cena e o GameSim em si já rodaram
+  pela CLI nesta máquina (ver âncoras).
 - A estimativa assume o driver proprietário/adequado, RAM em dois canais e o notebook na tomada.
 - O 1% low medido vem de amostras de 100 ms (ver acima). A GPU registrada é a que o MangoHud reporta; não foi conferido qual nome ele
   escreve no nouveau ou com PRIME offload.

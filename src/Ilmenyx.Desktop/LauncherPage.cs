@@ -65,7 +65,7 @@ public sealed class LauncherPage : Grid
     private bool heroArt;
     private readonly string? steamRoot;
     private int columns = 2;
-    private UiKit.ChipGroup<string>? modeChips, resChips, styleChips; private UiKit.ChipGroup<int>? hzChips;
+    private UiKit.ChipGroup<string>? modeChips, resChips, styleChips, gfxPresetChips, gfxUpChips; private UiKit.ChipGroup<int>? hzChips;
     public IReadOnlyList<LibGame> Games => games;
     public GameProfile? Profile => profile;
 
@@ -209,6 +209,9 @@ public sealed class LauncherPage : Grid
         void Chosen(Action<GameProfile> set) { if (loading || profile is null) return; set(profile); SaveProfile(current, profile); UpdatePreview(); }
         modeChips = new("LModePanel", [("Padrão do jogo", "default"), ("Tela cheia", "full"), ("Sem bordas", "borderless"), ("Janela", "window")], "default", v => Chosen(p => p.WinMode = v));
         resChips = new("LResPanel", [("Padrão", "default"), ("1280x720", "1280x720"), ("1920x1080", "1920x1080"), ("2560x1440", "2560x1440"), ("3840x2160", "3840x2160")], "default", v => Chosen(p => p.Res = v));
+        // What the user plays with inside the game (not applied): recorded with each MangoHud session so the FPS page compares like with like.
+        gfxPresetChips = new("LGfxPresetPanel", [("Não informado", ""), ("Baixo", "Baixo"), ("Médio", "Médio"), ("Alto", "Alto"), ("Ultra", "Ultra")], "", v => Chosen(p => p.GfxPreset = v));
+        gfxUpChips = new("LGfxUpscalePanel", [("Não informado", ""), ("Nativo", "Native"), ("Qualidade", "Quality"), ("Desempenho", "Performance")], "", v => Chosen(p => p.GfxUpscaling = v));
         hzChips = new("LHzPanel", [("Padrão", 0), ("60", 60), ("120", 120), ("144", 144), ("165", 165), ("240", 240)], 0, v => Chosen(p => p.Hz = v));
         styleChips = new("LStylePanel", [("Source / CS2", "source"), ("Unity", "unity"), ("Unreal", "unreal")], "source", v => Chosen(p => p.Style = v));
         extra.TextChanged += (_, _) => SaveFromControls();
@@ -244,6 +247,9 @@ public sealed class LauncherPage : Grid
             Children =
             {
                 CardTitle(Icons.Gpu, "GRÁFICOS (ARGUMENTOS DE INICIALIZAÇÃO)"), Row("Modo de janela", Wrap(modeChips.Panel)), Row("Resolução", Wrap(resChips.Panel)), Row("Taxa de atualização (Hz)", Wrap(hzChips.Panel)), Row("Tipo de argumento (depende do jogo)", Wrap(styleChips.Panel)),
+                new TextBlock { Text = "Qualidade usada dentro do jogo (para a Estimativa de FPS)", FontWeight = FontWeight.SemiBold, FontSize = 12.5, Margin = new Thickness(0, 4, 0, 4) },
+                new TextBlock { Text = "O Ilmenyx não muda isto no jogo. Diga a qualidade gráfica e o upscaling que você usa: cada sessão medida com MangoHud guarda esses valores e a resolução acima, e a Estimativa de FPS usa as sessões com a mesma qualidade para ajustar as estimativas dos outros jogos a este PC.", Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8) },
+                Row("Qualidade gráfica", Wrap(gfxPresetChips.Panel)), Row("Upscaling (DLSS / FSR)", Wrap(gfxUpChips.Panel)),
                 new TextBlock { Text = "Extras", Foreground = Palette.Muted, FontSize = 12, Margin = new Thickness(0, 0, 0, 6) }, extra, presets, UiKit.Label("LINHA FINAL"), code, steamBox, gfxNote
             }
         });
@@ -364,7 +370,7 @@ public sealed class LauncherPage : Grid
         hero.Background = art is null ? UiKit.HeroBrush() : new ImageBrush { Source = art, Stretch = Stretch.UniformToFill };
         heroScrim.IsVisible = heroArt; title.Foreground = heroArt ? Brushes.White : Palette.Fg; sub.Foreground = heroArt ? GameArt.OnImageMuted : Palette.Muted;
         chkPlan.IsChecked = p.HighPerfPlan; chkGpu.IsChecked = p.GpuHigh && multiGpu; chkGameMode.IsChecked = p.GameMode; chkMango.IsChecked = p.MangoHud; chkGuard.IsChecked = p.FullscreenGuard; chkGuard.IsVisible = multiGpu && gpuVendor == "NVIDIA";
-        modeChips!.Select(p.WinMode); resChips!.Select(p.Res); hzChips!.Select(p.Hz); styleChips!.Select(p.Style); extra.Text = p.Extra; exePath.Text = p.ExePath ?? "";
+        modeChips!.Select(p.WinMode); resChips!.Select(p.Res); hzChips!.Select(p.Hz); styleChips!.Select(p.Style); gfxPresetChips!.Select(p.GfxPreset ?? ""); gfxUpChips!.Select(p.GfxUpscaling ?? ""); extra.Text = p.Extra; exePath.Text = p.ExePath ?? "";
         protonBox.IsVisible = g.IsWindowsManual; protonId.Text = p.ProtonGameId ?? "";
         RebuildHelpers();
         steamBox.IsVisible = g.IsSteam; steamNow.Text = g.IsSteam ? "Opções atuais na Steam: " + (steam.GetLaunchOptions(g.Id) is { Length: > 0 } cur ? cur : "(nenhuma)") : "";

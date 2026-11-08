@@ -8,7 +8,9 @@ namespace Ilmenyx.Core;
 /// <summary>Card model of the original GameRow, without UI notifications.</summary>
 public sealed class GameFpsRow(GameInfo game)
 {
-    public const string SourceEstimate = "ESTIMATIVA", SourceMeasured = "MEDIDO NESTE PC";
+    public const string SourceEstimate = "ESTIMATIVA", SourceMeasured = "MEDIDO NESTE PC", SourceProvisional = "PROVISÓRIO";
+    /// <summary>Label of an estimate shown before this PC is calibrated (greyed card).</summary>
+    public const string ProvisionalNote = "provisório — calibre o PC";
     public GameInfo Game { get; } = game;
     public string Name => Game.Name;
     public string Genre => Game.Genre;
@@ -21,21 +23,39 @@ public sealed class GameFpsRow(GameInfo game)
     public FpsAssessment? Assessment { get; private set; }
     public FpsSession? Measured { get; private set; }
     public bool IsMeasured => Measured is not null;
+    /// <summary>Estimate shown before calibration: the card greys it out and says so.</summary>
+    public bool IsProvisional { get; private set; }
+    /// <summary>Where the estimate came from ("benchmark deste PC", "especificações", "tabela de referência", + "suas N sessões medidas").</summary>
+    public string BasisText { get; private set; } = "";
+    public PersonalFactor? Personal { get; private set; }
     public string FpsText => Range is { } r ? r.Text : Fps > 0 ? Fps.ToString("0", System.Globalization.CultureInfo.InvariantCulture) : "—";
-    public string LowText => Assessment is { } a ? a.ConfidenceText : Low > 0 ? $"1% low {Low.ToString("0", System.Globalization.CultureInfo.InvariantCulture)}" : "";
+    public string LowText => IsProvisional ? "sem confiança" : Assessment is { } a ? a.ConfidenceText : Low > 0 ? $"1% low {Low.ToString("0", System.Globalization.CultureInfo.InvariantCulture)}" : "";
     /// <summary>Common ranges of FPS calculators: 144+ excellent, 90+ great, 60+ playable. A range is rated by its centre.</summary>
     public string Rating => Fps switch { <= 0 => "", >= 144 => "EXCELENTE", >= 90 => "ÓTIMO", >= 60 => "JOGÁVEL", >= 30 => "FRACO", _ => "INJOGÁVEL" };
     public double Bar => Math.Clamp(Fps / 240.0, 0, 1);
     /// <summary>Longer text for tooltips and screen readers.</summary>
     public string Summary { get; private set; } = "";
-    public void Set(double fps, double low, string source, string detail) { Fps = fps; Low = low; Source = source; Detail = detail; Range = null; Assessment = null; Measured = null; Summary = ""; }
+    public void Set(double fps, double low, string source, string detail) { Fps = fps; Low = low; Source = source; Detail = detail; Range = null; Assessment = null; Measured = null; Summary = ""; IsProvisional = false; BasisText = ""; Personal = null; }
     public void Note(string detail) => Detail = detail;
 
-    public void SetEstimate(FpsEstimate e, FpsAssessment a)
+    public void SetEstimate(FpsEstimate e, FpsAssessment a) => SetEstimate(e, a, FpsBasis.Table, false, null);
+
+    /// <summary>Estimate with its basis; <paramref name="provisional"/> = this PC is not calibrated yet. A personal factor multiplies the centre.</summary>
+    public void SetEstimate(FpsEstimate e, FpsAssessment a, FpsBasis basis, bool provisional, PersonalFactor? personal)
     {
-        Set(e.Avg, 0, SourceEstimate, LimiterText(e, Game));
-        Range = FpsAccuracy.Range(e, Game, a); Assessment = a;
-        Summary = $"Estimativa (não é medição): {Range.Text} FPS, {a.ConfidenceText} — {string.Join("; ", a.Reasons)}.";
+        if (personal is { } p && e.Limiter is Bottleneck.Gpu or Bottleneck.Cpu)
+        {
+            double v = Math.Round(e.Avg * p.Factor);
+            if (Game.EngineCap > 0 && v > Game.EngineCap) v = Game.EngineCap;
+            e = e with { Avg = v, Low1 = Math.Round(v * 0.75) }; a = FpsModels.WithPersonal(a, p);
+        }
+        else personal = null;
+        Set(e.Avg, 0, provisional ? SourceProvisional : SourceEstimate, LimiterText(e, Game));
+        Range = FpsAccuracy.Range(e, Game, a); Assessment = a; IsProvisional = provisional; Personal = personal;
+        BasisText = provisional ? ProvisionalNote : "base: " + FpsModels.BasisText(basis) + (personal is { } q ? " · " + q.Text : "");
+        Summary = provisional
+            ? $"Provisório — calibre o PC: {Range.Text} FPS pela {FpsModels.BasisText(basis)}, sem medir esta máquina. Não confie neste número antes de calibrar."
+            : $"Estimativa (não é medição): {Range.Text} FPS, {a.ConfidenceText}, base: {FpsModels.BasisText(basis)}" + (personal is { } r ? $" ajustada por {r.Text}" : "") + $" — {string.Join("; ", a.Reasons)}.";
     }
 
     public void SetMeasured(FpsSession s)

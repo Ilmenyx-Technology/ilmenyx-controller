@@ -2,8 +2,15 @@
 
 Data: 2026-11-08. Para o mantenedor decidir. Contexto: a consulta à HowManyFPS foi **removida** (acesso à API exigia pedido
 formal). A página Estimativa de FPS agora é 100 % local. Este documento compara formas de estimar o FPS médio por jogo a partir
-do hardware do usuário, **sem** API paga ou com acesso restrito. Nada aqui foi implementado ainda; o método atual está em
-[`fps-estimativa.md`](fps-estimativa.md).
+do hardware do usuário, **sem** API paga ou com acesso restrito. O método atual está em [`fps-estimativa.md`](fps-estimativa.md).
+
+> **Situação (2026-11-08, decisão do mantenedor): C, B e D IMPLEMENTADOS**, mais a trava de calibração e a correção dos jogos leves.
+> - **(c) Calibração com os benchmarks do Ilmenyx — implementado:** botão CALIBRAR AGORA (cena de GPU de 15 s + GameSim de uma thread
+>   de 10 s, para em 90 °C). Antes de calibrar, os cartões ficam "provisório — calibre o PC". Âncoras e limites em `fps-estimativa.md` §0.
+> - **(b) Especificações — implementado** como fallback (`FpsModels.SpecGpuIndex`), só para GPUs com ID PCI no `GpuSpecDb`. §0.1.
+> - **(d) Fator pessoal — implementado** depois de adicionar qualidade gráfica e upscaling ao perfil/sessão. §0.2.
+> - **(a)** só a auditoria dos jogos leves (expoente de GPU, fontes Riot). **(e)** e **(f)**: não implementados.
+> As seções abaixo são a análise original, mantida como registro.
 
 > Aviso honesto: as faixas de precisão abaixo são **ordens de grandeza esperadas**, tiradas de como esses métodos costumam se
 > comportar. **Nenhuma delas foi medida neste projeto** (não há um conjunto de sessões reais para medir o erro). Antes de prometer

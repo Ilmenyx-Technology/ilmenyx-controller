@@ -36,6 +36,11 @@ public sealed class GameProfile
     /// the X server freeze for good (Intel modesetting "async flip" bug, Dell 7460, 2026-11-07). Forcing vsync in DXVK avoided it.
     /// </summary>
     public bool FullscreenGuard { get; set; } = true;
+    /// <summary>Graphics quality the user says they use inside the game ("" = not informed; Baixo | Médio | Alto | Ultra). Not applied to
+    /// the game: it is recorded with each measured session so the FPS page can compare the measurement with an estimate at the same settings.</summary>
+    public string GfxPreset { get; set; } = "";
+    /// <summary>Upscaling the user says they use inside the game ("" = not informed; Native | Quality | Performance). Not applied either.</summary>
+    public string GfxUpscaling { get; set; } = "";
     public List<HelperProgram> Helpers { get; set; } = [];
 }
 
@@ -150,7 +155,10 @@ public sealed record BenchRunEntry(DateTimeOffset At, string Kind, string Summar
 /// Summary of one game session measured by MangoHud on this PC (Launcher with MangoHud on). Only the game name from the library, the
 /// date, FPS figures, duration, the GPU name MangoHud logged and the profile resolution are kept; nothing leaves the PC.
 /// </summary>
-public sealed record FpsSession(string Game, DateTimeOffset At, double AvgFps, double Low1Fps, double DurationSeconds, string? Gpu, string? Resolution)
+/// <see cref="Preset"/> (Baixo/Médio/Alto/Ultra) and <see cref="Upscaling"/> (Native/Quality/Performance) are what the user said they use in
+/// that game (Jogos page, profile); null = not informed. Only sessions with a known preset feed the personal correction factor.
+public sealed record FpsSession(string Game, DateTimeOffset At, double AvgFps, double Low1Fps, double DurationSeconds, string? Gpu, string? Resolution,
+    string? Preset = null, string? Upscaling = null)
 {
     public const int MaxEntries = 50;
     public const double MinSeconds = 30;
@@ -181,6 +189,8 @@ public sealed class IlmenyxSettings
     public bool TourOffered { get; set; }
     /// <summary>FPS measured in game sessions started by the Launcher with MangoHud (newest first, at most <see cref="FpsSession.MaxEntries"/>). Never sent anywhere.</summary>
     public List<FpsSession> FpsSessions { get; set; } = [];
+    /// <summary>Calibration of this PC for the FPS estimate (short GPU scene + CPU GameSim), null = never calibrated. Never sent anywhere.</summary>
+    public FpsCalibration? FpsCalibration { get; set; }
 
     public void AddFpsSession(FpsSession session)
     {

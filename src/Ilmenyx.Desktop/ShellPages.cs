@@ -44,7 +44,8 @@ public sealed partial class ShellWindow
             return Scroll("CompatScroll", new CompatPage(services, () => this, stop.Token) { Margin = new Thickness(0, 4, 8, 12) });
         }, null);
         pages["fps"] = ("Estimativa de FPS", () => new GamesFpsPage(IlmenyxSettings.Load(IlmenyxSettings.DefaultPath()), IlmenyxSettings.DefaultPath(),
-            () => (usage.Last?.CpuModel ?? "", new LinuxGpuCollector().Collect(PciIds.Load()).FirstOrDefault().Raw?.Name ?? ""), FpsContextNow) { Margin = new Thickness(0, 4, 0, 0) }, null); // scrolls by itself (sticky catalogue)
+            () => (usage.Last?.CpuModel ?? "", new LinuxGpuCollector().Collect(PciIds.Load()).FirstOrDefault().Raw?.Name ?? ""), FpsContextNow,
+            OperatingSystem.IsLinux() ? FpsCalibratorReal.Create(FpsContextNow, () => usage.Last?.CpuTempC, GpuTemperatureCache()) : null) { Margin = new Thickness(0, 4, 0, 0) }, null); // scrolls by itself (sticky catalogue)
         pages["bottleneck"] = ("Detector de gargalo", () => Scroll("BottleneckScroll", new BottleneckPage(usage, stop.Token, OperatingSystem.IsLinux() ? () => MangoHudLogReader.Read(MangoHudLogReader.DefaultFolder(), DateTimeOffset.UtcNow) : null) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["stress"] = ("Stress test", () => Scroll("StressScroll", stressPage = new StressPage(new StressTester(), usage, () => this, () => usage.Last is { MemoryTotal: > 0, MemoryUsed: { } u } l ? l.MemoryTotal!.Value - u : 0, stop.Token, OperatingSystem.IsLinux() ? new VulkanGpuStress() : null, OperatingSystem.IsLinux() ? GpuTemperatureCache() : null) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["bench"] = ("Benchmark", () => Scroll("BenchScroll", new BenchPage(OperatingSystem.IsLinux() ? BenchServices.Real() : throw new PlatformNotSupportedException(), usage, () => this, IlmenyxSettings.DefaultPath(), stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
@@ -76,7 +77,7 @@ public sealed partial class ShellWindow
         var profiles = IlmenyxSettings.Load(IlmenyxSettings.DefaultPath()).GameProfiles.Values;
         return new FpsContext(main.Name, main.VendorId, main.DeviceId, main.Driver, main.Integrated, main.VramBytes,
             gpus.Skip(1).Select(g => g.Raw).FirstOrDefault(r => r.Integrated)?.Name, FpsAlerts.OnBattery(power.Batteries, power.MainsOnline),
-            profiles.Count(p => p.GpuHigh), profiles.Count);
+            profiles.Count(p => p.GpuHigh), profiles.Count, main.DriverVersion ?? "", main.MaxCoreMHz);
     }
 
     private Task<ReportData> GatherReportAsync(CancellationToken ct)

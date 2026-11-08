@@ -576,6 +576,7 @@ public sealed class UiSmokeApp : Application
         await ThemeAsync(shell);
         if (OperatingSystem.IsLinux()) await FpsScrollAndContrastAsync(shell);
         if (OperatingSystem.IsLinux()) await BlockedAndFullTourAsync(shell);
+        await FpsCalibrationGateAsync(shell, desktop);
         await ToastAsync(shell);
         Click(shell, "SortMemory"); await Until(() => Find<Button>(shell, "SortMemory").Content!.ToString()!.Contains('▼'));
         Click(shell, "ToggleMonitor");
@@ -1261,7 +1262,7 @@ public sealed class UiSmokeApp : Application
         // No API key box, no query button, no mention of the removed service; the source card says the estimate is local.
         if (host.GetVisualDescendants().OfType<Control>().Any(c => c.Name is "ApiKeyBox" or "BtnApiKey" or "BtnFpsQuery")) throw new InvalidOperationException("The removed HowManyFPS controls are still on the page.");
         if (host.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text?.Contains("HowManyFPS", StringComparison.OrdinalIgnoreCase) == true || t.Text?.Contains("CONSULTAR API", StringComparison.Ordinal) == true)) throw new InvalidOperationException("A text still mentions the removed HowManyFPS API.");
-        if (Find<TextBlock>(host, "GameSourceTitle").Text != "Fonte: estimativa local (aproximada)" || !Find<TextBlock>(host, "GameSourceText").Text!.Contains("sem usar a internet", StringComparison.Ordinal)) throw new InvalidOperationException("Source card must say the estimate is local.");
+        if (Find<TextBlock>(host, "GameSourceTitle").Text != "Fonte: provisória (PC ainda não calibrado)" || !Find<TextBlock>(host, "GameSourceText").Text!.Contains("sem usar a internet", StringComparison.Ordinal)) throw new InvalidOperationException("Source card must say the estimate is local.");
         host.Close();
         Find<Button>(shell, "Navfps").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await Until(() => shell.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "GameSourceTitle" && t.IsVisible));
@@ -2047,5 +2048,86 @@ public sealed class UiSmokeApp : Application
         if (Palette.IsLight) { Click(shell, "ToggleTheme"); await Until(() => !Palette.IsLight); }
         shell.Width = 1280; shell.Height = 820; await Task.Delay(300);
         Console.WriteLine("PASS drivers redesign: plain summary, six category cards with every inventory row, NVIDIA action present, no clipped card at 900x560/1280x820, dark and light captures");
+    }
+
+    /// <summary>Fake calibration benchmark: the smoke never runs real GPU/CPU load.</summary>
+    private static Ilmenyx.Desktop.FpsCalibrator FakeCalibrator(Func<double?> temp, int delayMs = 400, int? hangMs = null) => new(async (progress, ct) =>
+    {
+        progress.Report(("Cena de GPU (fixture)", 0.3)); await Task.Delay(delayMs, ct);
+        if (hangMs is int h) await Task.Delay(h, ct);
+        progress.Report(("Simulação de CPU (fixture)", 0.8)); await Task.Delay(delayMs, ct);
+        return new Ilmenyx.Core.FpsCalibrationMeasurement(172, 17.2, "GeForce 940MX (fixture)", 22.06, null);
+    }, temp, () => null);
+
+    private static async Task FpsCalibrationGateAsync(ShellWindow shell, IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        // Dell 7460-like fixture (GeForce 940MX + i7-7500U, driver 580); three GPU-limited sessions at Alto feed the personal factor.
+        string root = Path.Combine(Program.OutputDirectory, "fps-calibration-fixture"); Directory.CreateDirectory(root);
+        string settingsPath = Path.Combine(root, "settings.json");
+        var hw = ("Intel(R) Core(TM) i7-7500U CPU @ 2.70GHz", "NVIDIA Corporation GM108M [GeForce 940MX]");
+        var ctx = new Ilmenyx.Core.FpsContext("NVIDIA Corporation GM108M [GeForce 940MX]", "10de", "134d", "nvidia", false, 2UL << 30, "Intel HD Graphics 620", false, 1, 1, "580.95.05", 1189);
+        var fixture = new Ilmenyx.Core.IlmenyxSettings();
+        foreach (var (game, fps) in new[] { ("Cyberpunk 2077", 3.0), ("Hogwarts Legacy", 3.0), ("Starfield", 2.0) })
+            fixture.AddFpsSession(new(game, DateTimeOffset.UtcNow.AddDays(-1), fps, fps * 0.7, 900, "GeForce 940MX", "1920x1080", "Alto", "Native"));
+        fixture.Save(settingsPath);
+        Window? host = null;
+        async Task<GamesFpsPage> Open(Ilmenyx.Desktop.FpsCalibrator cal, Func<Ilmenyx.Core.FpsContext> c)
+        {
+            host?.Close();
+            var page = new GamesFpsPage(new Ilmenyx.Core.IlmenyxSettings(), settingsPath, () => hw, c, cal);
+            host = new Window { Width = 1100, Height = 900, Content = page }; host.Show();
+            await Until(() => page.Rows.Count > 20 && page.Rows.Any(r => r.Fps > 0) && host.GetVisualDescendants().OfType<Border>().Any(b => b.Name?.StartsWith("Game_", StringComparison.Ordinal) == true));
+            return page;
+        }
+        TextBlock Basis(string name) => host!.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Name == "Basis_" + LauncherPage.SafeName(name));
+        // 1. Not calibrated: warning at the top, primary button, every estimate greyed and labelled provisional.
+        var page = await Open(FakeCalibrator(() => 50), () => ctx);
+        if (page.Gate != Ilmenyx.Core.FpsGate.Uncalibrated || !Find<TextBlock>(host!, "FpsGateTitle").Text!.StartsWith("As estimativas ainda não são confiáveis", StringComparison.Ordinal)) throw new InvalidOperationException("Uncalibrated gate must warn at the top.");
+        if (Find<Button>(host!, "BtnFpsCalibrate").Content?.ToString() != "CALIBRAR AGORA (≈1 min)" || !Find<Button>(host!, "BtnFpsCalibrate").IsEffectivelyVisible) throw new InvalidOperationException("CALIBRAR AGORA button missing.");
+        if (page.Rows.Where(r => !r.IsMeasured).Any(r => !r.IsProvisional) || Basis("League of Legends").Text != "provisório — calibre o PC") throw new InvalidOperationException("Estimates must be provisional before calibration.");
+        await Task.Delay(300); Capture(host!, "fps-gate-uncalibrated.png");
+        // 2. Too hot already: refused before any load. 3. Hot during the run: aborted at 90 °C, nothing saved.
+        page = await Open(FakeCalibrator(() => 95), () => ctx);
+        Click(host!, "BtnFpsCalibrate"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        Click(desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible), "ConfirmYes");
+        await Until(() => page.CalibrationMessage?.Contains("95 °C", StringComparison.Ordinal) == true && page.Gate == Ilmenyx.Core.FpsGate.Uncalibrated);
+        int ticks = 0;
+        page = await Open(FakeCalibrator(() => ++ticks > 2 ? 91 : 60, 200, 20_000), () => ctx);
+        Click(host!, "BtnFpsCalibrate"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        Click(desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible), "ConfirmYes");
+        await Until(() => page.Gate == Ilmenyx.Core.FpsGate.Running); await Task.Delay(200); Capture(host!, "fps-gate-running.png");
+        await Until(() => page.CalibrationMessage?.StartsWith("Calibração interrompida", StringComparison.Ordinal) == true && page.Gate == Ilmenyx.Core.FpsGate.Uncalibrated);
+        if (Ilmenyx.Core.IlmenyxSettings.Load(settingsPath).FpsCalibration is not null) throw new InvalidOperationException("Aborted calibration must not be saved.");
+        // 4. Calibrated with the fake runner: saved with the fingerprint, cards name their basis, personal factor from the 3 sessions.
+        page = await Open(FakeCalibrator(() => 55), () => ctx);
+        Click(host!, "BtnFpsCalibrate"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        Click(desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible), "ConfirmYes");
+        await Until(() => page.Gate == Ilmenyx.Core.FpsGate.Calibrated);
+        var saved = Ilmenyx.Core.IlmenyxSettings.Load(settingsPath);
+        if (saved.FpsCalibration is not { SceneScore: 172, CpuSimFps: 22.06 } cal || !cal.Fingerprint.Contains("580.95.05", StringComparison.Ordinal) || saved.FpsSessions.Count != 3) throw new InvalidOperationException("Calibration must be saved with the driver fingerprint, keeping the sessions.");
+        if (page.Basis != Ilmenyx.Core.FpsBasis.Calibrated || Math.Abs(page.GpuIndex - 3.94) > 0.01 || Math.Abs(page.CpuIndex - 36) > 0.1) throw new InvalidOperationException($"Calibrated indices expected (3,94 / 36), got {page.GpuIndex} / {page.CpuIndex}.");
+        if (page.PersonalGpu is not { Sessions: 3 } || page.Rows.Where(r => !r.IsMeasured).Any(r => r.IsProvisional)) throw new InvalidOperationException("Personal factor from the 3 Alto sessions expected; no provisional card after calibration.");
+        if (!Find<TextBlock>(host!, "FpsGateText").Text!.Contains("nota 172", StringComparison.Ordinal) || Find<TextBlock>(host!, "GameSourceTitle").Text != "Fonte: estimativa calibrada neste PC") throw new InvalidOperationException("Calibrated gate/source texts missing.");
+        if (!page.Rows.Any(r => r.BasisText == "base: benchmark deste PC · suas 3 sessões medidas")) throw new InvalidOperationException("Card basis must name the PC benchmark and the sessions.");
+        await Task.Delay(300); Capture(host!, "fps-gate-calibrated.png");
+        // League of Legends on Low (maintainer's observation: > 100 FPS on this hardware; the old table said 16–44).
+        foreach (var chip in host!.GetVisualDescendants().OfType<Button>().Where(b => b.Content?.ToString() == "Baixo")) chip.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => page.Rows.Single(r => r.Name == "League of Legends").Fps >= 100);
+        if (Basis("League of Legends").Text != "base: benchmark deste PC") throw new InvalidOperationException("No Baixo session: the personal factor must not apply.");
+        Console.WriteLine("LoL Baixo after calibration: " + page.Rows.Single(r => r.Name == "League of Legends").FpsText);
+        // 5. Driver changed: stale gate asks for a new calibration and the estimates are provisional again. Light theme capture.
+        bool light0 = Palette.IsLight; if (!light0) { Click(shell, "ToggleTheme"); await Until(() => Palette.IsLight); }
+        page = await Open(FakeCalibrator(() => 55), () => ctx with { GpuDriverVersion = "580.105.08" });
+        if (page.Gate != Ilmenyx.Core.FpsGate.Stale || !Find<TextBlock>(host!, "FpsGateTitle").Text!.Contains("mudou", StringComparison.Ordinal) || page.Rows.Where(r => !r.IsMeasured).Any(r => !r.IsProvisional)) throw new InvalidOperationException("A driver change must make the calibration stale.");
+        await Task.Delay(300); Capture(host!, "fps-gate-stale-light.png");
+        // 6. Unknown GPU (not in the table) with a GpuSpecDb entry: spec fallback instead of SEM ESTIMATIVA.
+        var rtxCtx = ctx with { GpuName = "NVIDIA AD104 [GeForce RTX 4070 Prototype]", GpuDeviceId = "2786", GpuMaxCoreMHz = null };
+        hw = ("Intel(R) Core(TM) i7-7500U CPU @ 2.70GHz", "NVIDIA AD104 [Unknown board]");
+        page = await Open(FakeCalibrator(() => 55), () => rtxCtx);
+        if (page.Basis != Ilmenyx.Core.FpsBasis.Specs || page.Rows.Any(r => r.Source == "SEM ESTIMATIVA") || Math.Abs(page.GpuIndex - 100) > 10) throw new InvalidOperationException($"Spec fallback expected for an unknown name with a known PCI ID (index {page.GpuIndex}).");
+        await Task.Delay(300); Capture(host!, "fps-gate-specs-light.png");
+        host!.Close();
+        if (Palette.IsLight != light0) { Click(shell, "ToggleTheme"); await Until(() => Palette.IsLight == light0); }
+        Console.WriteLine("PASS fps calibration gate: provisional greyed cards + CALIBRAR AGORA before calibration, hot PC refused, 90 °C abort saves nothing, fake calibration saved with driver fingerprint, basis per card, personal factor from 3 sessions at the same preset, LoL Baixo ≥ 100, stale after driver change, spec fallback for unknown GPU");
     }
 }
