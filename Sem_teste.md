@@ -596,3 +596,4 @@ três processos .NET reais gravando 300 atualizações cada no mesmo arquivo (90
   dedicada (não testada). Saíram da lista os itens "não se aplica" e o WinRAR (`docs/bloqueados-removidos.md`); PeaZip no catálogo.
   Tour com 13 passos cobrindo todas as páginas do menu. NÃO TESTADO: instalar o PeaZip pelo app e abrir um .rar de verdade; sonda
   de AMD dedicada (gpu_metrics/ventoinha) e de RGB HID só com fixtures; tour com leitor de tela.
+- Inicialização agrupada (sistema/área de trabalho × programas seus, com explicação e recomendação por item) e Drivers por categoria (2026-11-07): tabela e fixtures testadas, smoke com fixtures, telas reais do Mint 22.3 Cinnamon capturadas. NÃO TESTADO: listas reais de GNOME, KDE Plasma, XFCE, MATE, LXQt e Budgie; posse de pacote por `rpm -qf` (Fedora/openSUSE) e `pacman -Qo` (Arch); Bluetooth/Wi-Fi USB, impressora USB e scanner reais na página Drivers.

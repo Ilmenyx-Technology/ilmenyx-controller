@@ -292,13 +292,15 @@ public static partial class HelpContent
                 Q("local", "O OpenRGB acessa a internet?", "Não. O servidor iniciado pelo Ilmenyx só aceita conexões do próprio PC (127.0.0.1) e é fechado quando você sai do app.")),
 
             S("startup", "tools", "Inicialização",
-                "Lista os programas que abrem junto com a sua sessão para você desativar ou remover o que não precisa.",
+                "Lista os programas que abrem junto com a sua sessão, separados em \"Do sistema (área de trabalho)\" e \"Programas instalados por você\", com uma frase sobre o que cada um faz e uma recomendação.",
                 [
                     "Clique em ATUALIZAR para ver a lista.",
-                    "Desligue o interruptor de um programa para ele não abrir mais com a sessão (dá para religar).",
+                    "Leia a recomendação de cada item: \"Necessário — não desative\", \"Pode desativar se não usa…\", \"Do usuário\" ou \"Desconhecido: pesquise antes de desativar\".",
+                    "Desligue o interruptor de um programa para ele não abrir mais com a sessão (dá para religar). Para itens do sistema, o Ilmenyx mostra um aviso antes.",
                     "REMOVER tira um programa seu da lista; RESTAURAR REMOVIDOS traz de volta.",
                 ],
-                Q("uninstall", "Remover da inicialização desinstala o programa?", "Não. O programa continua instalado; só deixa de abrir sozinho. A mudança vale na próxima vez que a sessão iniciar.")),
+                Q("uninstall", "Remover da inicialização desinstala o programa?", "Não. O programa continua instalado; só deixa de abrir sozinho. A mudança vale na próxima vez que a sessão iniciar."),
+                Q("system", "Como o Ilmenyx sabe o que é do sistema?", "Por uma tabela dos componentes das áreas de trabalho mais comuns (Cinnamon, GNOME, KDE Plasma, XFCE, MATE, LXQt, Budgie) e da distribuição, pelas marcas do próprio arquivo (fase de início, \"só em\" uma área de trabalho) e, quando dá, pelo pacote que instalou o arquivo. O que não reconhece aparece como \"Desconhecido\".")),
 
             S("apps", "tools", "Instalar apps",
                 "Instala de uma vez os aplicativos essenciais depois de instalar o sistema, pelo Flathub, só para o seu usuário e sem senha.",
@@ -311,14 +313,16 @@ public static partial class HelpContent
                 Q("rar", "Como abro arquivos .rar sem o WinRAR?", "O WinRAR não tem versão para Linux. Marque o PeaZip na lista: ele abre e extrai arquivos .rar, .zip e .7z.")),
 
             S("driver", "tools", "Drivers",
-                "Mostra os drivers em uso (kernel e módulos), a versão do driver NVIDIA, o suporte do fabricante e atualizações de firmware. Esta página não instala nada.",
+                "Mostra, por tipo de peça (vídeo, rede e Wi-Fi, Bluetooth, áudio, impressoras e outros), se cada uma tem driver funcionando e o que fazer quando não tem. Driver é o programa que faz o Linux conversar com a peça. Esta página não instala nada.",
                 [
-                    "Clique em VERIFICAR TUDO.",
-                    "VERIFICAR VERSÃO MAIS RECENTE consulta a internet só quando você clica.",
-                    "PROCURAR FIRMWARE (fwupd) mostra se há atualização de firmware para as suas peças.",
-                    "Para instalar o driver NVIDIA, use a página Driver NVIDIA.",
+                    "Clique em VERIFICAR TUDO e leia o resumo no topo: ele diz o que está ok e o que precisa de atenção.",
+                    "Em cada cartão, a etiqueta mostra a situação da peça; quando há algo a fazer, aparece um botão só (por exemplo, ABRIR A ABA DRIVER NVIDIA).",
+                    "\"Detalhes técnicos\" mostra o módulo do kernel, o ID da peça, a versão e, para a placa de vídeo, a consulta de versão (internet só ao clicar) e o comando sugerido.",
+                    "PROCURAR ATUALIZAÇÕES DE FIRMWARE mostra se o fwupd tem firmware novo para as suas peças.",
                 ],
-                Q("amd", "Preciso instalar driver para Intel ou AMD?", "Normalmente não: no Linux, o driver delas já vem com o kernel e o Mesa da sua distribuição.")),
+                Q("amd", "Preciso instalar driver para Intel ou AMD?", "Normalmente não: no Linux, o driver delas já vem com o kernel e o Mesa da sua distribuição."),
+                Q("free", "O que é driver livre e proprietário?", "Livre é de código aberto e já vem com o Linux. Proprietário é feito pelo fabricante, com código fechado, como o driver oficial da NVIDIA. Os dois podem funcionar bem."),
+                Q("nodriver", "Uma peça aparece \"sem driver\". É problema?", "Em vídeo, rede, Bluetooth e áudio, sim: a peça provavelmente não funciona. Em peças internas da placa-mãe costuma ser normal, porque o Linux não precisa delas.")),
 
             S("nvdriver", "tools", "Driver NVIDIA",
                 "Instala, verifica, repara e atualiza o driver NVIDIA certo para a sua placa e o seu sistema.",

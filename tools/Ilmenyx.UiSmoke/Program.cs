@@ -510,9 +510,9 @@ public sealed class UiSmokeApp : Application
         if (driverLaunches != 1) throw new InvalidOperationException("Driver manager click did not reach fake launcher.");
         Console.WriteLine("PASS nouveau driver recommendation: explicit click invokes fake launcher only");
         Find<Button>(shell, "Navdriver").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        await Until(() => shell.GetVisualDescendants().OfType<StackPanel>().Any(p => p.Name == "DrvList" && p.Children.Count > 0));
+        await Until(() => shell.GetLogicalDescendants().OfType<StackPanel>().Any(p => p.Name == "DrvList" && p.Children.Count > 0));
         if (!Find<TextBlock>(shell, "DrvStatus").Text!.StartsWith("Pronto")) throw new InvalidOperationException("Driver scan did not finish.");
-        if (!shell.GetVisualDescendants().OfType<TextBox>().Any(t => t.Name == "DrvInstallHint" && t.IsReadOnly)) throw new InvalidOperationException("Install hint (never executed) missing.");
+        if (!shell.GetLogicalDescendants().OfType<TextBox>().Any(t => t.Name == "DrvInstallHint" && t.IsReadOnly)) throw new InvalidOperationException("Install hint (never executed) missing.");
         Click(shell, "BtnDrvFwupd");
         await Until(() => { var t = Find<TextBlock>(shell, "DrvStatus").Text!; return t.Contains("fwupd") || t.Contains("dispositivo"); });
         await Task.Delay(200); Capture(shell, "shell-drivers.png");
@@ -572,6 +572,7 @@ public sealed class UiSmokeApp : Application
         if (OperatingSystem.IsLinux()) await BlockedAsync(shell);
         if (OperatingSystem.IsLinux()) await OverviewSummaryAsync(shell);
         await TourAndHelpAsync(shell, desktop);
+        if (OperatingSystem.IsLinux()) await StartupDriversRedesignAsync(shell, desktop);
         await ThemeAsync(shell);
         if (OperatingSystem.IsLinux()) await FpsScrollAndContrastAsync(shell);
         if (OperatingSystem.IsLinux()) await BlockedAndFullTourAsync(shell);
@@ -606,7 +607,15 @@ public sealed class UiSmokeApp : Application
         await Until(() => page.Entries.Count == 2);
         Click(host, "BtnStartupScan");
         if (host.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "StartupRemove_sysapp.desktop")) throw new InvalidOperationException("System entries must not offer REMOVER.");
+        // Unknown system entry: the warning dialog comes first; declining keeps it enabled and writes nothing.
         var toggle = Find<CheckBox>(host, "StartupToggle_sysapp.desktop"); toggle.IsChecked = false; toggle.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        var keepDialog = desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible); Click(keepDialog, "ConfirmNo");
+        await Until(() => !keepDialog.IsVisible && toggle.IsChecked == true);
+        if (File.Exists(Path.Combine(cfg, "autostart", "sysapp.desktop"))) throw new InvalidOperationException("Declined disable wrote an override.");
+        toggle.IsChecked = false; toggle.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        Click(desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible), "ConfirmYes");
         await Until(() => File.Exists(Path.Combine(cfg, "autostart", "sysapp.desktop")) && Find<TextBlock>(host, "StartupState_sysapp.desktop").Text == "DESATIVADO");
         if (File.ReadAllText(Path.Combine(sys, "sysapp.desktop")).Contains("Hidden")) throw new InvalidOperationException("System file was modified.");
         Click(host, "StartupRemove_mine.desktop");
@@ -628,7 +637,7 @@ public sealed class UiSmokeApp : Application
         Find<Button>(shell, "Navstartup").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await Until(() => shell.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "StartupSummary" && (t.Text!.Contains("PROGRAMAS") || t.Text.Contains("NENHUM"))));
         await Task.Delay(300); Capture(shell, "shell-startup.png");
-        Console.WriteLine("PASS startup page: system entry disabled by user override (system file untouched), declined removal keeps entry, confirmed removal + restore round trip; real list read-only");
+        Console.WriteLine("PASS startup page: system entry disabled by user override only after the warning (system file untouched), declined removal keeps entry, confirmed removal + restore round trip; real list read-only");
     }
     [System.Runtime.Versioning.SupportedOSPlatform("linux")]
     private static async Task LauncherAsync(ShellWindow shell, IClassicDesktopStyleApplicationLifetime desktop)
@@ -1423,12 +1432,12 @@ public sealed class UiSmokeApp : Application
         await Task.Delay(300); Capture(shell, "shell-nvdriver.png");
         // Drivers page links to the tab (the NVIDIA card is only there on a machine with an NVIDIA GPU, as this one).
         Find<Button>(shell, "Navdriver").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        await Until(() => shell.CurrentPage == "driver" && shell.GetVisualDescendants().OfType<StackPanel>().Any(p => p.Name == "DrvList" && p.Children.Count > 0));
-        if (shell.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Name == "BtnDrvNvidiaTab") is { } link)
+        await Until(() => shell.CurrentPage == "driver" && shell.GetLogicalDescendants().OfType<StackPanel>().Any(p => p.Name == "DrvList" && p.Children.Count > 0));
+        if (shell.GetLogicalDescendants().OfType<Button>().FirstOrDefault(b => b.Name == "BtnDrvNvidiaTab") is { } link)
         {
             link.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); await Until(() => shell.CurrentPage == "nvdriver");
         }
-        if (shell.GetVisualDescendants().OfType<TextBox>().Any(t => t.Name == "DrvInstallHint" && (t.Text ?? "").Contains("sudo ubuntu-drivers install"))) throw new InvalidOperationException("Drivers page still suggests ubuntu-drivers install.");
+        if (shell.GetLogicalDescendants().OfType<TextBox>().Any(t => t.Name == "DrvInstallHint" && (t.Text ?? "").Contains("sudo ubuntu-drivers install"))) throw new InvalidOperationException("Drivers page still suggests ubuntu-drivers install.");
 
         // Fake services: the incident of 2026-11-07 (Mint 22.3, 940MX, kernel 7.0 with incomplete headers, iF/iU packages). Never pkexec/apt.
         const string running = "6.14.0-37-generic";
@@ -1967,5 +1976,88 @@ public sealed class UiSmokeApp : Application
         if (missing.Count > 0) throw new InvalidOperationException("Tour does not cover: " + string.Join(", ", missing));
         shell.EndTour(); shell.Width = w; shell.Height = h; shell.Select("dash"); await Task.Delay(300);
         Console.WriteLine($"PASS blocked page and full tour: no not-applicable/WinRAR items, AMD integrated vs dedicated explained, PeaZip in the catalogue; {tour.Count} tour steps cover all {shell.PageKeys.Count} sidebar pages, card and highlight inside 900x560 in both themes");
+    }
+
+    /// <summary>Inicialização grouped by origin with plain advice, and the Drivers page by category (2026-11-07). Fixtures only for any click; real pages are only listed and captured.</summary>
+    private static async Task StartupDriversRedesignAsync(ShellWindow shell, IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        string root = Path.Combine(Program.OutputDirectory, "startup-groups-fixture"), cfg = Path.Combine(root, "cfg"), sys = Path.Combine(root, "sys");
+        Directory.CreateDirectory(Path.Combine(cfg, "autostart")); Directory.CreateDirectory(sys);
+        File.WriteAllText(Path.Combine(sys, "cinnamon-settings-daemon-power.desktop"), "[Desktop Entry]\nType=Application\nName=Cinnamon Settings Daemon - power\nExec=/bin/true\nOnlyShowIn=X-Cinnamon;\nX-GNOME-Autostart-Phase=Initialization\n");
+        File.WriteAllText(Path.Combine(sys, "blueman.desktop"), "[Desktop Entry]\nType=Application\nName=Gerenciador Bluetooth\nExec=/bin/true\n");
+        File.WriteAllText(Path.Combine(sys, "vendor-tray.desktop"), "[Desktop Entry]\nType=Application\nName=Vendor Tray\nComment=Ícone do fabricante\nExec=/bin/true\n");
+        File.WriteAllText(Path.Combine(cfg, "autostart", "steam.desktop"), "[Desktop Entry]\nType=Application\nName=Steam\nExec=/bin/true -silent\n");
+        var manager = new Ilmenyx.Platform.Linux.LinuxStartupManager(cfg, Path.Combine(root, "data"), [sys], null, null, "X-Cinnamon");
+        Window? host = null;
+        var page = new StartupPage(manager, () => host, CancellationToken.None);
+        host = new Window { Width = 900, Height = 560, Content = new ScrollViewer { Content = page } }; host.Show();
+        await Until(() => page.Entries.Count == 4);
+        var sysGroup = Find<StackPanel>(host, "StartupGroupSystem"); var userGroup = Find<StackPanel>(host, "StartupGroupUser");
+        bool In(StackPanel g, string id) => g.GetVisualDescendants().OfType<CheckBox>().Any(c => c.Name == "StartupToggle_" + id);
+        if (!In(sysGroup, "cinnamon-settings-daemon-power.desktop") || !In(sysGroup, "blueman.desktop") || !In(userGroup, "steam.desktop") || !In(userGroup, "vendor-tray.desktop"))
+            throw new InvalidOperationException("Startup entries are not grouped by system/user.");
+        if (Find<TextBlock>(host, "StartupAdvice_cinnamon-settings-daemon-power.desktop").Text != "Necessário — não desative.") throw new InvalidOperationException("Required advice missing.");
+        if (!Find<TextBlock>(host, "StartupAdvice_blueman.desktop").Text!.StartsWith("Pode desativar se não usa Bluetooth")) throw new InvalidOperationException("Optional advice missing.");
+        if (Find<TextBlock>(host, "StartupAdvice_vendor-tray.desktop").Text != "Desconhecido: pesquise antes de desativar.") throw new InvalidOperationException("Unknown advice missing.");
+        if (!Find<TextBlock>(host, "StartupAdvice_steam.desktop").Text!.StartsWith("Do usuário")) throw new InvalidOperationException("User advice missing.");
+        if (host.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "StartupRemove_vendor-tray.desktop" || b.Name == "StartupRemove_cinnamon-settings-daemon-power.desktop")) throw new InvalidOperationException("System entries must not offer REMOVER.");
+        var power = Find<CheckBox>(host, "StartupToggle_cinnamon-settings-daemon-power.desktop"); power.IsChecked = false; power.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        var warn = desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible);
+        if (!Find<TextBlock>(warn, "ConfirmText").Text!.Contains("ATENÇÃO")) throw new InvalidOperationException("Required entry warning missing.");
+        await Task.Delay(150); Capture(warn, "startup-warning.png");
+        Click(warn, "ConfirmNo"); await Until(() => !warn.IsVisible && power.IsChecked == true);
+        if (File.Exists(Path.Combine(cfg, "autostart", "cinnamon-settings-daemon-power.desktop"))) throw new InvalidOperationException("Declined warning still disabled the entry.");
+        // Steam (the user's): no warning, disabled at once.
+        var steam = Find<CheckBox>(host, "StartupToggle_steam.desktop"); steam.IsChecked = false; steam.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => Find<TextBlock>(host, "StartupState_steam.desktop").Text == "DESATIVADO");
+        if (desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible)) throw new InvalidOperationException("User entry must not ask.");
+        host.Close();
+        Console.WriteLine("PASS startup groups: system/desktop vs user programs, plain advice per entry, warning before disabling a required system entry (declined = untouched), user entry disabled without warning (fixtures)");
+
+        // Drivers page: summary + six category cards; the folded technical list still has every row.
+        Find<Button>(shell, "Navdriver").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => shell.CurrentPage == "driver" && shell.GetLogicalDescendants().OfType<StackPanel>().Any(p => p.Name == "DrvList" && p.Children.Count > 0));
+        var driverPage = shell.GetLogicalDescendants().OfType<DriverPage>().Single();
+        if (driverPage.Cards.Count != 6 || Find<StackPanel>(shell, "DrvColumnA").Children.Count + Find<StackPanel>(shell, "DrvColumnB").Children.Count != 6) throw new InvalidOperationException("Driver categories missing.");
+        if (driverPage.Cards.Sum(c => c.Devices.Count) != driverPage.Rows.Count) throw new InvalidOperationException("A device was lost between the inventory and the cards.");
+        if (Find<TextBlock>(shell, "DrvHeadline").Text is not { Length: > 0 } head || head == "Ainda não verificado.") throw new InvalidOperationException("Driver summary empty.");
+        foreach (var d in driverPage.Cards.SelectMany(c => c.Devices).Where(d => d.Action == DriverAction.OpenNvidiaTab))
+            if (!shell.GetLogicalDescendants().OfType<Button>().Any(b => b.Name == "BtnDrvNvidiaTab")) throw new InvalidOperationException("NVIDIA device without its recommended action.");
+        var sizes = new[] { (1280.0, 820.0), (900.0, 560.0) };
+        foreach (var light in new[] { false, true })
+        {
+            // The real toggle recolours the whole shell (the choice goes to the fixture settings file; it is switched back below).
+            if (light != Palette.IsLight) { Click(shell, "ToggleTheme"); await Until(() => Palette.IsLight == light); }
+            foreach (var (w, h) in sizes)
+            {
+                if (w == 900) await MinimumSize(shell); else { shell.Width = w; shell.Height = h; }
+                foreach (var key in new[] { "startup", "driver" })
+                {
+                    Find<Button>(shell, "Nav" + key).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    await Until(() => shell.CurrentPage == key); await Task.Delay(500);
+                    string theme = light ? "light" : "dark";
+                    Capture(shell, $"redesign-{key}-{theme}-{w:0}x{h:0}.png");
+                    if (key == "driver")
+                    {
+                        foreach (var card in shell.GetVisualDescendants().OfType<Border>().Where(b => b.Name?.StartsWith("DrvCat_", StringComparison.Ordinal) == true && b.IsEffectivelyVisible))
+                        {
+                            var at = card.TranslatePoint(new Point(0, 0), shell) ?? default;
+                            if (at.X + card.Bounds.Width > shell.Bounds.Width + 1 || card.Bounds.Width < 240) throw new InvalidOperationException($"Driver card {card.Name} clipped or too narrow: {at}, {card.Bounds.Size}");
+                        }
+                        Find<Grid>(shell, "DrvCategories").BringIntoView(); await Task.Delay(400);
+                        Capture(shell, $"redesign-driver-cards-{theme}-{w:0}x{h:0}.png");
+                    }
+                    else if (shell.GetVisualDescendants().OfType<StackPanel>().FirstOrDefault(p => p.Name == "StartupGroupUser") is { } users)
+                    {
+                        users.BringIntoView(); await Task.Delay(400);
+                        Capture(shell, $"redesign-startup-user-{theme}-{w:0}x{h:0}.png");
+                    }
+                }
+            }
+        }
+        if (Palette.IsLight) { Click(shell, "ToggleTheme"); await Until(() => !Palette.IsLight); }
+        shell.Width = 1280; shell.Height = 820; await Task.Delay(300);
+        Console.WriteLine("PASS drivers redesign: plain summary, six category cards with every inventory row, NVIDIA action present, no clipped card at 900x560/1280x820, dark and light captures");
     }
 }
