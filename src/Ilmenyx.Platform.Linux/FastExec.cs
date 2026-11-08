@@ -47,6 +47,7 @@ public static class FastExec
     public static void Prepare(FastExecPlan plan)
     {
         Directory.CreateDirectory(plan.Destination);
+        Directory.CreateDirectory(InstallFolder(plan)); // C:\Jogos, where the installer should put the game
         string dosdevices = Path.Combine(plan.TempPrefix, "dosdevices");
         Directory.CreateDirectory(dosdevices);
         string d = Path.Combine(dosdevices, "d:");
@@ -109,6 +110,66 @@ public static class FastExec
         if (!Directory.Exists(root)) return 0;
         foreach (var dir in Directory.EnumerateDirectories(root, PrefixPrefix + "*")) { DeleteTree(dir); removed++; }
         return removed;
+    }
+
+    /// <summary>The folder offered to the installer inside the temporary Windows: C:\Jogos.</summary>
+    public static string InstallFolder(FastExecPlan plan) => Path.Combine(plan.TempPrefix, "drive_c", "Jogos");
+
+    /// <summary>Folders Wine itself creates in Program Files; anything else there came from the installer.</summary>
+    private static readonly string[] WineDefaults = ["common files", "internet explorer", "windows media player", "windows nt", "windowspowershell", "microsoft.net", "msbuild", "reference assemblies", "uninstall information", "windows defender", "windows mail", "windows photo viewer", "windows portable devices", "windows sidebar"];
+
+    /// <summary>
+    /// What the installer put inside the temporary Windows: every folder in C:\Jogos and C:\Games, plus folders in Program Files that
+    /// Wine does not create itself. These are moved to the destination before the temporary Windows is deleted.
+    /// </summary>
+    public static IReadOnlyList<string> InstalledFolders(FastExecPlan plan)
+    {
+        string c = Path.Combine(plan.TempPrefix, "drive_c"); var list = new List<string>();
+        void Add(string parent, bool skipWine)
+        {
+            if (!Directory.Exists(parent)) return;
+            foreach (var d in Directory.EnumerateDirectories(parent))
+            {
+                if (new DirectoryInfo(d).LinkTarget is not null) continue;
+                if (skipWine && WineDefaults.Contains(Path.GetFileName(d).ToLowerInvariant())) continue;
+                list.Add(d);
+            }
+        }
+        Add(Path.Combine(c, "Jogos"), false); Add(Path.Combine(c, "Games"), false);
+        Add(Path.Combine(c, "Program Files"), true); Add(Path.Combine(c, "Program Files (x86)"), true);
+        return list;
+    }
+
+    /// <summary>
+    /// Moves each installed folder into the destination (rename on the same disk, copy + delete across disks). An existing name gets
+    /// " (2)", " (3)"... Returns the new folders. Never follows symbolic links.
+    /// </summary>
+    public static IReadOnlyList<string> MoveToDestination(FastExecPlan plan, Action<string>? progress = null)
+    {
+        Directory.CreateDirectory(plan.Destination);
+        var moved = new List<string>();
+        foreach (var src in InstalledFolders(plan))
+        {
+            string name = Path.GetFileName(src), target = Path.Combine(plan.Destination, name);
+            for (int i = 2; Directory.Exists(target) || File.Exists(target); i++) target = Path.Combine(plan.Destination, $"{name} ({i})");
+            progress?.Invoke(name);
+            try { Directory.Move(src, target); }
+            catch (IOException) { CopyTree(src, target); DeleteTree(src); } // different disk: copy, then remove the source
+            moved.Add(target);
+        }
+        return moved;
+    }
+
+    private static void CopyTree(string src, string dst)
+    {
+        Directory.CreateDirectory(dst);
+        foreach (var entry in new DirectoryInfo(src).EnumerateFileSystemInfos("*", new EnumerationOptions { AttributesToSkip = 0 }))
+        {
+            string to = Path.Combine(dst, entry.Name);
+            if (entry.LinkTarget is { } link) { if (entry is DirectoryInfo) Directory.CreateSymbolicLink(to, link); else File.CreateSymbolicLink(to, link); }
+            else if (entry is DirectoryInfo) CopyTree(entry.FullName, to);
+            else File.Copy(entry.FullName, to, overwrite: false);
+        }
     }
 
     /// <summary>Recursive delete that never follows symbolic links (links are unlinked, their targets stay).</summary>

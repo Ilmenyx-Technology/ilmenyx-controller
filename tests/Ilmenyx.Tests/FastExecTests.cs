@@ -62,6 +62,29 @@ public sealed class FastExecTests : IDisposable
     }
 
     [Fact]
+    public void InstalledGameIsMovedOutOfTheTemporaryWindowsBeforeCleanup()
+    {
+        if (!OperatingSystem.IsLinux()) return;
+        var plan = FastExec.Plan(Installer, Path.Combine(root, "Jogos"), n => "/usr/bin/" + n, Path.Combine(root, "fx"), "mv");
+        FastExec.Prepare(plan);
+        Assert.True(Directory.Exists(FastExec.InstallFolder(plan)), "C:\\Jogos must exist for the installer");
+        string c = Path.Combine(plan.TempPrefix, "drive_c");
+        void Make(string rel) { string p = Path.Combine(c, rel); Directory.CreateDirectory(Path.GetDirectoryName(p)!); File.WriteAllBytes(p, [1, 2, 3]); }
+        Make("Jogos/My Game/game.exe"); Make("Games/Other/run.exe"); Make("Program Files/Tool/tool.exe");
+        Make("Program Files/Common Files/x.dll"); Make("Program Files (x86)/Internet Explorer/iexplore.exe"); Make("windows/system32/k.dll");
+        Directory.CreateDirectory(Path.Combine(plan.Destination, "My Game")); // name clash -> " (2)"
+        var moved = FastExec.MoveToDestination(plan);
+        Assert.Equal(3, moved.Count);
+        Assert.True(File.Exists(Path.Combine(plan.Destination, "My Game (2)", "game.exe")));
+        Assert.True(File.Exists(Path.Combine(plan.Destination, "Other", "run.exe")));
+        Assert.True(File.Exists(Path.Combine(plan.Destination, "Tool", "tool.exe")));
+        Assert.False(Directory.Exists(Path.Combine(plan.Destination, "Common Files")));
+        FastExec.Cleanup(plan);
+        Assert.False(Directory.Exists(plan.TempPrefix));
+        Assert.True(File.Exists(Path.Combine(plan.Destination, "Tool", "tool.exe")));
+    }
+
+    [Fact]
     public void StaleCleanupOnlyTouchesItsOwnFolders()
     {
         string fx = Path.Combine(root, "fx"); Directory.CreateDirectory(Path.Combine(fx, "fx-old")); Directory.CreateDirectory(Path.Combine(fx, "keep-me"));
