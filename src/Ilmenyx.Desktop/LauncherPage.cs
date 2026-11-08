@@ -5,6 +5,8 @@
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Platform.Storage;
 using Avalonia.Media;
@@ -84,6 +86,9 @@ public sealed class LauncherPage : Grid
     private bool heroArt;
     private readonly string? steamRoot;
     private int columns = 2;
+    private Grid? leftPane;
+    private bool narrowWindow;
+    private readonly Button backToLibrary = new() { Name = "BtnBackToLibrary", Content = "← BIBLIOTECA", FontSize = 11, Padding = new Thickness(10, 4), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
     private UiKit.ChipGroup<string>? modeChips, resChips, styleChips, gfxPresetChips, gfxUpChips; private UiKit.ChipGroup<int>? hzChips;
     public IReadOnlyList<LibGame> Games => games;
     public GameProfile? Profile => profile;
@@ -98,10 +103,20 @@ public sealed class LauncherPage : Grid
         // Narrow window (minimum 900x560 leaves ~640 px here): a slimmer one-column library so the detail keeps room for its chips.
         SizeChanged += (_, e) =>
         {
-            bool narrow = e.NewSize.Width < 860; int cols = narrow ? 1 : 2;
-            ColumnDefinitions[0].Width = new GridLength(narrow ? 230 : 300);
-            if (cols != columns) { columns = cols; Filter(); }
+            narrowWindow = e.NewSize.Width < 860;
+            ColumnDefinitions[0].Width = new GridLength(narrowWindow ? 230 : 300);
+            ApplyLayout();
         };
+        // Console-style library (owner request 2026-11-08): with no game selected the library fills the page as a grid of covers;
+        // Esc (or ← BIBLIOTECA) leaves the selected game and returns to it. Esc in a search with text clears the search first.
+        AddHandler(KeyDownEvent, (_, e) =>
+        {
+            if (e.Key != Key.Escape || e.Handled) return;
+            if (TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() is TextBox { Name: "LGameSearch" } box && !string.IsNullOrEmpty(box.Text)) { box.Text = ""; e.Handled = true; return; }
+            if (current is not null) { var was = current; Select(null); FocusTile(was); e.Handled = true; }
+        }, RoutingStrategies.Bubble); // bubble: an open drop-down handles its own Esc first
+        backToLibrary.Click += (_, _) => { var was = current; Select(null); if (was is not null) FocusTile(was); };
+        ToolTip.SetTip(backToLibrary, "Volta para a biblioteca inteira (Esc).");
         Loaded += async (_, _) => { if (games.Count == 0) await ScanAsync(); };
     }
 
@@ -159,7 +174,7 @@ public sealed class LauncherPage : Grid
         Grid.SetRow(shelf, 1); Grid.SetRow(tools, 0);
         var scroll = new ScrollViewer { Name = "LGameScroll", Content = list, Padding = new Thickness(0, 0, 8, 0) }; Grid.SetRow(scroll, 2);
         left.Children.Add(tools); left.Children.Add(shelf); left.Children.Add(scroll);
-        Grid.SetRow(left, 1); Children.Add(left);
+        Grid.SetRow(left, 1); Children.Add(left); leftPane = left;
     }
 
     private static Control SearchIcon()
@@ -188,10 +203,11 @@ public sealed class LauncherPage : Grid
         emptyBox.Child = new StackPanel
         {
             Spacing = 10, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
-            Children = { UiKit.Icon(Icons.Games, 40, Palette.Faint), empty, new TextBlock { Text = "Cada jogo guarda o seu próprio perfil: desempenho, argumentos de inicialização e programas auxiliares.", Foreground = Palette.Faint, FontSize = 12, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center, MaxWidth = 340 } },
+            Children = { UiKit.Icon(Icons.Games, 40, Palette.Faint), empty, new TextBlock { Text = "Use + ADICIONAR EXECUTÁVEL ou INSTALAR JOGO DE WINDOWS.", Foreground = Palette.Faint, FontSize = 12, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center, MaxWidth = 340 } },
         };
         empty.HorizontalAlignment = HorizontalAlignment.Center; empty.FontSize = 14;
-        Grid.SetColumn(emptyBox, 2); Grid.SetRow(emptyBox, 1); Children.Add(emptyBox);
+        // Empty state of the full-page library (nothing installed or nothing matches the search), under the search box.
+        Grid.SetColumn(emptyBox, 0); Grid.SetColumnSpan(emptyBox, 3); Grid.SetRow(emptyBox, 1); emptyBox.Margin = new Thickness(0, 84, 0, 0); emptyBox.IsVisible = false; Children.Add(emptyBox);
         play.Click += async (_, _) => await PlayAsync();
 
         // Hero: the selected game (local Steam artwork when there is one, the brand gradient otherwise), its tags and the main action.
@@ -210,7 +226,8 @@ public sealed class LauncherPage : Grid
         removeGame.Margin = new Thickness(8, 0, 0, 0);
         Grid.SetColumn(removeGame, 2); bottom.Children.Add(removeGame);
         Grid.SetColumn(play, 3); bottom.Children.Add(play);
-        var heroContent = new Grid { RowDefinitions = new("Auto,*,Auto"), Children = { heroTags } };
+        var heroTop = new DockPanel { Children = { backToLibrary, heroTags } }; heroTags.Margin = new Thickness(10, 0, 0, 0);
+        var heroContent = new Grid { RowDefinitions = new("Auto,*,Auto"), Children = { heroTop } };
         Grid.SetRow(bottom, 2); heroContent.Children.Add(bottom);
         hero = UiKit.Hero(heroContent, height: 232, name: "LHero");
         if (hero.Child is Grid layers) layers.Children.Insert(0, heroScrim);
@@ -364,7 +381,7 @@ public sealed class LauncherPage : Grid
         list.Children.Clear();
         var shown = games.Where(g => q.Length == 0 || g.Name.Contains(q, StringComparison.CurrentCultureIgnoreCase)).ToList();
         // Asymmetric grid: the selected game (or the first one) is a wide featured tile, the others pair up below it.
-        string? big = shown.Any(g => g.Key == keep) ? keep : shown.FirstOrDefault()?.Key;
+        string? big = current is null ? null : shown.Any(g => g.Key == keep) ? keep : shown.FirstOrDefault()?.Key; // browsing: all covers equal
         Grid? row = null; int col = 0;
         foreach (var g in shown)
         {
@@ -372,9 +389,11 @@ public sealed class LauncherPage : Grid
             AutomationProperties.SetName(item, g.Name + " (" + g.Store + ")");
             var game = g; item.Click += (_, _) => { Select(game); FocusTile(game); };
             if (g.Key == big || columns == 1) { list.Children.Add(item); row = null; continue; }
-            if (row is null || col >= columns) { row = new Grid { ColumnDefinitions = new("*,8,*") }; list.Children.Add(row); col = 0; }
+            if (row is null || col >= columns) { row = new Grid { ColumnDefinitions = new(string.Join(",8,", Enumerable.Repeat("*", columns))), Margin = new Thickness(0, 0, 0, 8) }; list.Children.Add(row); col = 0; }
             Grid.SetColumn(item, col * 2); row.Children.Add(item); col++;
         }
+        emptyBox.IsVisible = current is null && shown.Count == 0;
+        empty.Text = games.Count == 0 ? "Nenhum jogo na biblioteca." : "Nenhum jogo com esse nome.";
     }
 
     private Button Tile(LibGame g, bool large, bool selected)
@@ -385,7 +404,7 @@ public sealed class LauncherPage : Grid
             Spacing = 2,
             Children =
             {
-                GameArt.Cover(art, g.Name, large ? (columns == 1 ? 104 : 128) : (columns == 1 ? 0 : 68)),
+                GameArt.Cover(art, g.Name, current is null ? 118 : large ? (columns == 1 ? 104 : 128) : (columns == 1 ? 0 : 68)),
                 new TextBlock { Text = g.Name, FontSize = large ? 13.5 : 12.5, FontWeight = FontWeight.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(2, 6, 2, 0), Foreground = selected ? Palette.AccentText : Palette.Fg },
                 new TextBlock { Text = g.Subtitle, FontSize = 11, Foreground = Palette.Faint, Margin = new Thickness(2, 0, 2, 0) },
             },
@@ -400,6 +419,19 @@ public sealed class LauncherPage : Grid
     }
 
     /// <summary>The library is rebuilt on selection (the featured tile moves): keep keyboard focus on the chosen game.</summary>
+    /// <summary>Browsing (no game selected): the library spans the whole page with as many cover columns as fit. A game selected:
+    /// the classic two-pane layout (library on the left, details on the right).</summary>
+    private void ApplyLayout(bool force = false)
+    {
+        if (leftPane is null) return;
+        bool browse = current is null;
+        Grid.SetColumnSpan(leftPane, browse ? 3 : 1);
+        detail.IsVisible = !browse;
+        double width = Bounds.Width > 0 ? Bounds.Width : 1100;
+        int cols = browse ? Math.Clamp((int)((width - 20) / 230), 2, 8) : narrowWindow ? 1 : 2;
+        if (cols != columns || force) { columns = cols; Filter(); }
+    }
+
     private void FocusTile(LibGame g)
     {
         string name = "LGame_" + SafeName(g.Key);
@@ -411,8 +443,8 @@ public sealed class LauncherPage : Grid
     public void Select(LibGame? g)
     {
         current = g;
-        if (g is null) { detail.IsVisible = false; emptyBox.IsVisible = true; profile = null; Filter(); return; }
-        detail.IsVisible = true; emptyBox.IsVisible = false;
+        if (g is null) { profile = null; ApplyLayout(force: true); return; }
+        ApplyLayout(force: true);
         if (!settings.GameProfiles.TryGetValue(SettingsKey(g), out var p)) { p = new GameProfile(); settings.GameProfiles[SettingsKey(g)] = p; }
         loading = true; profile = p;
         title.Text = g.Name; sub.Text = $"{g.Store} · {g.InstallDir}";

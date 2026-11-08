@@ -688,6 +688,16 @@ public sealed class UiSmokeApp : Application
         Click(host, "LGame_Steam_100");
         await Until(() => host.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "LTitle" && t.Text == "Game One") && Find<StackPanel>(host, "LSteamBox").IsVisible);
         if (Find<Button>(host, "BtnRemoveGame").IsVisible) throw new InvalidOperationException("Steam games are removed in Steam, not here.");
+        // Console-style library: Esc leaves the selected game and the library fills the page; clicking a cover opens it again.
+        Find<Button>(host, "LGame_Steam_100").Focus();
+        Find<Button>(host, "LGame_Steam_100").RaiseEvent(new Avalonia.Input.KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = Avalonia.Input.Key.Escape });
+        await Until(() => !Find<ScrollViewer>(host, "LDetail").IsVisible && page.Profile is null);
+        Click(host, "LGame_Steam_100");
+        await Until(() => Find<ScrollViewer>(host, "LDetail").IsVisible && Find<TextBlock>(host, "LTitle").Text == "Game One");
+        Click(host, "BtnBackToLibrary");
+        await Until(() => !Find<ScrollViewer>(host, "LDetail").IsVisible);
+        Click(host, "LGame_Steam_100");
+        await Until(() => Find<ScrollViewer>(host, "LDetail").IsVisible && Find<StackPanel>(host, "LSteamBox").IsVisible);
         var plan = Find<CheckBox>(host, "LChkPlan"); plan.IsChecked = true;
         var gpu = Find<CheckBox>(host, "LChkGpu"); if (!gpu.IsEnabled) throw new InvalidOperationException("GPU checkbox should be enabled with multiple GPUs."); gpu.IsChecked = true;
         foreach (var chip in host.GetVisualDescendants().OfType<Button>().Where(b => b.Content?.ToString() is "Tela cheia" or "1920x1080" or "144")) chip.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -706,7 +716,7 @@ public sealed class UiSmokeApp : Application
         Find<Button>(shell, "Navlauncher").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await Until(() => shell.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "LGameCount" && !t.Text!.StartsWith("Procurando")));
         await Task.Delay(200); Capture(shell, "shell-launcher.png");
-        Console.WriteLine("PASS launcher page: library scan, manual executable validation, Windows game named by folder with Steam ID found and path shown, removal keeps files, profile persistence, Steam launch options with backup, helper, stubbed launch; real library read-only");
+        Console.WriteLine("PASS launcher page: library scan, manual executable validation, Windows game named by folder with Steam ID found and path shown, removal keeps files, Esc/← BIBLIOTECA return to the full library, profile persistence, Steam launch options with backup, helper, stubbed launch; real library read-only");
     }
     private sealed class FakeStress : Ilmenyx.Core.IStressEngine
     {
