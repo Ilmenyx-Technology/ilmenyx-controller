@@ -215,8 +215,14 @@ public sealed class FastExecTests : IDisposable
         if (!OperatingSystem.IsLinux()) return;
         string wine = FakeRunner(Path.Combine(root, "runners"), "soda-11.0-10");
         string fx = Path.Combine(root, "fx");
+        Environment.SetEnvironmentVariable("ILX_LEAK", "1");
         var plan = FastExec.Plan(Installer, Path.Combine(root, "J"), _ => null, fx, "pw", wineBin: wine);
-        Assert.Equal("/bin/sh", plan.Program);
+        Environment.SetEnvironmentVariable("ILX_LEAK", null);
+        Assert.EndsWith("/env", plan.Program); // clean environment, as Bottles runs it
+        Assert.Equal("-i", plan.Arguments[0]);
+        Assert.Contains("/bin/sh", plan.Arguments);
+        Assert.Contains($"WINEPREFIX={plan.TempPrefix}", plan.Arguments);
+        Assert.DoesNotContain(plan.Arguments, a => a.StartsWith("ILX_LEAK=", StringComparison.Ordinal));
         Assert.Equal(Path.Combine(plan.TempPrefix, "drive_c", "Instalador", "setup.exe"), plan.Arguments[^1]);
         Assert.Contains(new KeyValuePair<string, string>("WINEPREFIX", plan.TempPrefix), plan.Environment);
         Assert.Contains(plan.Environment, e => e.Key == "WINEDLLOVERRIDES" && e.Value.Contains("winemenubuilder.exe=d", StringComparison.Ordinal));

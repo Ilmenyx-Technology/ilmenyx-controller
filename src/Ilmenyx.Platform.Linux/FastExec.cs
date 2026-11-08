@@ -54,22 +54,35 @@ public static class FastExec
     }
 
     /// <summary>
-    /// The installer run with a plain Wine, the way Bottles does it: no umu, no Steam container. A small shell runs wine, writes its
-    /// output to the log and then waits (wineserver -w) for every helper the installer started, so "finished" means really finished.
-    /// The installer's copy is the last argument (the working folder).
+    /// The installer run with a plain Wine, the way Bottles does it: no umu, no Steam container, and a clean environment (Bottles'
+    /// "Limit_System_Environment"): only the session essentials below reach Wine, so nothing from the user's shell changes what the
+    /// installer sees. A small shell runs wine, writes its output to the log and then waits (wineserver -w) for every helper the
+    /// installer started, so "finished" means really finished. The installer's copy is the last argument (the working folder).
     /// </summary>
     private static FastExecPlan PlainWinePlan(string wine, string staged, string prefix, string dest, string installer, string log)
     {
         string bin = Path.GetDirectoryName(wine)!, root = Path.GetDirectoryName(bin)!;
         string libs = string.Join(':', new[] { "lib", "lib64", "lib/wine/x86_64-unix", "lib/wine/i386-unix" }.Select(l => Path.Combine(root, l)).Where(Directory.Exists));
+        // Mono is used when the runner ships it (Soda does, like the bottle); Gecko is never downloaded by an installer run.
+        string overrides = "winemenubuilder.exe=d;mshtml=" + (Directory.Exists(Path.Combine(root, "share", "wine", "mono")) ? "" : ";mscoree=");
         const string script = "\"$1\" \"$4\" >>\"$3\" 2>&1; code=$?; \"$2\" -w; exit $code";
-        return new("/bin/sh", ["-c", script, "ilmenyx-fastexec", wine, Path.Combine(bin, "wineserver"), log, staged], [
+        var env = new List<KeyValuePair<string, string>>();
+        foreach (var key in SessionEssentials)
+            if (System.Environment.GetEnvironmentVariable(key) is { Length: > 0 } v) env.Add(new(key, v));
+        env.AddRange([
             new("WINEPREFIX", prefix), new("WINEARCH", "win64"), new("WINEDEBUG", "fixme-all"),
-            new("WINEDLLOVERRIDES", "winemenubuilder.exe=d;mscoree=;mshtml="), // no menu entries; no Mono/Gecko download prompts
+            new("WINEDLLOVERRIDES", overrides), // no menu entries or file associations from the installer
             new("WINE_LARGE_ADDRESS_AWARE", "1"), new("STAGING_SHARED_MEMORY", "1"), // as Bottles runs it
             .. (libs.Length > 0 ? new KeyValuePair<string, string>[] { new("LD_LIBRARY_PATH", libs) } : []),
-        ], prefix, dest, installer);
+        ]);
+        string envTool = File.Exists("/usr/bin/env") ? "/usr/bin/env" : "/bin/env";
+        return new(envTool, ["-i", .. env.Select(e => e.Key + "=" + e.Value), "/bin/sh", "-c", script, "ilmenyx-fastexec", wine, Path.Combine(bin, "wineserver"), log, staged],
+            env, prefix, dest, installer);
     }
+
+    /// <summary>The only session variables a plain-Wine installer run inherits (display, audio, locale, user).</summary>
+    private static readonly string[] SessionEssentials = ["HOME", "USER", "LOGNAME", "PATH", "LANG", "LANGUAGE", "LC_ALL", "TZ", "DISPLAY", "WAYLAND_DISPLAY",
+        "XAUTHORITY", "XDG_RUNTIME_DIR", "XDG_SESSION_TYPE", "DBUS_SESSION_BUS_ADDRESS", "PULSE_SERVER"];
 
     /// <summary>Where the Proton log of each installer run is kept (outside the throwaway prefix, so it survives the cleanup).</summary>
     public static string LogFolder(string? tempRoot = null) => Path.Combine(tempRoot ?? TempRoot(), "logs");

@@ -48,24 +48,34 @@ public sealed class FastExecDialog : Window
         };
         DockPanel Field(TextBox box, Button pick) { var d = new DockPanel(); DockPanel.SetDock(pick, Dock.Right); pick.Margin = new Thickness(8, 0, 0, 0); d.Children.Add(pick); d.Children.Add(box); return d; }
 
-        var tips = new Border
-        {
-            Name = "FxTips", Background = Palette.WarnBg, CornerRadius = new CornerRadius(IlmenyxTheme.ControlRadius), Padding = new Thickness(14, 10),
-            Child = new StackPanel { Spacing = 6, Children = {
-                new TextBlock { Text = "Durante a instalação", FontWeight = FontWeight.SemiBold, Foreground = Palette.Warn },
-                new TextBlock { Text = "1. Quando o instalador perguntar onde instalar, use C:\\Jogos (já vem criado). Quando ele terminar, o Ilmenyx move o jogo pronto para a pasta acima e apaga o resto.", Foreground = Palette.Warn, FontSize = 12, TextWrapping = TextWrapping.Wrap },
-                new TextBlock { Text = "2. Desmarque DirectX, .NET, Visual C++ e outros \"componentes do Windows\". O Proton já cuida do DirectX e do .NET, e o que o jogo precisar ele instala na hora de jogar.", Foreground = Palette.Warn, FontSize = 12, TextWrapping = TextWrapping.Wrap },
-                new TextBlock { Text = "3. Atalhos na área de trabalho e no menu não são criados no seu Linux. Quando o instalador terminar, feche-o normalmente.", Foreground = Palette.Warn, FontSize = 12, TextWrapping = TextWrapping.Wrap } } },
-        };
+        // Short line on screen; the full guidance stays in the tooltip (owner 2026-11-08: professional, no walls of text).
+        var tipsText = new TextBlock { Text = "Instale em C:\\Jogos e desmarque DirectX, .NET e Visual C++.", Foreground = Palette.Warn, FontSize = 12, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center };
+        var tipsMore = new TextBlock { Text = "Detalhes", Foreground = Palette.Warn, FontSize = 12, TextDecorations = TextDecorations.Underline, Cursor = new Cursor(StandardCursorType.Help), Margin = new Thickness(10, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+        ToolTip.SetTip(tipsMore, "• Quando o instalador perguntar onde instalar, use C:\\Jogos (já vem criado). No fim, o Ilmenyx move o jogo para a pasta acima e apaga o resto.\n" +
+            "• Desmarque DirectX, .NET, Visual C++ e outros componentes do Windows: o Proton já cuida deles.\n" +
+            "• Atalhos do instalador não são criados no seu Linux. Quando ele terminar, feche-o normalmente.");
+        ToolTip.SetShowDelay(tipsMore, 150);
+        var tipsRow = new DockPanel(); DockPanel.SetDock(tipsMore, Dock.Right); tipsRow.Children.Add(tipsMore); tipsRow.Children.Add(tipsText);
+        var tips = new Border { Name = "FxTips", Background = Palette.WarnBg, CornerRadius = new CornerRadius(IlmenyxTheme.ControlRadius), Padding = new Thickness(14, 8), Child = tipsRow };
         // Which Proton runs the installer. Classic (Proton 9, 32-bit Wine layout) is what large 32-bit installers need (see ClassicProton).
         var mode = new ComboBox { Name = "FxProtonMode", SelectedIndex = 0, HorizontalAlignment = HorizontalAlignment.Stretch, ItemsSource = new[] {
-            "Padrão (Proton mais novo, já instalado)",
-            "Clássico de 32 bits (recomendado para instaladores grandes; baixa ~470 MB na 1ª vez)",
-            "GE-Proton mais novo (baixado na 1ª vez)",
-            "Wine comum, como o Bottles (para instaladores que falham no Proton)" } };
+            "Proton padrão",
+            "Proton clássico (32 bits)",
+            "GE-Proton mais recente",
+            "Wine comum (Soda)" } };
+        string[] modeHelp = [
+            "Proton já instalado no sistema. Serve para a maioria dos instaladores.",
+            "GE-Proton 9 com Wine de 32 bits clássico. Para instaladores grandes de 32 bits. Baixa cerca de 470 MB na primeira vez.",
+            "GE-Proton mais novo, baixado na primeira vez.",
+            "Wine comum, o mesmo que o Bottles usa (Soda). Para instaladores que falham com erro de descompactação no Proton."];
+        void ModeTip() => ToolTip.SetTip(mode, modeHelp[Math.Clamp(mode.SelectedIndex, 0, modeHelp.Length - 1)]);
+        ModeTip(); mode.SelectionChanged += (_, _) => ModeTip();
         AutomationProperties.SetName(mode, "Proton usado para rodar o instalador");
-        var ge = new StackPanel { Spacing = 4, Children = { UiKit.Label("PROTON DO INSTALADOR"), mode } };
+        var ge = new StackPanel { Spacing = 4, Children = { UiKit.Label("COMPATIBILIDADE"), mode } };
         var status = new TextBlock { Name = "FxStatus", FontSize = 12, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap };
+        // Visual feedback while anything runs: percentage while downloading, moving bar while the installer or the move works.
+        var progress = new ProgressBar { Name = "FxProgress", Height = 4, MinHeight = 4, Minimum = 0, Maximum = 1, IsVisible = false, HorizontalAlignment = HorizontalAlignment.Stretch };
+        void Busy(bool on, double? value = null) { progress.IsVisible = on; progress.IsIndeterminate = on && value is null; if (value is { } v) progress.Value = v; }
         var results = new StackPanel { Name = "FxResults", Spacing = 6 };
         var start = UiKit.Primary("FxStart", "EXECUTAR INSTALADOR");
         var close = new Button { Name = "FxClose", Content = "Fechar", IsCancel = true, Padding = new Thickness(18, 8) };
@@ -77,40 +87,41 @@ public sealed class FastExecDialog : Window
             if (mode.SelectedIndex == 1 && !ClassicProton.IsInstalled(classicRoot))
             {
                 if (!await ConfirmDialog.AskAsync(this, "Proton clássico", $"Baixar o {ClassicProton.Version} (cerca de 470 MB) do GitHub do projeto GE-Proton?\n\nÉ feito uma vez só e fica em ~/.local/share/ilmenyx/runners. O arquivo é conferido pela soma oficial antes de ser usado.", "Baixar", "Cancelar")) return;
-                start.IsEnabled = false; status.Foreground = Palette.Muted;
+                start.IsEnabled = false; status.Foreground = Palette.Muted; Busy(true, 0);
                 try
                 {
                     using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(30) };
                     http.DefaultRequestHeaders.UserAgent.ParseAdd("Ilmenyx (+https://github.com/Bismuth-Technology/ilmenyx)");
-                    await ClassicProton.EnsureAsync(http, new Progress<double>(v => status.Text = $"Baixando o {ClassicProton.Version}… {v:P0}"), CancellationToken.None, classicRoot);
+                    await ClassicProton.EnsureAsync(http, new Progress<double>(v => { status.Text = $"Baixando o {ClassicProton.Version}… {v:P0}"; Busy(true, v); }), CancellationToken.None, classicRoot);
                 }
                 catch (Exception e) when (e is IOException or HttpRequestException or TaskCanceledException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
                 { status.Foreground = Palette.Warn; status.Text = "Não consegui preparar o Proton clássico: " + e.Message; start.IsEnabled = true; return; }
-                finally { start.IsEnabled = true; }
+                finally { start.IsEnabled = true; Busy(false); }
             }
             string? wine = null;
             if (mode.SelectedIndex == 3 && (wine = PlainWine.Find()) is null)
             {
                 status.Foreground = Palette.Warn;
-                status.Text = "Nenhum Wine comum encontrado. Por enquanto o Ilmenyx usa o Wine que o Bottles baixa (Soda): abra o Bottles uma vez para ele baixar, ou escolha um Proton acima.";
+                status.Text = "Nenhum Wine comum encontrado. Abra o Bottles uma vez para ele baixar o Soda, ou escolha um Proton.";
                 return;
             }
             try { plan = FastExec.Plan((installer.Text ?? "").Trim(), (destination.Text ?? "").Trim(), find, tempRoot, geProton: mode.SelectedIndex == 2, protonPath: mode.SelectedIndex == 1 ? ClassicProton.Folder(classicRoot) : null, wineBin: wine); }
             catch (Exception e) when (e is ArgumentException or InvalidOperationException) { status.Foreground = Palette.Warn; status.Text = e.Message; return; }
-            start.IsEnabled = false; installer.IsEnabled = destination.IsEnabled = pickInstaller.IsEnabled = pickDestination.IsEnabled = false; results.Children.Clear();
+            start.IsEnabled = false; installer.IsEnabled = destination.IsEnabled = pickInstaller.IsEnabled = pickDestination.IsEnabled = false; results.Children.Clear(); ToolTip.SetTip(status, null);
             close.Content = "Cancelar"; var cts = running = new CancellationTokenSource();
             var since = DateTime.UtcNow.AddSeconds(-2);
-            bool finished = false;
+            bool finished = false; Busy(true);
             try
             {
                 FastExec.CleanupStale(tempRoot);
                 FastExec.Prepare(plan);
-                status.Foreground = Palette.Muted; status.Text = "Colocando o instalador dentro do Windows temporário…";
+                status.Foreground = Palette.Muted; status.Text = "Preparando o Windows temporário…";
                 await Task.Run(() => FastExec.StageInstaller(plan));
                 status.Foreground = Palette.Muted;
-                status.Text = (wine is null ? "Instalador aberto. Na primeira vez o Proton prepara" : $"Instalador aberto com o {PlainWine.Name(wine)}. O Wine prepara") + " o Windows temporário (leva um minuto). Siga as dicas acima.";
+                status.Text = "Instalador em execução" + (wine is null ? "" : $" ({PlainWine.Name(wine)})") + ". A primeira janela pode levar até um minuto.";
                 int code = await this.run(plan, cts.Token);
-                status.Text = code == 0 ? "Instalador finalizado." : $"O instalador terminou com o código {code}." + (FastExec.LatestLog(tempRoot) is { } log ? (mode.SelectedIndex != 3 ? " Se ele mostrou erro de descompactação (ISDone, CRC, unarc), tente de novo com \"Wine comum, como o Bottles\"." : "") + " Registro: " + log : "");
+                status.Text = code == 0 ? "Instalador finalizado." : $"O instalador terminou com o código {code}." + (mode.SelectedIndex != 3 ? " Em erro de descompactação (ISDone, CRC), tente \"Wine comum (Soda)\"." : "");
+                if (code != 0 && FastExec.LatestLog(tempRoot) is { } log) ToolTip.SetTip(status, "Registro: " + log);
                 finished = code == 0; // a failed installer leaves a half-installed game: do not move it, just clean up
             }
             catch (OperationCanceledException) { status.Text = "Instalação cancelada."; }
@@ -127,17 +138,17 @@ public sealed class FastExecDialog : Window
                 catch (Exception e) when (e is IOException or UnauthorizedAccessException)
                 {
                     keep = true; status.Foreground = Palette.Warn;
-                    status.Text = "Não consegui mover o jogo: " + e.Message + " O Windows temporário foi mantido em " + plan.TempPrefix + " para você recuperar os arquivos.";
+                    status.Text = "Não consegui mover o jogo: " + e.Message; ToolTip.SetTip(status, "O Windows temporário foi mantido em " + plan.TempPrefix + " para você recuperar os arquivos.");
                 }
             }
-            if (!keep) FastExec.Cleanup(plan);
-            running = null; close.Content = "Fechar";
+            if (!keep) await Task.Run(() => FastExec.Cleanup(plan));
+            Busy(false); running = null; close.Content = "Fechar";
             start.IsEnabled = true; installer.IsEnabled = destination.IsEnabled = pickInstaller.IsEnabled = pickDestination.IsEnabled = true;
             if (keep) return;
-            status.Text += " O Windows temporário foi apagado; só ficou o jogo, em " + plan.Destination + ".";
+            ToolTip.SetTip(status, "O Windows temporário foi apagado; só ficou o jogo, em " + plan.Destination + ".");
             var found = FastExec.NewExecutables(plan.Destination, since);
-            if (found.Count == 0) { results.Children.Add(new TextBlock { Text = "Não encontrei um jogo novo nessa pasta. Se ele foi instalado em outro lugar, adicione o .exe pela página Jogos (PROCURAR…).", Foreground = Palette.Faint, FontSize = 12, TextWrapping = TextWrapping.Wrap }); return; }
-            results.Children.Add(new TextBlock { Text = "Jogos encontrados — adicione o executável principal à biblioteca:", FontSize = 12, Foreground = Palette.Muted });
+            if (found.Count == 0) { results.Children.Add(new TextBlock { Text = "Nenhum jogo novo encontrado nessa pasta. Adicione o .exe pela página Jogos.", Foreground = Palette.Faint, FontSize = 12, TextWrapping = TextWrapping.Wrap }); return; }
+            results.Children.Add(new TextBlock { Text = "Adicione o executável principal à biblioteca:", FontSize = 12, Foreground = Palette.Muted });
             int i = 0;
             foreach (var exe in found.Take(5))
             {
@@ -150,10 +161,10 @@ public sealed class FastExecDialog : Window
         };
 
         var body = new StackPanel { Spacing = 12, Children = {
-            UiKit.PageHeader("Executar instalador do Windows", "Roda o instalador uma vez, com Proton, num Windows descartável. No fim só o jogo instalado fica; o instalador não deixa rastros."),
+            UiKit.PageHeader("Executar instalador do Windows", "Roda o instalador num Windows descartável. No fim, só o jogo fica."),
             UiKit.Label("INSTALADOR (.EXE)"), Field(installer, pickInstaller),
             UiKit.Label("PASTA ONDE O JOGO VAI FICAR NO FINAL"), Field(destination, pickDestination),
-            tips, ge, status, results } };
+            tips, ge, progress, status, results } };
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 14, 0, 0), Children = { close, start } };
         var dock = new DockPanel { Margin = new Thickness(22, 18) };
         DockPanel.SetDock(buttons, Dock.Bottom); dock.Children.Add(buttons);
