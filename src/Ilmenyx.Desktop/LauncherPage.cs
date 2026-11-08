@@ -45,6 +45,15 @@ public sealed class LauncherPage : Grid
     private readonly CheckBox chkGameMode = new() { Name = "LChkGameMode", Content = "GameMode (gamemoderun)" };
     private readonly CheckBox chkMango = new() { Name = "LChkMango", Content = "MangoHud (overlay de desempenho)" };
     private readonly CheckBox chkGuard = new() { Name = "LChkGuard", Content = "Proteção contra travamento em tela cheia (vsync)" };
+    private readonly CheckBox chkWayland = new() { Name = "LChkWayland", Content = GameExtras.WaylandLabel };
+    private readonly CheckBox chkLowLat = new() { Name = "LChkLowLat", Content = GameExtras.LowLatencyLabel };
+    private readonly TextBlock extrasNote = new() { Name = "LExtrasNote", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 0, 6) };
+    private readonly StackPanel extrasBox = new() { Name = "LExtrasBox", IsVisible = false, Margin = new Thickness(0, 6, 0, 0) };
+    private string? protonName;
+    /// <summary>Wayland session check (default: the real environment). Settable for fixtures.</summary>
+    public Func<bool>? WaylandSession { get; init; }
+    /// <summary>Newest UMU-Proton umu already downloaded (default: the real folder). Settable for fixtures.</summary>
+    public Func<string?>? UmuProton { get; init; }
     private readonly TextBlock exeText = new() { Name = "LExeText", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap };
     private readonly TextBox exePath = new() { Name = "LExePath", PlaceholderText = "/caminho/completo/do/executavel" };
     private readonly TextBox extra = new() { Name = "LExtra", PlaceholderText = "ex.: -novid -high +fps_max 0" };
@@ -186,6 +195,16 @@ public sealed class LauncherPage : Grid
 
         ToolTip.SetTip(chkGuard, "Em notebooks com duas GPUs, jogos de Windows em tela cheia sem vsync podem travar a tela inteira (só reiniciando). Com a proteção, o Proton sincroniza os quadros com o monitor; o FPS fica limitado à taxa da tela. Vale quando o jogo usa a GPU dedicada NVIDIA.");
         foreach (var c in new[] { chkPlan, chkGpu, chkGameMode, chkMango, chkGuard }) { c.Margin = new Thickness(0, 0, 0, 6); c.FontSize = 13; c.IsCheckedChanged += (_, _) => SaveFromControls(); }
+        // Experimental Proton options (off by default): each asks before turning on and shows whether it applies to this game and session.
+        ToolTip.SetTip(chkWayland, "Faz o jogo de Windows abrir direto no Wayland, sem passar pelo XWayland (PROTON_ENABLE_WAYLAND=1). Pode melhorar a fluidez e o HDR, mas é experimental: alguns jogos abrem com janela errada, sem cursor ou sem controle. Só vale numa sessão Wayland com GE-Proton ou UMU-Proton 10 ou mais novo.");
+        ToolTip.SetTip(chkLowLat, "Libera o NVIDIA Reflex nos jogos que têm essa opção no menu (PROTON_ENABLE_NVAPI=1, pelo DXVK-NVAPI). Diminui o atraso entre o clique e a imagem; depois ligue o Reflex no menu do jogo. Só para placas NVIDIA com o driver proprietário.");
+        foreach (var c in new[] { chkWayland, chkLowLat }) { c.Margin = new Thickness(0, 0, 0, 6); c.FontSize = 13; }
+        chkWayland.IsCheckedChanged += async (_, _) => await ExtraToggledAsync(chkWayland, "Ligar o Proton nativo no Wayland (experimental)?",
+            "O jogo de Windows passa a abrir direto no Wayland (PROTON_ENABLE_WAYLAND=1), sem o XWayland.\n\n• Só vale numa sessão Wayland e com GE-Proton ou UMU-Proton 10 ou mais novo; fora disso a opção fica guardada e não entra.\n• É experimental: alguns jogos abrem com janela errada, sem cursor ou sem controle. Se der problema, desmarque.\n• Não combina com o Gamescope.\n• Vale só para este jogo.");
+        chkLowLat.IsCheckedChanged += async (_, _) => await ExtraToggledAsync(chkLowLat, "Ligar a baixa latência (experimental)?",
+            "Libera o NVIDIA Reflex para o jogo (PROTON_ENABLE_NVAPI=1, pelo DXVK-NVAPI). Depois, ligue a opção Reflex no menu do próprio jogo.\n\n• Só para placas NVIDIA com o driver proprietário. Em AMD e Intel o Proton não documenta uma opção equivalente, então nada é ligado.\n• Não combina com opções que desligam o NVAPI ou trocam o DXVK pelo OpenGL (PROTON_USE_WINED3D).\n• Vale só para este jogo.");
+        extrasBox.Children.Add(new TextBlock { Text = "EXPERIMENTAL (JOGOS DE WINDOWS)", FontSize = 10.5, FontWeight = FontWeight.Bold, Foreground = Palette.Muted, Margin = new Thickness(0, 0, 0, 6) });
+        extrasBox.Children.Add(chkWayland); extrasBox.Children.Add(chkLowLat); extrasBox.Children.Add(extrasNote);
         ToolTip.SetTip(chkGpu, multiGpu ? "Define as variáveis de PRIME offload para a GPU dedicada." : "Esta máquina tem uma única GPU: não há o que selecionar.");
         chkGpu.IsEnabled = multiGpu;
         bool hasGm = BoundedProcess.Find("gamemoderun") is not null, hasMango = BoundedProcess.Find("mangohud") is not null;
@@ -200,7 +219,7 @@ public sealed class LauncherPage : Grid
         {
             Children =
             {
-                CardTitle(Icons.Oc, "DESEMPENHO"), chkPlan, chkGpu, chkGameMode, chkMango, chkGuard, exeText, new Border { Height = 6 }, exePath, new Border { Height = 8 },
+                CardTitle(Icons.Oc, "DESEMPENHO"), chkPlan, chkGpu, chkGameMode, chkMango, chkGuard, extrasBox, exeText, new Border { Height = 6 }, exePath, new Border { Height = 8 },
                 new WrapPanel { ItemSpacing = 8, LineSpacing = 6, Children = { browseExe, setExe, recommended } }, protonBox,
                 new TextBlock { Text = "O perfil de energia vale só durante o jogo e volta ao anterior. Prioridade de processo elevada exige privilégios no Linux; o GameMode cuida disso quando instalado. O executável é descoberto sozinho; se errar, informe o caminho certo.", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0) }
             }
@@ -278,6 +297,7 @@ public sealed class LauncherPage : Grid
         if (p.GameMode && chkGameMode.IsEnabled) tags.Add("GameMode");
         if (p.MangoHud && chkMango.IsEnabled) tags.Add("MangoHud");
         if (g.IsWindowsManual) tags.Add(p.ProtonGameId is { } pid ? "Proton · ID " + pid : "Proton");
+        foreach (var c in ExtraChoices().Where(c => c.Applies)) tags.Add(c.Id == GameExtras.WaylandId ? "Wayland (exp.)" : "Baixa latência (exp.)");
         if (p.Res != "default") tags.Add(p.Res);
         if (p.Hz > 0) tags.Add(p.Hz + " Hz");
         if (tags.Count == 1) tags.Add("Perfil padrão");
@@ -372,6 +392,8 @@ public sealed class LauncherPage : Grid
         chkPlan.IsChecked = p.HighPerfPlan; chkGpu.IsChecked = p.GpuHigh && multiGpu; chkGameMode.IsChecked = p.GameMode; chkMango.IsChecked = p.MangoHud; chkGuard.IsChecked = p.FullscreenGuard; chkGuard.IsVisible = multiGpu && gpuVendor == "NVIDIA";
         modeChips!.Select(p.WinMode); resChips!.Select(p.Res); hzChips!.Select(p.Hz); styleChips!.Select(p.Style); gfxPresetChips!.Select(p.GfxPreset ?? ""); gfxUpChips!.Select(p.GfxUpscaling ?? ""); extra.Text = p.Extra; exePath.Text = p.ExePath ?? "";
         protonBox.IsVisible = g.IsWindowsManual; protonId.Text = p.ProtonGameId ?? "";
+        chkWayland.IsChecked = p.ProtonWayland; chkLowLat.IsChecked = p.LowLatency; extrasBox.IsVisible = g.IsSteam || g.IsWindowsManual;
+        protonName = g.IsSteam ? steam.CompatToolName(g.Id) : g.IsWindowsManual ? (UmuProton ?? (() => LinuxGameExtras.UmuProtonName()))() : null;
         RebuildHelpers();
         steamBox.IsVisible = g.IsSteam; steamNow.Text = g.IsSteam ? "Opções atuais na Steam: " + (steam.GetLaunchOptions(g.Id) is { Length: > 0 } cur ? cur : "(nenhuma)") : "";
         gfxNote.Text = g.IsSteam ? "Os argumentos e variáveis só passam a valer na Steam depois de APLICAR NAS OPÇÕES DA STEAM (a Steam é fechada nessa hora). Depois, o JOGAR abre pela Steam normalmente."
@@ -395,11 +417,41 @@ public sealed class LauncherPage : Grid
     {
         if (loading || profile is null) return;
         profile.HighPerfPlan = chkPlan.IsChecked == true; profile.GpuHigh = chkGpu.IsChecked == true; profile.GameMode = chkGameMode.IsChecked == true; profile.MangoHud = chkMango.IsChecked == true; profile.FullscreenGuard = chkGuard.IsChecked == true;
+        profile.ProtonWayland = chkWayland.IsChecked == true; profile.LowLatency = chkLowLat.IsChecked == true;
         profile.Extra = (extra.Text ?? "").Trim();
         SaveProfile(current, profile); UpdatePreview();
     }
 
-    private void UpdatePreview() { if (profile is null) return; string a = GameLaunchOptions.BuildArgs(profile); string o = current?.IsSteam == true ? GameLaunchOptions.BuildSteamOptions(profile, gpuVendor, File.Exists(MangoHudLogReader.ConfigPath()) ? MangoHudLogReader.ConfigPath() : null) : a; preview.Text = o.Length > 0 ? o : "(nenhum argumento)"; UpdateTags(); }
+    private void UpdatePreview()
+    {
+        if (profile is null) return;
+        string a = GameLaunchOptions.BuildArgs(profile);
+        string o = current?.IsSteam == true ? GameLaunchOptions.BuildSteamOptions(profile, gpuVendor, File.Exists(MangoHudLogReader.ConfigPath()) ? MangoHudLogReader.ConfigPath() : null, ExtrasNow()) : a;
+        preview.Text = o.Length > 0 ? o : "(nenhum argumento)";
+        var choices = ExtraChoices();
+        extrasNote.Text = choices.Count == 0 ? "Desligadas. Opções novas do Proton, para testar jogo a jogo; cada uma explica o que faz antes de ligar."
+            : GameExtras.Summary(choices) + (current?.IsWindowsManual == true ? "" : current?.IsSteam == true ? "\nNa Steam, entram depois de APLICAR NAS OPÇÕES DA STEAM." : "");
+        UpdateTags();
+    }
+
+    /// <summary>What the experimental options depend on for the selected game: session, Proton build (Steam mapping or umu), NVIDIA proprietary rendering.</summary>
+    private ExtrasContext? ExtrasNow() => current is { } g && profile is { } p && (g.IsSteam || g.IsWindowsManual)
+        ? new(WaylandSession?.Invoke() ?? LinuxGameExtras.WaylandSession(), GameExtras.ParseProton(protonName), gpuVendor == "NVIDIA" && (!multiGpu || p.GpuHigh), true)
+        : null;
+
+    private IReadOnlyList<ExtraChoice> ExtraChoices() => profile is { } p && ExtrasNow() is { } ctx ? GameExtras.Resolve(p, ctx, GameLaunchOptions.OwnPieces(p, gpuVendor)) : [];
+
+    /// <summary>Turning an experimental option on asks first (explained); declining unticks it. Turning off needs no question.</summary>
+    private async Task ExtraToggledAsync(CheckBox box, string question, string explanation)
+    {
+        if (loading || profile is null) return;
+        if (box.IsChecked == true && (owner() is not { } window || !await ConfirmDialog.AskAsync(window, question, explanation, "Ligar", "Cancelar")))
+        {
+            loading = true; box.IsChecked = false; loading = false;
+            return;
+        }
+        SaveFromControls();
+    }
 
     private void Recommended()
     {
@@ -478,7 +530,7 @@ public sealed class LauncherPage : Grid
     private async Task ApplySteamAsync(Button button)
     {
         if (current is not { IsSteam: true } g || profile is null || owner() is not { } window) return;
-        string options = GameLaunchOptions.BuildSteamOptions(profile, gpuVendor, profile.MangoHud && OperatingSystem.IsLinux() ? MangoHudLogReader.EnsureConfig(settings) : File.Exists(MangoHudLogReader.ConfigPath()) ? MangoHudLogReader.ConfigPath() : null);
+        string options = GameLaunchOptions.BuildSteamOptions(profile, gpuVendor, profile.MangoHud && OperatingSystem.IsLinux() ? MangoHudLogReader.EnsureConfig(settings) : File.Exists(MangoHudLogReader.ConfigPath()) ? MangoHudLogReader.ConfigPath() : null, ExtrasNow());
         button.IsEnabled = false;
         try
         {

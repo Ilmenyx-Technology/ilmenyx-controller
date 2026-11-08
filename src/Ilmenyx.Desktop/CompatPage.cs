@@ -21,6 +21,8 @@ public sealed record CompatServices(CompatDatabase Db, CompatOnline Online, Func
 {
     /// <summary>Whether a program (gamemoderun, mangohud…) exists for Steam to run; default: the host's usual bin folders and PATH.</summary>
     public Func<string, bool>? ToolInstalled { get; init; }
+    /// <summary>The Jogos profile of a Steam game (by AppID), to warn when its experimental options conflict with the recommended combination.</summary>
+    public Func<string, GameProfile?>? Profile { get; init; }
 }
 
 public sealed class CompatPage : StackPanel
@@ -304,6 +306,14 @@ public sealed class CompatPage : StackPanel
             box.Children.Add(new Border { Background = Palette.Hover, CornerRadius = new CornerRadius(IlmenyxTheme.ControlRadius), Padding = new Thickness(12, 9),
                 Child = new SelectableTextBlock { Name = "CompatRecommendedLine", Text = line, FontFamily = new FontFamily("monospace"), FontSize = 12, TextWrapping = TextWrapping.Wrap } });
             box.Children.Add(Actions(appId, line, "Recommended", LaunchOptionSafety.Check(line), "Combinação montada pelo Ilmenyx a partir de relatos anônimos do ProtonDB, sem opções que conflitam entre si: revise antes."));
+            // Experimental options of this game's Jogos profile, judged by the same conflict table.
+            if (services.Profile?.Invoke(appId) is { } prof && (prof.ProtonWayland || prof.LowLatency))
+            {
+                var hits = GameExtras.AgainstRecommended(prof, t.Recommended.Select(o => o.Option));
+                box.Children.Add(new TextBlock { Name = "CompatExtrasNote", FontSize = 11.5, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap,
+                    Text = hits.Count == 0 ? "As opções experimentais ligadas no perfil deste jogo (página Jogos) combinam com esta recomendação."
+                        : "Não combinam com esta recomendação (desligue no perfil do jogo, na página Jogos, se for usá-la): " + string.Join(" ", hits.Select(h => $"{h.Label}: {h.Reason}")) });
+            }
         }
         else box.Children.Add(new TextBlock { Name = "CompatRecommendedNone", Text = "Nenhuma opção de inicialização serve para este PC sem conflito; o jogo pode rodar sem nenhuma. Veja as alternativas e os relatos abaixo.", Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap });
         if (t.Proton is { } p)

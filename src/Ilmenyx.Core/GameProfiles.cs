@@ -41,6 +41,10 @@ public sealed class GameProfile
     public string GfxPreset { get; set; } = "";
     /// <summary>Upscaling the user says they use inside the game ("" = not informed; Native | Quality | Performance). Not applied either.</summary>
     public string GfxUpscaling { get; set; } = "";
+    /// <summary>Experimental, off by default: PROTON_ENABLE_WAYLAND=1 (GE/UMU-Proton 10+, Wayland session only). See <see cref="GameExtras"/>.</summary>
+    public bool ProtonWayland { get; set; }
+    /// <summary>Experimental, off by default: NVIDIA Reflex availability through NVAPI (NVIDIA proprietary driver only). See <see cref="GameExtras"/>.</summary>
+    public bool LowLatency { get; set; }
     public List<HelperProgram> Helpers { get; set; } = [];
 }
 
@@ -107,18 +111,32 @@ public static class GameLaunchOptions
     public static bool GuardApplies(GameProfile p, string gpuVendor) => p.FullscreenGuard && p.GpuHigh && gpuVendor == "NVIDIA";
 
     /// <summary>Launch options for Steam: <c>ENV=… wrappers %command% args</c>. No shell metacharacters beyond what the user typed in Extra.</summary>
-    public static string BuildSteamOptions(GameProfile p, string gpuVendor, string? mangoConfig = null)
+    public static string BuildSteamOptions(GameProfile p, string gpuVendor, string? mangoConfig = null, ExtrasContext? extras = null)
     {
         var parts = new List<string>();
         if (p.GpuHigh) parts.AddRange(GpuEnvironment(gpuVendor).Select(kv => $"{kv.Key}={kv.Value}"));
         if (GuardApplies(p, gpuVendor)) parts.Add(GuardVariable + "=" + ShellQuote(GuardValue)); // only Proton/DXVK reads it; native games ignore it
         if (p.MangoHud && mangoConfig is not null) parts.Add("MANGOHUD_CONFIGFILE=" + ShellQuote(mangoConfig));
+        // Experimental extras: only those that apply here and do not conflict with the rest of the line (same table as Compatibilidade).
+        if (extras is not null) parts.AddRange(GameExtras.Resolve(p, extras, OwnPieces(p, gpuVendor)).SelectMany(c => c.Pieces));
         if (p.MangoHud) parts.Add("mangohud");
         if (p.GameMode) parts.Add("gamemoderun");
         string args = BuildArgs(p);
         if (parts.Count == 0 && args.Length == 0) return "";
         parts.Add("%command%"); if (args.Length > 0) parts.Add(args);
         return string.Join(" ", parts);
+    }
+
+    /// <summary>The profile's own launch pieces (variables unquoted, wrappers, arguments), for the extras' conflict check.</summary>
+    public static IReadOnlyList<string> OwnPieces(GameProfile p, string gpuVendor)
+    {
+        var list = new List<string>();
+        if (p.GpuHigh) list.AddRange(GpuEnvironment(gpuVendor).Select(kv => $"{kv.Key}={kv.Value}"));
+        if (GuardApplies(p, gpuVendor)) list.Add(GuardVariable + "=" + GuardValue);
+        if (p.MangoHud) list.Add("mangohud");
+        if (p.GameMode) list.Add("gamemoderun");
+        try { list.AddRange(SplitArguments(BuildArgs(p))); } catch (FormatException) { }
+        return list;
     }
 
     /// <summary>Single-quotes a value for the shell Steam uses to run launch options; plain safe paths stay unquoted.</summary>

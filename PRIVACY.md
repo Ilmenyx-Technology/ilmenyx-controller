@@ -72,3 +72,9 @@ direitos e eventual aplicação de LGPD/ANPD: PENDENTE DE REVISÃO humana confor
   `flathub.org`/`dl.flathub.org`. Só por clique, com confirmação. A verificação em si não usa a internet.
 - **ZRAM (página Otimiza):** ao confirmar LIGAR ZRAM, o gerenciador de pacotes da distribuição (apt, dnf, pacman ou zypper) baixa o
   pacote `zram-tools` ou `zram-generator` dos espelhos configurados no seu sistema, se ele ainda não estiver instalado.
+- **Instalar apps:** a instalação é feita pelo programa `flatpak` do seu sistema, que baixa de `flathub.org` (e servidores de
+  download dele) só depois da confirmação. Para a camada do Gamescope, o app só lê localmente qual versão da base (runtime) a sua
+  Steam Flatpak usa (`flatpak info`). Itens que não estão no Flathub (GeForce NOW, input-remapper) só abrem a página oficial
+  (`www.nvidia.com`, `github.com`) no seu navegador quando você clica; o Ilmenyx não baixa nada deles.
+- **Cache de shaders maior (Otimiza) e opções experimentais do Proton (Jogos):** não usam a rede. Só gravam um arquivo seu
+  (`~/.config/environment.d/90-ilmenyx-shader-cache.conf`) ou as opções de inicialização do jogo, depois da confirmação.

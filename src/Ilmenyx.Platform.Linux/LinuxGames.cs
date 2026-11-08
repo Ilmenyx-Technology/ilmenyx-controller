@@ -229,6 +229,22 @@ public sealed class SteamInfo(string home, string procRoot = "/proc")
         return n;
     }
 
+    /// <summary>Proton chosen for the game in Steam (config/config.vdf CompatToolMapping: the game's entry, else the default "0"), e.g.
+    /// "proton_10" or "GE-Proton10-25". Null when Steam has no mapping (native game, or Steam's own default not recorded).</summary>
+    public string? CompatToolName(string appId)
+    {
+        try
+        {
+            if (Root() is not { } steam) return null;
+            string f = Path.Combine(steam, "config", "config.vdf");
+            if (!File.Exists(f) || new FileInfo(f).Length > 16 << 20) return null;
+            VdfNode? n = Vdf.Parse(File.ReadAllText(f)).Child("InstallConfigStore");
+            foreach (var key in new[] { "Software", "Valve", "Steam", "CompatToolMapping" }) n = n?.Child(key);
+            return n?.Child(appId)?.Get("name") is { Length: > 0 } own ? own : n?.Child("0")?.Get("name") is { Length: > 0 } def ? def : null;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return null; }
+    }
+
     public string? GetLaunchOptions(string appId)
     {
         try { return LocalConfig() is { } f && new FileInfo(f).Length < 16 << 20 ? AppsNode(Vdf.Parse(File.ReadAllText(f)), false)?.Child(appId)?.Get("LaunchOptions") : null; }
@@ -333,7 +349,11 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
     private static readonly string[] AllowedProfiles = ["power-saver", "balanced", "performance"];
 
     /// <summary>Command for a manual executable: optional wrappers (mangohud, gamemoderun) before the executable, PRIME variables in the environment. Never a shell.</summary>
-    public static LaunchCommand BuildManual(string exe, GameProfile p, string gameArgs, string gpuVendor, Func<string, string?> find, string? mangoConfig = null, string? prefixRoot = null)
+    /// <remarks>With <paramref name="shaderCache"/> (the Otimiza option is on) the bigger shader cache variables also go to this game, so a launch
+    /// never carries a smaller NVIDIA limit than the session's. With <paramref name="extras"/>, the experimental Proton options of the profile
+    /// that apply and do not conflict with the rest of the command (<see cref="GameExtras.Resolve"/>) join a Windows game's environment.</remarks>
+    public static LaunchCommand BuildManual(string exe, GameProfile p, string gameArgs, string gpuVendor, Func<string, string?> find, string? mangoConfig = null, string? prefixRoot = null,
+        ExtrasContext? extras = null, bool shaderCache = false)
     {
         var args = new List<string>(); string program = exe;
         var wrappers = new List<string>();
@@ -353,6 +373,12 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
         var env = new List<KeyValuePair<string, string>>(p.GpuHigh ? GameLaunchOptions.GpuEnvironment(gpuVendor) : []);
         if (p.MangoHud && mangoConfig is not null && wrappers.Contains(find("mangohud") ?? "") ) env.Add(new("MANGOHUD_CONFIGFILE", mangoConfig));
         env.AddRange(proton);
+        if (shaderCache) env.AddRange(ShaderCacheTweak.Variables.Where(v => env.All(e => e.Key != v.Key)));
+        if (extras is not null && proton.Count > 0)
+        {
+            var others = env.Select(e => e.Key + "=" + e.Value).Concat(wrappers.Select(Path.GetFileName).OfType<string>()).Concat(args.Skip(wrappers.Count));
+            env.AddRange(GameExtras.Environment(GameExtras.Resolve(p, extras with { WindowsGame = true }, others)));
+        }
         return new(program, args, env);
     }
 
@@ -405,7 +431,8 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
     /// Applies the profile, starts the game and follows it until it exits; temporary changes are always undone (finally).
     /// With MangoHud on, returns the measured session (from Ilmenyx's own MangoHud log folder) once the game closes; null otherwise.
     /// </summary>
-    public async Task<FpsSession?> RunAsync(LibGame g, GameProfile p, string gpuVendor, Action<string> status, Action<string> learnedExe, CancellationToken ct)
+    public async Task<FpsSession?> RunAsync(LibGame g, GameProfile p, string gpuVendor, Action<string> status, Action<string> learnedExe, CancellationToken ct,
+        ExtrasContext? extras = null, bool shaderCache = false)
     {
         string? oldPlan = null; var helpers = new List<(Process Proc, bool Close)>(); var started = DateTimeOffset.UtcNow;
         try
@@ -436,7 +463,7 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
             else if (g.LaunchUri is not null) await StartAsync("xdg-open", [g.LaunchUri], [], ct);
             else if (exe is not null && (LinuxGameLibrary.IsRunnableFile(exe) || LinuxGameLibrary.IsWindowsExe(exe)))
             {
-                var cmd = BuildManual(exe, p, g.Args, gpuVendor, BoundedProcess.Find, File.Exists(MangoHudLogReader.ConfigPath()) ? MangoHudLogReader.ConfigPath() : null);
+                var cmd = BuildManual(exe, p, g.Args, gpuVendor, BoundedProcess.Find, File.Exists(MangoHudLogReader.ConfigPath()) ? MangoHudLogReader.ConfigPath() : null, extras: extras, shaderCache: shaderCache);
                 if (cmd.Environment.FirstOrDefault(e => e.Key == "WINEPREFIX").Value is { } prefix)
                 {
                     Directory.CreateDirectory(Path.GetDirectoryName(prefix)!);
