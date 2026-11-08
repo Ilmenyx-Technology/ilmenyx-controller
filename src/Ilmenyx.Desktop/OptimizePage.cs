@@ -36,11 +36,13 @@ public sealed class OptimizePage : StackPanel
     public IReadOnlyList<BackgroundApp> Apps => apps;
     public IlmenyxSettings Settings => settings;
 
-    public OptimizePage(LinuxOptimizer optimizer, OptimizeServices services, UsageViewModel usage, string settingsPath, Func<Window?> owner, CancellationToken lifetime)
+    public ZramPanel? Zram { get; }
+
+    public OptimizePage(LinuxOptimizer optimizer, OptimizeServices services, UsageViewModel usage, string settingsPath, Func<Window?> owner, CancellationToken lifetime, ZramServices? zram = null)
     {
         this.optimizer = optimizer; this.services = services; this.usage = usage; this.settingsPath = settingsPath; this.owner = owner; this.lifetime = lifetime; Spacing = 4;
         settings = IlmenyxSettings.Load(settingsPath);
-        Children.Add(UiKit.PageHeader("Otimiza", "Fecha o que atrapalha e ajusta o sistema para jogos (somente o que não exige root)"));
+        Children.Add(UiKit.PageHeader("Otimiza", "Fecha o que atrapalha e ajusta o sistema para jogos. O que exige a senha do sistema (ZRAM) só roda depois da sua confirmação."));
         optimize.Click += async (_, _) => await OptimizeAsync();
         var ram = new Grid { ColumnDefinitions = new("*,Auto") };
         var info = new StackPanel { Children = { new Grid { Children = { UiKit.Label("MEMÓRIA RAM"), ramText } }, new Border { Height = 6 }, ramMeter, result } };
@@ -62,6 +64,7 @@ public sealed class OptimizePage : StackPanel
             left.Margin = new Thickness(0, 0, wide ? 8 : 0, 14); right.Margin = new Thickness(wide ? 8 : 0, 0, 0, 14);
         };
         Children.Add(columns);
+        if (zram is not null) { Zram = new ZramPanel(zram, owner, lifetime) { Name = "OptZram" }; Children.Add(UiKit.Card(Zram)); }
         Loaded += async (_, _) => { await RefreshAppsAsync(); await RefreshTweaksAsync(); };
         usage.Updated += UpdateRam; UpdateRam();
     }

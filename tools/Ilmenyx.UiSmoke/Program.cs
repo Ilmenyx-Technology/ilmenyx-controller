@@ -576,6 +576,7 @@ public sealed class UiSmokeApp : Application
         await ThemeAsync(shell);
         if (OperatingSystem.IsLinux()) await FpsScrollAndContrastAsync(shell);
         if (OperatingSystem.IsLinux()) await BlockedAndFullTourAsync(shell);
+        if (OperatingSystem.IsLinux()) await GameCheckAndZramAsync(shell, desktop);
         await ToastAsync(shell);
         Click(shell, "SortMemory"); await Until(() => Find<Button>(shell, "SortMemory").Content!.ToString()!.Contains('▼'));
         Click(shell, "ToggleMonitor");
@@ -2059,5 +2060,104 @@ public sealed class UiSmokeApp : Application
         if (Palette.IsLight) { Click(shell, "ToggleTheme"); await Until(() => !Palette.IsLight); }
         shell.Width = 1280; shell.Height = 820; await Task.Delay(300);
         Console.WriteLine("PASS drivers redesign: plain summary, six category cards with every inventory row, NVIDIA action present, no clipped card at 900x560/1280x820, dark and light captures");
+    }
+
+    /// <summary>"Jogo não abre?" checklist and the ZRAM card of Otimiza (2026-11-08). Real pages are only read and captured; every click that would
+    /// change something goes to fake services (no flatpak, pkexec or package manager is run).</summary>
+    [System.Runtime.Versioning.SupportedOSPlatform("linux")]
+    private static async Task GameCheckAndZramAsync(ShellWindow shell, IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        // 1. Real page, read-only.
+        Find<Button>(shell, "Navgamecheck").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => shell.CurrentPage == "gamecheck" && shell.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "GcStatus" && t.IsVisible && t.Text!.StartsWith("Verificado", StringComparison.Ordinal)));
+        var real = shell.GetLogicalDescendants().OfType<GameCheckPage>().Single();
+        if (real.Checks.Count < 4 || !real.Checks.Any(c => c.Id == "vulkan") || !real.Checks.Any(c => c.Id == "flathub")) throw new InvalidOperationException("Real checklist incomplete: " + string.Join(",", real.Checks.Select(c => c.Id)));
+        await Task.Delay(300); Capture(shell, "gamecheck-real-dark.png");
+        double w0 = shell.Width, h0 = shell.Height;
+        await MinimumSize(shell); await Task.Delay(400); Capture(shell, "gamecheck-real-dark-900x560.png");
+        Click(shell, "ToggleTheme"); await Until(() => Palette.IsLight); await Task.Delay(400); Capture(shell, "gamecheck-real-light-900x560.png");
+        Click(shell, "ToggleTheme"); await Until(() => !Palette.IsLight);
+        shell.Width = w0; shell.Height = h0; await Task.Delay(200);
+
+        // 2. Fixture checklist: Ubuntu 24.04 with AppArmor restriction, no Flathub, Steam Flatpak blind to /mnt/jogos, low max_map_count.
+        var facts = new GameCheckFacts
+        {
+            Distro = DistroInfo.Parse("PRETTY_NAME=\"Ubuntu 24.04.1 LTS\"\nID=ubuntu\nID_LIKE=debian\n"), AppArmorRestrictUserns = 1, MaxUserNamespaces = 62769,
+            FlatpakInstalled = true, SystemRemotes = [], UserRemotes = [], SteamFlatpak = true, SteamFilesystems = ["xdg-music:ro"], Home = "/home/ana",
+            Drives = [new GameDrive("/mnt/jogos", true)], SteamNative = true, GpuDrivers = ["amdgpu"], IcdLibraries = ["libvulkan_radeon.so"], Lib32Present = ["libGL.so.1"],
+            MaxMapCount = 65530, SplitLockMitigate = 1,
+        };
+        var fixes = new List<string>(); var opened = new List<string>(); int collects = 0;
+        var services = new GameCheckServices(_ => { collects++; return Task.FromResult(facts); }, (args, _) => { fixes.Add(string.Join(' ', args)); return Task.FromResult((true, "Pronto.")); }, k => opened.Add(k));
+        Window? host = null; var page = new GameCheckPage(services, () => host, CancellationToken.None);
+        host = new Window { Width = 1100, Height = 1400, Background = Palette.Bg, Content = new ScrollViewer { Content = page } }; host.Show();
+        await Until(() => collects == 1 && page.Checks.Count > 0 && host.GetVisualDescendants().OfType<Border>().Any(b => b.Name == "GcCheck_apparmor"));
+        if (!Find<Border>(host, "GcWarning_apparmor").IsVisible) throw new InvalidOperationException("AppArmor warning missing.");
+        if (host.GetVisualDescendants().OfType<Button>().Any(b => b.Name?.StartsWith("GcFix_apparmor", StringComparison.Ordinal) == true || b.Name?.StartsWith("GcFix_lib32", StringComparison.Ordinal) == true || b.Name?.StartsWith("GcFix_splitlock", StringComparison.Ordinal) == true))
+            throw new InvalidOperationException("Root/security fixes must never be one-click.");
+        if (!Find<TextBox>(host, "GcCmd_apparmor_1").Text!.Contains("apparmor_parser -r")) throw new InvalidOperationException("AppArmor command missing.");
+        Click(host, "GcFix_flathub_0"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        var no = desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible);
+        if (!Find<TextBlock>(no, "ConfirmText").Text!.Contains("flatpak remote-add --user --if-not-exists flathub")) throw new InvalidOperationException("Flathub confirmation must show the command.");
+        Click(no, "ConfirmNo"); await Until(() => !no.IsVisible); await Task.Delay(60);
+        if (fixes.Count != 0) throw new InvalidOperationException("Declined fix still ran.");
+        Click(host, "GcFix_flathub_0"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        Click(desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible), "ConfirmYes");
+        await Until(() => fixes.Count == 1);
+        if (fixes[0] != "remote-add --user --if-not-exists flathub " + GameLaunchChecks.FlathubRepoFile) throw new InvalidOperationException("Unexpected flathub fix: " + fixes[0]);
+        Click(host, "GcFix_steamdrives_0"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        Click(desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible), "ConfirmYes");
+        await Until(() => fixes.Count == 2 && Find<Button>(host, "GcUndo_steamdrives_0").IsVisible);
+        Click(host, "GcUndo_steamdrives_0"); await Until(() => fixes.Count == 3);
+        if (fixes[1] != "override --user --filesystem=/mnt/jogos " + GameLaunchChecks.SteamAppId || fixes[2] != "override --user --nofilesystem=/mnt/jogos " + GameLaunchChecks.SteamAppId) throw new InvalidOperationException("Unexpected Steam override fix/undo.");
+        Click(host, "GcLink_maxmap"); await Until(() => opened.SequenceEqual(["optimize"]));
+        await Task.Delay(250); Capture(host, "gamecheck-fixture-dark.png");
+        Click(shell, "ToggleTheme"); await Until(() => Palette.IsLight); await Task.Delay(400); Capture(host, "gamecheck-fixture-light.png");
+        Click(shell, "ToggleTheme"); await Until(() => !Palette.IsLight);
+        host.Close();
+
+        // 3. ZRAM card with a fake probe and a fake privileged runner (Mint, 8 GiB, swapfile, no ZRAM).
+        string swapfile = "Filename Type Size Used Priority\n/swapfile file 2097148 0 -2\n", zram = swapfile + "/dev/zram0 partition 4194300 0 100\n";
+        var mint = DistroInfo.Parse("ID=linuxmint\nID_LIKE=\"ubuntu debian\"\nPRETTY_NAME=\"Linux Mint 22.3\"\n");
+        var zf = new ZramFacts { Distro = mint, MemTotalBytes = 8L << 30, Swaps = ZramPlanner.ParseSwaps(swapfile) };
+        var scripts = new List<string>(); int zcollects = 0;
+        var zservices = new ZramServices(_ => { zcollects++; return Task.FromResult(zf); }, (script, line, _) =>
+        {
+            scripts.Add(script); line("== Ilmenyx (falso): " + script.Split('\n')[3]);
+            zf = script.Contains("apt-get -y install zram-tools")
+                ? zf with { Swaps = ZramPlanner.ParseSwaps(zram), ZramToolsInstalled = true, ZramswapDefaults = ZramPlanner.Marker + ": x\nALGO=zstd\nSIZE=4096\n", State = "package=zram-tools\n" }
+                : zf with { Swaps = ZramPlanner.ParseSwaps(swapfile), ZramToolsInstalled = false, ZramswapDefaults = null, State = null };
+            return Task.FromResult((true, "Pronto."));
+        });
+        Window? zhost = null; var panel = new ZramPanel(zservices, () => zhost, CancellationToken.None);
+        zhost = new Window { Width = 900, Height = 900, Background = Palette.Bg, Content = new ScrollViewer { Content = UiKit.Card(panel) } }; zhost.Show();
+        await Until(() => zcollects == 1 && panel.Plan?.State == ZramState.Recommended && zhost.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnZramApply"));
+        if (!Find<TextBlock>(zhost, "ZramSummary").Text!.Contains("8 GiB")) throw new InvalidOperationException("ZRAM summary must name the RAM.");
+        await Task.Delay(200); Capture(zhost, "zram-recommended-dark.png");
+        Click(zhost, "BtnZramApply"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        var zc = desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible);
+        if (!Find<TextBlock>(zc, "ConfirmText").Text!.Contains("zram-tools") || !Find<TextBlock>(zc, "ConfirmText").Text!.Contains("senha")) throw new InvalidOperationException("ZRAM confirmation must list the steps.");
+        Click(zc, "ConfirmNo"); await Until(() => !zc.IsVisible); await Task.Delay(60);
+        if (scripts.Count != 0) throw new InvalidOperationException("Declined ZRAM still ran.");
+        Click(zhost, "BtnZramApply"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        Click(desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible), "ConfirmYes");
+        await Until(() => scripts.Count == 1 && panel.Plan?.State == ZramState.ActiveOurs && Find<TextBlock>(zhost, "ZramResult").Text!.Contains("conferido"));
+        if (!scripts[0].StartsWith("set -eu\n", StringComparison.Ordinal) || !scripts[0].Contains("SIZE=4096")) throw new InvalidOperationException("Unexpected ZRAM script.");
+        if (!zhost.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnZramUndoAndRemovePackage")) throw new InvalidOperationException("Undo with package removal missing.");
+        await Task.Delay(200); Capture(zhost, "zram-active-ours-dark.png");
+        Click(shell, "ToggleTheme"); await Until(() => Palette.IsLight); await Task.Delay(400); Capture(zhost, "zram-active-ours-light.png");
+        Click(shell, "ToggleTheme"); await Until(() => !Palette.IsLight);
+        Click(zhost, "BtnZramUndoAndRemovePackage"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        Click(desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible), "ConfirmYes");
+        await Until(() => scripts.Count == 2 && panel.Plan?.State == ZramState.Recommended && Find<TextBlock>(zhost, "ZramResult").Text!.Contains("Desfeito"));
+        if (!scripts[1].Contains("apt-get -y purge zram-tools")) throw new InvalidOperationException("Undo script must remove the package we installed.");
+        zhost.Close();
+
+        // 4. Real Otimiza page: the ZRAM card reads this machine (never applied here).
+        Find<Button>(shell, "Navoptimize").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => shell.CurrentPage == "optimize" && shell.GetLogicalDescendants().OfType<ZramPanel>().Any(z => z.Plan is not null));
+        var realZram = shell.GetLogicalDescendants().OfType<ZramPanel>().Single();
+        realZram.BringIntoView(); await Task.Delay(400); Capture(shell, "zram-real-dark.png");
+        Console.WriteLine($"PASS game check and ZRAM: real checklist read-only ({real.Checks.Count} items, captured dark/light 900x560); fixture page shows AppArmor warning without one-click, user-level Flathub and Steam override only after confirmation (declined = nothing), undo, link to Otimiza; ZRAM recommended -> confirmed fake polkit run -> active with undo/remove package -> undone; real ZRAM card: {realZram.Plan!.State}");
     }
 }
