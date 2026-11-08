@@ -27,7 +27,7 @@ public static class FastExec
     public static string DefaultDestination() => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Jogos");
 
     /// <summary>Command and environment for one run. Throws when the installer or the destination is not acceptable, or umu is missing.</summary>
-    public static FastExecPlan Plan(string installer, string destination, Func<string, string?> find, string? tempRoot = null, string? id = null)
+    public static FastExecPlan Plan(string installer, string destination, Func<string, string?> find, string? tempRoot = null, string? id = null, bool geProton = false)
     {
         if (!LinuxGameLibrary.IsWindowsExe(installer)) throw new ArgumentException("Escolha o instalador do Windows (arquivo .exe).");
         if (!Path.IsPathFullyQualified(destination)) throw new ArgumentException("Escolha a pasta onde o jogo vai ficar.");
@@ -40,7 +40,22 @@ public static class FastExec
         return new(umu, [installer], [
             new("WINEPREFIX", prefix), new("GAMEID", "umu-default"), new("STORE", "none"),
             new("WINEDLLOVERRIDES", "winemenubuilder.exe=d"), // no menu entries, icons or file associations from the installer
+            // Installers need stability, not game performance: Proton's fsync/esync (and ntsync) shortcuts made a multi-threaded
+            // installer fail its own CRC check (2026-11-08) while plain Wine worked; Xalia (gamepad UI helper) only burns CPU here.
+            new("PROTON_NO_FSYNC", "1"), new("PROTON_NO_ESYNC", "1"), new("PROTON_NO_NTSYNC", "1"), new("PROTON_USE_XALIA", "0"),
+            new("PROTON_LOG", "1"), new("PROTON_LOG_DIR", LogFolder(tempRoot)),
+            .. (geProton ? new KeyValuePair<string, string>[] { new("PROTONPATH", "GE-Proton") } : []), // umu downloads the latest GE-Proton
         ], prefix, dest);
+    }
+
+    /// <summary>Where the Proton log of each installer run is kept (outside the throwaway prefix, so it survives the cleanup).</summary>
+    public static string LogFolder(string? tempRoot = null) => Path.Combine(tempRoot ?? TempRoot(), "logs");
+
+    /// <summary>Newest Proton log of an installer run, if any.</summary>
+    public static string? LatestLog(string? tempRoot = null)
+    {
+        string dir = LogFolder(tempRoot);
+        return Directory.Exists(dir) ? new DirectoryInfo(dir).EnumerateFiles("steam-*.log").OrderByDescending(f => f.LastWriteTimeUtc).FirstOrDefault()?.FullName : null;
     }
 
     /// <summary>Creates the temporary prefix with D: pointing at the destination (Wine keeps drive links that already exist).</summary>
@@ -48,6 +63,7 @@ public static class FastExec
     {
         Directory.CreateDirectory(plan.Destination);
         Directory.CreateDirectory(InstallFolder(plan)); // C:\Jogos, where the installer should put the game
+        if (plan.Environment.FirstOrDefault(e => e.Key == "PROTON_LOG_DIR").Value is { Length: > 0 } logs) Directory.CreateDirectory(logs);
         string dosdevices = Path.Combine(plan.TempPrefix, "dosdevices");
         Directory.CreateDirectory(dosdevices);
         string d = Path.Combine(dosdevices, "d:");
@@ -109,6 +125,10 @@ public static class FastExec
         string root = tempRoot ?? TempRoot(); int removed = 0;
         if (!Directory.Exists(root)) return 0;
         foreach (var dir in Directory.EnumerateDirectories(root, PrefixPrefix + "*")) { DeleteTree(dir); removed++; }
+        // Keep only the five newest installer logs.
+        if (Directory.Exists(LogFolder(root)))
+            foreach (var old in new DirectoryInfo(LogFolder(root)).EnumerateFiles("steam-*.log").OrderByDescending(f => f.LastWriteTimeUtc).Skip(5))
+                try { old.Delete(); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
         return removed;
     }
 
@@ -116,7 +136,7 @@ public static class FastExec
     public static string InstallFolder(FastExecPlan plan) => Path.Combine(plan.TempPrefix, "drive_c", "Jogos");
 
     /// <summary>Folders Wine itself creates in Program Files; anything else there came from the installer.</summary>
-    private static readonly string[] WineDefaults = ["common files", "internet explorer", "windows media player", "windows nt", "windowspowershell", "microsoft.net", "msbuild", "reference assemblies", "uninstall information", "windows defender", "windows mail", "windows photo viewer", "windows portable devices", "windows sidebar"];
+    private static readonly string[] WineDefaults = ["common files", "internet explorer", "windows media player", "windows nt", "windowspowershell", "microsoft.net", "msbuild", "reference assemblies", "uninstall information", "windows defender", "windows mail", "windows photo viewer", "windows portable devices", "windows sidebar", "steam"]; // Proton creates Program Files (x86)\\Steam itself
 
     /// <summary>
     /// What the installer put inside the temporary Windows: every folder in C:\Jogos and C:\Games, plus folders in Program Files that
@@ -132,6 +152,7 @@ public static class FastExec
             {
                 if (new DirectoryInfo(d).LinkTarget is not null) continue;
                 if (skipWine && WineDefaults.Contains(Path.GetFileName(d).ToLowerInvariant())) continue;
+                if (!Directory.EnumerateFileSystemEntries(d, "*", SearchOption.AllDirectories).Any(e => File.Exists(e))) continue; // empty: nothing installed
                 list.Add(d);
             }
         }

@@ -57,6 +57,7 @@ public sealed class FastExecDialog : Window
                 new TextBlock { Text = "2. Desmarque DirectX, .NET, Visual C++ e outros \"componentes do Windows\". O Proton já cuida do DirectX e do .NET, e o que o jogo precisar ele instala na hora de jogar.", Foreground = Palette.Warn, FontSize = 12, TextWrapping = TextWrapping.Wrap },
                 new TextBlock { Text = "3. Atalhos na área de trabalho e no menu não são criados no seu Linux. Quando o instalador terminar, feche-o normalmente.", Foreground = Palette.Warn, FontSize = 12, TextWrapping = TextWrapping.Wrap } } },
         };
+        var ge = new CheckBox { Name = "FxGeProton", Content = "Usar o GE-Proton (alternativa se o instalador falhar; baixado na primeira vez)", FontSize = 12 };
         var status = new TextBlock { Name = "FxStatus", FontSize = 12, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap };
         var results = new StackPanel { Name = "FxResults", Spacing = 6 };
         var start = UiKit.Primary("FxStart", "EXECUTAR INSTALADOR");
@@ -66,7 +67,7 @@ public sealed class FastExecDialog : Window
         start.Click += async (_, _) =>
         {
             FastExecPlan plan;
-            try { plan = FastExec.Plan((installer.Text ?? "").Trim(), (destination.Text ?? "").Trim(), find, tempRoot); }
+            try { plan = FastExec.Plan((installer.Text ?? "").Trim(), (destination.Text ?? "").Trim(), find, tempRoot, geProton: ge.IsChecked == true); }
             catch (Exception e) when (e is ArgumentException or InvalidOperationException) { status.Foreground = Palette.Warn; status.Text = e.Message; return; }
             start.IsEnabled = false; installer.IsEnabled = destination.IsEnabled = pickInstaller.IsEnabled = pickDestination.IsEnabled = false; results.Children.Clear();
             close.Content = "Cancelar"; var cts = running = new CancellationTokenSource();
@@ -79,7 +80,7 @@ public sealed class FastExecDialog : Window
                 status.Foreground = Palette.Muted;
                 status.Text = "Instalador aberto. Na primeira vez o Proton prepara o Windows temporário (leva um minuto). Siga as dicas acima.";
                 int code = await this.run(plan, cts.Token);
-                status.Text = code == 0 ? "Instalador finalizado." : $"O instalador terminou com o código {code}.";
+                status.Text = code == 0 ? "Instalador finalizado." : $"O instalador terminou com o código {code}." + (ge.IsChecked == true ? "" : " Tente de novo marcando \"Usar o GE-Proton\".") + (FastExec.LatestLog(tempRoot) is { } log ? " Registro: " + log : "");
                 finished = code == 0; // a failed installer leaves a half-installed game: do not move it, just clean up
             }
             catch (OperationCanceledException) { status.Text = "Instalação cancelada."; }
@@ -122,7 +123,7 @@ public sealed class FastExecDialog : Window
             UiKit.PageHeader("Executar instalador do Windows", "Roda o instalador uma vez, com Proton, num Windows descartável. No fim só o jogo instalado fica; o instalador não deixa rastros."),
             UiKit.Label("INSTALADOR (.EXE)"), Field(installer, pickInstaller),
             UiKit.Label("PASTA ONDE O JOGO VAI FICAR NO FINAL"), Field(destination, pickDestination),
-            tips, status, results } };
+            tips, ge, status, results } };
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 14, 0, 0), Children = { close, start } };
         var dock = new DockPanel { Margin = new Thickness(22, 18) };
         DockPanel.SetDock(buttons, Dock.Bottom); dock.Children.Add(buttons);

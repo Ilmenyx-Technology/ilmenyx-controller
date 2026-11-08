@@ -30,6 +30,18 @@ public sealed class FastExecTests : IDisposable
         Assert.Contains(new KeyValuePair<string, string>("GAMEID", "umu-default"), plan.Environment);
     }
 
+    [Fact]
+    public void InstallerRunsInCompatibilityModeWithALogAndOptionalGeProton()
+    {
+        var plan = FastExec.Plan(Installer, Path.Combine(root, "J"), n => "/usr/bin/" + n, Path.Combine(root, "fx"), "c1");
+        foreach (var k in new[] { "PROTON_NO_FSYNC", "PROTON_NO_ESYNC", "PROTON_NO_NTSYNC" }) Assert.Contains(new KeyValuePair<string, string>(k, "1"), plan.Environment);
+        Assert.Contains(new KeyValuePair<string, string>("PROTON_USE_XALIA", "0"), plan.Environment);
+        Assert.Contains(new KeyValuePair<string, string>("PROTON_LOG_DIR", Path.Combine(root, "fx", "logs")), plan.Environment);
+        Assert.DoesNotContain(plan.Environment, e => e.Key == "PROTONPATH");
+        var ge = FastExec.Plan(Installer, Path.Combine(root, "J"), n => "/usr/bin/" + n, Path.Combine(root, "fx"), "c2", geProton: true);
+        Assert.Contains(new KeyValuePair<string, string>("PROTONPATH", "GE-Proton"), ge.Environment);
+    }
+
     [Theory]
     [InlineData("/")]
     [InlineData("/usr")]
@@ -72,6 +84,7 @@ public sealed class FastExecTests : IDisposable
         void Make(string rel) { string p = Path.Combine(c, rel); Directory.CreateDirectory(Path.GetDirectoryName(p)!); File.WriteAllBytes(p, [1, 2, 3]); }
         Make("Jogos/My Game/game.exe"); Make("Games/Other/run.exe"); Make("Program Files/Tool/tool.exe");
         Make("Program Files/Common Files/x.dll"); Make("Program Files (x86)/Internet Explorer/iexplore.exe"); Make("windows/system32/k.dll");
+        Make("Program Files (x86)/Steam/steam.exe"); Directory.CreateDirectory(Path.Combine(c, "Jogos", "Empty", "Sub")); // Proton's own Steam folder; empty leftovers
         Directory.CreateDirectory(Path.Combine(plan.Destination, "My Game")); // name clash -> " (2)"
         var moved = FastExec.MoveToDestination(plan);
         Assert.Equal(3, moved.Count);
@@ -79,6 +92,8 @@ public sealed class FastExecTests : IDisposable
         Assert.True(File.Exists(Path.Combine(plan.Destination, "Other", "run.exe")));
         Assert.True(File.Exists(Path.Combine(plan.Destination, "Tool", "tool.exe")));
         Assert.False(Directory.Exists(Path.Combine(plan.Destination, "Common Files")));
+        Assert.False(Directory.Exists(Path.Combine(plan.Destination, "Steam")));
+        Assert.False(Directory.Exists(Path.Combine(plan.Destination, "Empty")));
         FastExec.Cleanup(plan);
         Assert.False(Directory.Exists(plan.TempPrefix));
         Assert.True(File.Exists(Path.Combine(plan.Destination, "Tool", "tool.exe")));
