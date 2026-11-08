@@ -24,6 +24,12 @@ Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes qu
 - [ ] **Validar na tela**: tutorial, Compatibilidade, Estimativa de FPS, Inicialização, Drivers.
 
 ## 2. Testes que precisam de você (hardware/jogo real)
+- [ ] **LEMBRETE: testar de novo o "Instalar jogo de Windows"** (branch `feat/fastexec-c`): instalar em C:\Jogos; primeiro sem
+  GE-Proton (modo de máxima compatibilidade), se falhar com o mesmo erro de CRC, de novo marcando "Usar o GE-Proton". O registro
+  da falha fica em `~/.local/share/ilmenyx/fastexec/logs/`.
+- [ ] **LEMBRETE: SuperTuxKart pelo Ilmenyx** (jogo nativo + MangoHud + FPS medido salvo).
+- [ ] **LEMBRETE: ZRAM** no Otimiza (LIGAR ZRAM, com a sua senha) e, se quiser testar em outras distros, instalar o QEMU
+  (`pkexec apt-get install -y qemu-system-x86 qemu-utils cloud-image-utils`) e usar `scripts/vm-distro-check.sh`.
 - [x] **Congelamento com o MKX — RESOLVIDO** (2026-11-07): causa = driver de vídeo da Intel com tela cheia sem vsync via PRIME; corrigido com a "Proteção contra travamento em tela cheia" (validada). Texto antigo:: o sistema travou no 2º carregamento da autoconfiguração do jogo, com MangoHud e janela
   sem bordas. O log não mostra erro da NVIDIA, falta de memória nem temperatura. Próximo passo: repetir com um gravador que salva
   CPU/GPU/RAM/temperaturas a cada segundo no SSD; primeiro sem MangoHud, depois com. Se travar de novo, a última linha mostra a causa.
