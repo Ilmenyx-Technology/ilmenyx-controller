@@ -1,0 +1,833 @@
+{
+  "schemaVersion": "1.1",
+  "collectedAt": "2026-11-08T02:32:09.5169154+00:00",
+  "status": "partial",
+  "reason": "Algumas fontes est\u00E3o indispon\u00EDveis; consulte cada leitura e limita\u00E7\u00F5es.",
+  "readings": [
+    {
+      "device": "hwmon1",
+      "chip": "acpitz",
+      "channel": "temp1",
+      "label": "temp1",
+      "collectedAt": "2026-11-08T02:32:09.3496661+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": 25,
+        "unit": "\u00B0C",
+        "source": "/sys/class/hwmon/hwmon1/temp1_input",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "hwmon2",
+      "chip": "BAT0",
+      "channel": "curr1",
+      "label": "curr1",
+      "collectedAt": "2026-11-08T02:32:09.3619251+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": 0.001,
+        "unit": "A",
+        "source": "/sys/class/hwmon/hwmon2/curr1_input",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "hwmon2",
+      "chip": "BAT0",
+      "channel": "in0",
+      "label": "in0",
+      "collectedAt": "2026-11-08T02:32:09.3675303+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": 12.336,
+        "unit": "V",
+        "source": "/sys/class/hwmon/hwmon2/in0_input",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "hwmon3",
+      "chip": "pch_skylake",
+      "channel": "temp1",
+      "label": "temp1",
+      "collectedAt": "2026-11-08T02:32:09.3680101+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": null,
+        "unit": "\u00B0C",
+        "source": "/sys/class/hwmon/hwmon3/temp1_input",
+        "status": "unavailable",
+        "reason": "Convers\u00E3o de temperatura n\u00E3o validada para esse driver."
+      }
+    },
+    {
+      "device": "hwmon4",
+      "chip": "dell_smm",
+      "channel": "fan1",
+      "label": "Processor Fan",
+      "collectedAt": "2026-11-08T02:32:09.3690581+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": 2523,
+        "unit": "RPM",
+        "source": "/sys/class/hwmon/hwmon4/fan1_input",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "hwmon4",
+      "chip": "dell_smm",
+      "channel": "temp1",
+      "label": "CPU",
+      "collectedAt": "2026-11-08T02:32:09.369277+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": null,
+        "unit": "\u00B0C",
+        "source": "/sys/class/hwmon/hwmon4/temp1_input",
+        "status": "unavailable",
+        "reason": "Convers\u00E3o de temperatura n\u00E3o validada para esse driver."
+      }
+    },
+    {
+      "device": "hwmon4",
+      "chip": "dell_smm",
+      "channel": "temp2",
+      "label": "Ambient",
+      "collectedAt": "2026-11-08T02:32:09.3695091+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": null,
+        "unit": "\u00B0C",
+        "source": "/sys/class/hwmon/hwmon4/temp2_input",
+        "status": "unavailable",
+        "reason": "Convers\u00E3o de temperatura n\u00E3o validada para esse driver."
+      }
+    },
+    {
+      "device": "hwmon4",
+      "chip": "dell_smm",
+      "channel": "temp3",
+      "label": "SODIMM",
+      "collectedAt": "2026-11-08T02:32:09.3697936+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": null,
+        "unit": "\u00B0C",
+        "source": "/sys/class/hwmon/hwmon4/temp3_input",
+        "status": "unavailable",
+        "reason": "Convers\u00E3o de temperatura n\u00E3o validada para esse driver."
+      }
+    },
+    {
+      "device": "hwmon4",
+      "chip": "dell_smm",
+      "channel": "temp4",
+      "label": "GPU",
+      "collectedAt": "2026-11-08T02:32:09.3700781+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": null,
+        "unit": "\u00B0C",
+        "source": "/sys/class/hwmon/hwmon4/temp4_input",
+        "status": "unavailable",
+        "reason": "Convers\u00E3o de temperatura n\u00E3o validada para esse driver."
+      }
+    },
+    {
+      "device": "hwmon5",
+      "chip": "coretemp",
+      "channel": "temp1",
+      "label": "Package id 0",
+      "collectedAt": "2026-11-08T02:32:09.3706544+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": 74,
+        "unit": "\u00B0C",
+        "source": "/sys/class/hwmon/hwmon5/temp1_input",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "hwmon5",
+      "chip": "coretemp",
+      "channel": "temp2",
+      "label": "Core 0",
+      "collectedAt": "2026-11-08T02:32:09.3710569+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": 73,
+        "unit": "\u00B0C",
+        "source": "/sys/class/hwmon/hwmon5/temp2_input",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "hwmon5",
+      "chip": "coretemp",
+      "channel": "temp3",
+      "label": "Core 1",
+      "collectedAt": "2026-11-08T02:32:09.3713929+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": 59,
+        "unit": "\u00B0C",
+        "source": "/sys/class/hwmon/hwmon5/temp3_input",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "hwmon6",
+      "chip": "ath10k_hwmon",
+      "channel": "temp1",
+      "label": "temp1",
+      "collectedAt": "2026-11-08T02:32:09.3718675+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": null,
+        "unit": "\u00B0C",
+        "source": "/sys/class/hwmon/hwmon6/temp1_input",
+        "status": "unavailable",
+        "reason": "Convers\u00E3o de temperatura n\u00E3o validada para esse driver."
+      }
+    },
+    {
+      "device": "Thermal/thermal_zone0",
+      "chip": "acpitz",
+      "channel": "temp",
+      "label": "thermal_zone0 \u00B7 temp",
+      "collectedAt": "2026-11-08T02:32:09.3433245+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": 25,
+        "unit": "\u00B0C",
+        "source": "/sys/class/thermal/thermal_zone0/temp",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "Thermal/thermal_zone1",
+      "chip": "TMEM",
+      "channel": "temp",
+      "label": "thermal_zone1 \u00B7 temp",
+      "collectedAt": "2026-11-08T02:32:09.3470124+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": 42.05,
+        "unit": "\u00B0C",
+        "source": "/sys/class/thermal/thermal_zone1/temp",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "Thermal/thermal_zone2",
+      "chip": "INT3400 Thermal",
+      "channel": "temp",
+      "label": "thermal_zone2 \u00B7 temp",
+      "collectedAt": "2026-11-08T02:32:09.3490858+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": 20,
+        "unit": "\u00B0C",
+        "source": "/sys/class/thermal/thermal_zone2/temp",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "Thermal/thermal_zone3",
+      "chip": "SEN1",
+      "channel": "temp",
+      "label": "thermal_zone3 \u00B7 temp",
+      "collectedAt": "2026-11-08T02:32:09.3523459+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": 44.05,
+        "unit": "\u00B0C",
+        "source": "/sys/class/thermal/thermal_zone3/temp",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "Thermal/thermal_zone4",
+      "chip": "SEN2",
+      "channel": "temp",
+      "label": "thermal_zone4 \u00B7 temp",
+      "collectedAt": "2026-11-08T02:32:09.355723+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": 43.05,
+        "unit": "\u00B0C",
+        "source": "/sys/class/thermal/thermal_zone4/temp",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "Thermal/thermal_zone5",
+      "chip": "pch_skylake",
+      "channel": "temp",
+      "label": "thermal_zone5 \u00B7 temp",
+      "collectedAt": "2026-11-08T02:32:09.3563126+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": 45.5,
+        "unit": "\u00B0C",
+        "source": "/sys/class/thermal/thermal_zone5/temp",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "Thermal/thermal_zone6",
+      "chip": "B0D4",
+      "channel": "temp",
+      "label": "thermal_zone6 \u00B7 temp",
+      "collectedAt": "2026-11-08T02:32:09.3597189+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": 48.05,
+        "unit": "\u00B0C",
+        "source": "/sys/class/thermal/thermal_zone6/temp",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "Thermal/thermal_zone7",
+      "chip": "x86_pkg_temp",
+      "channel": "temp",
+      "label": "thermal_zone7 \u00B7 temp",
+      "collectedAt": "2026-11-08T02:32:09.3599926+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": 73,
+        "unit": "\u00B0C",
+        "source": "/sys/class/thermal/thermal_zone7/temp",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "PowerSupply/AC",
+      "chip": "Mains",
+      "channel": "online",
+      "label": "AC \u00B7 online",
+      "collectedAt": "2026-11-08T02:32:09.3698923+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": 1,
+        "unit": "boolean",
+        "source": "/sys/class/power_supply/AC/online",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "PowerSupply/BAT0",
+      "chip": "Battery",
+      "channel": "capacity",
+      "label": "BAT0 \u00B7 capacity",
+      "collectedAt": "2026-11-08T02:32:09.3714111+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": 100,
+        "unit": "%",
+        "source": "/sys/class/power_supply/BAT0/capacity",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "PowerSupply/BAT0",
+      "chip": "Battery",
+      "channel": "voltage_now",
+      "label": "BAT0 \u00B7 voltage_now",
+      "collectedAt": "2026-11-08T02:32:09.371512+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": 12.336,
+        "unit": "V",
+        "source": "/sys/class/power_supply/BAT0/voltage_now",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "PowerSupply/BAT0",
+      "chip": "Battery",
+      "channel": "current_now",
+      "label": "BAT0 \u00B7 current_now",
+      "collectedAt": "2026-11-08T02:32:09.3715872+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": 0.001,
+        "unit": "A",
+        "source": "/sys/class/power_supply/BAT0/current_now",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "PowerSupply/BAT0",
+      "chip": "Battery",
+      "channel": "charge_now",
+      "label": "BAT0 \u00B7 charge_now",
+      "collectedAt": "2026-11-08T02:32:09.3719651+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": 0.92,
+        "unit": "Ah",
+        "source": "/sys/class/power_supply/BAT0/charge_now",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "PowerSupply/BAT0",
+      "chip": "Battery",
+      "channel": "charge_full",
+      "label": "BAT0 \u00B7 charge_full",
+      "collectedAt": "2026-11-08T02:32:09.372048+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": 0.92,
+        "unit": "Ah",
+        "source": "/sys/class/power_supply/BAT0/charge_full",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "PowerSupply/BAT0",
+      "chip": "Battery",
+      "channel": "charge_full_design",
+      "label": "BAT0 \u00B7 charge_full_design",
+      "collectedAt": "2026-11-08T02:32:09.3721315+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": 3.8,
+        "unit": "Ah",
+        "source": "/sys/class/power_supply/BAT0/charge_full_design",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "PowerSupply/BAT0",
+      "chip": "Battery",
+      "channel": "cycle_count",
+      "label": "BAT0 \u00B7 cycle_count",
+      "collectedAt": "2026-11-08T02:32:09.3722153+00:00",
+      "quality": "kernel-raw",
+      "reading": {
+        "value": 0,
+        "unit": "cycles",
+        "source": "/sys/class/power_supply/BAT0/cycle_count",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "gpu:0000:01:00.0",
+      "chip": "GM108M [GeForce 940MX]",
+      "channel": "load",
+      "label": "Uso da GPU",
+      "collectedAt": "2026-11-08T02:32:09.5154205+00:00",
+      "quality": "driver",
+      "reading": {
+        "value": 0,
+        "unit": "%",
+        "source": "nvidia-smi",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "gpu:0000:01:00.0",
+      "chip": "GM108M [GeForce 940MX]",
+      "channel": "temp1",
+      "label": "Temperatura do n\u00FAcleo",
+      "collectedAt": "2026-11-08T02:32:09.5154205+00:00",
+      "quality": "driver",
+      "reading": {
+        "value": 44,
+        "unit": "\u00B0C",
+        "source": "nvidia-smi",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "gpu:0000:01:00.0",
+      "chip": "GM108M [GeForce 940MX]",
+      "channel": "temp2",
+      "label": "Temperatura hotspot",
+      "collectedAt": "2026-11-08T02:32:09.5154205+00:00",
+      "quality": "driver",
+      "reading": {
+        "value": null,
+        "unit": "\u00B0C",
+        "source": "nvidia-smi",
+        "status": "unavailable",
+        "reason": "Contador n\u00E3o exposto por este driver/GPU."
+      }
+    },
+    {
+      "device": "gpu:0000:01:00.0",
+      "chip": "GM108M [GeForce 940MX]",
+      "channel": "temp3",
+      "label": "Temperatura da mem\u00F3ria",
+      "collectedAt": "2026-11-08T02:32:09.5154205+00:00",
+      "quality": "driver",
+      "reading": {
+        "value": null,
+        "unit": "\u00B0C",
+        "source": "nvidia-smi",
+        "status": "unavailable",
+        "reason": "Contador n\u00E3o exposto por este driver/GPU."
+      }
+    },
+    {
+      "device": "gpu:0000:01:00.0",
+      "chip": "GM108M [GeForce 940MX]",
+      "channel": "freq1",
+      "label": "Clock do n\u00FAcleo",
+      "collectedAt": "2026-11-08T02:32:09.5154205+00:00",
+      "quality": "driver",
+      "reading": {
+        "value": 135,
+        "unit": "MHz",
+        "source": "nvidia-smi",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "gpu:0000:01:00.0",
+      "chip": "GM108M [GeForce 940MX]",
+      "channel": "freq2",
+      "label": "Clock da mem\u00F3ria",
+      "collectedAt": "2026-11-08T02:32:09.5154205+00:00",
+      "quality": "driver",
+      "reading": {
+        "value": 405,
+        "unit": "MHz",
+        "source": "nvidia-smi",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "gpu:0000:01:00.0",
+      "chip": "GM108M [GeForce 940MX]",
+      "channel": "power1",
+      "label": "Consumo",
+      "collectedAt": "2026-11-08T02:32:09.5154205+00:00",
+      "quality": "driver",
+      "reading": {
+        "value": null,
+        "unit": "W",
+        "source": "nvidia-smi",
+        "status": "unavailable",
+        "reason": "Contador n\u00E3o exposto por este driver/GPU."
+      }
+    },
+    {
+      "device": "gpu:0000:01:00.0",
+      "chip": "GM108M [GeForce 940MX]",
+      "channel": "fan1",
+      "label": "Ventoinha",
+      "collectedAt": "2026-11-08T02:32:09.5154205+00:00",
+      "quality": "driver",
+      "reading": {
+        "value": null,
+        "unit": "RPM",
+        "source": "nvidia-smi",
+        "status": "unavailable",
+        "reason": "Contador n\u00E3o exposto por este driver/GPU."
+      }
+    },
+    {
+      "device": "gpu:0000:01:00.0",
+      "chip": "GM108M [GeForce 940MX]",
+      "channel": "fan_pct",
+      "label": "Ventoinha (%)",
+      "collectedAt": "2026-11-08T02:32:09.5154205+00:00",
+      "quality": "driver",
+      "reading": {
+        "value": null,
+        "unit": "%",
+        "source": "nvidia-smi",
+        "status": "unavailable",
+        "reason": "Contador n\u00E3o exposto por este driver/GPU."
+      }
+    },
+    {
+      "device": "gpu:0000:01:00.0",
+      "chip": "GM108M [GeForce 940MX]",
+      "channel": "vram_used",
+      "label": "VRAM usada",
+      "collectedAt": "2026-11-08T02:32:09.5154205+00:00",
+      "quality": "driver",
+      "reading": {
+        "value": 5,
+        "unit": "MiB",
+        "source": "nvidia-smi",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "gpu:0000:01:00.0",
+      "chip": "GM108M [GeForce 940MX]",
+      "channel": "vram_total",
+      "label": "VRAM total",
+      "collectedAt": "2026-11-08T02:32:09.5154205+00:00",
+      "quality": "driver",
+      "reading": {
+        "value": 4096,
+        "unit": "MiB",
+        "source": "nvidia-smi",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "gpu:0000:00:02.0",
+      "chip": "HD Graphics 620",
+      "channel": "load",
+      "label": "Uso da GPU",
+      "collectedAt": "2026-11-08T02:32:09.5154205+00:00",
+      "quality": "driver",
+      "reading": {
+        "value": null,
+        "unit": "%",
+        "source": "sysfs (i915)",
+        "status": "unavailable",
+        "reason": "Contador n\u00E3o exposto por este driver/GPU."
+      }
+    },
+    {
+      "device": "gpu:0000:00:02.0",
+      "chip": "HD Graphics 620",
+      "channel": "temp1",
+      "label": "Temperatura do n\u00FAcleo",
+      "collectedAt": "2026-11-08T02:32:09.5154205+00:00",
+      "quality": "driver",
+      "reading": {
+        "value": null,
+        "unit": "\u00B0C",
+        "source": "sysfs (i915)",
+        "status": "unavailable",
+        "reason": "Contador n\u00E3o exposto por este driver/GPU."
+      }
+    },
+    {
+      "device": "gpu:0000:00:02.0",
+      "chip": "HD Graphics 620",
+      "channel": "temp2",
+      "label": "Temperatura hotspot",
+      "collectedAt": "2026-11-08T02:32:09.5154205+00:00",
+      "quality": "driver",
+      "reading": {
+        "value": null,
+        "unit": "\u00B0C",
+        "source": "sysfs (i915)",
+        "status": "unavailable",
+        "reason": "Contador n\u00E3o exposto por este driver/GPU."
+      }
+    },
+    {
+      "device": "gpu:0000:00:02.0",
+      "chip": "HD Graphics 620",
+      "channel": "temp3",
+      "label": "Temperatura da mem\u00F3ria",
+      "collectedAt": "2026-11-08T02:32:09.5154205+00:00",
+      "quality": "driver",
+      "reading": {
+        "value": null,
+        "unit": "\u00B0C",
+        "source": "sysfs (i915)",
+        "status": "unavailable",
+        "reason": "Contador n\u00E3o exposto por este driver/GPU."
+      }
+    },
+    {
+      "device": "gpu:0000:00:02.0",
+      "chip": "HD Graphics 620",
+      "channel": "freq1",
+      "label": "Clock do n\u00FAcleo",
+      "collectedAt": "2026-11-08T02:32:09.5154205+00:00",
+      "quality": "driver",
+      "reading": {
+        "value": 417,
+        "unit": "MHz",
+        "source": "sysfs (i915)",
+        "status": "available",
+        "reason": null
+      }
+    },
+    {
+      "device": "gpu:0000:00:02.0",
+      "chip": "HD Graphics 620",
+      "channel": "freq2",
+      "label": "Clock da mem\u00F3ria",
+      "collectedAt": "2026-11-08T02:32:09.5154205+00:00",
+      "quality": "driver",
+      "reading": {
+        "value": null,
+        "unit": "MHz",
+        "source": "sysfs (i915)",
+        "status": "unavailable",
+        "reason": "Contador n\u00E3o exposto por este driver/GPU."
+      }
+    },
+    {
+      "device": "gpu:0000:00:02.0",
+      "chip": "HD Graphics 620",
+      "channel": "power1",
+      "label": "Consumo",
+      "collectedAt": "2026-11-08T02:32:09.5154205+00:00",
+      "quality": "driver",
+      "reading": {
+        "value": null,
+        "unit": "W",
+        "source": "sysfs (i915)",
+        "status": "unavailable",
+        "reason": "Contador n\u00E3o exposto por este driver/GPU."
+      }
+    },
+    {
+      "device": "gpu:0000:00:02.0",
+      "chip": "HD Graphics 620",
+      "channel": "fan1",
+      "label": "Ventoinha",
+      "collectedAt": "2026-11-08T02:32:09.5154205+00:00",
+      "quality": "driver",
+      "reading": {
+        "value": null,
+        "unit": "RPM",
+        "source": "sysfs (i915)",
+        "status": "unavailable",
+        "reason": "Contador n\u00E3o exposto por este driver/GPU."
+      }
+    },
+    {
+      "device": "gpu:0000:00:02.0",
+      "chip": "HD Graphics 620",
+      "channel": "fan_pct",
+      "label": "Ventoinha (%)",
+      "collectedAt": "2026-11-08T02:32:09.5154205+00:00",
+      "quality": "driver",
+      "reading": {
+        "value": null,
+        "unit": "%",
+        "source": "sysfs (i915)",
+        "status": "unavailable",
+        "reason": "Contador n\u00E3o exposto por este driver/GPU."
+      }
+    },
+    {
+      "device": "gpu:0000:00:02.0",
+      "chip": "HD Graphics 620",
+      "channel": "vram_used",
+      "label": "VRAM reservada usada",
+      "collectedAt": "2026-11-08T02:32:09.5154205+00:00",
+      "quality": "driver",
+      "reading": {
+        "value": null,
+        "unit": "MiB",
+        "source": "sysfs (i915)",
+        "status": "unavailable",
+        "reason": "Contador n\u00E3o exposto por este driver/GPU."
+      }
+    },
+    {
+      "device": "gpu:0000:00:02.0",
+      "chip": "HD Graphics 620",
+      "channel": "vram_total",
+      "label": "VRAM reservada total",
+      "collectedAt": "2026-11-08T02:32:09.5154205+00:00",
+      "quality": "driver",
+      "reading": {
+        "value": null,
+        "unit": "MiB",
+        "source": "sysfs (i915)",
+        "status": "unavailable",
+        "reason": "Contador n\u00E3o exposto por este driver/GPU."
+      }
+    }
+  ],
+  "limitations": [
+    "Leituras brutas do kernel; sem calibra\u00E7\u00E3o de placa, infer\u00EAncia de sa\u00FAde ou controle de hardware.",
+    "Sem ajuste por sensors.conf; canais de tens\u00E3o podem exigir escala espec\u00EDfica da placa.",
+    "Temperatura em \u00B0C validada apenas para coretemp, k10temp, acpitz, nvme e amdgpu; termistores exigem convers\u00E3o pr\u00F3pria.",
+    "Identificadores hwmon podem mudar ap\u00F3s hotplug/reboot; nenhuma identidade persistente \u00E9 inferida.",
+    "Fontes independentes: thermal pode duplicar hwmon; n\u00E3o somar ou deduplicar por r\u00F3tulo.",
+    "Energia/carga/pot\u00EAncia s\u00E3o dados brutos do kernel; sem c\u00E1lculo de desgaste, autonomia, sa\u00FAde ou prote\u00E7\u00E3o t\u00E9rmica.",
+    "Atributos opcionais de power_supply ausentes s\u00E3o omitidos; capacidade em % n\u00E3o \u00E9 sa\u00FAde. Sem identificadores de fabricante/modelo/serial.",
+    "GPU: leituras do driver (sysfs ou nvidia-smi); contadores ausentes ficam indispon\u00EDveis, nunca zero."
+  ],
+  "powerSupplies": [
+    {
+      "device": "AC",
+      "type": {
+        "value": "Mains",
+        "unit": "",
+        "source": "/sys/class/power_supply/AC/type",
+        "status": "available",
+        "reason": null
+      },
+      "status": {
+        "value": null,
+        "unit": "",
+        "source": "/sys/class/power_supply/AC/status",
+        "status": "unavailable",
+        "reason": "Atributo ausente ou dispositivo removido."
+      },
+      "present": {
+        "value": null,
+        "unit": "boolean",
+        "source": "/sys/class/power_supply/AC/present",
+        "status": "unavailable",
+        "reason": "Atributo ausente ou dispositivo removido."
+      }
+    },
+    {
+      "device": "BAT0",
+      "type": {
+        "value": "Battery",
+        "unit": "",
+        "source": "/sys/class/power_supply/BAT0/type",
+        "status": "available",
+        "reason": null
+      },
+      "status": {
+        "value": "Full",
+        "unit": "",
+        "source": "/sys/class/power_supply/BAT0/status",
+        "status": "available",
+        "reason": null
+      },
+      "present": {
+        "value": 1,
+        "unit": "boolean",
+        "source": "/sys/class/power_supply/BAT0/present",
+        "status": "available",
+        "reason": null
+      }
+    }
+  ]
+}

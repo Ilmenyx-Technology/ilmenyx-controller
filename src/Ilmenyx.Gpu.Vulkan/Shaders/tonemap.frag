@@ -1,6 +1,6 @@
 #version 450
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
 layout(set = 0, binding = 1) uniform sampler2D hdr;
 layout(location = 0) in vec2 uv;
 layout(location = 0) out vec4 outColor;

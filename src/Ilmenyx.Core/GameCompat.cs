@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
 // Game compatibility from public sources that allow automated use:
 // - ProtonDB summaries (protondb.com) and ProtonDB report exports (github.com/bdefore/protondb-data, ODbL 1.0 / DbCL 1.0);
 // - Steam Deck compatibility report from the Steam store (Valve);
@@ -329,6 +329,9 @@ public static class LaunchOptionSafety
     private static readonly char[] ShellCharacters = [';', '|', '&', '`', '$', '>', '<', '(', ')', '{', '}', '\\', '"', '\'', '\n', '~', '*', '?', '!', '#'];
 
     public sealed record Verdict(bool Applicable, string? Reason);
+
+    /// <summary>Known wrapper program accepted before %command% (gamemoderun, mangohud…).</summary>
+    public static bool IsWrapper(string token) => Wrappers.Contains(token);
 
     public static Verdict Check(string? options)
     {

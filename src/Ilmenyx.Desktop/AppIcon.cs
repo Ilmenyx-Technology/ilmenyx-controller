@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
 // Official Ilmenyx identity assets (Assets/), from the maintainer-approved identity kit.
 using Avalonia.Controls;
 using Avalonia.Media.Imaging;

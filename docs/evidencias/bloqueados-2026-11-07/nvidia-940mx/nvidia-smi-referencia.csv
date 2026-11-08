@@ -1,0 +1,2 @@
+temperature.gpu, utilization.gpu [%], clocks.current.graphics [MHz], clocks.current.memory [MHz], memory.used [MiB], memory.total [MiB], pstate
+44, 0 %, 135 MHz, 405 MHz, 5 MiB, 4096 MiB, P8

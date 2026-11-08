@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT AND PolyForm-Noncommercial-1.0.0
 // SPDX-FileCopyrightText: 2026 Gustavo (GustavoReset)
-// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
 // New Ilmenyx additions, adapted from the original HowManyFpsClient (MIT, see NOTICE): see LICENSING.md.
 // Network use: only on an explicit click with a user-provided key. Responses are cached on disk for seven days to spare the plan's quota.
 using System.Net.Http;

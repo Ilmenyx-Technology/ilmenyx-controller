@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
 // Network use only on an explicit user action: four fixed HTTPS hosts, nothing about the user is sent besides the Steam app id asked for.
 // The ProtonDB export (ODbL) is downloaded once by the user, checked against the git blob SHA-1 GitHub publishes for it,
 // reduced to a local index and deleted. The index stays on this machine (it is not redistributed).
@@ -182,7 +182,11 @@ public sealed class CompatOnline
 {
     public const string ProtonDbHost = "https://www.protondb.com", SteamHost = "https://store.steampowered.com",
         GitHubApi = "https://api.github.com/repos/bdefore/protondb-data/contents/reports", AntiCheatUrl = "https://raw.githubusercontent.com/AreWeAntiCheatYet/AreWeAntiCheatYet/master/games.json";
-    public static readonly string[] Hosts = ["www.protondb.com", "store.steampowered.com", "raw.githubusercontent.com", "api.github.com"];
+    /// <summary>Steam's image CDN, the host the Steam store API itself returns for header_image (checked 2026-11-07).</summary>
+    public const string ArtHost = "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps";
+    public static readonly string[] Hosts = ["www.protondb.com", "store.steampowered.com", "raw.githubusercontent.com", "api.github.com", "shared.akamai.steamstatic.com"];
+    public const long MaxArtBytes = 3L << 20, MaxArtFolderBytes = 40L << 20;
+    private static readonly TimeSpan ArtTtl = TimeSpan.FromDays(30);
     public const long MaxDumpBytes = 300L << 20;
     private static readonly TimeSpan Ttl = TimeSpan.FromDays(7);
     private readonly HttpClient http;
@@ -252,6 +256,73 @@ public sealed class CompatOnline
             antiCheat = AntiCheatInfo.ParseAll(body);
         }
         return antiCheat.GetValueOrDefault(appId);
+    }
+
+    private string ArtFolder => Path.Combine(cacheFolder, "art");
+
+    /// <summary>Artwork already on disk from an earlier allowed lookup (no network). Null when absent or not an image.</summary>
+    public string? CachedArt(string appId)
+    {
+        string file = Path.Combine(ArtFolder, Id(appId) + ".img");
+        try { var info = new FileInfo(file); return info.Exists && info.Length is > 16 and <= MaxArtBytes && IsImage(File.ReadAllBytes(file)) ? file : null; }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return null; }
+    }
+
+    /// <summary>JPEG, PNG or WebP by their signatures: anything else (HTML error pages, truncated bodies) is not cached nor shown.</summary>
+    public static bool IsImage(ReadOnlySpan<byte> b) =>
+        b.Length > 16 && (b[0] == 0xFF && b[1] == 0xD8 && b[2] == 0xFF
+            || b[..8].SequenceEqual(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A })
+            || b[..4].SequenceEqual("RIFF"u8) && b[8..12].SequenceEqual("WEBP"u8));
+
+    /// <summary>
+    /// Wide Steam artwork of the game (library_hero.jpg, else header.jpg) from the Steam CDN, cached 30 days in ~/.cache/ilmenyx/compat/art
+    /// (a miss is remembered for 7 days). Call only after the user allowed online lookups. Bounded size, image signature checked, folder kept under 40 MB.
+    /// </summary>
+    public async Task<string?> ArtAsync(string appId, CancellationToken ct = default)
+    {
+        string id = Id(appId), file = Path.Combine(ArtFolder, id + ".img"), miss = Path.Combine(ArtFolder, id + ".none");
+        try
+        {
+            if (CachedArt(id) is { } hit && utcNow() - File.GetLastWriteTimeUtc(hit) < ArtTtl) return hit;
+            if (File.Exists(miss) && utcNow() - File.GetLastWriteTimeUtc(miss) < Ttl) return CachedArt(id);
+        }
+        catch (IOException) { }
+        foreach (var name in new[] { "library_hero.jpg", "header.jpg" })
+        {
+            using var limit = CancellationTokenSource.CreateLinkedTokenSource(ct); limit.CancelAfter(TimeSpan.FromSeconds(20));
+            using var resp = await http.GetAsync($"{ArtHost}/{id}/{name}", HttpCompletionOption.ResponseHeadersRead, limit.Token);
+            if (resp.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Forbidden) continue;
+            if (!resp.IsSuccessStatusCode) throw new HttpRequestException($"imagem: HTTP {(int)resp.StatusCode}");
+            if (resp.Content.Headers.ContentType?.MediaType is { } type && !type.StartsWith("image/", StringComparison.OrdinalIgnoreCase)) continue;
+            if (resp.Content.Headers.ContentLength is > MaxArtBytes) continue;
+            await using var input = await resp.Content.ReadAsStreamAsync(limit.Token);
+            using var ms = new MemoryStream(); var buffer = new byte[1 << 15]; int n;
+            while ((n = await input.ReadAsync(buffer, limit.Token)) > 0) { if (ms.Length + n > MaxArtBytes) throw new HttpRequestException("imagem maior que o esperado"); ms.Write(buffer, 0, n); }
+            if (!IsImage(ms.GetBuffer().AsSpan(0, (int)ms.Length))) continue;
+            try
+            {
+                Directory.CreateDirectory(ArtFolder);
+                string tmp = file + "." + Guid.NewGuid().ToString("N") + ".tmp";
+                await File.WriteAllBytesAsync(tmp, ms.ToArray(), ct); File.Move(tmp, file, overwrite: true); File.Delete(miss);
+                PruneArt(file);
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+            return CachedArt(id);
+        }
+        Save(miss, "");
+        return CachedArt(id); // an older copy (if any) stays usable
+    }
+
+    /// <summary>Oldest images go first once the folder passes <see cref="MaxArtFolderBytes"/>; the one just saved is kept.</summary>
+    private void PruneArt(string keep)
+    {
+        var files = new DirectoryInfo(ArtFolder).GetFiles("*.img").OrderByDescending(f => f.LastWriteTimeUtc).ToList();
+        long total = 0;
+        foreach (var f in files)
+        {
+            total += f.Length;
+            if (total > MaxArtFolderBytes && f.FullName != Path.GetFullPath(keep)) try { f.Delete(); } catch (IOException) { }
+        }
     }
 
     /// <summary>Newest monthly export listed by the GitHub API (name like reports_nov1_2026.tar.gz), with the git blob SHA-1 used to check the download.</summary>

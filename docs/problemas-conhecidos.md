@@ -1,0 +1,24 @@
+# Problemas encontrados em testes reais e o que o Ilmenyx pode fazer por eles
+
+Regra (mantenedor, 2026-11-07): o Ilmenyx **detecta, explica e oferece** a correção; **nada é alterado sem o usuário saber e
+confirmar**. Cada correção precisa ser reversível ou dizer claramente que não é.
+
+Legenda do estado: **FEITO** (no app), **PLANEJADO** (dá para fazer), **SÓ AVISAR** (o app não deve corrigir sozinho), **EM TESTE**.
+
+| # | Problema (onde apareceu) | Como o Ilmenyx pode identificar | O que oferecer ao usuário | Estado |
+|---|---|---|---|---|
+| 1 | **Jogo em tela cheia trava a interface inteira** em notebook com GPU híbrida (Intel + NVIDIA, PRIME). O jogo para de desenhar, o mouse e o teclado param, e o servidor gráfico (X) não volta nem fechando o jogo: só reiniciando. Log do X: `Present-flip: queue async flip during flip ... failed` e `flip queue retry`. (Dell 7460, MKX com Proton, 2026-11-07) | Sessão X11 + tela ligada na Intel (driver `modesetting`) + jogo na NVIDIA por PRIME + jogo com Proton/DXVK | Ligar por padrão nesses PCs a "**proteção de tela cheia**": vsync forçado no Proton (`DXVK_CONFIG=dxgi.syncInterval=1`), que evita as trocas de quadro "sem sincronia" que travam o driver. Opção visível no perfil do jogo, com explicação e como desligar | FEITO: validado no Dell (16 min em tela cheia sem travar; evidências em `docs/evidencias/travamento-tela-cheia-2026-11-07/`); opção "Proteção contra travamento em tela cheia" no perfil, ligada por padrão |
+| 2 | **Alt+Tab em jogo de tela cheia** deixa a tela preta e o jogo fecha (MKX com Proton) | Jogo de Windows em tela cheia | Dica no perfil: usar janela sem bordas; opção futura de "janela segura" (área de trabalho virtual do Wine) | PLANEJADO |
+| 3 | **Jogo travado deixa processos do Proton vivos** (`xalia.exe`, `wineserver`, `explorer.exe`...) depois de fechado à força | Processos do prefixo do jogo ainda rodando depois que o jogo saiu | Botão "**Forçar fechamento do jogo**" que encerra o jogo e todos os auxiliares do prefixo dele | PLANEJADO |
+| 4 | **Consumo da CPU (RAPL) bloqueado** pelo kernel para usuários comuns | `energy_uj` existe mas não é legível | Liberar com uma senha (polkit), com Desfazer; também na tela de permissões da 1ª execução | FEITO |
+| 5 | **CPU a 89–94 °C** em carregamentos e até compilando (Dell 7460: refrigeração fraca, CPU e GPU dividem o cooler) | Temperatura da CPU ≥ 90 °C por vários segundos durante um jogo | Aviso discreto durante o jogo e dica (limpar ventoinha, base com cooler, perfil de energia equilibrado, limitar FPS). Nunca reduzir desempenho sem perguntar | PLANEJADO |
+| 6 | **Instalação de pacote parada numa pergunta** (o pacote da Steam abre uma caixa "Ok" sem terminal; o apt fica esperando para sempre) | — | Toda instalação feita pelo app usa o modo sem perguntas (`DEBIAN_FRONTEND=noninteractive`); a aba Driver NVIDIA já usa. Manter isso em qualquer instalação nova | FEITO (driver) / regra para o resto |
+| 7 | **Kernel novo com headers quebrados** (HWE 7.0 sem `objtool`/`module.lds`): o driver NVIDIA (DKMS) não compila e o sistema fica sem driver | Pacote de headers instalado sem esses arquivos / DKMS com erro | Aba Driver NVIDIA explica e propõe remover o kernel quebrado e usar o que funciona (com simulação antes) | FEITO (detecção) / reparo NÃO TESTADO |
+| 8 | **nvidia-smi recusa campos** em versões novas do driver e toda a leitura da GPU falhava | Erro "Field X is not a valid field" | O app tira o campo recusado e tenta de novo | FEITO |
+| 9 | **Placa Wi-Fi gerando milhares de erros PCIe por minuto** no log (ath10k, AER "Correctable"); não trava, mas gasta CPU e disco com log | Contagem de mensagens AER por minuto no journal | Explicar e oferecer (com senha e Desfazer) o ajuste de economia de energia do PCIe para aquele dispositivo, ou só silenciar o log. Nunca mexer em parâmetros do kernel sem confirmação | PLANEJADO |
+| 10 | **Jogo .exe num pendrive/HD NTFS ou exFAT** sem permissão de execução não era aceito | `.exe` sem bit de execução | Aceitar `.exe` sem esse bit (roda pelo Proton) | FEITO |
+| 11 | **Configuração do MangoHud escondida** (o FPS medido não era gravado se o usuário não achasse o botão) | MangoHud marcado sem configuração | Gerar sozinho quando o MangoHud está marcado | FEITO |
+| 12 | **O próprio Ilmenyx usando ~20% de CPU** com o monitor aberto (Dell 7460) | Medição do próprio processo | Passe de otimização antes do lançamento público | PLANEJADO |
+| 13 | **Instaladores do Windows** pedem para instalar DirectX, .NET e Visual C++ | — | No "Executar instalador do Windows": dica para desmarcar (o Windows temporário é apagado; o Proton cuida do DirectX e do .NET; o que o jogo precisar é instalado no prefixo dele) | FEITO (janela "Instalar jogo de Windows"; uso real NÃO TESTADO) |
+
+Evidências do item 1: `docs/evidencias/travamento-tela-cheia-2026-11-07/`.

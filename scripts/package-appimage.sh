@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-# SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+# SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
 # Third-party components retain their terms.
 # Builds Ilmenyx-<version>-x86_64.AppImage from the self-contained bundle of package-linux-x64.sh.
 # AppImage = the official type2 runtime (pinned release, SHA-256 checked against the value GitHub publishes) followed by

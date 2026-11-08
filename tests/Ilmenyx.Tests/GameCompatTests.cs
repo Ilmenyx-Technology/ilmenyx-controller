@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
 // JSON samples copied from real responses (2026-11-06) and the ProtonDB export of 2026-11-01; no network is used.
 using System.Formats.Tar;
 using System.IO.Compression;

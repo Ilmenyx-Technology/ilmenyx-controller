@@ -1,30 +1,33 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
 namespace Ilmenyx.Core;
 
 /// <summary>What this machine offers for the features that could not be ported or validated yet. Read-only facts; nothing here starts a test.</summary>
-public sealed record MachineProbe(bool AmdGpu, bool NvidiaGpu, bool RayTracingGpu, bool RgbUsbDevice, bool GameLibrary);
+/// <param name="AmdDedicatedGpu">An AMD card that is not an APU (the integrated Radeon path was validated on 2026-11-06; a dedicated one was not).</param>
+public sealed record MachineProbe(bool AmdGpu, bool NvidiaGpu, bool RayTracingGpu, bool RgbUsbDevice, bool GameLibrary, bool AmdDedicatedGpu = false);
 
-public enum BlockReason { Hardware, Environment, WindowsOnly, ProprietarySdk, Privilege, Pending }
+public enum BlockReason { Hardware, Environment, ProprietarySdk, Privilege, Pending }
 
-public enum BlockedState { Blocked, TestAvailable, NotApplicable }
+public enum BlockedState { Blocked, TestAvailable }
 
 /// <param name="TestHint">What to do when the machine qualifies (shown only when it does).</param>
 public sealed record BlockedFeature(string Id, string Name, BlockReason Kind, string Reason, string Needs, string TestHint, Func<MachineProbe, bool>? Qualifies, string Reference)
 {
-    public BlockedState State(MachineProbe probe) => Kind == BlockReason.WindowsOnly ? BlockedState.NotApplicable : Qualifies is not null && Qualifies(probe) ? BlockedState.TestAvailable : BlockedState.Blocked;
+    public BlockedState State(MachineProbe probe) => Qualifies is not null && Qualifies(probe) ? BlockedState.TestAvailable : BlockedState.Blocked;
     public string KindLabel => Kind switch
     {
         BlockReason.Hardware => "Limitação de hardware do autor",
         BlockReason.Environment => "Limitação de ambiente do autor",
-        BlockReason.WindowsOnly => "Não existe no Linux",
         BlockReason.ProprietarySdk => "SDK proprietário",
         BlockReason.Privilege => "Exige privilégio de administrador",
         _ => "Ainda não implementado",
     };
 }
 
-/// <summary>Catalog of functions that are not ported or not validated, with the reason; the UI shows it so the maintainer knows when a machine can finish the work.</summary>
+/// <summary>
+/// Catalog of functions that are not ported or not validated, with the reason; the UI shows it so the maintainer knows when a machine can finish the work.
+/// Items that do not exist on Linux at all (Windows tweaks, USB ghost cleaner, WinRAR) are not listed: see docs/bloqueados-removidos.md.
+/// </summary>
 public static class BlockedCatalog
 {
     public const string TestAvailableText = "Teste disponível nesta máquina";
@@ -32,14 +35,14 @@ public static class BlockedCatalog
     public static IReadOnlyList<BlockedFeature> All { get; } =
     [
         new("rt-bench", "Benchmark de ray tracing em GPU dedicada (AMD/NVIDIA)", BlockReason.Hardware,
-            "Portado para Vulkan (VK_KHR_acceleration_structure + VK_KHR_ray_query) e validado em 2026-11-06 só numa APU Radeon 610M (RDNA2, 2 CUs, RADV); faltam GPU dedicada AMD/NVIDIA, driver NVIDIA e a comparação com o Windows.",
+            "Portado para Vulkan (VK_KHR_acceleration_structure + VK_KHR_ray_query) e validado em 2026-11-06 só numa APU Radeon 610M (RDNA2, 2 CUs, RADV); faltam uma GPU dedicada AMD/NVIDIA com ray tracing (a GeForce 940MX testada em 2026-11-07 não tem) e a comparação com o Windows.",
             "GPU AMD RX 6000+ ou NVIDIA RTX com driver Vulkan", "Rode `ilmenyx bench gpu-rt --allow-gpu-load --preset alta --resolution 1440p` (ou o tile RAY TRACING da página Benchmark) e anexe o resultado.", p => p.RayTracingGpu, "Sem_teste.md · GPU-08"),
-        new("gpu-amd", "GPU AMD em hardware real (sensores, VRAM, stress, cena de jogo)", BlockReason.Hardware,
-            "Leitura (inventário, sensores, VRAM reservada, consumo do pacote) validada numa APU Radeon 610M em 2026-11-06; GPU AMD dedicada e as cargas continuam só com fixtures.",
-            "GPU AMD com driver amdgpu (de preferência dedicada)", "Rode scripts/validate-gpu-remote.sh com --allow-gpu-load e anexe o relatório.", p => p.AmdGpu, "Sem_teste.md · GPU-01, GPU-04"),
-        new("gpu-nvidia", "GPU NVIDIA em hardware real (nvidia-smi, ajustes NVML, erros Xid)", BlockReason.Hardware,
-            "O código está portado e testado só com fixtures; o autor não tem GPU NVIDIA.",
-            "GPU NVIDIA com driver proprietário", "Rode scripts/validate-gpu-remote.sh com --allow-gpu-load e anexe o relatório.", p => p.NvidiaGpu, "Sem_teste.md · GPU-02, GPU-04"),
+        new("gpu-amd", "GPU AMD dedicada em hardware real (Radeon RX: VRAM, ventoinha, limite de energia, cargas)", BlockReason.Hardware,
+            "A GPU AMD integrada foi validada em 2026-11-06 numa APU Radeon 610M (inventário, sensores, VRAM reservada, stress e cena curtos). Uma placa dedicada não foi testada: ela tem VRAM própria (GDDR) com temperatura de memória e junction, ventoinha com rpm e PWM, limite de energia ajustável (power1_cap) e caminhos de sysfs diferentes, que hoje só passam por fixtures.",
+            "Placa AMD Radeon dedicada (RX 400 ou mais nova) com driver amdgpu", "Rode scripts/validate-gpu-remote.sh com --allow-gpu-load e anexe o relatório; confira VRAM, ventoinha, junction e power1_cap com o radeontop/sysfs.", p => p.AmdDedicatedGpu, "Sem_teste.md · GPU-01, GPU-04 · docs/evidencias/gpu-amd-2026-11-06/"),
+        new("gpu-nvidia", "GPU NVIDIA de desktop ou RTX (limite de energia ajustável, ventoinha, NVENC, driver open)", BlockReason.Hardware,
+            "A NVIDIA de notebook foi validada numa GeForce 940MX (Maxwell, driver 580) em 2026-11-06 e 2026-11-07: identificação, telemetria pelo nvidia-smi, PRIME, stress e cena curtos. Essa placa não tem limite de energia ajustável, ventoinha própria, NVENC útil nem suporte ao driver open, então essas partes continuam só com fixtures.",
+            "GPU NVIDIA RTX (Turing ou mais nova) ou placa de desktop com driver proprietário", "Rode scripts/validate-gpu-remote.sh com --allow-gpu-load e anexe o relatório; compare a página GPU e a OC com o nvidia-smi.", p => p.NvidiaGpu && p.RayTracingGpu, "Sem_teste.md · GPU-04, NVDRV-03 · docs/evidencias/bloqueados-2026-11-07/"),
         new("rgb-real", "Controle de LEDs RGB em hardware real", BlockReason.Hardware,
             "O autor não tem periférico ou placa com RGB reconhecido pelo OpenRGB; só o protocolo foi testado.",
             "Teclado, mouse, memória, ventoinha ou placa-mãe com RGB (Corsair, Razer, ASUS, MSI…)", "Inicie o servidor na página Integração, aplique um efeito e confira as luzes.", p => p.RgbUsbDevice, "Sem_teste.md · RGB-01"),
@@ -49,15 +52,9 @@ public static class BlockedCatalog
         new("corsair-sdk", "SDK nativo da Corsair (iCUE) e Razer Synapse", BlockReason.ProprietarySdk,
             "São SDKs proprietários do Windows e não são baixados pelo Ilmenyx; o OpenRGB cobre os mesmos dispositivos.",
             "Uma alternativa Linux oficial dos fabricantes", "", null, "docs/portagem-completa.md"),
-        new("windows-tweaks", "Ajustes do Windows (Game DVR, HAGS, janela do Windows)", BlockReason.WindowsOnly,
-            "Não existem no Linux; a página Otimiza traz os equivalentes (perfil de energia, governador, vm.max_map_count).", "—", "", null, "docs/portagem-completa.md"),
-        new("usb-cleaner", "Limpeza de dispositivos USB fantasmas", BlockReason.WindowsOnly,
-            "É uma limpeza do registro do Windows; o Linux não guarda esse histórico.", "—", "", null, "docs/portagem-completa.md"),
         new("process-priority", "Prioridade alta de processo e otimizações de tela cheia", BlockReason.Privilege,
             "Subir prioridade exige privilégio no Linux; o GameMode do sistema faz isso. O GameMode embutido só ajusta ionice/renice do usuário.",
             "GameMode instalado no sistema (daemon + polkit)", "", null, "Sem_teste.md · CMP-02"),
-        new("winrar", "WinRAR no catálogo de apps", BlockReason.ProprietarySdk,
-            "Programa proprietário do Windows sem versão Linux; o catálogo usa alternativas livres.", "—", "", null, "docs/portagem-completa.md"),
         new("flatpak-embed", "Flatpak dentro do pacote", BlockReason.Privilege,
             "Flatpak é um serviço do sistema (root, polkit e bubblewrap) e não cabe em um pacote de usuário; a página Apps mostra o comando da sua distro.",
             "—", "", null, "Sem_teste.md · CMP-04"),

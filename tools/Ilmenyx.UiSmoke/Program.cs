@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
 using System.Diagnostics;
 using System.Text.Json;
 using Avalonia;
@@ -510,9 +510,9 @@ public sealed class UiSmokeApp : Application
         if (driverLaunches != 1) throw new InvalidOperationException("Driver manager click did not reach fake launcher.");
         Console.WriteLine("PASS nouveau driver recommendation: explicit click invokes fake launcher only");
         Find<Button>(shell, "Navdriver").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        await Until(() => shell.GetVisualDescendants().OfType<StackPanel>().Any(p => p.Name == "DrvList" && p.Children.Count > 0));
+        await Until(() => shell.GetLogicalDescendants().OfType<StackPanel>().Any(p => p.Name == "DrvList" && p.Children.Count > 0));
         if (!Find<TextBlock>(shell, "DrvStatus").Text!.StartsWith("Pronto")) throw new InvalidOperationException("Driver scan did not finish.");
-        if (!shell.GetVisualDescendants().OfType<TextBox>().Any(t => t.Name == "DrvInstallHint" && t.IsReadOnly)) throw new InvalidOperationException("Install hint (never executed) missing.");
+        if (!shell.GetLogicalDescendants().OfType<TextBox>().Any(t => t.Name == "DrvInstallHint" && t.IsReadOnly)) throw new InvalidOperationException("Install hint (never executed) missing.");
         Click(shell, "BtnDrvFwupd");
         await Until(() => { var t = Find<TextBlock>(shell, "DrvStatus").Text!; return t.Contains("fwupd") || t.Contains("dispositivo"); });
         await Task.Delay(200); Capture(shell, "shell-drivers.png");
@@ -558,6 +558,7 @@ public sealed class UiSmokeApp : Application
         if (OperatingSystem.IsLinux()) await OptimizeAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await FpsAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await CompatAsync(desktop, Program.OutputDirectory);
+        if (OperatingSystem.IsLinux()) await CompatTriageAsync(desktop, Program.OutputDirectory);
         if (OperatingSystem.IsLinux()) await SensorHelpAsync(desktop);
         if (OperatingSystem.IsLinux()) await OnboardingAsync(desktop);
         if (OperatingSystem.IsLinux()) await AppsAsync(shell, desktop);
@@ -570,7 +571,11 @@ public sealed class UiSmokeApp : Application
         if (OperatingSystem.IsLinux()) await LightingAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await BlockedAsync(shell);
         if (OperatingSystem.IsLinux()) await OverviewSummaryAsync(shell);
+        await TourAndHelpAsync(shell, desktop);
+        if (OperatingSystem.IsLinux()) await StartupDriversRedesignAsync(shell, desktop);
         await ThemeAsync(shell);
+        if (OperatingSystem.IsLinux()) await FpsScrollAndContrastAsync(shell);
+        if (OperatingSystem.IsLinux()) await BlockedAndFullTourAsync(shell);
         await ToastAsync(shell);
         Click(shell, "SortMemory"); await Until(() => Find<Button>(shell, "SortMemory").Content!.ToString()!.Contains('▼'));
         Click(shell, "ToggleMonitor");
@@ -602,7 +607,15 @@ public sealed class UiSmokeApp : Application
         await Until(() => page.Entries.Count == 2);
         Click(host, "BtnStartupScan");
         if (host.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "StartupRemove_sysapp.desktop")) throw new InvalidOperationException("System entries must not offer REMOVER.");
+        // Unknown system entry: the warning dialog comes first; declining keeps it enabled and writes nothing.
         var toggle = Find<CheckBox>(host, "StartupToggle_sysapp.desktop"); toggle.IsChecked = false; toggle.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        var keepDialog = desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible); Click(keepDialog, "ConfirmNo");
+        await Until(() => !keepDialog.IsVisible && toggle.IsChecked == true);
+        if (File.Exists(Path.Combine(cfg, "autostart", "sysapp.desktop"))) throw new InvalidOperationException("Declined disable wrote an override.");
+        toggle.IsChecked = false; toggle.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        Click(desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible), "ConfirmYes");
         await Until(() => File.Exists(Path.Combine(cfg, "autostart", "sysapp.desktop")) && Find<TextBlock>(host, "StartupState_sysapp.desktop").Text == "DESATIVADO");
         if (File.ReadAllText(Path.Combine(sys, "sysapp.desktop")).Contains("Hidden")) throw new InvalidOperationException("System file was modified.");
         Click(host, "StartupRemove_mine.desktop");
@@ -624,7 +637,7 @@ public sealed class UiSmokeApp : Application
         Find<Button>(shell, "Navstartup").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await Until(() => shell.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "StartupSummary" && (t.Text!.Contains("PROGRAMAS") || t.Text.Contains("NENHUM"))));
         await Task.Delay(300); Capture(shell, "shell-startup.png");
-        Console.WriteLine("PASS startup page: system entry disabled by user override (system file untouched), declined removal keeps entry, confirmed removal + restore round trip; real list read-only");
+        Console.WriteLine("PASS startup page: system entry disabled by user override only after the warning (system file untouched), declined removal keeps entry, confirmed removal + restore round trip; real list read-only");
     }
     [System.Runtime.Versioning.SupportedOSPlatform("linux")]
     private static async Task LauncherAsync(ShellWindow shell, IClassicDesktopStyleApplicationLifetime desktop)
@@ -644,7 +657,8 @@ public sealed class UiSmokeApp : Application
         host = new Window { Width = 1100, Height = 800, Content = page }; host.Show();
         await Until(() => page.Games.Count == 1);
         Click(host, "BtnAddExe"); Find<TextBox>(host, "LAddPath").Text = "relative/path"; Click(host, "BtnAddExeConfirm");
-        await Until(() => Find<TextBlock>(host, "LAddStatus").Text!.Contains("caminho completo"));
+        await Until(() => Find<TextBlock>(host, "LAddStatus").Text!.Contains("PROCURAR"));
+        if (!Find<Button>(host, "BtnAddExeBrowse").IsVisible) throw new InvalidOperationException("The add box must offer a file chooser (PROCURAR…).");
         Find<TextBox>(host, "LAddPath").Text = manual; Click(host, "BtnAddExeConfirm");
         await Until(() => page.Games.Count == 2 && page.Profile is not null && host.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "LTitle" && t.Text == "manualgame"));
         Click(host, "LGame_Steam_100");
@@ -1012,19 +1026,28 @@ public sealed class UiSmokeApp : Application
         if (page.Lines.FirstOrDefault(l => l.Label == "FPS")?.Value.Contains("FPS") == true) throw new InvalidOperationException("Unchecked item must disappear.");
         Click(host, "OvPresetMin"); await page.TickAsync();
         if (page.Lines.Count != 1 || page.Lines[0].Label != "FPS" || !Find<TextBlock>(host, "OverlayPreview").Text!.Contains("98")) throw new InvalidOperationException("Minimal preset must show only the FPS line.");
+        // No button: the selection is saved by itself after a short delay (a burst of clicks writes once).
+        if (host.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnMangoConfig")) throw new InvalidOperationException("The MangoHud config button was removed: saving is automatic.");
+        if (!Find<TextBox>(host, "OvLaunchOption").IsVisible || !Find<TextBox>(host, "OvLaunchOption").Text!.EndsWith("mangohud %command%")) throw new InvalidOperationException("The Steam launch option line must be shown from the start.");
+        await Until(() => !page.SavePending && page.SaveCount >= 1 && File.Exists(config) && Find<TextBlock>(host, "OvSaved").Opacity > 0.5);
+        if (page.SaveCount != 1) throw new InvalidOperationException($"Quick successive changes must be written once (debounced), got {page.SaveCount} saves.");
         if (IlmenyxSettings.Load(settingsPath).OverlayItems is not { } saved || !saved.SequenceEqual(["fps", "frametime", "low1"])) throw new InvalidOperationException("Selection must be persisted.");
         Click(host, "BtnOverlayToggle"); await Until(() => desktop.Windows.OfType<OverlayWindow>().Any(w => w.IsVisible) && Find<Button>(host, "BtnOverlayToggle").Content!.ToString() == "OCULTAR OVERLAY");
         var overlay = desktop.Windows.OfType<OverlayWindow>().Single(w => w.IsVisible);
         await Until(() => overlay.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text!.StartsWith("144 FPS")));
         Click(host, "BtnOverlayToggle"); await Until(() => !overlay.IsVisible && Find<Button>(host, "BtnOverlayToggle").Content!.ToString() == "MOSTRAR OVERLAY");
-        Click(host, "BtnMangoConfig"); await Until(() => File.Exists(config) && Find<TextBox>(host, "OvLaunchOption").IsVisible);
         string text = File.ReadAllText(config);
         if (!text.Contains("position=top-left") || !text.Contains("fps_metrics=avg,0.01") || !text.Contains($"output_folder={logs}") || !Find<TextBox>(host, "OvLaunchOption").Text!.EndsWith("mangohud %command%")) throw new InvalidOperationException("Generated MangoHud config and launch option must follow the selection.");
         if (File.GetUnixFileMode(config) != (UnixFileMode.UserRead | UnixFileMode.UserWrite)) throw new InvalidOperationException("Config must be user-only.");
+        // Corner change: saved by itself into the same file, without any button.
+        Find<StackPanel>(host, "OvCornerPanel").Children.OfType<Button>().Single(b => b.Content?.ToString() == "INFERIOR DIR.").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => !page.SavePending && page.SaveCount == 2 && File.ReadAllText(config).Contains("position=bottom-right"));
+        if (IlmenyxSettings.Load(settingsPath).OverlayCorner != "bottom-right") throw new InvalidOperationException("Corner must be persisted automatically.");
+        await Task.Delay(200); Capture(host, "overlay-autosave.png");
         host.Close();
         Find<Button>(shell, "Navoverlay").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await Until(() => shell.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnOverlayToggle"));
-        Console.WriteLine("PASS overlay page: item picker and presets persist, Ilmenyx overlay window shows/hides with FPS from the frame source, MangoHud config and launch option generated into Ilmenyx's own file (user MangoHud.conf untouched)");
+        Console.WriteLine("PASS overlay page: item picker and presets persist, Ilmenyx overlay window shows/hides with FPS from the frame source, MangoHud config and launch option saved automatically (debounced, one write per burst, \"Salvo\" shown) into Ilmenyx's own file (user MangoHud.conf untouched), no generate button");
     }
     private static async Task BlockedAsync(ShellWindow shell)
     {
@@ -1035,8 +1058,7 @@ public sealed class UiSmokeApp : Application
         {
             var chip = (TextBlock)Find<Border>(shell, "BlockedChip_" + f.Id).Child!;
             string text = chip.Text ?? "";
-            if (!(text.Contains("BLOQUEADO") || text.Contains("TESTE DISPONÍVEL") || text.Contains("NÃO SE APLICA"))) throw new InvalidOperationException("Unexpected state text for " + f.Id + ": " + text);
-            if (f.Kind == Ilmenyx.Core.BlockReason.WindowsOnly && !text.Contains("NÃO SE APLICA")) throw new InvalidOperationException(f.Id + " must be not applicable.");
+            if (!(text.Contains("BLOQUEADO") || text.Contains("TESTE DISPONÍVEL"))) throw new InvalidOperationException("Unexpected state text for " + f.Id + ": " + text);
         }
         var details = Find<StackPanel>(shell, "BlockedDetails_rt-bench"); bool before = details.IsVisible;
         Click(shell, "BlockedWhy_rt-bench"); if (details.IsVisible == before) throw new InvalidOperationException("(!) must toggle the reason.");
@@ -1044,7 +1066,7 @@ public sealed class UiSmokeApp : Application
         string summary = Find<TextBlock>(shell, "BlockedSummary").Text ?? "";
         if (summary.Length == 0) throw new InvalidOperationException("Summary missing.");
         shell.Select("dash");
-        Console.WriteLine("PASS blocked page: one card per blocked feature, state chips, (!) toggles the reason, Windows-only items are not applicable");
+        Console.WriteLine("PASS blocked page: one card per blocked feature, state chips, (!) toggles the reason");
     }
 
     private static async Task LightingAsync(ShellWindow shell, IClassicDesktopStyleApplicationLifetime desktop)
@@ -1077,6 +1099,90 @@ public sealed class UiSmokeApp : Application
         Find<Button>(shell, "Navlighting").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await Until(() => shell.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnLightConnect"));
         Console.WriteLine("PASS lighting page: nothing connects or is sent before the click, control needs confirmation, effect frames reach the OpenRGB server, every device is handed back to its original mode (fake loopback server; no real RGB hardware)");
+    }
+    /// <summary>Welcome dialog, guided tour (forward/back, Enter, Esc, Pular, flag saved) and the Help Center with the context "?" and search.</summary>
+    private static async Task TourAndHelpAsync(ShellWindow shell, IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        var text = HelpContent.For();
+        foreach (var key in shell.PageKeys) if (text.Section(key) is null) throw new InvalidOperationException("Page without a help section: " + key);
+        if (!ShellWindow.TourSuppressed) throw new InvalidOperationException("The smoke must suppress the automatic welcome tour.");
+        if (await shell.OfferTourAsync()) throw new InvalidOperationException("Suppressed welcome must not open by itself.");
+        string settingsFile = Path.Combine(Environment.GetEnvironmentVariable("XDG_CONFIG_HOME")!, "ilmenyx", "settings.json");
+        async Task<WelcomeTourDialog> Welcome()
+        {
+            await Until(() => desktop.Windows.OfType<WelcomeTourDialog>().Any(w => w.IsVisible));
+            var w = desktop.Windows.OfType<WelcomeTourDialog>().Single(x => x.IsVisible); await Task.Delay(150); return w;
+        }
+        // Accept: the tour opens on the first step; the flag is saved before the dialog shows.
+        var offer = shell.OfferTourAsync(force: true);
+        var welcome = await Welcome();
+        if (!File.ReadAllText(settingsFile).Contains("\"TourOffered\": true")) throw new InvalidOperationException("TourOffered must be saved when the welcome is shown.");
+        Capture(welcome, "welcome-tour.png");
+        Click(welcome, "WelcomeStart");
+        if (!await offer || shell.TourStepIndex != 0 || !Find<Border>(shell, "TourCard").IsEffectivelyVisible) throw new InvalidOperationException("Tour did not start on step 1.");
+        if (shell.CurrentPage != text.Tour[0].PageKey || Find<TextBlock>(shell, "TourCounter").Text != $"Passo 1 de {text.Tour.Count}") throw new InvalidOperationException("Step 1 page/counter wrong.");
+        if (Find<Button>(shell, "TourBack").IsEnabled) throw new InvalidOperationException("Voltar must be disabled on step 1.");
+        Click(shell, "TourNext"); await Until(() => shell.TourStepIndex == 1);
+        Key(shell, Avalonia.Input.Key.Enter); await Until(() => shell.TourStepIndex == 2 && shell.CurrentPage == text.Tour[2].PageKey);
+        Click(shell, "TourBack"); await Until(() => shell.TourStepIndex == 1);
+        int games = text.Tour.ToList().FindIndex(t => t.PageKey == "launcher");
+        while (shell.TourStepIndex < games) { Click(shell, "TourNext"); await Task.Delay(60); }
+        await Until(() => shell.CurrentPage == "launcher" && Find<TextBlock>(shell, "TourTitle").Text == text.Tour[games].Title);
+        await Task.Delay(500);
+        void CardFits(string where)
+        {
+            var card = Find<Border>(shell, "TourCard"); var at = card.TranslatePoint(default, shell)!.Value;
+            if (at.X < 214 || at.Y < 0 || at.Y + card.Bounds.Height > shell.Bounds.Height + 0.5 || at.X + card.Bounds.Width > shell.Bounds.Width + 0.5)
+                throw new InvalidOperationException($"Tour card outside the window ({where}): {at} {card.Bounds.Size} in {shell.Bounds.Size}");
+            if (!shell.GetVisualDescendants().OfType<Border>().Any(b => b.Name == "TourRing" && b.IsEffectivelyVisible)) throw new InvalidOperationException("Tour step without a highlight: " + where);
+        }
+        CardFits("games step"); Capture(shell, "tour-step.png");
+        while (shell.TourStepIndex < text.Tour.Count - 1) { Click(shell, "TourNext"); await Task.Delay(60); }
+        await Until(() => shell.CurrentPage == "help" && (string?)Find<Button>(shell, "TourNext").Content == "Concluir");
+        await Task.Delay(300); CardFits("last step"); Capture(shell, "tour-step-last.png");
+        Click(shell, "TourBack"); await Until(() => shell.TourStepIndex == text.Tour.Count - 2);
+        Click(shell, "TourSkip"); await Until(() => shell.TourStepIndex == -1 && !Find<Canvas>(shell, "TourLayer").IsVisible);
+        // Esc closes; Concluir on the last step closes.
+        shell.StartTour(); await Until(() => shell.TourStepIndex == 0);
+        Key(shell, Avalonia.Input.Key.Escape); await Until(() => shell.TourStepIndex == -1);
+        // Agora não: no tour; without force the welcome is never shown again.
+        offer = shell.OfferTourAsync(force: true); welcome = await Welcome(); Click(welcome, "WelcomeLater");
+        if (await offer || shell.TourStepIndex != -1) throw new InvalidOperationException("Agora não must not start the tour.");
+        if (await shell.OfferTourAsync()) throw new InvalidOperationException("Welcome must be offered only once.");
+        Console.WriteLine($"PASS welcome tour: offered once (TourOffered saved), {text.Tour.Count} steps navigate pages with highlights, Próximo/Enter/Voltar, Pular and Esc close, Agora não runs nothing");
+
+        // Help Center: sidebar entry, context "?" scrolls to the current page's section, search opens a question's section, Refazer o tour.
+        Find<Button>(shell, "Navhelp").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => shell.CurrentPage == "help" && Find<ScrollViewer>(shell, "HelpScroll").IsEffectivelyVisible && !Find<Button>(shell, "PageHelp").IsVisible);
+        if (shell.GetVisualDescendants().OfType<Border>().Count(b => b.Name?.StartsWith("Help_", StringComparison.Ordinal) == true) != shell.PageKeys.Count) throw new InvalidOperationException("Help Center must have one card per page.");
+        await Task.Delay(300); Capture(shell, "help-center.png");
+        async Task ContextHelp(string key)
+        {
+            Find<Button>(shell, "Nav" + key).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            await Until(() => shell.CurrentPage == key && Find<Button>(shell, "PageHelp").IsVisible);
+            Click(shell, "PageHelp");
+            var scroll = Find<ScrollViewer>(shell, "HelpScroll");
+            await Until(() => shell.CurrentPage == "help" && Find<Border>(shell, "Help_" + key).TranslatePoint(default, scroll) is { } p && p.Y is > -2 and < 40);
+        }
+        await ContextHelp("launcher");
+        await ContextHelp("stress");
+        var faq = Find<Expander>(shell, "HelpFaq_stress_safe"); faq.IsExpanded = true; await Task.Delay(400);
+        Capture(shell, "help-center-stress.png");
+        Find<Button>(shell, "Navsystem").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Find<AutoCompleteBox>(shell, "GlobalSearch").SelectedItem = "Por que a temperatura da CPU não aparece?";
+        await Until(() => shell.CurrentPage == "help" && Find<Border>(shell, "Help_dash").TranslatePoint(default, Find<ScrollViewer>(shell, "HelpScroll")) is { } p && p.Y is > -2 and < 40);
+        Click(shell, "HelpRetour"); await Until(() => shell.TourStepIndex == 0); shell.EndTour();
+        // Minimum window and light theme: the card stays inside the window and readable.
+        double w = shell.Width, h = shell.Height;
+        shell.Width = 900; shell.Height = 560; await Task.Delay(400);
+        shell.StartTour(); while (shell.TourStepIndex < games) { shell.NextTourStep(); await Task.Delay(60); }
+        await Task.Delay(500); CardFits("900x560"); Capture(shell, "tour-step-min.png");
+        Click(shell, "ToggleTheme"); await Until(() => Palette.IsLight); await Task.Delay(400);
+        CardFits("light"); Capture(shell, "tour-step-light.png");
+        shell.EndTour(); shell.Width = w; shell.Height = h; await Task.Delay(300);
+        shell.OpenHelp("launcher"); await Task.Delay(500); Capture(shell, "help-center-light.png");
+        Click(shell, "ToggleTheme"); await Until(() => !Palette.IsLight);
+        Console.WriteLine("PASS help center: one section per page, sidebar entry, context ? scrolls to launcher and stress sections, search opens a question's section, Refazer o tour, tour card fits at 900x560 and in the light theme");
     }
     private static async Task ThemeAsync(ShellWindow shell)
     {
@@ -1144,7 +1250,7 @@ public sealed class UiSmokeApp : Application
         var fixture = new Ilmenyx.Core.IlmenyxSettings(); fixture.AddFpsSession(new("Dota 2", new DateTimeOffset(2026, 11, 6, 21, 0, 0, TimeSpan.Zero), 87.4, 52, 1800, "NVIDIA GeForce RTX 4070", "1920x1080")); fixture.Save(settingsPath);
         var ctx = new Ilmenyx.Core.FpsContext("NVIDIA GeForce RTX 4070", "10de", "2786", "nvidia", false, 2UL << 30, null, true, 0, 0);
         var page = new GamesFpsPage(client, new Ilmenyx.Core.IlmenyxSettings(), settingsPath, () => host, () => ("AMD Ryzen 7 7700X 8-Core Processor", "NVIDIA GeForce RTX 4070"), CancellationToken.None, () => ctx);
-        host = new Window { Width = 1100, Height = 900, Content = new ScrollViewer { Content = page } }; host.Show();
+        host = new Window { Width = 1100, Height = 900, Content = page }; host.Show(); // the page scrolls by itself (sticky catalogue)
         await Until(() => page.Rows.Count > 20 && page.Rows.Any(r => r.Fps > 0));
         if (page.GpuIndex != 100 || page.CpuIndex != 100) throw new InvalidOperationException("Hardware indices not resolved from the catalog tables.");
         string CardFps(string name) => host.GetVisualDescendants().OfType<Border>().Single(b => b.Name == "Game_" + LauncherPage.SafeName(name)).GetVisualDescendants().OfType<TextBlock>().First(t => t.FontSize == 28).Text!;
@@ -1326,12 +1432,12 @@ public sealed class UiSmokeApp : Application
         await Task.Delay(300); Capture(shell, "shell-nvdriver.png");
         // Drivers page links to the tab (the NVIDIA card is only there on a machine with an NVIDIA GPU, as this one).
         Find<Button>(shell, "Navdriver").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        await Until(() => shell.CurrentPage == "driver" && shell.GetVisualDescendants().OfType<StackPanel>().Any(p => p.Name == "DrvList" && p.Children.Count > 0));
-        if (shell.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Name == "BtnDrvNvidiaTab") is { } link)
+        await Until(() => shell.CurrentPage == "driver" && shell.GetLogicalDescendants().OfType<StackPanel>().Any(p => p.Name == "DrvList" && p.Children.Count > 0));
+        if (shell.GetLogicalDescendants().OfType<Button>().FirstOrDefault(b => b.Name == "BtnDrvNvidiaTab") is { } link)
         {
             link.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); await Until(() => shell.CurrentPage == "nvdriver");
         }
-        if (shell.GetVisualDescendants().OfType<TextBox>().Any(t => t.Name == "DrvInstallHint" && (t.Text ?? "").Contains("sudo ubuntu-drivers install"))) throw new InvalidOperationException("Drivers page still suggests ubuntu-drivers install.");
+        if (shell.GetLogicalDescendants().OfType<TextBox>().Any(t => t.Name == "DrvInstallHint" && (t.Text ?? "").Contains("sudo ubuntu-drivers install"))) throw new InvalidOperationException("Drivers page still suggests ubuntu-drivers install.");
 
         // Fake services: the incident of 2026-11-07 (Mint 22.3, 940MX, kernel 7.0 with incomplete headers, iF/iU packages). Never pkexec/apt.
         const string running = "6.14.0-37-generic";
@@ -1679,5 +1785,279 @@ public sealed class UiSmokeApp : Application
         await Task.Delay(80); Capture(window, "validation-panels.png");
         Console.WriteLine("PASS sensor monitor start/stop and UI export");
         await LayoutAsync(window, desktop);
+    }
+    /// <summary>
+    /// Estimativa de FPS chained scrolling (page, then sticky catalogue; up: catalogue first), back-to-top button, keyboard, at 900x560 and
+    /// 1280x820 in both themes; plus screenshots of the Overlay and Relatório pages. Wheel and keys are routed events inside this process.
+    /// </summary>
+    private static async Task FpsScrollAndContrastAsync(ShellWindow shell)
+    {
+        double w0 = shell.Width, h0 = shell.Height; bool light0 = Palette.IsLight;
+        var mouse = new Avalonia.Input.Pointer(Avalonia.Input.Pointer.GetNextFreeId(), Avalonia.Input.PointerType.Mouse, true);
+        foreach (var (w, h) in new[] { (900.0, 560.0), (1280.0, 820.0) })
+        foreach (bool light in new[] { false, true })
+        {
+            if (Palette.IsLight != light) { Click(shell, "ToggleTheme"); await Until(() => Palette.IsLight == light); }
+            shell.Width = w; shell.Height = h;
+            Find<Button>(shell, "Navfps").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            await Until(() => shell.GetVisualDescendants().OfType<GamesFpsPage>().Any(p => p.IsVisible && p.Rows.Count > 20));
+            var page = shell.GetVisualDescendants().OfType<GamesFpsPage>().Single();
+            await Until(() => shell.GetVisualDescendants().OfType<Border>().Any(b => b.Name?.StartsWith("Game_", StringComparison.Ordinal) == true && b.IsEffectivelyVisible));
+            page.ScrollToTop(); await Until(() => page.PageOffset == 0 && page.CatalogOffset == 0); await Task.Delay(400);
+            string tag = $"{w:0}x{h:0}-{(light ? "light" : "dark")}";
+            var scroll = Find<ScrollViewer>(shell, "FpsScroll"); var header = Find<Grid>(shell, "FpsCatalogHeader");
+            var cardsScroll = Find<ScrollViewer>(shell, "GameCardsScroll");
+            if (page.ToTopVisible) throw new InvalidOperationException("Back-to-top must be hidden at the top.");
+            if (page.CatalogViewport < scroll.Viewport.Height - header.Bounds.Height - 45) throw new InvalidOperationException($"Catalogue must fill the window below its header ({tag}): {page.CatalogViewport:0} of {scroll.Viewport.Height:0}.");
+            Capture(shell, $"fps-scroll-{tag}-top.png");
+            var card = shell.GetVisualDescendants().OfType<Border>().First(b => b.Name?.StartsWith("Game_", StringComparison.Ordinal) == true && b.IsEffectivelyVisible);
+            void Wheel(double notches) => card.RaiseEvent(new Avalonia.Input.PointerWheelEventArgs(card, mouse, shell, new Point(10, 10), 0, new Avalonia.Input.PointerPointProperties(), KeyModifiers.None, new Vector(0, notches)));
+            double catalogHeight = cardsScroll.Bounds.Height, last = 0; int guard = 0;
+            // Down over the catalogue: the page scrolls first (catalogue stays at its top) until the header reaches the top.
+            while (page.PageOffset < page.PageMax - 0.5)
+            {
+                Wheel(-1); await Task.Delay(30);
+                if (page.CatalogOffset != 0 && page.PageOffset < page.PageMax - 0.5) throw new InvalidOperationException($"Catalogue scrolled before the page reached the sticky point ({tag}).");
+                if (page.PageOffset < last) throw new InvalidOperationException($"Page offset went backwards while scrolling down: jitter ({tag}).");
+                last = page.PageOffset; if (++guard > 400) throw new InvalidOperationException("Page never reached the sticky point.");
+            }
+            double stickyY() => header.TranslatePoint(new Point(0, 0), scroll)!.Value.Y;
+            double y0 = stickyY();
+            if (Math.Abs(y0 - header.Margin.Top) > 2) throw new InvalidOperationException($"Catalogue header must sit at the top when sticky ({tag}): y={y0:0.0}.");
+            for (int i = 0; i < 4; i++) { Wheel(-1); await Task.Delay(30); }
+            if (page.CatalogOffset < 100 || Math.Abs(page.PageOffset - page.PageMax) > 0.5 || Math.Abs(stickyY() - y0) > 0.5) throw new InvalidOperationException($"Past the sticky point only the catalogue scrolls and the header stays fixed ({tag}).");
+            if (Math.Abs(cardsScroll.Bounds.Height - catalogHeight) > 0.5) throw new InvalidOperationException("Catalogue height changed while scrolling (jitter).");
+            await Until(() => page.ToTopVisible); await Task.Delay(250);
+            Capture(shell, $"fps-scroll-{tag}-sticky.png");
+            // Up: the catalogue returns to its own top first, only then the page above comes back.
+            double pageMax = page.PageOffset; guard = 0;
+            while (page.CatalogOffset > 0)
+            {
+                Wheel(1); await Task.Delay(30);
+                if (page.CatalogOffset > 0 && page.PageOffset < pageMax - 0.5) throw new InvalidOperationException($"Page moved before the catalogue was back at its top ({tag}).");
+                if (++guard > 400) throw new InvalidOperationException("Catalogue never returned to its top.");
+            }
+            Wheel(1); await Task.Delay(30);
+            if (page.PageOffset >= pageMax - 1) throw new InvalidOperationException($"After the catalogue top, scrolling up must move the page ({tag}).");
+            // Keyboard: PageDown/End/Home from the page (focus on the scroll area, as after a click on it).
+            scroll.Focus(); await Task.Delay(30);
+            double before = page.PageOffset; Key(shell, Avalonia.Input.Key.PageDown); await Task.Delay(30);
+            if (page.PageOffset + page.CatalogOffset <= before) throw new InvalidOperationException("PageDown must scroll the page.");
+            Key(shell, Avalonia.Input.Key.End); await Task.Delay(30);
+            if (Math.Abs(page.PageOffset - page.PageMax) > 0.5 || Math.Abs(page.CatalogOffset - page.CatalogMax) > 0.5) throw new InvalidOperationException("End must reach the end of the catalogue.");
+            Key(shell, Avalonia.Input.Key.Home); await Until(() => page.PageOffset == 0 && page.CatalogOffset == 0);
+            // Back-to-top button: one click, animated, then hidden.
+            Key(shell, Avalonia.Input.Key.End); await Until(() => page.ToTopVisible);
+            Click(shell, "BtnFpsToTop"); await Task.Delay(60);
+            if (page.PageOffset == 0 && page.CatalogOffset == 0) throw new InvalidOperationException("Back to top should animate (not jump) when feasible.");
+            await Until(() => page.PageOffset == 0 && page.CatalogOffset == 0 && !page.ToTopVisible);
+            if (w == 900)
+            {
+                foreach (var key in new[] { "overlay", "report" }) { Find<Button>(shell, "Nav" + key).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); await Task.Delay(500); Capture(shell, $"page-{key}-{tag}.png"); }
+                var reportTexts = shell.GetVisualDescendants().OfType<Border>().Where(b => b.Name is "ReportIncluded" or "ReportExcluded").SelectMany(b => b.GetVisualDescendants().OfType<TextBlock>()).ToList();
+                if (reportTexts.Count < 4 || reportTexts.Any(t => t.Foreground != Palette.Fg && t.Foreground != Palette.Muted)) throw new InvalidOperationException("Report titles must use Fg and descriptions Muted (never Faint).");
+            }
+        }
+        if (Palette.IsLight != light0) { Click(shell, "ToggleTheme"); await Until(() => Palette.IsLight == light0); }
+        shell.Width = w0; shell.Height = h0; await Task.Delay(200);
+        Console.WriteLine("PASS fps sticky catalogue: page scrolls first, header sticks, catalogue fills the window and scrolls alone, up returns catalogue first; wheel + PageDown/End/Home; animated back-to-top hidden at top; 900x560 and 1280x820, dark and light; overlay/report screenshots; report text Fg/Muted");
+    }
+
+    private static async Task CompatTriageAsync(IClassicDesktopStyleApplicationLifetime desktop, string output)
+    {
+        // Conflicting options from similar-hardware reports → one conflict-free recommended line; artwork only after the online consent. Fake HTTP and Steam.
+        static string R(int i, string options, string proton) =>
+            "{\"app\":{\"steam\":{\"appId\":\"570\"},\"title\":\"Dota 2\"},\"responses\":{\"verdict\":\"yes\",\"customProtonVersion\":\"" + proton + "\",\"launchOptions\":" + JsonSerializer.Serialize(options)
+            + "},\"timestamp\":" + (1793000000 - i) + ",\"systemInfo\":{\"gpu\":\"AMD Radeon 610M (radeonsi, raphael_mendocino)\",\"gpuDriver\":\"Mesa 25.0\",\"os\":\"Linux Mint 22.3\",\"kernel\":\"6.14\"}}";
+        byte[] export = CompatExport(
+            R(0, "DXVK_ASYNC=1 gamemoderun %command% -dx11", "GE-Proton10-29"), R(1, "DXVK_ASYNC=1 gamemoderun mangohud %command% -dx11", "GE-Proton10-29"),
+            R(2, "PROTON_USE_WINED3D=1 RADV_PERFTEST=gpl %command% -dx12", "Proton 9.0-4"), R(3, "PROTON_ENABLE_NVAPI=1 RADV_PERFTEST=gpl gamemoderun %command% -dx12", "GE-Proton10-29"));
+        byte[] png;
+        using (var rtb = new RenderTargetBitmap(new PixelSize(960, 310), new Vector(96, 96)))
+        {
+            var art = new Border { Width = 960, Height = 310, Background = new Avalonia.Media.LinearGradientBrush { StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative), EndPoint = new RelativePoint(1, 1, RelativeUnit.Relative),
+                GradientStops = { new Avalonia.Media.GradientStop(Avalonia.Media.Color.Parse("#B33A1E"), 0), new Avalonia.Media.GradientStop(Avalonia.Media.Color.Parse("#2B1638"), 0.6), new Avalonia.Media.GradientStop(Avalonia.Media.Color.Parse("#0E2A4A"), 1) } } };
+            art.Measure(new Size(960, 310)); art.Arrange(new Rect(0, 0, 960, 310)); rtb.Render(art);
+            using var ms = new MemoryStream(); rtb.Save(ms, PngBitmapEncoderOptions.Default); png = ms.ToArray();
+        }
+        var http = new CompatFakeHttp(req => req.RequestUri!.Host switch
+        {
+            "shared.akamai.steamstatic.com" => new(System.Net.HttpStatusCode.OK) { Content = new ByteArrayContent(png) { Headers = { ContentType = new("image/png") } } },
+            "www.protondb.com" => new(System.Net.HttpStatusCode.OK) { Content = new StringContent("{\"tier\":\"platinum\",\"confidence\":\"strong\",\"score\":0.9,\"total\":5000}") },
+            "store.steampowered.com" => new(System.Net.HttpStatusCode.OK) { Content = new StringContent("{\"success\":1,\"results\":{\"resolved_category\":3,\"resolved_items\":[]}}") },
+            _ => new(System.Net.HttpStatusCode.OK) { Content = new StringContent("[]") },
+        });
+        string folder = Path.Combine(output, "compat-triage-fixture");
+        var db = new CompatDatabase(Path.Combine(folder, "index"));
+        await using (var s = new MemoryStream(export)) await CompatDatabase.BuildAsync(s, db.Folder, new CompatDumpInfo("fixture", export.Length, "", "", null));
+        var steam = new Dictionary<string, string>(StringComparer.Ordinal) { ["570"] = "-novid" };
+        var services = new CompatServices(db, new CompatOnline(folder, http), () => new CompatHardware("AMD Mendocino (iGPU · Radeon 610M)", "Linux Mint 22.3", false),
+            _ => Task.FromResult<IReadOnlyList<LibGame>>([]), id => steam.GetValueOrDefault(id), (id, o) => { if (o.Length == 0) steam.Remove(id); else steam[id] = o; return null; }, (_, _) => Task.CompletedTask)
+            { ToolInstalled = t => t == "gamemoderun" };
+        Window? host = null; var page = new CompatPage(services, () => host, CancellationToken.None);
+        host = new Window { Width = 900, Height = 560, Background = Palette.Bg, Content = new ScrollViewer { Content = page } }; host.Show();
+        await page.ShowAsync("570", "Dota 2");
+        await Until(() => host.GetVisualDescendants().OfType<SelectableTextBlock>().Any(t => t.Name == "CompatRecommendedLine"));
+        const string expected = "DXVK_ASYNC=1 RADV_PERFTEST=gpl gamemoderun %command% -dx11";
+        if (Find<SelectableTextBlock>(host, "CompatRecommendedLine").Text != expected) throw new InvalidOperationException("Recommended line: " + Find<SelectableTextBlock>(host, "CompatRecommendedLine").Text);
+        var alternatives = Find<StackPanel>(host, "CompatAlternatives").GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text ?? "").ToList();
+        foreach (var must in new[] { "PROTON_USE_WINED3D=1", "PROTON_ENABLE_NVAPI=1", "mangohud", "-dx12", "Proton 9.0-4" })
+            if (!alternatives.Any(a => a.StartsWith(must, StringComparison.Ordinal))) throw new InvalidOperationException("Missing alternative " + must + ": " + string.Join(" | ", alternatives));
+        if (!Find<TextBlock>(host, "CompatRecommendedProton").Inlines!.OfType<Avalonia.Controls.Documents.Run>().Any(r => r.Text!.StartsWith("GE-Proton10-29", StringComparison.Ordinal))) throw new InvalidOperationException("Recommended Proton missing.");
+        if (http.Hosts.Count != 0 || !host.GetVisualDescendants().OfType<StackPanel>().Any(p => p.Name == "CompatHeroPlaceholder")) throw new InvalidOperationException("Without consent: placeholder and no network.");
+        ((ScrollViewer)host.Content!).Offset = new Vector(0, 0);
+        await Task.Delay(250); Capture(host, "compat-triage-placeholder-dark.png");
+
+        Click(host, "CompatApplyRecommended"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        var ask = desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible);
+        if (!Find<TextBlock>(ask, "ConfirmText").Text!.Contains(expected) || !Find<TextBlock>(ask, "ConfirmText").Text!.Contains("-novid")) throw new InvalidOperationException("Confirmation must show the new and current options.");
+        Click(ask, "ConfirmYes"); await Until(() => steam.GetValueOrDefault("570") == expected && Find<Button>(host, "CompatUndoRecommended").IsVisible);
+        Click(host, "CompatUndoRecommended"); await Until(() => steam.GetValueOrDefault("570") == "-novid");
+
+        Click(host, "CompatOnlineQuery"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        var consent = desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible);
+        if (!Find<TextBlock>(consent, "ConfirmText").Text!.Contains("shared.akamai.steamstatic.com")) throw new InvalidOperationException("Consent must name the image host.");
+        Click(consent, "ConfirmYes");
+        await Until(() => Find<TextBlock>(host, "CompatTier").Text == "Platina" && !host.GetVisualDescendants().OfType<StackPanel>().Any(p => p.Name == "CompatHeroPlaceholder") && host.GetVisualDescendants().OfType<Border>().Any(b => b.Name == "CompatHeroTagProtonDB"));
+        if (http.Hosts.Any(h => !CompatOnline.Hosts.Contains(h)) || !http.Hosts.Contains("shared.akamai.steamstatic.com")) throw new InvalidOperationException("Hosts: " + string.Join(",", http.Hosts));
+        if (services.Online.CachedArt("570") is null) throw new InvalidOperationException("Artwork must be cached on disk.");
+        await Task.Delay(250); Capture(host, "compat-triage-dark.png");
+        ((ScrollViewer)host.Content!).Offset = new Vector(0, Find<Border>(host, "CompatWorked").TranslatePoint(new Point(0, 0), page)!.Value.Y - 8); await Task.Delay(250); Capture(host, "compat-triage-recommended-dark.png");
+        ((ScrollViewer)host.Content!).Offset = new Vector(0, Find<StackPanel>(host, "CompatAlternatives").TranslatePoint(new Point(0, 0), page)!.Value.Y - 200); await Task.Delay(250); Capture(host, "compat-triage-alternatives-dark.png");
+
+        Palette.Apply(true);
+        int calls = http.Hosts.Count;
+        await page.ShowAsync("570", "Dota 2"); await Until(() => host.GetVisualDescendants().OfType<SelectableTextBlock>().Any(t => t.Name == "CompatRecommendedLine"));
+        if (host.GetVisualDescendants().OfType<StackPanel>().Any(p => p.Name == "CompatHeroPlaceholder")) throw new InvalidOperationException("Cached artwork must be reused.");
+        if (http.Hosts.Count != calls) throw new InvalidOperationException("Cached artwork must not be downloaded again.");
+        ((ScrollViewer)host.Content!).Offset = new Vector(0, 0); await Task.Delay(300); Capture(host, "compat-triage-light.png");
+        ((ScrollViewer)host.Content!).Offset = new Vector(0, Find<Border>(host, "CompatWorked").TranslatePoint(new Point(0, 0), page)!.Value.Y - 8); await Task.Delay(250); Capture(host, "compat-triage-recommended-light.png");
+        Palette.Apply(false);
+        host.Close();
+        Console.WriteLine("PASS compat triage: conflict-free recommended line (wined3d/NVAPI/second API/missing tool/second Proton moved to alternatives with reasons), apply/undo only that line, Steam artwork only after consent, cached and reused (fake HTTP; no network)");
+    }
+
+    /// <summary>Bloqueados without "não se aplica"/WinRAR, the precise AMD item, PeaZip in the apps catalogue, and a tour that reaches every sidebar page.</summary>
+    private static async Task BlockedAndFullTourAsync(ShellWindow shell)
+    {
+        if (Ilmenyx.Core.BlockedCatalog.All.Any(f => f.Id is "windows-tweaks" or "usb-cleaner" or "winrar")) throw new InvalidOperationException("Items that do not exist on Linux must not be listed.");
+        if (!Ilmenyx.Core.AppCatalog.Default().Any(a => a.FlatpakId == "io.github.peazip.PeaZip")) throw new InvalidOperationException("PeaZip must replace WinRAR in the apps catalogue.");
+        double w = shell.Width, h = shell.Height;
+        shell.Width = 900; shell.Height = 560; await Task.Delay(400);
+        shell.Select("blocked"); await Task.Delay(300);
+        var texts = Find<StackPanel>(shell, "BlockedList").GetLogicalDescendants().OfType<TextBlock>().Select(t => t.Text ?? "").ToList();
+        if (texts.Any(t => t.Contains("NÃO SE APLICA") || t.Contains("WinRAR"))) throw new InvalidOperationException("Blocked page still shows a not-applicable or WinRAR item.");
+        var amd = Find<StackPanel>(shell, "BlockedDetails_gpu-amd");
+        if (!amd.IsVisible) Click(shell, "BlockedWhy_gpu-amd");
+        if (!amd.Children.OfType<TextBlock>().Any(t => (t.Text ?? "").Contains("integrada foi validada") && (t.Text ?? "").Contains("dedicada não foi testada"))) throw new InvalidOperationException("AMD item must separate integrated (validated) from dedicated (untested).");
+        await Task.Delay(300); Capture(shell, "blocked-dark-900x560.png");
+        Click(shell, "ToggleTheme"); await Until(() => Palette.IsLight); await Task.Delay(400); Capture(shell, "blocked-light-900x560.png");
+        Click(shell, "ToggleTheme"); await Until(() => !Palette.IsLight);
+        Click(shell, "BlockedWhy_gpu-amd");
+        var tour = HelpContent.For().Tour; var covered = new HashSet<string>();
+        shell.StartTour(); await Until(() => shell.TourStepIndex == 0);
+        for (int i = 0; i < tour.Count; i++)
+        {
+            await Until(() => shell.TourStepIndex == i && shell.CurrentPage == tour[i].PageKey && Find<TextBlock>(shell, "TourTitle").Text == tour[i].Title);
+            await Task.Delay(350);
+            var card = Find<Border>(shell, "TourCard"); var at = card.TranslatePoint(default, shell)!.Value;
+            if (at.Y < 0 || at.Y + card.Bounds.Height > shell.Bounds.Height + 0.5 || at.X + card.Bounds.Width > shell.Bounds.Width + 0.5) throw new InvalidOperationException($"Tour card outside the 900x560 window at step {tour[i].Id}.");
+            if (!shell.GetVisualDescendants().OfType<Border>().Any(b => b.Name == "TourRing" && b.IsEffectivelyVisible)) throw new InvalidOperationException("Tour step without a highlight: " + tour[i].Id);
+            foreach (var key in tour[i].Highlights.Append(tour[i].PageKey)) covered.Add(key);
+            if (tour[i].Id is "maker" or "tools" or "install" or "report")
+            {
+                Capture(shell, $"tour-{tour[i].Id}-dark.png");
+                Click(shell, "ToggleTheme"); await Until(() => Palette.IsLight); await Task.Delay(400); Capture(shell, $"tour-{tour[i].Id}-light.png");
+                Click(shell, "ToggleTheme"); await Until(() => !Palette.IsLight); await Task.Delay(200);
+            }
+            if (i < tour.Count - 1) Click(shell, "TourNext");
+        }
+        var missing = shell.PageKeys.Where(k => !covered.Contains(k)).ToList();
+        if (missing.Count > 0) throw new InvalidOperationException("Tour does not cover: " + string.Join(", ", missing));
+        shell.EndTour(); shell.Width = w; shell.Height = h; shell.Select("dash"); await Task.Delay(300);
+        Console.WriteLine($"PASS blocked page and full tour: no not-applicable/WinRAR items, AMD integrated vs dedicated explained, PeaZip in the catalogue; {tour.Count} tour steps cover all {shell.PageKeys.Count} sidebar pages, card and highlight inside 900x560 in both themes");
+    }
+
+    /// <summary>Inicialização grouped by origin with plain advice, and the Drivers page by category (2026-11-07). Fixtures only for any click; real pages are only listed and captured.</summary>
+    private static async Task StartupDriversRedesignAsync(ShellWindow shell, IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        string root = Path.Combine(Program.OutputDirectory, "startup-groups-fixture"), cfg = Path.Combine(root, "cfg"), sys = Path.Combine(root, "sys");
+        Directory.CreateDirectory(Path.Combine(cfg, "autostart")); Directory.CreateDirectory(sys);
+        File.WriteAllText(Path.Combine(sys, "cinnamon-settings-daemon-power.desktop"), "[Desktop Entry]\nType=Application\nName=Cinnamon Settings Daemon - power\nExec=/bin/true\nOnlyShowIn=X-Cinnamon;\nX-GNOME-Autostart-Phase=Initialization\n");
+        File.WriteAllText(Path.Combine(sys, "blueman.desktop"), "[Desktop Entry]\nType=Application\nName=Gerenciador Bluetooth\nExec=/bin/true\n");
+        File.WriteAllText(Path.Combine(sys, "vendor-tray.desktop"), "[Desktop Entry]\nType=Application\nName=Vendor Tray\nComment=Ícone do fabricante\nExec=/bin/true\n");
+        File.WriteAllText(Path.Combine(cfg, "autostart", "steam.desktop"), "[Desktop Entry]\nType=Application\nName=Steam\nExec=/bin/true -silent\n");
+        var manager = new Ilmenyx.Platform.Linux.LinuxStartupManager(cfg, Path.Combine(root, "data"), [sys], null, null, "X-Cinnamon");
+        Window? host = null;
+        var page = new StartupPage(manager, () => host, CancellationToken.None);
+        host = new Window { Width = 900, Height = 560, Content = new ScrollViewer { Content = page } }; host.Show();
+        await Until(() => page.Entries.Count == 4);
+        var sysGroup = Find<StackPanel>(host, "StartupGroupSystem"); var userGroup = Find<StackPanel>(host, "StartupGroupUser");
+        bool In(StackPanel g, string id) => g.GetVisualDescendants().OfType<CheckBox>().Any(c => c.Name == "StartupToggle_" + id);
+        if (!In(sysGroup, "cinnamon-settings-daemon-power.desktop") || !In(sysGroup, "blueman.desktop") || !In(userGroup, "steam.desktop") || !In(userGroup, "vendor-tray.desktop"))
+            throw new InvalidOperationException("Startup entries are not grouped by system/user.");
+        if (Find<TextBlock>(host, "StartupAdvice_cinnamon-settings-daemon-power.desktop").Text != "Necessário — não desative.") throw new InvalidOperationException("Required advice missing.");
+        if (!Find<TextBlock>(host, "StartupAdvice_blueman.desktop").Text!.StartsWith("Pode desativar se não usa Bluetooth")) throw new InvalidOperationException("Optional advice missing.");
+        if (Find<TextBlock>(host, "StartupAdvice_vendor-tray.desktop").Text != "Desconhecido: pesquise antes de desativar.") throw new InvalidOperationException("Unknown advice missing.");
+        if (!Find<TextBlock>(host, "StartupAdvice_steam.desktop").Text!.StartsWith("Do usuário")) throw new InvalidOperationException("User advice missing.");
+        if (host.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "StartupRemove_vendor-tray.desktop" || b.Name == "StartupRemove_cinnamon-settings-daemon-power.desktop")) throw new InvalidOperationException("System entries must not offer REMOVER.");
+        var power = Find<CheckBox>(host, "StartupToggle_cinnamon-settings-daemon-power.desktop"); power.IsChecked = false; power.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        var warn = desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible);
+        if (!Find<TextBlock>(warn, "ConfirmText").Text!.Contains("ATENÇÃO")) throw new InvalidOperationException("Required entry warning missing.");
+        await Task.Delay(150); Capture(warn, "startup-warning.png");
+        Click(warn, "ConfirmNo"); await Until(() => !warn.IsVisible && power.IsChecked == true);
+        if (File.Exists(Path.Combine(cfg, "autostart", "cinnamon-settings-daemon-power.desktop"))) throw new InvalidOperationException("Declined warning still disabled the entry.");
+        // Steam (the user's): no warning, disabled at once.
+        var steam = Find<CheckBox>(host, "StartupToggle_steam.desktop"); steam.IsChecked = false; steam.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => Find<TextBlock>(host, "StartupState_steam.desktop").Text == "DESATIVADO");
+        if (desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible)) throw new InvalidOperationException("User entry must not ask.");
+        host.Close();
+        Console.WriteLine("PASS startup groups: system/desktop vs user programs, plain advice per entry, warning before disabling a required system entry (declined = untouched), user entry disabled without warning (fixtures)");
+
+        // Drivers page: summary + six category cards; the folded technical list still has every row.
+        Find<Button>(shell, "Navdriver").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => shell.CurrentPage == "driver" && shell.GetLogicalDescendants().OfType<StackPanel>().Any(p => p.Name == "DrvList" && p.Children.Count > 0));
+        var driverPage = shell.GetLogicalDescendants().OfType<DriverPage>().Single();
+        if (driverPage.Cards.Count != 6 || Find<StackPanel>(shell, "DrvColumnA").Children.Count + Find<StackPanel>(shell, "DrvColumnB").Children.Count != 6) throw new InvalidOperationException("Driver categories missing.");
+        if (driverPage.Cards.Sum(c => c.Devices.Count) != driverPage.Rows.Count) throw new InvalidOperationException("A device was lost between the inventory and the cards.");
+        if (Find<TextBlock>(shell, "DrvHeadline").Text is not { Length: > 0 } head || head == "Ainda não verificado.") throw new InvalidOperationException("Driver summary empty.");
+        foreach (var d in driverPage.Cards.SelectMany(c => c.Devices).Where(d => d.Action == DriverAction.OpenNvidiaTab))
+            if (!shell.GetLogicalDescendants().OfType<Button>().Any(b => b.Name == "BtnDrvNvidiaTab")) throw new InvalidOperationException("NVIDIA device without its recommended action.");
+        var sizes = new[] { (1280.0, 820.0), (900.0, 560.0) };
+        foreach (var light in new[] { false, true })
+        {
+            // The real toggle recolours the whole shell (the choice goes to the fixture settings file; it is switched back below).
+            if (light != Palette.IsLight) { Click(shell, "ToggleTheme"); await Until(() => Palette.IsLight == light); }
+            foreach (var (w, h) in sizes)
+            {
+                if (w == 900) await MinimumSize(shell); else { shell.Width = w; shell.Height = h; }
+                foreach (var key in new[] { "startup", "driver" })
+                {
+                    Find<Button>(shell, "Nav" + key).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    await Until(() => shell.CurrentPage == key); await Task.Delay(500);
+                    string theme = light ? "light" : "dark";
+                    Capture(shell, $"redesign-{key}-{theme}-{w:0}x{h:0}.png");
+                    if (key == "driver")
+                    {
+                        foreach (var card in shell.GetVisualDescendants().OfType<Border>().Where(b => b.Name?.StartsWith("DrvCat_", StringComparison.Ordinal) == true && b.IsEffectivelyVisible))
+                        {
+                            var at = card.TranslatePoint(new Point(0, 0), shell) ?? default;
+                            if (at.X + card.Bounds.Width > shell.Bounds.Width + 1 || card.Bounds.Width < 240) throw new InvalidOperationException($"Driver card {card.Name} clipped or too narrow: {at}, {card.Bounds.Size}");
+                        }
+                        Find<Grid>(shell, "DrvCategories").BringIntoView(); await Task.Delay(400);
+                        Capture(shell, $"redesign-driver-cards-{theme}-{w:0}x{h:0}.png");
+                    }
+                    else if (shell.GetVisualDescendants().OfType<StackPanel>().FirstOrDefault(p => p.Name == "StartupGroupUser") is { } users)
+                    {
+                        users.BringIntoView(); await Task.Delay(400);
+                        Capture(shell, $"redesign-startup-user-{theme}-{w:0}x{h:0}.png");
+                    }
+                }
+            }
+        }
+        if (Palette.IsLight) { Click(shell, "ToggleTheme"); await Until(() => !Palette.IsLight); }
+        shell.Width = 1280; shell.Height = 820; await Task.Delay(300);
+        Console.WriteLine("PASS drivers redesign: plain summary, six category cards with every inventory row, NVIDIA action present, no clipped card at 900x560/1280x820, dark and light captures");
     }
 }

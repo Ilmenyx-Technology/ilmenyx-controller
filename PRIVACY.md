@@ -47,12 +47,18 @@ direitos e eventual aplicação de LGPD/ANPD: PENDENTE DE REVISÃO humana confor
 - Sem rede por padrão. Só depois de uma confirmação que nomeia os endereços:
   - **Consultar online:** envia apenas o ID Steam do jogo a `www.protondb.com` (nota), `store.steampowered.com` (Steam Deck) e
     baixa a lista pública do AreWeAntiCheatYet de `raw.githubusercontent.com`. Respostas ficam 7 dias em `~/.cache/ilmenyx/compat/online/`.
+    Na mesma consulta (e para os jogos abertos depois, na mesma sessão), a imagem do jogo é baixada de `shared.akamai.steamstatic.com`
+    (CDN de imagens da Steam; só o ID do jogo vai no endereço) quando o jogo não tem imagem na Steam local. Só JPEG/PNG/WebP de até 3 MB;
+    fica 30 dias em `~/.cache/ilmenyx/compat/art/` (pasta limitada a 40 MB, as mais antigas são apagadas). Sem a confirmação, só a imagem
+    local da Steam ou uma já guardada é mostrada.
   - **Baixar base de relatos:** lista `api.github.com/repos/bdefore/protondb-data` e baixa o arquivo mensal (~70 MB) de `raw.githubusercontent.com`,
     confere o hash git publicado, monta um índice local (~30 MB em `~/.cache/ilmenyx/compat/`) e apaga o arquivo.
 - Nada sobre o seu hardware é enviado: a comparação com os relatos (GPU, distro, driver) acontece só no seu PC.
 - O SteamDB não é consultado (proíbe acesso automatizado); o app só abre a página dele no navegador se você clicar.
 - Relatos são de terceiros anônimos: texto puro, com pastas pessoais (`/home/...`) ocultadas. Opções de inicialização só podem ser
   aplicadas na Steam quando formadas por variáveis de ambiente, wrappers conhecidos e argumentos do jogo, sempre com confirmação e backup.
+  A "Combinação recomendada" é montada no seu PC (sem rede) a partir dessas opções, sem as que conflitam entre si; verificar se um
+  programa (gamemoderun, mangohud…) está instalado só olha as pastas de programas do sistema, nada é executado.
 
 ## Outros acessos à internet (sempre por ação sua)
 

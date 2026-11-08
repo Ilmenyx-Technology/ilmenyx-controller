@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT AND PolyForm-Noncommercial-1.0.0
 // SPDX-FileCopyrightText: 2026 Gustavo (GustavoReset)
-// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
 // New Ilmenyx additions, adapted from the profile model and argument builder of the original GameLauncher/AppSettings (MIT, see NOTICE): see LICENSING.md.
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -29,6 +29,13 @@ public sealed class GameProfile
     public int Hz { get; set; }                        // 0 = do not set
     public string Style { get; set; } = "source";      // source | unity | unreal
     public string Extra { get; set; } = "";
+    /// <summary>Steam AppID of a Windows game run with Proton outside Steam (umu GAMEID umu-&lt;id&gt;, so the known per-game fixes apply). Digits only; null = generic.</summary>
+    public string? ProtonGameId { get; set; }
+    /// <summary>
+    /// Full-screen freeze guard (default on): with PRIME on a hybrid notebook, a Proton game in exclusive full screen without vsync made
+    /// the X server freeze for good (Intel modesetting "async flip" bug, Dell 7460, 2026-11-07). Forcing vsync in DXVK avoided it.
+    /// </summary>
+    public bool FullscreenGuard { get; set; } = true;
     public List<HelperProgram> Helpers { get; set; } = [];
 }
 
@@ -43,7 +50,9 @@ public sealed class CustomGame
 public sealed record LibGame(string Store, string Id, string Name, string InstallDir, string? ExePath = null, string? LaunchUri = null, string Args = "")
 {
     public string Key => Store + ":" + Id;
-    public string Subtitle => Store;
+    public string Subtitle => IsWindowsManual ? "Windows · Proton" : Store;
+    /// <summary>A manually added Windows program (.exe): Ilmenyx runs it with Proton (umu-launcher).</summary>
+    public bool IsWindowsManual => Store == "Manual" && (ExePath ?? Id).EndsWith(".exe", StringComparison.OrdinalIgnoreCase);
     public bool IsSteam => Store == "Steam";
 }
 
@@ -87,11 +96,17 @@ public static class GameLaunchOptions
         _ => []
     };
 
+    public const string GuardVariable = "DXVK_CONFIG", GuardValue = "dxgi.syncInterval = 1; d3d9.presentInterval = 1";
+
+    /// <summary>The full-screen freeze guard is used when the game renders on the NVIDIA GPU through PRIME (hybrid notebook) and the user kept it on.</summary>
+    public static bool GuardApplies(GameProfile p, string gpuVendor) => p.FullscreenGuard && p.GpuHigh && gpuVendor == "NVIDIA";
+
     /// <summary>Launch options for Steam: <c>ENV=… wrappers %command% args</c>. No shell metacharacters beyond what the user typed in Extra.</summary>
     public static string BuildSteamOptions(GameProfile p, string gpuVendor, string? mangoConfig = null)
     {
         var parts = new List<string>();
         if (p.GpuHigh) parts.AddRange(GpuEnvironment(gpuVendor).Select(kv => $"{kv.Key}={kv.Value}"));
+        if (GuardApplies(p, gpuVendor)) parts.Add(GuardVariable + "=" + ShellQuote(GuardValue)); // only Proton/DXVK reads it; native games ignore it
         if (p.MangoHud && mangoConfig is not null) parts.Add("MANGOHUD_CONFIGFILE=" + ShellQuote(mangoConfig));
         if (p.MangoHud) parts.Add("mangohud");
         if (p.GameMode) parts.Add("gamemoderun");
@@ -162,6 +177,8 @@ public sealed class IlmenyxSettings
     public bool DeviceToasts { get; set; } = true;
     /// <summary>The first-run screen that offers every blocked sensor fix at once was already shown (accepted or not); later fixes stay in the sidebar button.</summary>
     public bool PermissionsAsked { get; set; }
+    /// <summary>The first-run welcome dialog that offers the guided tour was already shown (accepted or not); the tour stays in Ajuda › Refazer o tour.</summary>
+    public bool TourOffered { get; set; }
     /// <summary>FPS measured in game sessions started by the Launcher with MangoHud (newest first, at most <see cref="FpsSession.MaxEntries"/>). Never sent anywhere.</summary>
     public List<FpsSession> FpsSessions { get; set; } = [];
 

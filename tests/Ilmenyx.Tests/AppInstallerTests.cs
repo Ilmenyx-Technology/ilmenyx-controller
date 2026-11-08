@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
 // Executor falso: nenhum flatpak real é executado e nada é instalado.
 using Ilmenyx.Core;
 using Ilmenyx.Platform.Linux;
@@ -15,6 +15,7 @@ public sealed class AppInstallerTests
         var apps = AppCatalog.Default(); Assert.True(apps.Count >= 8);
         Assert.All(apps, a => { Assert.True(AppCatalog.ValidId(a.FlatpakId), a.FlatpakId); Assert.NotEmpty(a.Description); });
         Assert.Equal(apps.Count, apps.Select(a => a.FlatpakId).Distinct().Count()); Assert.Contains(apps, a => a.Name == "Steam" && a.PreSelect); Assert.Contains(apps, a => a.Name == "Lutris" && !a.PreSelect);
+        Assert.Contains(apps, a => a.FlatpakId == "io.github.peazip.PeaZip" && a.Description.Contains("RAR")); Assert.DoesNotContain(apps, a => a.Name.Contains("WinRAR"));
     }
 
     [Theory]

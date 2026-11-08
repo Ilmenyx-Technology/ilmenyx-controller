@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
 // New Ilmenyx additions: shared builders of the cinematic ambient dark interface (2026-11-06). See LICENSING.md.
 // Every page builds its surfaces from here, so tokens (Palette), radii and motion (IlmenyxTheme) stay consistent.
 using Avalonia;
@@ -20,8 +20,22 @@ public static class UiKit
     {
         var text = new StackPanel { Spacing = 3, Children = { new TextBlock { Name = name, Text = title, FontSize = 22, FontWeight = FontWeight.Bold, TextWrapping = TextWrapping.Wrap } } };
         if (subtitle is not null) text.Children.Add(new TextBlock { Text = subtitle, FontSize = 12.5, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap });
-        var g = new Grid { ColumnDefinitions = new("*,Auto"), Margin = new Thickness(0, 2, 0, 16), Children = { text } };
-        if (trailing is not null) { trailing.VerticalAlignment = VerticalAlignment.Bottom; Grid.SetColumn(trailing, 1); g.Children.Add(trailing); }
+        var g = new Grid { ColumnDefinitions = new("*,Auto"), RowDefinitions = new("Auto,Auto"), Margin = new Thickness(0, 2, 0, 16), Children = { text } };
+        if (trailing is not null)
+        {
+            trailing.VerticalAlignment = VerticalAlignment.Bottom; Grid.SetColumn(trailing, 1); g.Children.Add(trailing);
+            var right = trailing.HorizontalAlignment;
+            // Narrow windows: when the actions would squeeze the title/subtitle into a thin column, they move to their own row below.
+            g.SizeChanged += (_, e) =>
+            {
+                trailing.Measure(Size.Infinity);
+                bool stack = e.NewSize.Width - trailing.DesiredSize.Width < 420;
+                if (stack == (Grid.GetRow(trailing) == 1)) return;
+                Grid.SetRow(trailing, stack ? 1 : 0); Grid.SetColumn(trailing, stack ? 0 : 1); Grid.SetColumnSpan(trailing, stack ? 2 : 1);
+                trailing.HorizontalAlignment = stack ? HorizontalAlignment.Left : right;
+                trailing.Margin = stack ? new Thickness(0, 10, 0, 0) : new Thickness(0);
+            };
+        }
         return g;
     }
 

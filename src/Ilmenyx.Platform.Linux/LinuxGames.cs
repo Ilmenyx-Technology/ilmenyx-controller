@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT AND PolyForm-Noncommercial-1.0.0
 // SPDX-FileCopyrightText: 2026 Gustavo (GustavoReset)
-// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
 // New Ilmenyx additions, adapted from GameLibrary/SteamInfo/GameLauncher of the original (MIT, see NOTICE): see LICENSING.md.
 using System.Diagnostics;
 using System.Text.Json;
@@ -151,7 +151,7 @@ public sealed class LinuxGameLibrary(string? home = null, Func<IReadOnlyList<str
         try { all.AddRange(Steam()); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
         all.AddRange(Heroic()); all.AddRange(await LutrisAsync(ct));
         foreach (var c in custom)
-            if (IsRunnableFile(c.Exe)) all.Add(new("Manual", c.Exe, string.IsNullOrWhiteSpace(c.Name) ? Path.GetFileNameWithoutExtension(c.Exe) : c.Name, Path.GetDirectoryName(c.Exe) ?? "", c.Exe, null, c.Args));
+            if (IsRunnableFile(c.Exe) || IsWindowsExe(c.Exe)) all.Add(new("Manual", c.Exe, string.IsNullOrWhiteSpace(c.Name) ? Path.GetFileNameWithoutExtension(c.Exe) : c.Name, Path.GetDirectoryName(c.Exe) ?? "", c.Exe, null, c.Args));
         return all.OrderBy(g => g.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
     }
 
@@ -164,6 +164,18 @@ public sealed class LinuxGameLibrary(string? home = null, Func<IReadOnlyList<str
             var info = new FileInfo(path);
             return info.Exists && info.LinkTarget is null && !path.StartsWith("/proc/", StringComparison.Ordinal) && !path.StartsWith("/sys/", StringComparison.Ordinal) && !path.StartsWith("/dev/", StringComparison.Ordinal)
                 && (info.UnixFileMode & (UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute)) != 0;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return false; }
+    }
+
+    /// <summary>Windows program (.exe) to run with Proton: an existing regular file, no execute bit needed (NTFS/exFAT drives, downloads).</summary>
+    public static bool IsWindowsExe(string path)
+    {
+        try
+        {
+            if (!Path.IsPathFullyQualified(path) || !path.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) return false;
+            var info = new FileInfo(path);
+            return info.Exists && info.LinkTarget is null && info.Length > 0 && !path.StartsWith("/proc/", StringComparison.Ordinal) && !path.StartsWith("/sys/", StringComparison.Ordinal) && !path.StartsWith("/dev/", StringComparison.Ordinal);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return false; }
     }
@@ -321,18 +333,59 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
     private static readonly string[] AllowedProfiles = ["power-saver", "balanced", "performance"];
 
     /// <summary>Command for a manual executable: optional wrappers (mangohud, gamemoderun) before the executable, PRIME variables in the environment. Never a shell.</summary>
-    public static LaunchCommand BuildManual(string exe, GameProfile p, string gameArgs, string gpuVendor, Func<string, string?> find, string? mangoConfig = null)
+    public static LaunchCommand BuildManual(string exe, GameProfile p, string gameArgs, string gpuVendor, Func<string, string?> find, string? mangoConfig = null, string? prefixRoot = null)
     {
         var args = new List<string>(); string program = exe;
         var wrappers = new List<string>();
         if (p.MangoHud && find("mangohud") is { } mh) wrappers.Add(mh);
         if (p.GameMode && find("gamemoderun") is { } gm) wrappers.Add(gm);
+        var proton = new List<KeyValuePair<string, string>>();
+        if (exe.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+        {
+            // Windows game: Proton through umu-launcher (system copy first, else the one in the package), with a prefix per game.
+            wrappers.Add(find("umu-run") ?? throw new InvalidOperationException("Este é um jogo de Windows e o umu-launcher (Proton fora da Steam) não foi encontrado."));
+            proton.AddRange(ProtonEnvironment(exe, p.ProtonGameId, prefixRoot ?? DefaultPrefixRoot()));
+            if (GameLaunchOptions.GuardApplies(p, gpuVendor)) proton.Add(new(GameLaunchOptions.GuardVariable, GameLaunchOptions.GuardValue));
+        }
         if (wrappers.Count > 0) { program = wrappers[0]; args.AddRange(wrappers.Skip(1)); args.Add(exe); }
         string graphics = GameLaunchOptions.BuildArgs(p);
         args.AddRange(GameLaunchOptions.SplitArguments((gameArgs + " " + graphics).Trim()));
         var env = new List<KeyValuePair<string, string>>(p.GpuHigh ? GameLaunchOptions.GpuEnvironment(gpuVendor) : []);
         if (p.MangoHud && mangoConfig is not null && wrappers.Contains(find("mangohud") ?? "") ) env.Add(new("MANGOHUD_CONFIGFILE", mangoConfig));
+        env.AddRange(proton);
         return new(program, args, env);
+    }
+
+    /// <summary>Where Proton prefixes ("C:" drives) of games started by Ilmenyx live: $XDG_DATA_HOME/ilmenyx/prefixes.</summary>
+    public static string DefaultPrefixRoot()
+    {
+        string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        string data = Environment.GetEnvironmentVariable("XDG_DATA_HOME") is { Length: > 0 } d && Path.IsPathRooted(d) ? d : Path.Combine(home, ".local", "share");
+        return Path.Combine(data, "ilmenyx", "prefixes");
+    }
+
+    private static readonly string[] GenericFolders = ["binaries", "retail", "win64", "win32", "bin", "bin64", "x64", "x86", "game"];
+
+    /// <summary>umu variables: WINEPREFIX per game (named after the game's top folder, skipping Binaries/Win64...), GAMEID umu-&lt;Steam AppID&gt;
+    /// when known (umu-protonfixes then applies that game's fixes) or umu-default, STORE none. PROTONPATH is left to umu (it fetches UMU-Proton).</summary>
+    public static IReadOnlyList<KeyValuePair<string, string>> ProtonEnvironment(string exe, string? steamAppId, string prefixRoot)
+    {
+        string? dir = Path.GetDirectoryName(exe); string folder = Path.GetFileName(dir ?? "") ?? "";
+        for (int i = 0; i < 5 && dir is { Length: > 1 }; i++)
+        {
+            string name = Path.GetFileName(dir);
+            if (!GenericFolders.Contains(name.ToLowerInvariant())) { folder = name; break; }
+            dir = Path.GetDirectoryName(dir);
+        }
+        var slug = new System.Text.StringBuilder();
+        foreach (char c in folder.ToLowerInvariant())
+            if (char.IsAsciiLetterOrDigit(c)) slug.Append(c);
+            else if (slug.Length > 0 && slug[^1] != '-') slug.Append('-');
+        string clean = slug.ToString().Trim('-');
+        if (clean.Length == 0) clean = "jogo";
+        if (clean.Length > 60) clean = clean[..60].TrimEnd('-');
+        string id = steamAppId is { Length: > 0 and <= 10 } a && a.All(char.IsAsciiDigit) ? "umu-" + a : "umu-default";
+        return [new("WINEPREFIX", Path.Combine(prefixRoot, clean)), new("GAMEID", id), new("STORE", "none")];
     }
 
     public static async Task<string?> PowerProfileAsync(CancellationToken ct)
@@ -381,9 +434,14 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
             status($"Iniciando {g.Name}…");
             if (g.IsSteam) await StartAsync("steam", [$"steam://rungameid/{g.Id}"], [], ct);
             else if (g.LaunchUri is not null) await StartAsync("xdg-open", [g.LaunchUri], [], ct);
-            else if (exe is not null && LinuxGameLibrary.IsRunnableFile(exe))
+            else if (exe is not null && (LinuxGameLibrary.IsRunnableFile(exe) || LinuxGameLibrary.IsWindowsExe(exe)))
             {
                 var cmd = BuildManual(exe, p, g.Args, gpuVendor, BoundedProcess.Find, File.Exists(MangoHudLogReader.ConfigPath()) ? MangoHudLogReader.ConfigPath() : null);
+                if (cmd.Environment.FirstOrDefault(e => e.Key == "WINEPREFIX").Value is { } prefix)
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(prefix)!);
+                    status(Directory.Exists(prefix) ? $"Iniciando {g.Name} com Proton…" : "Primeira vez com Proton: baixando o Proton e preparando o \"Windows\" do jogo (pode levar alguns minutos)…");
+                }
                 await StartAsync(cmd.Program, cmd.Arguments, cmd.Environment, ct, Path.GetDirectoryName(exe));
             }
             else throw new InvalidOperationException("Não achei o executável deste jogo. Escolha o arquivo na seção Desempenho.");

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT AND PolyForm-Noncommercial-1.0.0
 // SPDX-FileCopyrightText: 2026 Gustavo (GustavoReset)
-// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
 // New Ilmenyx additions (layout follows the original Overlay tab: item picker with presets, corner, scale, on/off): see LICENSING.md.
 using Avalonia;
 using Avalonia.Automation;
@@ -30,7 +30,12 @@ public sealed class OverlayPage : StackPanel
     private readonly Border previewBox = new() { Background = Palette.Glass, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.ControlRadius), Padding = new Thickness(10, 8), Margin = new Thickness(12), MaxWidth = 260 };
     private readonly Button toggle = UiKit.Primary("BtnOverlayToggle", "MOSTRAR OVERLAY", 22, 11);
     private readonly TextBlock mangoState = new() { Name = "MangoState", TextWrapping = TextWrapping.Wrap, Foreground = Palette.Muted };
-    private readonly TextBox launch = new() { Name = "OvLaunchOption", IsReadOnly = true, IsVisible = false, TextWrapping = TextWrapping.Wrap, FontFamily = IlmenyxTheme.Mono };
+    private readonly TextBox launch = new() { Name = "OvLaunchOption", IsReadOnly = true, TextWrapping = TextWrapping.Wrap, FontFamily = IlmenyxTheme.Mono };
+    private readonly TextBlock saved = new() { Name = "OvSaved", Text = "✓ Salvo", FontSize = 12, FontWeight = FontWeight.SemiBold, Foreground = Palette.Success, Opacity = 0, VerticalAlignment = VerticalAlignment.Center };
+    // Changes are saved automatically, a short moment after the last click (a burst of clicks writes once).
+    private readonly DispatcherTimer saveDelay = new() { Interval = TimeSpan.FromMilliseconds(450) };
+    private readonly DispatcherTimer savedFade = new() { Interval = TimeSpan.FromSeconds(2.5) };
+    private bool pendingSave;
     private readonly TextBlock status = new() { Name = "OverlayStatus", TextWrapping = TextWrapping.Wrap, Foreground = Palette.Muted, FontSize = 12 };
     private HashSet<string> show;
     private OverlayWindow? window;
@@ -39,6 +44,9 @@ public sealed class OverlayPage : StackPanel
     public bool OverlayVisible => window is { IsVisible: true };
     public IReadOnlyCollection<string> Selected => show;
     public IReadOnlyList<OverlayLine> Lines { get; private set; } = [];
+    /// <summary>Number of completed automatic saves (settings + Ilmenyx MangoHud config).</summary>
+    public int SaveCount { get; private set; }
+    public bool SavePending => pendingSave;
 
     public OverlayPage(OverlayServices services, UsageViewModel usage, string settingsPath, CancellationToken lifetime)
     {
@@ -68,16 +76,24 @@ public sealed class OverlayPage : StackPanel
         side.Children.Add(toggle); side.Children.Add(intro);
         var heroGrid = new Grid { ColumnDefinitions = new("Auto,*") }; Grid.SetColumn(screen, 1); heroGrid.Children.Add(side); heroGrid.Children.Add(screen);
         Children.Add(BenchPage.Themed(UiKit.Hero(heroGrid, height: double.NaN, name: "OverlayHero")));
-        Children.Add(new TextBlock { Text = "É uma janela comum do Ilmenyx, sem injeção em jogos. Se fica acima de um jogo em tela cheia, e se os cliques passam por ela, depende do gerenciador de janelas (no Wayland o compositor decide). Para o jogo, use o MangoHud abaixo. FPS só aparece para jogos iniciados com a configuração gerada abaixo.", FontSize = 11, Foreground = Palette.Faint, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(2, 10, 2, 0) });
+        Children.Add(new TextBlock { Text = "É uma janela comum do Ilmenyx, sem injeção em jogos. Se fica acima de um jogo em tela cheia, e se os cliques passam por ela, depende do gerenciador de janelas (no Wayland o compositor decide). Para o jogo, use o MangoHud abaixo. FPS só aparece para jogos iniciados com a configuração do MangoHud do Ilmenyx (abaixo).", FontSize = 11, Foreground = Palette.Faint, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(2, 10, 2, 0) });
 
         var presets = new StackPanel { Orientation = Orientation.Horizontal, Children = { Preset("OvPresetDefault", "PADRÃO", OverlayMetrics.Defaults), Preset("OvPresetMin", "MÍNIMO", OverlayMetrics.Minimal), Preset("OvPresetAll", "TUDO", OverlayMetrics.Everything) } };
         Children.Add(UiKit.SectionHeader("O que mostrar", presets));
         Children.Add(UiKit.Card(items));
-        Children.Add(UiKit.SectionHeader("Posição e tamanho"));
+        Children.Add(UiKit.SectionHeader("Posição e tamanho", saved));
         Children.Add(UiKit.Card(new WrapPanel { Children = { Field("CANTO", corners.Panel), Field("TAMANHO", scales.Panel) } }));
-        var gen = new Button { Name = "BtnMangoConfig", Content = "GERAR CONFIGURAÇÃO DO MANGOHUD", FontSize = 12, Padding = new Thickness(14, 7), CornerRadius = new CornerRadius(IlmenyxTheme.ControlRadius) }; gen.Click += (_, _) => { if (OperatingSystem.IsLinux()) WriteMango(); };
         Children.Add(UiKit.SectionHeader("MangoHud · overlay dentro do jogo"));
-        Children.Add(UiKit.Card(new StackPanel { Spacing = 10, Children = { mangoState, gen, launch, status } }));
+        launch.Text = MangoHudConfig.LaunchOption(services.ConfigPath); AutomationProperties.SetName(launch, "Opção de inicialização da Steam");
+        var launchLabel = UiKit.Label("OPÇÃO DE INICIALIZAÇÃO DA STEAM (OPCIONAL)");
+        status.Text = "As escolhas desta página são salvas sozinhas e valem para a janela do Ilmenyx e para o MangoHud dos jogos abertos pela página Jogos com MangoHud marcado. "
+            + "Se você abre o jogo direto pela Steam, copie a linha acima em Propriedades → Opções de inicialização.";
+        Children.Add(UiKit.Card(new StackPanel { Spacing = 10, Children = { mangoState, launchLabel, launch, status } }));
+        saveDelay.Tick += (_, _) => { saveDelay.Stop(); SaveNow(); };
+        savedFade.Tick += (_, _) => { savedFade.Stop(); saved.Opacity = 0; };
+        saved.Transitions = [new Avalonia.Animation.DoubleTransition { Property = OpacityProperty, Duration = IlmenyxTheme.Fast }];
+        // Leaving the page or closing the window never loses a change still waiting for the delay.
+        DetachedFromVisualTree += (_, _) => FlushSave();
         PlacePreview();
         timer.Tick += async (_, _) => await TickAsync(); timer.Start();
         AttachedToVisualTree += (_, _) => { if (!timer.IsEnabled) timer.Start(); };
@@ -122,30 +138,50 @@ public sealed class OverlayPage : StackPanel
     private void Changed()
     {
         settings.OverlayItems = OverlayMetrics.All.Select(m => m.Key).Where(show.Contains).ToList();
-        var (items, corner, scale) = (settings.OverlayItems, settings.OverlayCorner, settings.OverlayScale);
-        try { IlmenyxSettings.Update(settingsPath, s => { s.OverlayItems = items.ToList(); s.OverlayCorner = corner; s.OverlayScale = scale; }); }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { status.Text = "Configuração não salva: " + e.Message; }
+        pendingSave = true; saveDelay.Stop(); saveDelay.Start();
         _ = TickAsync();
+    }
+
+    /// <summary>Writes a pending change now (used when leaving the page).</summary>
+    public void FlushSave() { if (pendingSave) { saveDelay.Stop(); SaveNow(); } }
+
+    /// <summary>Saves the selection in the settings and rewrites Ilmenyx's own MangoHud config (the user's MangoHud.conf is never touched).</summary>
+    private void SaveNow()
+    {
+        pendingSave = false;
+        var (items, corner, scale) = ((settings.OverlayItems ?? []).ToList(), settings.OverlayCorner, settings.OverlayScale);
+        try { IlmenyxSettings.Update(settingsPath, s => { s.OverlayItems = items; s.OverlayCorner = corner; s.OverlayScale = scale; }); }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { ShowError("Configuração não salva: " + e.Message); return; }
+        if (OperatingSystem.IsLinux() && !WriteMango()) return;
+        SaveCount++;
+        saved.Text = "✓ Salvo"; saved.Foreground = Palette.Success; saved.Opacity = 1; savedFade.Stop(); savedFade.Start();
+    }
+
+    private void ShowError(string text)
+    {
+        saved.Text = "Não salvo"; saved.Foreground = Palette.Error; saved.Opacity = 1; savedFade.Stop();
+        status.Text = text;
     }
 
     private void RefreshMangoState()
     {
         mangoState.Text = services.MangoHudInstalled()
-            ? "MangoHud encontrado. A configuração gerada é um arquivo próprio do Ilmenyx; o seu MangoHud.conf não é alterado."
-            : "MangoHud não está instalado (pacote mangohud da sua distribuição). A configuração pode ser gerada mesmo assim.";
+            ? "MangoHud encontrado. O Ilmenyx usa um arquivo de configuração próprio, atualizado sozinho quando você muda algo acima; o seu MangoHud.conf não é alterado."
+            : "MangoHud não está instalado (pacote mangohud da sua distribuição). As escolhas ficam salvas para quando ele estiver instalado.";
     }
 
     [System.Runtime.Versioning.SupportedOSPlatform("linux")]
-    public void WriteMango()
+    private bool WriteMango()
     {
         try
         {
             string config = MangoHudConfig.Build(show, settings.OverlayCorner, settings.OverlayScale, services.LogFolder);
             MangoHudLogReader.WriteConfig(services.ConfigPath, config, services.LogFolder);
-            launch.Text = MangoHudConfig.LaunchOption(services.ConfigPath); launch.IsVisible = true;
-            status.Text = $"Configuração salva em {services.ConfigPath}. Copie a opção acima nas opções de inicialização do jogo (Steam: Propriedades → Opções de inicialização) ou marque MangoHud no Launcher. O registro de FPS (CSV) é gravado em {services.LogFolder} e lido só enquanto um jogo estiver rodando.";
+            status.Text = $"Salvo em {services.ConfigPath}. Vale para a janela do Ilmenyx e para os jogos abertos pela página Jogos com MangoHud marcado. "
+                + $"Se você abre o jogo direto pela Steam, copie a linha acima em Propriedades → Opções de inicialização. O registro de FPS (CSV) fica em {services.LogFolder} e só é lido enquanto um jogo está rodando.";
+            return true;
         }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException) { status.Text = "Não foi possível gerar a configuração: " + e.Message; }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException) { ShowError("Não foi possível salvar a configuração do MangoHud: " + e.Message); return false; }
     }
 
     private void ToggleWindow()
@@ -171,5 +207,5 @@ public sealed class OverlayPage : StackPanel
         }
     }
 
-    private void Shutdown() { timer.Stop(); window?.Close(); window = null; }
+    private void Shutdown() { FlushSave(); timer.Stop(); savedFade.Stop(); window?.Close(); window = null; }
 }

@@ -1,6 +1,6 @@
 # Ilmenyx — origem, atribuição e avisos
 
-Required Notice: Copyright (c) 2026 Flávio (mantido como Bismuth Technology) — https://github.com/Bismuth-Technology/ilmenyx
+Required Notice: Copyright (c) 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology) — https://github.com/Bismuth-Technology/ilmenyx
 
 ## Origem
 

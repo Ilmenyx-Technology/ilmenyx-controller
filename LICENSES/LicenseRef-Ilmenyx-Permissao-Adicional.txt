@@ -2,7 +2,7 @@ Ilmenyx — Permissão Adicional à PolyForm Noncommercial License 1.0.0
 Ilmenyx — Additional Permission to the PolyForm Noncommercial License 1.0.0
 Versão / Version 1.0 — 2026-11-07
 
-Required Notice: Copyright (c) 2026 Flávio (mantido como Bismuth Technology) — https://github.com/Bismuth-Technology/ilmenyx
+Required Notice: Copyright (c) 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology) — https://github.com/Bismuth-Technology/ilmenyx
 
 =====================================================================
 PORTUGUÊS (esta versão prevalece)

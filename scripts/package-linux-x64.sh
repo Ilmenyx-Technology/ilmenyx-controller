@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-# SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+# SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
 # Third-party components retain their terms.
 # Local review bundle only. Never installs, restores, elevates or publishes remotely.
 set -euo pipefail
@@ -34,6 +34,7 @@ cp -r -- "$components_cache/out" "$bundle/components"
 mkdir -p -- "$bundle/licenses/components"
 cp -- "$bundle/components/mangohud/LICENSE" "$bundle/licenses/components/MangoHud-LICENSE-MIT.txt"
 cp -- "$bundle/components/openrgb/LICENSE" "$bundle/licenses/components/OpenRGB-LICENSE-GPL-2.0.txt"
+cp -r -- "$bundle/components/umu/licenses" "$bundle/licenses/components/umu-launcher"
 # Notices not carried by a NuGet package folder: .NET runtime pack (LICENSE + THIRD-PARTY-NOTICES), Inter font (OFL 1.1, via
 # Avalonia.Fonts.Inter) and the Apache-2.0 text for the Material Design Icons path data (src/Ilmenyx.Desktop/Icons.cs).
 runtime_pack=$(ls -d "${NUGET_PACKAGES:-$HOME/.nuget/packages}"/microsoft.netcore.app.runtime.linux-x64/10.* 2>/dev/null | sort -V | tail -1)

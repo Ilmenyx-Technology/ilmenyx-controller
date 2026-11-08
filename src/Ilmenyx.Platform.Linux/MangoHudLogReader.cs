@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
 using System.Text;
 using Ilmenyx.Core;
 
@@ -80,6 +80,25 @@ public static class MangoHudLogReader
             return best;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return null; }
+    }
+
+    /// <summary>
+    /// The Ilmenyx MangoHud configuration (overlay items, corner and scale from the Overlay page, or the defaults) with FPS logging into the
+    /// Ilmenyx folder. Written automatically the first time a game runs with MangoHud, so nobody has to find the button first.
+    /// Returns the path, or null when it cannot be written.
+    /// </summary>
+    [System.Runtime.Versioning.SupportedOSPlatform("linux")]
+    public static string? EnsureConfig(Ilmenyx.Core.IlmenyxSettings settings, string? path = null, string? logFolder = null)
+    {
+        path ??= ConfigPath(); logFolder ??= DefaultFolder();
+        if (File.Exists(path)) return path;
+        try
+        {
+            var show = Ilmenyx.Core.OverlayMetrics.Sanitize(settings.OverlayItems).ToHashSet();
+            WriteConfig(path, Ilmenyx.Core.MangoHudConfig.Build(show, settings.OverlayCorner, settings.OverlayScale, logFolder), logFolder);
+            return path;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException) { return null; }
     }
 
     /// <summary>Writes Ilmenyx's own MangoHud config (0600, atomic). The user's MangoHud.conf is never touched.</summary>

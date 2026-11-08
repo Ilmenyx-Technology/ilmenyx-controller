@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
 // Fixtures sintéticos; nenhum jogo é iniciado e nenhum arquivo real da Steam é alterado.
 using Ilmenyx.Core;
 using Ilmenyx.Platform.Linux;
@@ -104,7 +104,7 @@ public sealed class GamesTests : IDisposable
     {
         Assert.Equal("", GameLaunchOptions.BuildSteamOptions(new(), "NVIDIA"));
         var p = new GameProfile { GpuHigh = true, MangoHud = true, GameMode = true, WinMode = "full", Extra = "-novid" };
-        Assert.Equal("__NV_PRIME_RENDER_OFFLOAD=1 __GLX_VENDOR_LIBRARY_NAME=nvidia __VK_LAYER_NV_optimus=NVIDIA_only mangohud gamemoderun %command% -fullscreen -novid", GameLaunchOptions.BuildSteamOptions(p, "NVIDIA"));
+        Assert.Equal("__NV_PRIME_RENDER_OFFLOAD=1 __GLX_VENDOR_LIBRARY_NAME=nvidia __VK_LAYER_NV_optimus=NVIDIA_only DXVK_CONFIG='dxgi.syncInterval = 1; d3d9.presentInterval = 1' mangohud gamemoderun %command% -fullscreen -novid", GameLaunchOptions.BuildSteamOptions(p, "NVIDIA"));
         Assert.Equal("DRI_PRIME=1 %command%", GameLaunchOptions.BuildSteamOptions(new() { GpuHigh = true }, "AMD"));
         Assert.Equal("%command% -novid", GameLaunchOptions.BuildSteamOptions(new() { Extra = "-novid" }, "AMD"));
     }

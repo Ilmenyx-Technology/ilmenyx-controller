@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
 namespace Ilmenyx.Core;
 
 /// <summary>GPU load for the stress page. Implemented by the Vulkan module; faked in tests so no GPU work ever runs there.</summary>

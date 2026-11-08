@@ -580,3 +580,20 @@ três processos .NET reais gravando 300 atualizações cada no mesmo arquivo (90
   instalação --system e outras distros. Ver `docs/flatpak.md`.
 
 - LIC-01 (2026-11-07): licença PolyForm NC + permissão adicional, SPDX/REUSE: `reuse lint` NÃO TESTADO (ferramenta e pip ausentes no host); verificado por script local equivalente. Rodar `reuse lint` quando a ferramenta estiver disponível.
+- Proton fora da Steam (umu-launcher 1.4.4 embutido, zipapp + python3 do sistema): jogo de Windows real (MK10.exe, DX11) rodou
+  com UMU-Proton 10.0-4, DXVK na GeForce 940MX (PRIME), 100% de GPU e 2,9 GB de VRAM, prefixo por jogo em ~/.local/share/ilmenyx/prefixes.
+  NÃO TESTADO: abrir pela interface do Ilmenyx com MangoHud/FPS medido, outras distros (Arch/Fedora/Debian), sistema sem python3.
+- Proteção contra travamento em tela cheia (vsync forçado no DXVK para jogos com Proton na NVIDIA via PRIME): validada no Dell
+  com o MKX (sem ela o X11 travou duas vezes; com ela, 16 min em tela cheia sem travar). NÃO TESTADO: outros jogos, DX12 (VKD3D).
+- "Instalar jogo de Windows" (fast exec: instalador num prefixo descartável, destino como D:, limpeza): testes de unidade e de
+  interface ok. NÃO TESTADO: um instalador real até o fim.
+- Tour de boas-vindas e Central de ajuda (`docs/tutorial.md`): textos em `HelpContent`, testes unitários e smoke com eventos no processo. NÃO TESTADO: primeira execução real (permissões + boas-vindas em sequência numa instalação limpa), teclado físico e leitor de tela (Orca).
+- Estimativa de FPS com catálogo fixo (rolagem encadeada + botão voltar ao topo), Overlay salvando sozinho (sem botão de gerar) e Relatório com mais contraste (2026-11-07): testes de unidade e smoke com eventos de roda/teclado no processo, 900x560 e 1280x820, claro e escuro. NÃO TESTADO: touchpad real (rolagem suave/inércia), roda física, leitor de tela (Orca), MangoHud real lendo a configuração salva sozinha.
+- Compatibilidade (2026-11-07): imagem do jogo baixada da Steam (shared.akamai.steamstatic.com, só após CONSULTAR ONLINE; cache 30 dias) e "Combinação recomendada" sem opções conflitantes (tabela em `GameCompatTriage.cs`), testes de unidade e smoke com HTTP e Steam falsos. NÃO TESTADO: download real da imagem pela interface (URL conferida com curl em 2026-11-07), aplicar a combinação numa Steam real e jogar, detecção de programas instalados dentro do Flatpak, jogos cujas imagens só existem em caminhos com hash na CDN.
+- Bloqueados + tour (2026-11-07, `docs/evidencias/bloqueados-2026-11-07/`): os dois "Teste disponível" do Dell rodados — NVIDIA 940MX
+  validada de novo (sensores = nvidia-smi, stress 6 s 29,4 FPS, cena 6 s nota 172, CPU máx. 76 °C, 0 Xid) e o item virou "NVIDIA de
+  desktop/RTX"; RGB era falso positivo (pendrive Kingston; a sonda agora exige interface HID). Item AMD separa integrada (validada) de
+  dedicada (não testada). Saíram da lista os itens "não se aplica" e o WinRAR (`docs/bloqueados-removidos.md`); PeaZip no catálogo.
+  Tour com 13 passos cobrindo todas as páginas do menu. NÃO TESTADO: instalar o PeaZip pelo app e abrir um .rar de verdade; sonda
+  de AMD dedicada (gpu_metrics/ventoinha) e de RGB HID só com fixtures; tour com leitor de tela.
+- Inicialização agrupada (sistema/área de trabalho × programas seus, com explicação e recomendação por item) e Drivers por categoria (2026-11-07): tabela e fixtures testadas, smoke com fixtures, telas reais do Mint 22.3 Cinnamon capturadas. NÃO TESTADO: listas reais de GNOME, KDE Plasma, XFCE, MATE, LXQt e Budgie; posse de pacote por `rpm -qf` (Fedora/openSUSE) e `pacman -Qo` (Arch); Bluetooth/Wi-Fi USB, impressora USB e scanner reais na página Drivers.

@@ -1,16 +1,22 @@
 // SPDX-License-Identifier: MIT AND PolyForm-Noncommercial-1.0.0
 // SPDX-FileCopyrightText: 2026 Gustavo (GustavoReset)
-// SPDX-FileCopyrightText: 2026 Flávio (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
 // New Ilmenyx additions, adapted from the behaviour of the original StartupManager (MIT, see NOTICE): see LICENSING.md.
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Ilmenyx.Core;
 
 namespace Ilmenyx.Platform.Linux;
 
 /// <summary>Program that starts with the user session (XDG autostart .desktop file or systemd user service).</summary>
 public sealed record StartupEntry(string Id, string Name, string Command, string Source, bool System, bool Enabled, string Detail, bool FileMissing, string Kind, string? FilePath)
 {
+    /// <summary>Plain explanation and recommendation (system/desktop piece or the user's app), filled by <see cref="LinuxStartupManager.ListAsync"/>.</summary>
+    public StartupAdvice Advice { get; init; } = new(StartupGroup.User, StartupRole.Unknown, "", "", StartupCatalog.RecommendationFor(StartupRole.Unknown, null), true, "");
+    internal IReadOnlyDictionary<string, string> Keys { get; init; } = new Dictionary<string, string>();
+    internal bool OverridesSystem { get; init; }
+
     public string State => FileMissing ? "ARQUIVO NÃO EXISTE" : Enabled ? "ATIVADO" : "DESATIVADO";
 }
 
@@ -72,7 +78,10 @@ public static class DesktopEntry
     }
 }
 
-public sealed class LinuxStartupManager(string configHome, string dataHome, IReadOnlyList<string> systemDirs, Func<IReadOnlyList<string>, CancellationToken, Task<(int Code, string Output)>>? systemctl = null)
+/// <param name="owners">Optional package-ownership lookup for system files (path → package); failures and timeouts mean "unknown".</param>
+/// <param name="currentDesktop">XDG_CURRENT_DESKTOP, used to tell entries that do not run in this desktop (OnlyShowIn/NotShowIn).</param>
+public sealed class LinuxStartupManager(string configHome, string dataHome, IReadOnlyList<string> systemDirs, Func<IReadOnlyList<string>, CancellationToken, Task<(int Code, string Output)>>? systemctl = null,
+    Func<IReadOnlyList<string>, CancellationToken, Task<IReadOnlyDictionary<string, string>>>? owners = null, string? currentDesktop = null)
 {
     public static readonly Regex UnitName = new(@"^[A-Za-z0-9:_.@-]{1,120}\.service\z", RegexOptions.CultureInvariant);
     private string UserDir => Path.Combine(configHome, "autostart");
@@ -85,7 +94,26 @@ public sealed class LinuxStartupManager(string configHome, string dataHome, IRea
         string cfg = Environment.GetEnvironmentVariable("XDG_CONFIG_HOME") is { Length: > 0 } c && Path.IsPathRooted(c) ? c : Path.Combine(home, ".config");
         string data = Environment.GetEnvironmentVariable("XDG_DATA_HOME") is { Length: > 0 } d && Path.IsPathRooted(d) ? d : Path.Combine(home, ".local/share");
         var dirs = (Environment.GetEnvironmentVariable("XDG_CONFIG_DIRS") is { Length: > 0 } x ? x : "/etc/xdg").Split(':', StringSplitOptions.RemoveEmptyEntries).Where(Path.IsPathRooted).Select(p => Path.Combine(p, "autostart")).ToList();
-        return new(cfg, data, dirs, SystemctlAsync);
+        return new(cfg, data, dirs, SystemctlAsync, PackageOwnersAsync, Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP"));
+    }
+
+    /// <summary>Which package installed each file: one bounded call to dpkg, rpm or pacman (4 s). Read-only; any failure returns an empty map.</summary>
+    public static async Task<IReadOnlyDictionary<string, string>> PackageOwnersAsync(IReadOnlyList<string> files, CancellationToken ct)
+    {
+        var list = files.Where(f => f.StartsWith('/') && !f.Contains('\n')).Take(256).ToList();
+        if (list.Count == 0) return new Dictionary<string, string>();
+        var timeout = TimeSpan.FromSeconds(4);
+        try
+        {
+            if (BoundedProcess.FindSystem("dpkg") is not null)
+                return StartupCatalog.ParseDpkgOwners((await BoundedProcess.RunAsync("dpkg", ["-S", .. list], timeout, 262144, ct)).Output);
+            if (BoundedProcess.FindSystem("rpm") is not null)
+                return StartupCatalog.ParseRpmOwners(list, (await BoundedProcess.RunAsync("rpm", ["-qf", "--queryformat", "%{NAME}\\n", .. list], timeout, 262144, ct)).Output);
+            if (BoundedProcess.FindSystem("pacman") is not null)
+                return StartupCatalog.ParsePacmanOwners((await BoundedProcess.RunAsync("pacman", ["-Qo", .. list], timeout, 262144, ct)).Output);
+        }
+        catch (Exception e) when (e is IOException or FileNotFoundException or TimeoutException or OperationCanceledException or System.ComponentModel.Win32Exception) { }
+        return new Dictionary<string, string>();
     }
 
     private static async Task<(int, string)> SystemctlAsync(IReadOnlyList<string> args, CancellationToken ct) => await BoundedProcess.RunAsync("systemctl", args, TimeSpan.FromSeconds(5), 131072, ct);
@@ -110,7 +138,8 @@ public sealed class LinuxStartupManager(string configHome, string dataHome, IRea
         string? exe = DesktopEntry.ExeOf(exec);
         bool enabled = !string.Equals(d.GetValueOrDefault("Hidden"), "true", StringComparison.OrdinalIgnoreCase) && !string.Equals(d.GetValueOrDefault("X-GNOME-Autostart-enabled"), "false", StringComparison.OrdinalIgnoreCase);
         string detail = string.Join(" · ", new[] { d.GetValueOrDefault("Comment"), d.GetValueOrDefault("GenericName") }.Where(s => !string.IsNullOrWhiteSpace(s)).Distinct());
-        return new(Path.GetFileName(file), name, exec, overrideNote is null ? source : source + " · " + overrideNote, system, enabled, detail, exe is not null && exe is not ("env" or "sh" or "bash") && !DesktopEntry.ExistsOnPathOrAbsolute(exe), "Desktop", file);
+        return new(Path.GetFileName(file), name, exec, overrideNote is null ? source : source + " · " + overrideNote, system, enabled, detail, exe is not null && exe is not ("env" or "sh" or "bash") && !DesktopEntry.ExistsOnPathOrAbsolute(exe), "Desktop", file)
+        { Keys = d, OverridesSystem = overrideNote is not null };
     }
 
     public async Task<IReadOnlyList<StartupEntry>> ListAsync(CancellationToken ct = default)
@@ -150,7 +179,27 @@ public sealed class LinuxStartupManager(string configHome, string dataHome, IRea
             foreach (var b in Removed().Where(b => b.Kind == "Service" && b.Unit is not null && !list.Any(e => e.Id == b.Unit)))
                 list.Add(new(b.Unit!, b.Unit![..^8], "systemctl --user start " + b.Unit, "Serviço systemd · usuário (desativado pelo Ilmenyx)", false, false, "", false, "Service", null));
         }
-        return list.OrderBy(e => e.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
+        return (await AdviseAsync(list, ct)).OrderBy(e => e.Advice.Group).ThenBy(e => e.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
+    }
+
+    private async Task<List<StartupEntry>> AdviseAsync(List<StartupEntry> list, CancellationToken ct)
+    {
+        string? SystemFile(StartupEntry e) => e.Kind != "Desktop" ? null : e.System ? e.FilePath : e.OverridesSystem ? systemDirs.Select(s => Path.Combine(s, e.Id)).FirstOrDefault(File.Exists) : null;
+        IReadOnlyDictionary<string, string> packages = new Dictionary<string, string>();
+        var files = list.Select(SystemFile).OfType<string>().Distinct().ToList();
+        if (owners is not null && files.Count > 0)
+        {
+            try { packages = await owners(files, ct); }
+            catch (Exception e) when (e is IOException or TimeoutException or System.ComponentModel.Win32Exception) { }
+        }
+        return list.Select(e =>
+        {
+            string? pkg = SystemFile(e) is { } f ? packages.GetValueOrDefault(f) : null;
+            // A user unit lives in ~/.config/systemd/user; anything else enabled there was shipped by a package (/usr/lib/systemd/user).
+            bool fromSystem = e.Kind == "Service" ? !File.Exists(Path.Combine(configHome, "systemd", "user", e.Id)) : e.System;
+            var facts = new StartupFacts(e.Id, e.Kind, e.Command, e.Detail, fromSystem, e.Keys, pkg, currentDesktop, e.OverridesSystem);
+            return e with { Advice = StartupCatalog.Classify(facts) };
+        }).ToList();
     }
 
     public static IReadOnlyList<string> ParseUnits(string output) => output.Split('\n').Select(l => l.Split(' ', StringSplitOptions.RemoveEmptyEntries)).Where(p => p.Length >= 2 && p[1] == "enabled" && UnitName.IsMatch(p[0])).Select(p => p[0]).Take(256).ToList();

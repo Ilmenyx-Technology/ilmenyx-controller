@@ -1,6 +1,6 @@
 version = 1
 SPDX-PackageName = "Ilmenyx"
-SPDX-PackageSupplier = "Flávio (mantido como Bismuth Technology)"
+SPDX-PackageSupplier = "Flávio Henrique Meira Roque (mantido como Bismuth Technology)"
 SPDX-PackageDownloadLocation = "https://github.com/Bismuth-Technology/ilmenyx"
 
 # Licensing of files that cannot carry an SPDX header (images, binary data, JSON fixtures, documents).
@@ -11,21 +11,21 @@ SPDX-PackageDownloadLocation = "https://github.com/Bismuth-Technology/ilmenyx"
 [[annotations]]
 path = "**"
 precedence = "closest"
-SPDX-FileCopyrightText = "2026 Flávio (mantido como Bismuth Technology)"
+SPDX-FileCopyrightText = "2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)"
 SPDX-License-Identifier = "PolyForm-Noncommercial-1.0.0"
 
 # Top-level documents that explain the license and the additional permission.
 [[annotations]]
 path = ["README.md", "LICENSING.md", "NOTICE.md"]
 precedence = "closest"
-SPDX-FileCopyrightText = "2026 Flávio (mantido como Bismuth Technology)"
+SPDX-FileCopyrightText = "2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)"
 SPDX-License-Identifier = "PolyForm-Noncommercial-1.0.0 AND LicenseRef-Ilmenyx-Permissao-Adicional"
 
 # Brand: name, logo, symbol, icons and brand manual. Not licensed for other people's products.
 [[annotations]]
 path = ["docs/branding/kit/**", "packaging/linux/hicolor/**", "src/Ilmenyx.Desktop/Assets/**"]
 precedence = "closest"
-SPDX-FileCopyrightText = "2026 Flávio (mantido como Bismuth Technology)"
+SPDX-FileCopyrightText = "2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)"
 SPDX-License-Identifier = "LicenseRef-Ilmenyx-Marca"
 
 # Data produced by running the original RESET EXPLODE code (bounded oracles) and the SPIR-V compiled
@@ -40,7 +40,7 @@ path = [
   "src/Ilmenyx.Gpu.Vulkan/Shaders/rt_trace.comp.spv",
 ]
 precedence = "closest"
-SPDX-FileCopyrightText = ["2026 Gustavo (GustavoReset)", "2026 Flávio (mantido como Bismuth Technology)"]
+SPDX-FileCopyrightText = ["2026 Gustavo (GustavoReset)", "2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)"]
 SPDX-License-Identifier = "MIT AND PolyForm-Noncommercial-1.0.0"
 
 # Third-party license texts shipped in the packages.
