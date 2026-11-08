@@ -68,3 +68,9 @@ direitos e eventual aplicação de LGPD/ANPD: PENDENTE DE REVISÃO humana confor
   `8.8.8.8`. Esses serviços veem o seu IP, como em qualquer teste de velocidade.
 - **Driver NVIDIA:** a verificação da versão mais recente consulta `download.nvidia.com` (lista pública de versões); nada sobre o
   seu PC é enviado além da requisição em si.
+- **Instalar apps:** a instalação é feita pelo programa `flatpak` do seu sistema, que baixa de `flathub.org` (e servidores de
+  download dele) só depois da confirmação. Para a camada do Gamescope, o app só lê localmente qual versão da base (runtime) a sua
+  Steam Flatpak usa (`flatpak info`). Itens que não estão no Flathub (GeForce NOW, input-remapper) só abrem a página oficial
+  (`www.nvidia.com`, `github.com`) no seu navegador quando você clica; o Ilmenyx não baixa nada deles.
+- **Cache de shaders maior (Otimiza) e opções experimentais do Proton (Jogos):** não usam a rede. Só gravam um arquivo seu
+  (`~/.config/environment.d/90-ilmenyx-shader-cache.conf`) ou as opções de inicialização do jogo, depois da confirmação.

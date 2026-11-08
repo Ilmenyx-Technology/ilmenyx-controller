@@ -15,7 +15,13 @@ using Ilmenyx.Platform.Linux;
 
 namespace Ilmenyx.Desktop;
 
-public sealed record OptimizeServices(Func<CancellationToken, Task<string?>> GetPowerProfile, Func<string, CancellationToken, Task<bool>> SetPowerProfile);
+public sealed record OptimizeServices(Func<CancellationToken, Task<string?>> GetPowerProfile, Func<string, CancellationToken, Task<bool>> SetPowerProfile)
+{
+    /// <summary>User environment.d file for the bigger shader cache; default: the real one under ~/.config/environment.d.</summary>
+    public LinuxShaderCache? ShaderCache { get; init; }
+    /// <summary>Steam folder, to show the size of Steam's own shader cache (null = not shown).</summary>
+    public Func<string?>? SteamRoot { get; init; }
+}
 
 public sealed class OptimizePage : StackPanel
 {
@@ -120,8 +126,12 @@ public sealed class OptimizePage : StackPanel
 
     public async Task RefreshTweaksAsync()
     {
-        tweakList.Children.Clear();
+        // Everything slow is read first, so the list is rebuilt in one go (no half-built list between awaits).
+        var cache = ShaderCache; string? steamRoot = services.SteamRoot?.Invoke();
+        var shader = await Task.Run(() => (cache.IsOn, cache.ForeignFile, cache.SessionValue, Sizes: cache.Caches(steamRoot)), lifetime);
         string? plan = await services.GetPowerProfile(lifetime);
+        string? mouse = LinuxOptimizer.IsGnome() ? await optimizer.MouseAccelProfileAsync(lifetime) : null;
+        tweakList.Children.Clear();
         AddTweak(new GameTweak { Id = "power", Title = "Perfil de energia: Alto desempenho", Adjustable = plan is not null, IsOn = plan == "performance",
             Description = "Mantém a CPU pronta para subir o clock na hora, sem economia agressiva de energia (power-profiles-daemon, sem root).",
             Effect = "Menos engasgos e 1% low melhor em alguns jogos. Em notebooks gasta mais bateria.", Status = plan is null ? "power-profiles-daemon indisponível." : "Atual: " + LinuxPowerReader.ProfileName(plan) }, async on =>
@@ -129,7 +139,6 @@ public sealed class OptimizePage : StackPanel
             if (!settings.TweakBackup.ContainsKey("power")) Save(s => s.TweakBackup.TryAdd("power", plan ?? "balanced")); // first original wins, also across instances
             return await services.SetPowerProfile(on ? "performance" : (settings.TweakBackup["power"] is "performance" or null ? "balanced" : settings.TweakBackup["power"]!), lifetime);
         });
-        string? mouse = LinuxOptimizer.IsGnome() ? await optimizer.MouseAccelProfileAsync(lifetime) : null;
         AddTweak(new GameTweak { Id = "mouse", Title = "Desligar aceleração do mouse", Adjustable = mouse is not null, IsOn = mouse == "flat",
             Description = "Perfil de aceleração 'flat': o cursor anda sempre a mesma distância para o mesmo movimento (GNOME).",
             Effect = "Não muda FPS, mas deixa a mira consistente em jogos de tiro. Em KDE/outros desktops ajuste em Configurações > Mouse (perfil plano).",
@@ -138,10 +147,35 @@ public sealed class OptimizePage : StackPanel
             if (!settings.TweakBackup.ContainsKey("mouse")) Save(s => s.TweakBackup.TryAdd("mouse", mouse ?? "default"));
             return await optimizer.SetMouseAccelProfileAsync(on ? "flat" : (settings.TweakBackup["mouse"] is "flat" or null ? "default" : settings.TweakBackup["mouse"]!), lifetime);
         });
+        AddShaderCache(shader.IsOn, shader.ForeignFile, shader.SessionValue, shader.Sizes);
         foreach (var t in optimizer.ReadOnlyTweaks()) AddTweak(t, null);
     }
 
-    private void AddTweak(GameTweak t, Func<bool, Task<bool>>? apply)
+    private LinuxShaderCache ShaderCache => services.ShaderCache ?? (shaderCache ??= new LinuxShaderCache());
+    private LinuxShaderCache? shaderCache;
+
+    /// <summary>Detect (file, session value, cache sizes) → explain → confirm → write the user's environment.d file; off deletes it.</summary>
+    private void AddShaderCache(bool on, bool foreign, string? session, IReadOnlyList<(string Label, long? Bytes)> sizes)
+    {
+        var cache = ShaderCache;
+        var t = ShaderCacheTweak.Describe(on, foreign, session, sizes, cache.ConfigPath);
+        AddTweak(t, async turnOn =>
+        {
+            if (turnOn)
+            {
+                if (owner() is not { } window || !await ConfirmDialog.AskAsync(window, "Cache de shaders maior",
+                    $"Gravar o arquivo abaixo, só para o seu usuário (sem senha)?\n\n{cache.ConfigPath}\n\n{ShaderCacheTweak.MesaVariable}={ShaderCacheTweak.MesaValue}\n{ShaderCacheTweak.NvidiaVariable}={ShaderCacheTweak.NvidiaBytes}\n\n" +
+                    "• Vale a partir do próximo login (saia da sessão e entre de novo) e já nos jogos abertos pelo Ilmenyx.\n• O cache pode chegar a 10 GB em disco, crescendo só conforme os jogos precisarem.\n• Não troca o driver de vídeo nem mexe em nada do sistema.\n• Para desfazer, desligue esta opção (o arquivo é apagado).", "Gravar", "Cancelar")) return false;
+                if (cache.Apply() is { } error) { result.Text = error; return false; }
+                if (!settings.TweakBackup.ContainsKey("shadercache")) Save(s => s.TweakBackup.TryAdd("shadercache", "<absent>"));
+                return true;
+            }
+            if (cache.Undo() is { } undoError) { result.Text = undoError; return false; }
+            return true;
+        }, on => on ? "Ligado. Vale a partir do próximo login (e já nos jogos abertos pelo Ilmenyx)." : "Desligado: arquivo apagado. O limite volta ao padrão no próximo login.");
+    }
+
+    private void AddTweak(GameTweak t, Func<bool, Task<bool>>? apply, Func<bool, string>? done = null)
     {
         var toggle = new CheckBox { Name = "Tweak_" + t.Id, IsChecked = t.IsOn, IsEnabled = apply is not null && t.Adjustable, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 1, 12, 0) };
         AutomationProperties.SetName(toggle, t.Title);
@@ -150,7 +184,7 @@ public sealed class OptimizePage : StackPanel
         {
             bool on = toggle.IsChecked == true;
             toggle.IsEnabled = false;
-            try { bool ok = await apply!(on); status.Text = ok ? (on ? "Ligado." : "Desligado.") + " Vale agora." : "Não foi possível alterar."; if (!ok) toggle.IsChecked = !on; }
+            try { bool ok = await apply!(on); status.Text = ok ? done?.Invoke(on) ?? (on ? "Ligado." : "Desligado.") + " Vale agora." : "Não foi possível alterar (ou cancelado)."; if (!ok) toggle.IsChecked = !on; }
             finally { toggle.IsEnabled = true; }
         };
         var head = new Grid(); head.Children.Add(new TextBlock { Text = t.Title, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 110, 0) });
@@ -166,6 +200,7 @@ public sealed class OptimizePage : StackPanel
         var done = new List<string>();
         if (settings.TweakBackup.TryGetValue("power", out var plan) && plan is not null && await services.SetPowerProfile(plan, lifetime)) done.Add("perfil de energia");
         if (settings.TweakBackup.TryGetValue("mouse", out var mouse) && mouse is not null && await optimizer.SetMouseAccelProfileAsync(mouse, lifetime)) done.Add("aceleração do mouse");
+        if (settings.TweakBackup.ContainsKey("shadercache") && ShaderCache.IsOn && ShaderCache.Undo() is null) done.Add("cache de shaders (arquivo apagado)");
         var restored = settings.TweakBackup.Keys.ToList();
         Save(s => { foreach (var k in restored) s.TweakBackup.Remove(k); });
         result.Text = done.Count > 0 ? "Restaurado: " + string.Join(", ", done) + "." : "Nada para restaurar (nenhum ajuste foi alterado pelo Ilmenyx).";

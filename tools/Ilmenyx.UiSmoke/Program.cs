@@ -573,6 +573,7 @@ public sealed class UiSmokeApp : Application
         if (OperatingSystem.IsLinux()) await OverviewSummaryAsync(shell);
         await TourAndHelpAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await StartupDriversRedesignAsync(shell, desktop);
+        if (OperatingSystem.IsLinux()) await GamingExtrasAsync(shell, desktop);
         await ThemeAsync(shell);
         if (OperatingSystem.IsLinux()) await FpsScrollAndContrastAsync(shell);
         if (OperatingSystem.IsLinux()) await BlockedAndFullTourAsync(shell);
@@ -2059,5 +2060,122 @@ public sealed class UiSmokeApp : Application
         if (Palette.IsLight) { Click(shell, "ToggleTheme"); await Until(() => !Palette.IsLight); }
         shell.Width = 1280; shell.Height = 820; await Task.Delay(300);
         Console.WriteLine("PASS drivers redesign: plain summary, six category cards with every inventory row, NVIDIA action present, no clipped card at 900x560/1280x820, dark and light captures");
+    }
+
+    /// <summary>Gaming extras (2026-11-08): bigger shader cache in Otimiza, gaming apps in Instalar apps, experimental Proton options in Jogos. Fixtures only:
+    /// the real ~/.config, flatpak, Steam and games are never touched.</summary>
+    [System.Runtime.Versioning.SupportedOSPlatform("linux")]
+    private static async Task GamingExtrasAsync(ShellWindow shell, IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        string root = Path.Combine(Program.OutputDirectory, "gaming-extras-fixture"), proc = Path.Combine(root, "proc"), home = Path.Combine(root, "home");
+        Directory.CreateDirectory(Path.Combine(proc, "self")); File.WriteAllText(Path.Combine(proc, "self", "status"), "Uid:\t1000\t1\t1\t1\n");
+        Directory.CreateDirectory(Path.Combine(home, ".cache/mesa_shader_cache/ab")); File.WriteAllBytes(Path.Combine(home, ".cache/mesa_shader_cache/ab/1"), new byte[3 << 20]);
+        async Task<ConfirmDialog> Confirm() { await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible)); return desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible); }
+        async Task Answer(string button) { var d = await Confirm(); Click(d, button); await Until(() => !d.IsVisible); }
+        async Task Themes(Window host, string stem, Control focus)
+        {
+            host.Width = 900; host.Height = 560; await Task.Delay(300); focus.BringIntoView(new Rect(0, 0, Math.Max(1, focus.Bounds.Width), 480)); await Task.Delay(300);
+            Capture(host, stem + "-dark-900x560.png");
+            Click(shell, "ToggleTheme"); await Until(() => Palette.IsLight); await Task.Delay(400); focus.BringIntoView(new Rect(0, 0, Math.Max(1, focus.Bounds.Width), 480)); await Task.Delay(200);
+            Capture(host, stem + "-light-900x560.png");
+            Click(shell, "ToggleTheme"); await Until(() => !Palette.IsLight); await Task.Delay(200);
+        }
+
+        // 1) Otimiza: detect → explain → confirm → write ~/.config/environment.d file → undo (toggle off) and RESTAURAR ORIGINAIS.
+        var cache = new LinuxShaderCache(home, Path.Combine(home, ".config"), Path.Combine(home, ".cache"), _ => null);
+        var optimizer = new LinuxOptimizer(proc, Path.Combine(root, "sys"), home, (_, _) => Task.FromResult((1, "")), (_, _) => Task.CompletedTask);
+        var services = new OptimizeServices(_ => Task.FromResult<string?>(null), (_, _) => Task.FromResult(false)) { ShaderCache = cache, SteamRoot = () => null };
+        using var usage = new UsageViewModel(new FakeUsage()); await usage.SampleOnceAsync(CancellationToken.None);
+        Window? host = null; var opt = new OptimizePage(optimizer, services, usage, Path.Combine(root, "cfg/settings.json"), () => host, CancellationToken.None);
+        host = new Window { Width = 1200, Height = 900, Content = new ScrollViewer { Content = opt } }; host.Show();
+        await Until(() => host.GetVisualDescendants().OfType<CheckBox>().Any(c => c.Name == "Tweak_shadercache"));
+        var toggle = Find<CheckBox>(host, "Tweak_shadercache");
+        if (toggle.IsChecked == true || !toggle.IsEnabled || !Find<TextBlock>(host, "TweakStatus_shadercache").Text!.Contains("Mesa 3,0 MB")) throw new InvalidOperationException("Shader cache item must start off, adjustable, with the measured Mesa cache size.");
+        toggle.IsChecked = true; toggle.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        var ask = await Confirm();
+        if (!Find<TextBlock>(ask, "ConfirmText").Text!.Contains("próximo login") || Find<TextBlock>(ask, "ConfirmText").Text!.Contains("AMD_VULKAN_ICD")) throw new InvalidOperationException("Confirmation must explain the next login and never mention a driver switch.");
+        Click(ask, "ConfirmNo"); await Until(() => !ask.IsVisible && toggle.IsChecked == false);
+        if (File.Exists(cache.ConfigPath)) throw new InvalidOperationException("Declined confirmation still wrote the environment.d file.");
+        toggle.IsChecked = true; toggle.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Answer("ConfirmYes");
+        await Until(() => File.Exists(cache.ConfigPath) && Find<TextBlock>(host, "TweakStatus_shadercache").Text!.Contains("próximo login"));
+        if (File.ReadAllText(cache.ConfigPath) != ShaderCacheTweak.FileContent()) throw new InvalidOperationException("Unexpected environment.d content.");
+        await Themes(host, "extras-optimize-shadercache", toggle);
+        toggle.IsChecked = false; toggle.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => !File.Exists(cache.ConfigPath));
+        await Until(() => toggle.IsEnabled); toggle.IsChecked = true; toggle.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); await Answer("ConfirmYes");
+        await Until(() => File.Exists(cache.ConfigPath));
+        Click(host, "BtnTweaksRestore"); await Until(() => !File.Exists(cache.ConfigPath) && Find<TextBlock>(host, "OptResult").Text!.Contains("cache de shaders"));
+        host.Close();
+        Console.WriteLine("PASS shader cache: off by default with measured cache size, explained confirmation (next login, disk, no driver switch), declined = no file, user environment.d file written, toggle off and RESTAURAR ORIGINAIS delete it (fixture home)");
+
+        // 2) Instalar apps: gaming apps with license/caveats; the Gamescope layer follows the Steam Flatpak runtime branch; link-only items open a page.
+        var calls = new List<string>(); var opened = new List<string>();
+        var installer = new LinuxAppInstaller((program, args, timeout, ct) =>
+        {
+            calls.Add(string.Join(" ", args));
+            if (args[0] == "remotes") return Task.FromResult((0, "flathub\n"));
+            if (args[0] == "info") return Task.FromResult((0, "org.freedesktop.Platform/x86_64/25.08\n"));
+            return Task.FromResult((0, ""));
+        }, _ => false);
+        Window? appsHost = null; var apps = new AppsPage(installer, true, () => appsHost, CancellationToken.None, (url, _) => { opened.Add(url); return Task.CompletedTask; });
+        appsHost = new Window { Width = 1000, Height = 900, Content = new ScrollViewer { Content = apps } }; appsHost.Show();
+        await Until(() => apps.Apps.Single(a => a.RuntimeFor.Length > 0).Branch == "25.08" && appsHost.GetVisualDescendants().OfType<CheckBox>().Any(c => c.Name == "App_io_github_ilya_zlobintsev_LACT"));
+        if (apps.Apps.Any(a => a.Category != "Essenciais" && a.Selected)) throw new InvalidOperationException("Gaming apps must not be pre-selected.");
+        if (!Find<TextBlock>(appsHost, "AppCaveat_dev_lizardbyte_app_Sunshine").Text!.Contains("additional-install.sh")) throw new InvalidOperationException("Sunshine caveat missing.");
+        if (appsHost.GetVisualDescendants().OfType<CheckBox>().Single(c => c.Name == "App_link_geforcenow").IsVisible) throw new InvalidOperationException("Link-only item must not offer a checkbox.");
+        Click(appsHost, "AppLink_link_geforcenow"); await Until(() => opened.Count == 1);
+        if (!opened[0].StartsWith("https://www.nvidia.com/", StringComparison.Ordinal)) throw new InvalidOperationException("GeForce NOW must open NVIDIA's own page.");
+        Click(appsHost, "BtnAppsNone");
+        Find<CheckBox>(appsHost, "App_io_github_ilya_zlobintsev_LACT").IsChecked = true; Find<CheckBox>(appsHost, "App_org_freedesktop_Platform_VulkanLayer_gamescope").IsChecked = true;
+        Click(appsHost, "BtnAppsInstall"); var appsAsk = await Confirm();
+        if (!Find<TextBlock>(appsAsk, "ConfirmText").Text!.Contains("lactd") || !Find<TextBlock>(appsAsk, "ConfirmText").Text!.Contains("//25.08")) throw new InvalidOperationException("Install confirmation must list caveats and the layer branch.");
+        Click(appsAsk, "ConfirmYes");
+        await Until(() => calls.Contains("install --user -y --noninteractive flathub org.freedesktop.Platform.VulkanLayer.gamescope//25.08") && calls.Contains("install --user -y --noninteractive flathub io.github.ilya_zlobintsev.LACT"));
+        if (calls.Count(c => c.StartsWith("install", StringComparison.Ordinal)) != 2) throw new InvalidOperationException("Only the two selected items may be installed.");
+        await Themes(appsHost, "extras-apps-gaming", appsHost.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Name == "AppsGroup_Jogos"));
+        appsHost.Close();
+        Console.WriteLine("PASS gaming apps: LACT/ProtonPlus/Gamescope layer/Sunshine/Piper/Solaar with license and caveats, none pre-selected, layer installs the Steam Flatpak runtime branch (//25.08), GeForce NOW and input-remapper link-only (fake flatpak)");
+
+        // 3) Jogos: experimental Proton options, off by default, confirmed, shown only when they apply, written to the Steam launch options.
+        string steam = Path.Combine(home, ".local/share/Steam"), steamapps = Path.Combine(steam, "steamapps");
+        Directory.CreateDirectory(Path.Combine(steamapps, "common/Game Two")); Directory.CreateDirectory(Path.Combine(steam, "userdata/1/config")); Directory.CreateDirectory(Path.Combine(steam, "config"));
+        File.WriteAllText(Path.Combine(steamapps, "libraryfolders.vdf"), "\"libraryfolders\"\n{\n\t\"0\"\n\t{\n\t\t\"path\"\t\t\"" + steam + "\"\n\t}\n}\n");
+        File.WriteAllText(Path.Combine(steamapps, "appmanifest_200.acf"), "\"AppState\"\n{\n\t\"appid\"\t\t\"200\"\n\t\"name\"\t\t\"Game Two\"\n\t\"StateFlags\"\t\t\"4\"\n\t\"installdir\"\t\t\"Game Two\"\n}\n");
+        File.WriteAllText(Path.Combine(steam, "config", "config.vdf"), "\"InstallConfigStore\"\n{\n\t\"Software\"\n\t{\n\t\t\"Valve\"\n\t\t{\n\t\t\t\"Steam\"\n\t\t\t{\n\t\t\t\t\"CompatToolMapping\"\n\t\t\t\t{\n\t\t\t\t\t\"200\"\n\t\t\t\t\t{\n\t\t\t\t\t\t\"name\"\t\t\"GE-Proton10-25\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t}\n}\n");
+        string localConfig = Path.Combine(steam, "userdata/1/config/localconfig.vdf"); File.WriteAllText(localConfig, "\"UserLocalConfigStore\"\n{\n}\n");
+        string settingsPath = Path.Combine(root, "cfg2/settings.json");
+        Window? lhost = null;
+        var launcher = new LauncherPage(new LinuxGameLibrary(home, (_, _) => Task.FromResult((0, "[]"))), new SteamInfo(home, Path.Combine(root, "noproc")), settingsPath,
+            (g, p, v, status, learned, ct) => Task.FromResult<FpsSession?>(null), () => lhost, "NVIDIA", false, CancellationToken.None) { WaylandSession = () => true, UmuProton = () => "UMU-Proton-9.0-3" };
+        lhost = new Window { Width = 1100, Height = 800, Content = launcher }; lhost.Show();
+        await Until(() => launcher.Games.Count == 1);
+        Click(lhost, "LGame_Steam_200");
+        bool ExtrasShown() => lhost.GetVisualDescendants().OfType<StackPanel>().Any(p => p.Name == "LExtrasBox" && p.IsEffectivelyVisible);
+        await Until(ExtrasShown);
+        var wl = Find<CheckBox>(lhost, "LChkWayland"); var ll = Find<CheckBox>(lhost, "LChkLowLat");
+        if (wl.IsChecked == true || ll.IsChecked == true || Find<TextBlock>(lhost, "LPreview").Text!.Contains("PROTON_")) throw new InvalidOperationException("Experimental options must start off.");
+        wl.IsChecked = true; var wlAsk = await Confirm();
+        if (!Find<TextBlock>(wlAsk, "ConfirmText").Text!.Contains("experimental")) throw new InvalidOperationException("Wayland confirmation must explain it is experimental.");
+        Click(wlAsk, "ConfirmNo"); await Until(() => !wlAsk.IsVisible && wl.IsChecked == false);
+        if (IlmenyxSettings.Load(settingsPath).GameProfiles.GetValueOrDefault("Steam:200")?.ProtonWayland == true) throw new InvalidOperationException("Declined option was saved.");
+        wl.IsChecked = true; await Answer("ConfirmYes");
+        ll.IsChecked = true; await Answer("ConfirmYes");
+        await Until(() => Find<TextBlock>(lhost, "LPreview").Text == "PROTON_ENABLE_WAYLAND=1 PROTON_ENABLE_NVAPI=1 %command%");
+        if (IlmenyxSettings.Load(settingsPath).GameProfiles["Steam:200"] is not { ProtonWayland: true, LowLatency: true }) throw new InvalidOperationException("Experimental options not persisted.");
+        Click(lhost, "BtnSteamApply");
+        await Until(() => Find<TextBlock>(lhost, "LStatus").Text!.Contains("Opções gravadas na Steam"));
+        if (!File.ReadAllText(localConfig).Contains("PROTON_ENABLE_WAYLAND=1 PROTON_ENABLE_NVAPI=1 %command%")) throw new InvalidOperationException("Steam launch options without the experimental options.");
+        await Themes(lhost, "extras-launcher-steam", Find<StackPanel>(lhost, "LExtrasBox"));
+        // A Windows game run through umu with an older UMU-Proton: the Wayland option is kept in the profile but explained as out of use.
+        string exe = Path.Combine(root, "Jogo Win/game.exe"); Directory.CreateDirectory(Path.GetDirectoryName(exe)!); File.WriteAllText(exe, "MZ");
+        lhost.Width = 1100; lhost.Height = 800;
+        Click(lhost, "BtnAddExe"); Find<TextBox>(lhost, "LAddPath").Text = exe; Click(lhost, "BtnAddExeConfirm");
+        await Until(() => launcher.Games.Count == 2 && Find<TextBlock>(lhost, "LTitle").Text != "Game Two" && ExtrasShown());
+        Find<CheckBox>(lhost, "LChkWayland").IsChecked = true; await Answer("ConfirmYes");
+        await Until(() => Find<TextBlock>(lhost, "LExtrasNote").Text!.Contains("UMU-Proton-9.0-3"));
+        await Themes(lhost, "extras-launcher-umu", Find<StackPanel>(lhost, "LExtrasBox"));
+        lhost.Close();
+        Console.WriteLine("PASS experimental Proton options: off by default, explained confirmation (declined = not saved), Wayland + low latency in the Steam launch options with GE-Proton 10 + NVIDIA, out-of-use reason shown for UMU-Proton 9 (fixtures)");
     }
 }

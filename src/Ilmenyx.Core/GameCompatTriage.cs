@@ -6,6 +6,7 @@
 // - NVAPI (PROTON_ENABLE_NVAPI / DXVK_ENABLE_NVAPI) needs the NVIDIA proprietary driver; PROTON_DISABLE_NVAPI / PROTON_HIDE_NVIDIA_GPU undo it;
 // - RADV_* / ACO_* / AMD_VULKAN_ICD are AMD (Mesa RADV); ANV_* is Intel (Mesa ANV); MESA_* / DRI_PRIME only act on Mesa drivers;
 // - a game takes one graphics API switch (-dx11, -dx12, -vulkan…); one variable takes one value; mangohud and MANGOHUD=1 are the same overlay;
+// - PROTON_ENABLE_WAYLAND / PROTON_USE_WAYLAND (GE-Proton) are the same switch and are not used inside Gamescope (GE-Proton README, HDR section);
 // - PROTON_NO_ESYNC=1 and PROTON_NO_FSYNC=1 are compatible (often used together), so they are not a conflict.
 // Pure (no I/O): installed tools come in as a predicate.
 using System.Text.RegularExpressions;
@@ -39,6 +40,10 @@ public static class LaunchOptionTriage
         new("nvapi", ["PROTON_ENABLE_NVAPI=1", "DXVK_ENABLE_NVAPI=1"], ["PROTON_DISABLE_NVAPI=1", "PROTON_HIDE_NVIDIA_GPU=1"],
             "Não combina com {0}: um liga o NVAPI (recursos da NVIDIA, como DLSS) e o outro desliga o NVAPI ou esconde a placa NVIDIA do jogo."),
         new("mangohud", ["mangohud", "MANGOHUD=1"], [], "Faz o mesmo que {0} (liga o MangoHud, o contador de FPS): basta um."),
+        // GE-Proton README: PROTON_USE_WAYLAND and PROTON_ENABLE_WAYLAND both enable the Wayland driver; under Gamescope keep Wine's default XWayland.
+        new("wayland", ["PROTON_ENABLE_WAYLAND=1", "PROTON_USE_WAYLAND=1"], [], "Faz o mesmo que {0} (liga o driver Wayland do Proton): basta um."),
+        new("wayland-gamescope", ["PROTON_ENABLE_WAYLAND=1", "PROTON_USE_WAYLAND=1"], ["gamescope"],
+            "Não combina com {0}: dentro do Gamescope o GE-Proton recomenda o XWayland padrão, sem a opção Wayland."),
     ];
 
     public static readonly IReadOnlyList<LaunchGpuRule> GpuRules =
