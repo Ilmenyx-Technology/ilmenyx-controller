@@ -68,3 +68,7 @@ direitos e eventual aplicação de LGPD/ANPD: PENDENTE DE REVISÃO humana confor
   `8.8.8.8`. Esses serviços veem o seu IP, como em qualquer teste de velocidade.
 - **Driver NVIDIA:** a verificação da versão mais recente consulta `download.nvidia.com` (lista pública de versões); nada sobre o
   seu PC é enviado além da requisição em si.
+- **Jogo não abre? (botões do Flatpak):** ADICIONAR FLATHUB roda `flatpak remote-add --user` e o Flatpak baixa a lista de
+  `flathub.org`/`dl.flathub.org`. Só por clique, com confirmação. A verificação em si não usa a internet.
+- **ZRAM (página Otimiza):** ao confirmar LIGAR ZRAM, o gerenciador de pacotes da distribuição (apt, dnf, pacman ou zypper) baixa o
+  pacote `zram-tools` ou `zram-generator` dos espelhos configurados no seu sistema, se ele ainda não estiver instalado.
