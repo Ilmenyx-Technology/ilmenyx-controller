@@ -16,14 +16,13 @@ Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes qu
    depois apague a chave principal dessa máquina de novo (veja `docs/assinatura-gpg.md`). Atualize a chave pública no repositório.
 
 ## 1. Código esperando aprovação/merge (você decide)
-- [ ] **PR #6** — nome civil completo como titular (`chore/titular-nome`). Pronto, testes ok.
-- [ ] **Branch `feat/proton-umu`** (ainda sem PR; inclui o PR #6): Proton fora da Steam com o umu-launcher embutido, botão PROCURAR…
-  para escolher o executável, configuração do MangoHud automática. Testes 1061, interface 56/56. Abrir PR quando o teste do jogo fechar.
-- [ ] **Branch `feat/tutorial`** (em construção): tour de boas-vindas opcional, central de Ajuda e botão "?" em cada página, já
-  preparado para tradução.
+- [ ] **PR #7** (`feat/tutorial`, inclui o PR #6): Proton fora da Steam (umu embutido), proteção contra travamento em tela cheia
+  (validada), "Instalar jogo de Windows", PROCURAR…, MangoHud automático, tour + central de Ajuda, nome do titular.
+  Testes 1079, interface 58/58. Ao aprovar o #7, o #6 pode ser fechado (já está dentro).
+- [ ] **Validar o tutorial** na tela (tour de boas-vindas, Ajuda, "?" em cada página).
 
 ## 2. Testes que precisam de você (hardware/jogo real)
-- [ ] **Congelamento com o MKX** (2026-11-07): o sistema travou no 2º carregamento da autoconfiguração do jogo, com MangoHud e janela
+- [x] **Congelamento com o MKX — RESOLVIDO** (2026-11-07): causa = driver de vídeo da Intel com tela cheia sem vsync via PRIME; corrigido com a "Proteção contra travamento em tela cheia" (validada). Texto antigo:: o sistema travou no 2º carregamento da autoconfiguração do jogo, com MangoHud e janela
   sem bordas. O log não mostra erro da NVIDIA, falta de memória nem temperatura. Próximo passo: repetir com um gravador que salva
   CPU/GPU/RAM/temperaturas a cada segundo no SSD; primeiro sem MangoHud, depois com. Se travar de novo, a última linha mostra a causa.
   Hipóteses: GPU (PRIME) sob carga, temperatura (CPU chegou a 89–90 °C antes), leitura pesada do pendrive (exFAT).
@@ -41,7 +40,7 @@ Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes qu
 ## 3. Funcionalidades combinadas, ainda não feitas
 - [ ] Ler os **"jogos não Steam"** da Steam (arquivo `shortcuts.vdf`) — fazer com o arquivo real depois que o MKX for adicionado lá.
 - [ ] **Overlay e FPS medido nos jogos de loja** (Steam/Heroic/Lutris abrem o jogo sozinhos, sem as opções do Ilmenyx).
-- [ ] **Instalar jogos de Windows a partir do instalador** (`setup.exe`) com Proton, de forma genérica (GOG offline, mídia física,
+- [~] **Instalar jogos de Windows a partir do instalador** (`setup.exe`) — FEITO no código ("INSTALAR JOGO DE WINDOWS"), falta testar com um instalador real. com Proton, de forma genérica (GOG offline, mídia física,
   itch.io...). Sem recursos específicos para repacks.
 - [ ] **Tutorial/Ajuda** (em construção, ver item 1).
 - [ ] **Idiomas: inglês e espanhol** (extrair os textos da interface para arquivos por idioma).
@@ -63,3 +62,5 @@ Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes qu
 - [ ] `reuse lint` oficial (a ferramenta não estava disponível; um script local cobre por ora) e SBOM.
 - [ ] Enviar o relato do travamento do Wayland ao Avalonia (rascunho em `docs/upstream/avalonia-wayland-crash.md`).
 - [ ] **Tornar o repositório e a release públicos** quando eu disser que a validação está suficiente.
+- [ ] Problemas encontrados que o app pode detectar e oferecer correção: `docs/problemas-conhecidos.md` (botão "Forçar fechamento do
+  jogo", aviso de temperatura alta no jogo — a CPU chegou a 100 °C, Wi-Fi gerando milhares de erros PCIe no log, Alt+Tab).
