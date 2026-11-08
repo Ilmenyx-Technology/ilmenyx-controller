@@ -16,10 +16,12 @@ Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes qu
    depois apague a chave principal dessa máquina de novo (veja `docs/assinatura-gpg.md`). Atualize a chave pública no repositório.
 
 ## 1. Código esperando aprovação/merge (você decide)
-- [ ] **PR #7** (`feat/tutorial`, inclui o PR #6): Proton fora da Steam (umu embutido), proteção contra travamento em tela cheia
-  (validada), "Instalar jogo de Windows", PROCURAR…, MangoHud automático, tour + central de Ajuda, nome do titular.
-  Testes 1079, interface 58/58. Ao aprovar o #7, o #6 pode ser fechado (já está dentro).
-- [ ] **Validar o tutorial** na tela (tour de boas-vindas, Ajuda, "?" em cada página).
+- [ ] **PR #8** (`feat/rodada2`, inclui os PRs #6 e #7): tudo da sessão de 2026-11-07/08 — Proton fora da Steam, proteção contra
+  travamento em tela cheia (validada), "Instalar jogo de Windows", tutorial + Ajuda (tour cobrindo todas as abas), Compatibilidade
+  com banner e combinação sem conflitos, Estimativa de FPS com catálogo fixo e "voltar ao topo", Overlay salvando sozinho,
+  Relatório legível, Inicialização separada (sistema × seus programas), Drivers redesenhada, Bloqueados limpo (PeaZip no lugar do
+  WinRAR). Testes 1162, interface 63/63. Ao aprovar o #8, os PRs #6 e #7 podem ser fechados.
+- [ ] **Validar na tela**: tutorial, Compatibilidade, Estimativa de FPS, Inicialização, Drivers.
 
 ## 2. Testes que precisam de você (hardware/jogo real)
 - [x] **Congelamento com o MKX — RESOLVIDO** (2026-11-07): causa = driver de vídeo da Intel com tela cheia sem vsync via PRIME; corrigido com a "Proteção contra travamento em tela cheia" (validada). Texto antigo:: o sistema travou no 2º carregamento da autoconfiguração do jogo, com MangoHud e janela
