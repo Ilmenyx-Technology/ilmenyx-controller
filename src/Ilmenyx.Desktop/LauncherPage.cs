@@ -59,6 +59,13 @@ public sealed class LauncherPage : Grid
     private readonly TextBox extra = new() { Name = "LExtra", PlaceholderText = "ex.: -novid -high +fps_max 0" };
     private readonly TextBox protonId = new() { Name = "LProtonId", PlaceholderText = "ID Steam do jogo (opcional), ex.: 307780", MaxLength = 10 };
     private readonly StackPanel protonBox = new() { Name = "LProtonBox", IsVisible = false, Margin = new Thickness(0, 10, 0, 0) };
+    private readonly TextBlock protonIdStatus = new() { Name = "LProtonIdStatus", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) };
+    private readonly Button removeGame = new() { Name = "BtnRemoveGame", Content = "REMOVER", FontSize = 11, Padding = new Thickness(12, 6), IsVisible = false };
+    private static readonly SteamAppLookup SteamIds = new();
+    /// <summary>Steam ID search by name (default: the Steam store search). Settable for fixtures, so tests never go online.</summary>
+    public Func<string, CancellationToken, Task<(string Id, string Name)?>>? FindSteamId { get; init; }
+    /// <summary>Asks before removing a game (default: a confirmation dialog). Settable for fixtures.</summary>
+    public Func<string, Task<bool>>? ConfirmRemove { get; init; }
     private readonly TextBlock preview = new() { Name = "LPreview", FontFamily = new FontFamily("monospace"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 10) };
     private readonly TextBlock steamNow = new() { Name = "LSteamNow", Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8) };
     private readonly StackPanel steamBox = new() { Name = "LSteamBox", IsVisible = false };
@@ -111,6 +118,7 @@ public sealed class LauncherPage : Grid
                 void addIt(IlmenyxSettings st) { if (!st.CustomGames.Any(c => c.Exe == exe)) st.CustomGames.Add(new() { Name = GameNameFromFolder(exe), Exe = exe }); }
                 if (Save(addIt) is { } fresh) settings.CustomGames = fresh.CustomGames; else addIt(settings);
                 await ScanAsync(); Select(games.FirstOrDefault(g => g.Store == "Manual" && g.Id == exe));
+                await LookUpSteamIdAsync(automatic: true);
                 return true;
             }, BoundedProcess.Find).ShowDialog(window);
         };
@@ -125,10 +133,11 @@ public sealed class LauncherPage : Grid
             if (!LinuxGameLibrary.IsRunnableFile(path) && !LinuxGameLibrary.IsWindowsExe(path)) { addStatus.Text = "Escolha um jogo: um executável do Linux ou um .exe de Windows (que roda com Proton). Use PROCURAR… para abrir o explorador de arquivos."; return; }
             if (!settings.CustomGames.Any(c => c.Exe == path))
             {
-                void add(IlmenyxSettings s) { if (!s.CustomGames.Any(c => c.Exe == path)) s.CustomGames.Add(new() { Name = Path.GetFileNameWithoutExtension(path), Exe = path }); }
+                void add(IlmenyxSettings s) { if (!s.CustomGames.Any(c => c.Exe == path)) s.CustomGames.Add(new() { Name = LinuxGameLibrary.IsWindowsExe(path) ? GameNameFromFolder(path) : Path.GetFileNameWithoutExtension(path), Exe = path }); }
                 if (Save(add) is { } fresh) settings.CustomGames = fresh.CustomGames; else add(settings);
             }
             addStatus.Text = "Adicionado."; await ScanAsync(); Select(games.FirstOrDefault(g => g.Store == "Manual" && g.Id == path));
+            await LookUpSteamIdAsync(automatic: true);
         };
         var browseAdd = new Button { Name = "BtnAddExeBrowse", Content = "PROCURAR…", FontSize = 12, Padding = new Thickness(14, 6) };
         browseAdd.Click += async (_, _) => { if (await PickExecutableAsync() is { } picked) addPath.Text = picked; };
@@ -186,8 +195,13 @@ public sealed class LauncherPage : Grid
         title.FontSize = 26; title.MaxLines = 2; title.TextTrimming = TextTrimming.CharacterEllipsis;
         sub.FontSize = 12.5; sub.MaxLines = 2; sub.TextTrimming = TextTrimming.CharacterEllipsis; sub.Margin = new Thickness(0, 4, 0, 0);
         play.VerticalAlignment = VerticalAlignment.Bottom; play.Margin = new Thickness(16, 0, 0, 0); play.FontSize = 14;
-        var bottom = new Grid { ColumnDefinitions = new("*,Auto"), VerticalAlignment = VerticalAlignment.Bottom, Children = { new StackPanel { VerticalAlignment = VerticalAlignment.Bottom, Children = { title, sub } } } };
-        Grid.SetColumn(play, 1); bottom.Children.Add(play);
+        var bottom = new Grid { ColumnDefinitions = new("*,Auto,Auto"), VerticalAlignment = VerticalAlignment.Bottom, Children = { new StackPanel { VerticalAlignment = VerticalAlignment.Bottom, Children = { title, sub } } } };
+        // Games the user added by hand can leave the library again (the files on disk are never touched).
+        removeGame.VerticalAlignment = VerticalAlignment.Bottom; removeGame.Margin = new Thickness(16, 0, 0, 0);
+        ToolTip.SetTip(removeGame, "Tira o jogo da biblioteca do Ilmenyx. Os arquivos do jogo não são apagados.");
+        removeGame.Click += async (_, _) => await RemoveCurrentAsync();
+        Grid.SetColumn(removeGame, 1); bottom.Children.Add(removeGame);
+        Grid.SetColumn(play, 2); bottom.Children.Add(play);
         var heroContent = new Grid { RowDefinitions = new("Auto,*,Auto"), Children = { heroTags } };
         Grid.SetRow(bottom, 2); heroContent.Children.Add(bottom);
         hero = UiKit.Hero(heroContent, height: 232, name: "LHero");
@@ -236,8 +250,14 @@ public sealed class LauncherPage : Grid
         extra.TextChanged += (_, _) => SaveFromControls();
         // Windows games (.exe) run with Proton through the bundled umu-launcher; the Steam ID lets it apply the game's known fixes.
         protonBox.Children.Add(UiKit.Label("PROTON (JOGO DE WINDOWS)"));
-        protonBox.Children.Add(new Border { Height = 6 }); protonBox.Children.Add(protonId);
-        protonBox.Children.Add(new TextBlock { Text = "Este jogo roda com Proton, sem precisar da Steam. Na primeira vez o Proton é baixado (~1 GB) e o \"Windows\" do jogo é preparado; demora alguns minutos. Com o ID Steam do jogo (o número em store.steampowered.com/app/ID, ou na aba Compatibilidade), o Proton aplica as correções conhecidas dele.", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0) });
+        var findId = new Button { Name = "BtnFindSteamId", Content = "BUSCAR", FontSize = 11, Padding = new Thickness(12, 5), Margin = new Thickness(8, 0, 0, 0) };
+        ToolTip.SetTip(findId, "Procura o ID pelo nome do jogo na loja Steam (só o nome é enviado).");
+        findId.Click += async (_, _) => await LookUpSteamIdAsync(automatic: false);
+        var idRow = new DockPanel(); DockPanel.SetDock(findId, Dock.Right); idRow.Children.Add(findId); idRow.Children.Add(protonId);
+        protonBox.Children.Add(new Border { Height = 6 }); protonBox.Children.Add(idRow); protonBox.Children.Add(protonIdStatus);
+        var protonHelp = new TextBlock { Text = "Roda com Proton, sem a Steam. Com o ID Steam, o Proton aplica as correções conhecidas do jogo.", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0) };
+        ToolTip.SetTip(protonHelp, "Na primeira vez o Proton é baixado (~1 GB) e o \"Windows\" do jogo é preparado; demora alguns minutos. O ID é o número em store.steampowered.com/app/ID; o Ilmenyx tenta achá-lo pelo nome quando o jogo é adicionado.");
+        protonBox.Children.Add(protonHelp);
         protonId.TextChanged += (_, _) =>
         {
             if (loading || profile is null) return;
@@ -390,8 +410,9 @@ public sealed class LauncherPage : Grid
         hero.Background = art is null ? UiKit.HeroBrush() : new ImageBrush { Source = art, Stretch = Stretch.UniformToFill };
         heroScrim.IsVisible = heroArt; title.Foreground = heroArt ? Brushes.White : Palette.Fg; sub.Foreground = heroArt ? GameArt.OnImageMuted : Palette.Muted;
         chkPlan.IsChecked = p.HighPerfPlan; chkGpu.IsChecked = p.GpuHigh && multiGpu; chkGameMode.IsChecked = p.GameMode; chkMango.IsChecked = p.MangoHud; chkGuard.IsChecked = p.FullscreenGuard; chkGuard.IsVisible = multiGpu && gpuVendor == "NVIDIA";
-        modeChips!.Select(p.WinMode); resChips!.Select(p.Res); hzChips!.Select(p.Hz); styleChips!.Select(p.Style); gfxPresetChips!.Select(p.GfxPreset ?? ""); gfxUpChips!.Select(p.GfxUpscaling ?? ""); extra.Text = p.Extra; exePath.Text = p.ExePath ?? "";
-        protonBox.IsVisible = g.IsWindowsManual; protonId.Text = p.ProtonGameId ?? "";
+        modeChips!.Select(p.WinMode); resChips!.Select(p.Res); hzChips!.Select(p.Hz); styleChips!.Select(p.Style); gfxPresetChips!.Select(p.GfxPreset ?? ""); gfxUpChips!.Select(p.GfxUpscaling ?? ""); extra.Text = p.Extra; exePath.Text = p.ExePath ?? g.ExePath ?? "";
+        protonBox.IsVisible = g.IsWindowsManual; protonId.Text = p.ProtonGameId ?? ""; protonIdStatus.Text = "";
+        removeGame.IsVisible = g.Store == "Manual";
         chkWayland.IsChecked = p.ProtonWayland; chkLowLat.IsChecked = p.LowLatency; extrasBox.IsVisible = g.IsSteam || g.IsWindowsManual;
         protonName = g.IsSteam ? steam.CompatToolName(g.Id) : g.IsWindowsManual ? (UmuProton ?? (() => LinuxGameExtras.UmuProtonName()))() : null;
         RebuildHelpers();
@@ -410,7 +431,11 @@ public sealed class LauncherPage : Grid
         exeText.Text = "Procurando o executável…";
         var game = g;
         _ = Task.Run(() => LinuxGameLibrary.FindMainExe(game.InstallDir, game.Name)).ContinueWith(t => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-        { if (current == game) exeText.Text = t.Result is { } found ? $"Executável (detectado, confirme): {found}" : "Executável não identificado. Informe o caminho abaixo, se necessário."; }));
+        {
+            if (current != game) return;
+            exeText.Text = t.Result is { } found ? $"Executável (detectado, confirme): {found}" : "Executável não identificado. Informe o caminho abaixo, se necessário.";
+            if (t.Result is { } f && string.IsNullOrWhiteSpace(exePath.Text)) exePath.Text = f;
+        }));
     }
 
     private void SaveFromControls()
@@ -488,6 +513,36 @@ public sealed class LauncherPage : Grid
             FileTypeFilter = [new("Jogos (Linux e Windows)") { Patterns = ["*.exe", "*.EXE", "*.x86_64", "*.x86", "*.sh", "*.AppImage", "*"] }, new("Todos os arquivos") { Patterns = ["*"] }],
         });
         return files.Count > 0 ? files[0].TryGetLocalPath() : null;
+    }
+
+    /// <summary>Fills the Steam ID of the selected Windows game from its name (automatic: only when empty, quietly when nothing is found).</summary>
+    private async Task LookUpSteamIdAsync(bool automatic)
+    {
+        if (current is not { IsWindowsManual: true } game || profile is not { } p) return;
+        if (automatic && p.ProtonGameId is { Length: > 0 }) return;
+        protonIdStatus.Foreground = Palette.Faint; protonIdStatus.Text = "Buscando o ID Steam…";
+        var found = await (FindSteamId ?? ((n, ct) => SteamIds.FindAsync(n, ct)))(game.Name, lifetime);
+        if (current != game) return;
+        if (found is { } f)
+        {
+            loading = true; protonId.Text = f.Id; loading = false;
+            p.ProtonGameId = f.Id; SaveProfile(game, p); UpdateTags();
+            protonIdStatus.Text = $"ID encontrado na loja Steam: {f.Name}.";
+        }
+        else protonIdStatus.Text = automatic ? "" : "Nenhum jogo com esse nome na loja Steam. Informe o ID manualmente.";
+    }
+
+    /// <summary>Removes the selected hand-added game (and its profile) from the library after confirmation. Never deletes files.</summary>
+    private async Task RemoveCurrentAsync()
+    {
+        if (current is not { Store: "Manual" } game) return;
+        bool yes = ConfirmRemove is { } ask ? await ask(game.Name)
+            : owner() is { } window && await ConfirmDialog.AskAsync(window, "Remover jogo", $"Remover \"{game.Name}\" da biblioteca?\n\nOs arquivos do jogo não são apagados.", "Remover", "Cancelar");
+        if (!yes) return;
+        string key = SettingsKey(game), exe = game.Id;
+        void remove(IlmenyxSettings s) { s.CustomGames.RemoveAll(c => c.Exe == exe); s.GameProfiles.Remove(key); }
+        if (Save(remove) is { } fresh) { settings.CustomGames = fresh.CustomGames; settings.GameProfiles = fresh.GameProfiles; } else remove(settings);
+        Select(null); await ScanAsync();
     }
 
     private void SetExe()

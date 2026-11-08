@@ -49,13 +49,16 @@ public sealed class FastExecDialog : Window
         DockPanel Field(TextBox box, Button pick) { var d = new DockPanel(); DockPanel.SetDock(pick, Dock.Right); pick.Margin = new Thickness(8, 0, 0, 0); d.Children.Add(pick); d.Children.Add(box); return d; }
 
         // Short line on screen; the full guidance stays in the tooltip (owner 2026-11-08: professional, no walls of text).
-        var tipsText = new TextBlock { Text = "Instale em C:\\Jogos e desmarque DirectX, .NET e Visual C++.", Foreground = Palette.Warn, FontSize = 12, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center };
+        var tipsText = new TextBlock { Text = "Mantenha a pasta C:\\Jogos sugerida e desmarque DirectX, .NET e Visual C++.", Foreground = Palette.Warn, FontSize = 12, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center };
         var tipsMore = new TextBlock { Text = "Detalhes", Foreground = Palette.Warn, FontSize = 12, TextDecorations = TextDecorations.Underline, Cursor = new Cursor(StandardCursorType.Help), Margin = new Thickness(10, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
-        ToolTip.SetTip(tipsMore, "• Quando o instalador perguntar onde instalar, use C:\\Jogos (já vem criado). No fim, o Ilmenyx move o jogo para a pasta acima e apaga o resto.\n" +
+        ToolTip.SetTip(tipsMore, "• A maioria dos instaladores já abre com a pasta C:\\Jogos\\<nome do jogo>. Se o seu pedir a pasta, use C:\\Jogos. No fim, o Ilmenyx move o jogo para a pasta acima e apaga o resto; um jogo instalado em outra pasta do C: também é encontrado.\n" +
             "• Desmarque DirectX, .NET, Visual C++ e outros componentes do Windows: o Proton já cuida deles.\n" +
-            "• Atalhos do instalador não são criados no seu Linux. Quando ele terminar, feche-o normalmente.");
+            "• Atalhos do instalador não são criados no seu Linux. Quando ele terminar, feche-o normalmente.\n" +
+            "• Às vezes a janela do instalador some, não volta pela barra de tarefas ou parece travada (limitação do Wine). Ele continua trabalhando enquanto a barra do Ilmenyx se move. No modo Wine comum (Soda) ele roda numa janela própria, que minimiza e volta normalmente.");
         ToolTip.SetShowDelay(tipsMore, 150);
-        var tipsRow = new DockPanel(); DockPanel.SetDock(tipsMore, Dock.Right); tipsRow.Children.Add(tipsMore); tipsRow.Children.Add(tipsText);
+        var tipsLines = new StackPanel { Spacing = 2, Children = { tipsText,
+            new TextBlock { Text = "Se a janela do instalador sumir ou parecer travada, ele continua rodando.", Foreground = Palette.Warn, FontSize = 12, TextWrapping = TextWrapping.Wrap } } };
+        var tipsRow = new DockPanel(); DockPanel.SetDock(tipsMore, Dock.Right); tipsRow.Children.Add(tipsMore); tipsRow.Children.Add(tipsLines);
         var tips = new Border { Name = "FxTips", Background = Palette.WarnBg, CornerRadius = new CornerRadius(IlmenyxTheme.ControlRadius), Padding = new Thickness(14, 8), Child = tipsRow };
         // Which Proton runs the installer. Classic (Proton 9, 32-bit Wine layout) is what large 32-bit installers need (see ClassicProton).
         var mode = new ComboBox { Name = "FxProtonMode", SelectedIndex = 0, HorizontalAlignment = HorizontalAlignment.Stretch, ItemsSource = new[] {

@@ -6,7 +6,7 @@ namespace Ilmenyx.Platform.Linux;
 
 /// <summary>What one disposable installer run needs: the umu command, its environment and the two folders involved.</summary>
 /// <param name="SourceInstaller">The installer the user picked; the last argument is its copy inside the temporary Windows (C:\Instalador).</param>
-public sealed record FastExecPlan(string Program, IReadOnlyList<string> Arguments, IReadOnlyList<KeyValuePair<string, string>> Environment, string TempPrefix, string Destination, string SourceInstaller = "");
+public sealed record FastExecPlan(string Program, IReadOnlyList<string> Arguments, IReadOnlyList<KeyValuePair<string, string>> Environment, string TempPrefix, string Destination, string SourceInstaller = "", string Staged = "");
 
 /// <summary>
 /// "Fast exec": runs a Windows installer (setup.exe) once with Proton in a throwaway prefix, so nothing of the installer stays behind.
@@ -39,9 +39,11 @@ public static class FastExec
         string runId = id ?? Guid.NewGuid().ToString("N")[..12];
         string prefix = Path.Combine(tempRoot ?? TempRoot(), PrefixPrefix + runId);
         string staged = Path.Combine(prefix, "drive_c", "Instalador", Path.GetFileName(installer));
-        if (wineBin is { Length: > 0 }) return PlainWinePlan(wineBin, staged, prefix, dest, installer, Path.Combine(LogFolder(tempRoot), "wine-" + runId + ".log"));
+        // The installer opens already pointing at C:\Jogos\<game> when it accepts a folder on its command line (Inno Setup, NSIS).
+        string[] extra = InstallerDefaults.DirArguments(installer) is { } dirArg ? [dirArg] : [];
+        if (wineBin is { Length: > 0 }) return PlainWinePlan(wineBin, staged, extra, prefix, dest, installer, Path.Combine(LogFolder(tempRoot), "wine-" + runId + ".log"));
         string umu = find("umu-run") ?? throw new InvalidOperationException("O umu-launcher (Proton fora da Steam) não foi encontrado.");
-        return new(umu, [staged], [
+        return new(umu, [staged, .. extra], [
             new("WINEPREFIX", prefix), new("GAMEID", "umu-default"), new("STORE", "none"),
             new("WINEDLLOVERRIDES", "winemenubuilder.exe=d"), // no menu entries, icons or file associations from the installer
             // Xalia (gamepad UI helper) only burns CPU here. fsync/esync stay ON: turning them off made a multi-threaded installer about
@@ -50,22 +52,27 @@ public static class FastExec
             new("PROTON_LOG", "1"), new("PROTON_LOG_DIR", LogFolder(tempRoot)),
             .. (protonPath is { Length: > 0 } pp ? new KeyValuePair<string, string>[] { new("PROTONPATH", pp) } // e.g. the classic Proton 9 folder
                 : geProton ? [new("PROTONPATH", "GE-Proton")] : []), // umu downloads the latest GE-Proton
-        ], prefix, dest, installer);
+        ], prefix, dest, installer, staged);
     }
 
     /// <summary>
     /// The installer run with a plain Wine, the way Bottles does it: no umu, no Steam container, and a clean environment (Bottles'
     /// "Limit_System_Environment"): only the session essentials below reach Wine, so nothing from the user's shell changes what the
     /// installer sees. A small shell runs wine, writes its output to the log and then waits (wineserver -w) for every helper the
-    /// installer started, so "finished" means really finished. The installer's copy is the last argument (the working folder).
+    /// installer started, so "finished" means really finished.
     /// </summary>
-    private static FastExecPlan PlainWinePlan(string wine, string staged, string prefix, string dest, string installer, string log)
+    private static FastExecPlan PlainWinePlan(string wine, string staged, string[] extra, string prefix, string dest, string installer, string log)
     {
         string bin = Path.GetDirectoryName(wine)!, root = Path.GetDirectoryName(bin)!;
         string libs = string.Join(':', new[] { "lib", "lib64", "lib/wine/x86_64-unix", "lib/wine/i386-unix" }.Select(l => Path.Combine(root, l)).Where(Directory.Exists));
         // Mono is used when the runner ships it (Soda does, like the bottle); Gecko is never downloaded by an installer run.
         string overrides = "winemenubuilder.exe=d;mshtml=" + (Directory.Exists(Path.Combine(root, "share", "wine", "mono")) ? "" : ";mscoree=");
-        const string script = "\"$1\" \"$4\" >>\"$3\" 2>&1; code=$?; \"$2\" -w; exit $code";
+        // The installer runs inside a Wine virtual desktop (one ordinary window): Wine's own windows sometimes cannot be restored from
+        // the taskbar after being minimized or covered (owner's test 2026-11-08). Only this throwaway prefix gets the setting.
+        const string script = "w=\"$1\"; s=\"$2\"; l=\"$3\"; shift 3; " +
+            "\"$w\" reg add 'HKCU\\Software\\Wine\\Explorer' /v Desktop /d Ilmenyx /f >>\"$l\" 2>&1; " +
+            "\"$w\" reg add 'HKCU\\Software\\Wine\\Explorer\\Desktops' /v Ilmenyx /d " + VirtualDesktopSize + " /f >>\"$l\" 2>&1; " +
+            "\"$w\" \"$@\" >>\"$l\" 2>&1; code=$?; \"$s\" -w; exit $code";
         var env = new List<KeyValuePair<string, string>>();
         foreach (var key in SessionEssentials)
             if (System.Environment.GetEnvironmentVariable(key) is { Length: > 0 } v) env.Add(new(key, v));
@@ -76,9 +83,12 @@ public static class FastExec
             .. (libs.Length > 0 ? new KeyValuePair<string, string>[] { new("LD_LIBRARY_PATH", libs) } : []),
         ]);
         string envTool = File.Exists("/usr/bin/env") ? "/usr/bin/env" : "/bin/env";
-        return new(envTool, ["-i", .. env.Select(e => e.Key + "=" + e.Value), "/bin/sh", "-c", script, "ilmenyx-fastexec", wine, Path.Combine(bin, "wineserver"), log, staged],
-            env, prefix, dest, installer);
+        return new(envTool, ["-i", .. env.Select(e => e.Key + "=" + e.Value), "/bin/sh", "-c", script, "ilmenyx-fastexec", wine, Path.Combine(bin, "wineserver"), log, staged, .. extra],
+            env, prefix, dest, installer, staged);
     }
+
+    /// <summary>Size of the virtual desktop the plain-Wine installer runs in (Bottles' default).</summary>
+    public const string VirtualDesktopSize = "1280x720";
 
     /// <summary>The only session variables a plain-Wine installer run inherits (display, audio, locale, user).</summary>
     private static readonly string[] SessionEssentials = ["HOME", "USER", "LOGNAME", "PATH", "LANG", "LANGUAGE", "LC_ALL", "TZ", "DISPLAY", "WAYLAND_DISPLAY",
@@ -122,7 +132,7 @@ public static class FastExec
     public static void StageInstaller(FastExecPlan plan)
     {
         if (plan.SourceInstaller.Length == 0) return;
-        string source = Path.GetDirectoryName(plan.SourceInstaller)!, target = Path.GetDirectoryName(plan.Arguments[^1])!;
+        string source = Path.GetDirectoryName(plan.SourceInstaller)!, target = Path.GetDirectoryName(plan.Staged)!;
         string home = Path.GetFullPath(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)).TrimEnd('/');
         string full = Path.GetFullPath(source).TrimEnd('/');
         bool broad = full == home || full == "/" || BroadFolders.Any(b => full == Path.Combine(home, b));
@@ -159,7 +169,7 @@ public static class FastExec
     /// <summary>Runs the installer and waits until it and its helpers end. Cancel kills the whole process tree.</summary>
     public static async Task<int> RunAsync(FastExecPlan plan, CancellationToken ct)
     {
-        var psi = HostSpawn.Start(plan.Program, plan.Arguments, plan.Environment.ToDictionary(e => e.Key, e => e.Value), Path.GetDirectoryName(plan.Arguments[^1]), redirect: false);
+        var psi = HostSpawn.Start(plan.Program, plan.Arguments, plan.Environment.ToDictionary(e => e.Key, e => e.Value), Path.GetDirectoryName(plan.Staged.Length > 0 ? plan.Staged : plan.Arguments[0]), redirect: false);
         using var process = Process.Start(psi) ?? throw new IOException("Não foi possível iniciar o instalador.");
         try { await process.WaitForExitAsync(ct); }
         catch (OperationCanceledException) { try { process.Kill(entireProcessTree: true); } catch (InvalidOperationException) { } throw; }
@@ -221,6 +231,7 @@ public static class FastExec
     public static string InstallFolder(FastExecPlan plan) => Path.Combine(plan.TempPrefix, "drive_c", "Jogos");
 
     /// <summary>Folders Wine itself creates in Program Files; anything else there came from the installer.</summary>
+    private static readonly string[] DriveRootDefaults = ["windows", "users", "programdata", "program files", "program files (x86)", "instalador", "jogos", "games", "$recycle.bin", "temp", "tmp"];
     private static readonly string[] WineDefaults = ["common files", "internet explorer", "windows media player", "windows nt", "windowspowershell", "microsoft.net", "msbuild", "reference assemblies", "uninstall information", "windows defender", "windows mail", "windows photo viewer", "windows portable devices", "windows sidebar", "steam", "microsoft"]; // Proton creates Program Files (x86)\\Steam itself
 
     /// <summary>
@@ -245,6 +256,14 @@ public static class FastExec
         }
         Add(Path.Combine(c, "Jogos"), false); Add(Path.Combine(c, "Games"), false);
         Add(Path.Combine(c, "Program Files"), true); Add(Path.Combine(c, "Program Files (x86)"), true);
+        // Safety net for a game installed elsewhere on C: (C:\GOG Games, C:\MeuJogo…): any other top-level folder with a real program.
+        if (Directory.Exists(c))
+            foreach (var d in Directory.EnumerateDirectories(c))
+            {
+                if (new DirectoryInfo(d).LinkTarget is not null || DriveRootDefaults.Contains(Path.GetFileName(d).ToLowerInvariant())) continue;
+                if (Directory.EnumerateFiles(d, "*.exe", new EnumerationOptions { RecurseSubdirectories = true, MatchCasing = MatchCasing.CaseInsensitive, IgnoreInaccessible = true }).Any(f => new FileInfo(f).Length > 1_000_000))
+                    list.Add(d);
+            }
         return list;
     }
 

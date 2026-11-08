@@ -656,7 +656,11 @@ public sealed class UiSmokeApp : Application
         string settingsPath = Path.Combine(root, "cfg/ilmenyx/settings.json"); string? launched = null;
         Window? host = null;
         var page = new LauncherPage(new Ilmenyx.Platform.Linux.LinuxGameLibrary(home, (_, _) => Task.FromResult((0, "[]"))), new Ilmenyx.Platform.Linux.SteamInfo(home, Path.Combine(root, "noproc")), settingsPath,
-            (g, p, v, status, learned, ct) => { launched = g.Key + "|" + p.WinMode; status("stub launched"); return Task.FromResult<Ilmenyx.Core.FpsSession?>(new(g.Name, DateTimeOffset.UtcNow, 61.5, 44, 95, "Fixture GPU", null)); }, () => host, "AMD", true, CancellationToken.None);
+            (g, p, v, status, learned, ct) => { launched = g.Key + "|" + p.WinMode; status("stub launched"); return Task.FromResult<Ilmenyx.Core.FpsSession?>(new(g.Name, DateTimeOffset.UtcNow, 61.5, 44, 95, "Fixture GPU", null)); }, () => host, "AMD", true, CancellationToken.None)
+        {
+            FindSteamId = (name, _) => Task.FromResult<(string, string)?>(name == "Hollow Knight - Silksong" ? ("1030300", "Hollow Knight: Silksong") : null),
+            ConfirmRemove = _ => Task.FromResult(true), UmuProton = () => null,
+        };
         host = new Window { Width = 1100, Height = 800, Content = page }; host.Show();
         await Until(() => page.Games.Count == 1);
         Click(host, "BtnAddExe"); Find<TextBox>(host, "LAddPath").Text = "relative/path"; Click(host, "BtnAddExeConfirm");
@@ -664,8 +668,21 @@ public sealed class UiSmokeApp : Application
         if (!Find<Button>(host, "BtnAddExeBrowse").IsVisible) throw new InvalidOperationException("The add box must offer a file chooser (PROCURAR…).");
         Find<TextBox>(host, "LAddPath").Text = manual; Click(host, "BtnAddExeConfirm");
         await Until(() => page.Games.Count == 2 && page.Profile is not null && host.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "LTitle" && t.Text == "manualgame"));
+        // A Windows game added by hand: named after its folder, Steam ID found by name (fixture search), executable path shown, removable.
+        string winDir = Path.Combine(root, "Hollow Knight - Silksong"); Directory.CreateDirectory(winDir);
+        string winExe = Path.Combine(winDir, "Hollow Knight Silksong.exe"); File.WriteAllBytes(winExe, [0x4d, 0x5a, 0x90, 0, 3, 0, 0, 0]);
+        Find<TextBox>(host, "LAddPath").Text = winExe; Click(host, "BtnAddExeConfirm");
+        await Until(() => page.Games.Count == 3 && Find<TextBlock>(host, "LTitle").Text == "Hollow Knight - Silksong" && Find<TextBox>(host, "LProtonId").Text == "1030300");
+        if (Find<TextBox>(host, "LExePath").Text != winExe) throw new InvalidOperationException("The executable path of a hand-added game must be shown, not left empty.");
+        if (!Find<TextBlock>(host, "LProtonIdStatus").Text!.Contains("Hollow Knight: Silksong")) throw new InvalidOperationException("The found Steam ID must say which store game it matched.");
+        if (!Find<Button>(host, "BtnRemoveGame").IsVisible) throw new InvalidOperationException("A hand-added game must offer REMOVER.");
+        Click(host, "BtnRemoveGame");
+        await Until(() => page.Games.Count == 2 && Ilmenyx.Core.IlmenyxSettings.Load(settingsPath).CustomGames.All(c => c.Exe != winExe));
+        if (!File.Exists(winExe)) throw new InvalidOperationException("Removing from the library must never delete the game's files.");
+        if (Ilmenyx.Core.IlmenyxSettings.Load(settingsPath).GameProfiles.Keys.Any(k => k.Contains("Silksong"))) throw new InvalidOperationException("The removed game's profile must go too.");
         Click(host, "LGame_Steam_100");
         await Until(() => host.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "LTitle" && t.Text == "Game One") && Find<StackPanel>(host, "LSteamBox").IsVisible);
+        if (Find<Button>(host, "BtnRemoveGame").IsVisible) throw new InvalidOperationException("Steam games are removed in Steam, not here.");
         var plan = Find<CheckBox>(host, "LChkPlan"); plan.IsChecked = true;
         var gpu = Find<CheckBox>(host, "LChkGpu"); if (!gpu.IsEnabled) throw new InvalidOperationException("GPU checkbox should be enabled with multiple GPUs."); gpu.IsChecked = true;
         foreach (var chip in host.GetVisualDescendants().OfType<Button>().Where(b => b.Content?.ToString() is "Tela cheia" or "1920x1080" or "144")) chip.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -684,7 +701,7 @@ public sealed class UiSmokeApp : Application
         Find<Button>(shell, "Navlauncher").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await Until(() => shell.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "LGameCount" && !t.Text!.StartsWith("Procurando")));
         await Task.Delay(200); Capture(shell, "shell-launcher.png");
-        Console.WriteLine("PASS launcher page: library scan, manual executable validation, profile persistence, Steam launch options with backup, helper, stubbed launch; real library read-only");
+        Console.WriteLine("PASS launcher page: library scan, manual executable validation, Windows game named by folder with Steam ID found and path shown, removal keeps files, profile persistence, Steam launch options with backup, helper, stubbed launch; real library read-only");
     }
     private sealed class FakeStress : Ilmenyx.Core.IStressEngine
     {

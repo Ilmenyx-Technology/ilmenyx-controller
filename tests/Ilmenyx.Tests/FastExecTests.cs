@@ -223,7 +223,7 @@ public sealed class FastExecTests : IDisposable
         Assert.Contains("/bin/sh", plan.Arguments);
         Assert.Contains($"WINEPREFIX={plan.TempPrefix}", plan.Arguments);
         Assert.DoesNotContain(plan.Arguments, a => a.StartsWith("ILX_LEAK=", StringComparison.Ordinal));
-        Assert.Equal(Path.Combine(plan.TempPrefix, "drive_c", "Instalador", "setup.exe"), plan.Arguments[^1]);
+        Assert.Equal(Path.Combine(plan.TempPrefix, "drive_c", "Instalador", "setup.exe"), plan.Staged);
         Assert.Contains(new KeyValuePair<string, string>("WINEPREFIX", plan.TempPrefix), plan.Environment);
         Assert.Contains(plan.Environment, e => e.Key == "WINEDLLOVERRIDES" && e.Value.Contains("winemenubuilder.exe=d", StringComparison.Ordinal));
         FastExec.Prepare(plan); FastExec.StageInstaller(plan);
@@ -232,8 +232,59 @@ public sealed class FastExecTests : IDisposable
         Assert.Equal(3, code); // the installer's own exit code comes back
         string log = FastExec.LatestLog(fx)!;
         Assert.Equal(Path.Combine(fx, "logs", "wine-pw.log"), log);
-        Assert.Contains("wine ran " + plan.Arguments[^1], File.ReadAllText(log));
+        Assert.Contains("wine ran " + plan.Staged, File.ReadAllText(log));
+        Assert.Contains("wine ran reg", File.ReadAllText(log)); // virtual desktop set before the installer starts
         Assert.Contains("waited -w", File.ReadAllText(Path.Combine(root, "runners", "soda-11.0-10", "waited"))); // wineserver -w ran after it
+        FastExec.Cleanup(plan);
+    }
+
+    private string FakeInstaller(string folder, string marker)
+    {
+        string dir = Path.Combine(root, folder); Directory.CreateDirectory(dir);
+        string exe = Path.Combine(dir, "setup.exe");
+        File.WriteAllBytes(exe, [0x4d, 0x5a, .. new byte[5000], .. System.Text.Encoding.ASCII.GetBytes(marker), .. new byte[100]]);
+        return exe;
+    }
+
+    [Theory]
+    [InlineData("Hollow Knight - Silksong [FitGirl Repack]", "Hollow Knight - Silksong")]
+    [InlineData("Some_Game (v1.2) {GOG}", "Some Game")]
+    [InlineData("Downloads", null)]
+    public void GameNameComesFromTheInstallerFolderWithoutReleaseTags(string folder, string? expected)
+    {
+        string exe = FakeInstaller(folder, "x");
+        Assert.Equal(expected, InstallerDefaults.GameName(exe));
+    }
+
+    [Fact]
+    public void InnoAndNsisInstallersOpenPointingAtCJogos()
+    {
+        string inno = FakeInstaller("Cool Game [Repack]", "rDlPtS"), nsis = FakeInstaller("Other Game", "NullsoftInst"), msi = FakeInstaller("Third Game", "nothing");
+        Assert.Equal(InstallerEngine.InnoSetup, InstallerDefaults.Detect(inno));
+        Assert.Equal(InstallerEngine.Nsis, InstallerDefaults.Detect(nsis));
+        Assert.Equal(@"/DIR=C:\Jogos\Cool Game", InstallerDefaults.DirArguments(inno));
+        Assert.Equal(@"/D=C:\Jogos\Other Game", InstallerDefaults.DirArguments(nsis));
+        Assert.Null(InstallerDefaults.DirArguments(msi));
+        var proton = FastExec.Plan(inno, Path.Combine(root, "J"), n => "/usr/bin/" + n, Path.Combine(root, "fx"), "d1");
+        Assert.Equal([proton.Staged, @"/DIR=C:\Jogos\Cool Game"], proton.Arguments);
+        if (!OperatingSystem.IsLinux()) return;
+        var wine = FastExec.Plan(nsis, Path.Combine(root, "J"), _ => null, Path.Combine(root, "fx"), "d2", wineBin: FakeRunner(Path.Combine(root, "runners"), "soda-11.0-10"));
+        Assert.Equal(@"/D=C:\Jogos\Other Game", wine.Arguments[^1]); // NSIS wants /D= last
+    }
+
+    [Fact]
+    public void AGameInstalledElsewhereOnCIsStillFoundButWineFoldersAreNot()
+    {
+        if (!OperatingSystem.IsLinux()) return;
+        var plan = FastExec.Plan(Installer, Path.Combine(root, "J"), n => "/usr/bin/" + n, Path.Combine(root, "fx"), "sn");
+        string c = Path.Combine(plan.TempPrefix, "drive_c");
+        void Exe(string rel, int size) { string p = Path.Combine(c, rel); Directory.CreateDirectory(Path.GetDirectoryName(p)!); File.WriteAllBytes(p, new byte[size]); }
+        Exe("GOG Games/My Game/game.exe", 2_000_000);
+        Exe("windows/system32/big.exe", 2_000_000);
+        Exe("Instalador/setup.exe", 2_000_000);
+        Exe("Tools/tiny.exe", 10);
+        var found = FastExec.InstalledFolders(plan);
+        Assert.Equal([Path.Combine(c, "GOG Games")], found);
         FastExec.Cleanup(plan);
     }
 }

@@ -42,6 +42,12 @@ Inventário e limites: docs/security/PRIVACY-SECURITY-AUDIT.md. Testes de fixtur
 privacidade em todo hardware. Obrigações relacionadas a dados de terceiros, base/retenção/canal de
 direitos e eventual aplicação de LGPD/ANPD: PENDENTE DE REVISÃO humana conforme operação real.
 
+## ID Steam de jogos de Windows adicionados à mão (página Jogos)
+
+- Ao adicionar um jogo de Windows (ou ao clicar em BUSCAR ao lado do ID), o Ilmenyx envia **apenas o nome do jogo** à busca pública da
+  loja Steam (`store.steampowered.com/api/storesearch`). O ID só é preenchido quando o nome bate exatamente com um único jogo da loja.
+  Nada é guardado além do ID no perfil do jogo. Sem internet, o campo fica vazio e pode ser preenchido à mão.
+
 ## Compatibilidade de jogos (página Compatibilidade e `ilmenyx compat`)
 
 - Sem rede por padrão. Só depois de uma confirmação que nomeia os endereços:
