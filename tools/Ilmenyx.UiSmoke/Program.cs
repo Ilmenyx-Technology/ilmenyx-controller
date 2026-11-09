@@ -1282,17 +1282,17 @@ public sealed class UiSmokeApp : Application
         await Until(() => page.Rows.Count > 20 && page.Rows.Any(r => r.Fps > 0));
         if (page.GpuIndex != 100 || page.CpuIndex != 100) throw new InvalidOperationException("Hardware indices not resolved from the catalog tables.");
         string CardFps(string name) => host.GetVisualDescendants().OfType<Border>().Single(b => b.Name == "Game_" + LauncherPage.SafeName(name)).GetVisualDescendants().OfType<TextBlock>().First(t => t.FontSize == 28).Text!;
-        // The local estimate is shown as a range around the table value (CS2 at 1080p/Alto on RTX 4070 + 7700X = 340), never as a single number.
+        // The local estimate is shown as a range around the table value (CS2 at 1080p/Alto on RTX 4070 + 7700X = 284 since the measured curves of 2026-11-08), never as a single number.
         bool RangeAround(string text, double centre) => text.Split('–') is [var lo, var hi] && double.TryParse(lo, System.Globalization.CultureInfo.InvariantCulture, out double l) && double.TryParse(hi, System.Globalization.CultureInfo.InvariantCulture, out double h) && l < centre && centre < h;
         await Until(() => host.GetVisualDescendants().OfType<Border>().Any(b => b.Name == "Game_" + LauncherPage.SafeName("Counter-Strike 2")));
-        if (page.Rows.Single(r => r.Name == "Counter-Strike 2").Fps != 340 || !RangeAround(CardFps("Counter-Strike 2"), 340)) throw new InvalidOperationException("CS2 estimate at 1080p/Alto should be a range around 340, got " + CardFps("Counter-Strike 2") + ".");
+        if (page.Rows.Single(r => r.Name == "Counter-Strike 2").Fps != 284 || !RangeAround(CardFps("Counter-Strike 2"), 284)) throw new InvalidOperationException("CS2 estimate at 1080p/Alto should be a range around 284, got " + CardFps("Counter-Strike 2") + ".");
         if (page.Assessment.Confidence != Ilmenyx.Core.FpsConfidence.Medium) throw new InvalidOperationException("Desktop GPU + CPU at the reference should give medium confidence.");
         var dota = page.Rows.Single(r => r.Name == "Dota 2");
         if (CardFps("Dota 2") != "87" || dota.Source != "MEDIDO NESTE PC" || !dota.Summary.StartsWith("Medido neste PC: 87 FPS (1% low 52) · última sessão", StringComparison.Ordinal)) throw new InvalidOperationException("Measured session must take priority over the estimate.");
         if (page.Alerts.Select(a => a.Title).ToArray() is not ["2 GB de VRAM", "Notebook na bateria"] || !Find<StackPanel>(host, "FpsAlerts").IsVisible) throw new InvalidOperationException("VRAM and battery alerts expected.");
         await Task.Delay(300); Capture(host, "fps-fixture.png");
         foreach (var chip in host.GetVisualDescendants().OfType<Button>().Where(b => b.Content?.ToString() == "1440p")) chip.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        await Until(() => CardFps("Counter-Strike 2") is var t && !RangeAround(t, 340) && RangeAround(t, page.Rows.Single(r => r.Name == "Counter-Strike 2").Fps) && CardFps("Dota 2") == "87");
+        await Until(() => CardFps("Counter-Strike 2") is var t && !RangeAround(t, 284) && RangeAround(t, page.Rows.Single(r => r.Name == "Counter-Strike 2").Fps) && CardFps("Dota 2") == "87");
         // No API key box, no query button, no mention of the removed service; the source card says the estimate is local.
         if (host.GetVisualDescendants().OfType<Control>().Any(c => c.Name is "ApiKeyBox" or "BtnApiKey" or "BtnFpsQuery")) throw new InvalidOperationException("The removed HowManyFPS controls are still on the page.");
         if (host.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text?.Contains("HowManyFPS", StringComparison.OrdinalIgnoreCase) == true || t.Text?.Contains("CONSULTAR API", StringComparison.Ordinal) == true)) throw new InvalidOperationException("A text still mentions the removed HowManyFPS API.");

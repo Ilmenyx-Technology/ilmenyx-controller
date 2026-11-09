@@ -17,8 +17,8 @@ public sealed class FpsTests : IDisposable
         var rows = GameCatalog.Games.Select(g => new GameFpsRow(g)).ToList();
         var medium = FpsAccuracy.Assess(HardwareMatch.Desktop, 100, false, 100);
         GameFpsRow.RefreshLocal(rows, 100, 100, "1920x1080", "Alto", "Native", medium);
-        // The local estimate is a range around the central value (340), never a single number.
-        var cs2 = rows.Single(r => r.Name == "Counter-Strike 2"); Assert.Equal(340, cs2.Fps); Assert.Equal("289–391", cs2.FpsText); Assert.Equal("EXCELENTE", cs2.Rating); Assert.Equal("ESTIMATIVA", cs2.Source); Assert.Equal("gargalo: GPU", cs2.Detail); Assert.Equal("confiança média", cs2.LowText);
+        // The local estimate is a range around the central value (284: CS2's measured 1080p High curve at index 100), never a single number.
+        var cs2 = rows.Single(r => r.Name == "Counter-Strike 2"); Assert.Equal(284, cs2.Fps); Assert.Equal("241–327", cs2.FpsText); Assert.Equal("EXCELENTE", cs2.Rating); Assert.Equal("ESTIMATIVA", cs2.Source); Assert.Equal("gargalo: GPU", cs2.Detail); Assert.Equal("confiança média", cs2.LowText);
         Assert.Contains("não é medição", cs2.Summary);
         var elden = rows.Single(r => r.Name == "Elden Ring"); Assert.Equal("trava do jogo em 60 FPS", elden.Detail); Assert.Equal("JOGÁVEL", elden.Rating); Assert.Equal("51–60", elden.FpsText); // never above the engine cap
         cs2.Set(0, 0, "x", ""); Assert.Equal("—", cs2.FpsText); Assert.Equal("", cs2.Rating); Assert.Equal(0, cs2.Bar);

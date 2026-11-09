@@ -69,13 +69,14 @@ public sealed class FpsCalibrationTests : IDisposable
         // Maintainer's observation (2026-11-08): League of Legends > 100 FPS on Low with a GeForce 940MX + i7-7500U. Before: 16–44.
         var lol = GameCatalog.Estimate(Game("League of Legends"), 4.5, 36, "1920x1080", "Baixo", "Native");
         Assert.InRange(lol.Avg, 100, 200);
-        // Riot's Valorant tiers (Intel HD 4000 → 30, GT 730 → 60, GTX 1050 Ti → 144; Alto/1080p assumed): each within ×1,4.
-        foreach (var (idx, fps) in new[] { (1.8, 30.0), (3.3, 60.0), (18.0, 144.0) })
-            Assert.InRange(GameCatalog.Estimate(Game("Valorant"), idx, 100, "1920x1080", "Alto", "Native").Avg / fps, 1 / 1.4, 1.4);
-        // The reference machine keeps its values (exponent only bends the curve below index 100), and heavy games are unchanged.
+        // Valorant now follows its measured curve (Notebookcheck, 1080p High): UHD 620 33,6 FPS, MX250 115, GTX 1650 Mobile 148; each within ×1,7
+        // (Valorant is the noisiest fit: on laptops the CPU often limits it, so weak iGPUs are the least certain point).
+        foreach (var (idx, fps) in new[] { (2.5, 33.6), (7.5, 115.0), (28.0, 148.0) })
+            Assert.InRange(GameCatalog.Estimate(Game("Valorant"), idx, 100, "1920x1080", "Alto", "Native").Avg / fps, 1 / 1.7, 1.7);
+        // Games without a measured table (LoL) keep the reference value at index 100.
         Assert.Equal(420, GameCatalog.Estimate(Game("League of Legends"), 100, 100, "1920x1080", "Alto", "Native").Avg);
         Assert.Equal(1.0, Game("Cyberpunk 2077").GpuExp);
-        Assert.Equal(Math.Round(95 * 0.045), GameCatalog.Estimate(Game("Cyberpunk 2077"), 4.5, 100, "1920x1080", "Alto", "Native").Avg);
+        Assert.InRange(GameCatalog.Estimate(Game("Cyberpunk 2077"), 4.5, 100, "1920x1080", "Alto", "Native").Avg, 2, 8); // measured: MX130 2,6, MX250 5,0
     }
 
     [Fact]
@@ -187,5 +188,19 @@ public sealed class FpsCalibrationTests : IDisposable
         Assert.Equal(FpsConfidence.Medium, row.Assessment!.Confidence);
         row.SetEstimate(e, a, FpsBasis.Specs, false, null);
         Assert.Equal("base: especificações", row.BasisText); Assert.Equal(e.Avg, row.Fps);
+    }
+
+    [Fact]
+    public void MeasuredCurvesFollowRealBenchmarksOnWeakLaptopGpus()
+    {
+        // Notebookcheck CS2 (1080p): MX250 (índice 7,5) Low 75 / High 24; MX450 (11) Low 87,5 / High 34,8. Within ×1,5.
+        var cs2 = Game("Counter-Strike 2");
+        foreach (var (idx, preset, fps) in new[] { (7.5, "Baixo", 75.1), (7.5, "Alto", 24.3), (11.0, "Baixo", 87.5), (11.0, "Alto", 34.8) })
+            Assert.InRange(GameCatalog.Estimate(cs2, idx, 100, "1920x1080", preset, "Native").Avg / fps, 1 / 1.5, 1.5);
+        // A lower preset is never slower than a higher one, for every measured game and GPU strength.
+        foreach (var (name, c) in GameCatalog.Measured)
+            foreach (double idx in new[] { 1.0, 4.5, 30, 100, 200 })
+                Assert.True(c.Fps(idx, "Baixo") >= c.Fps(idx, "Médio") && c.Fps(idx, "Médio") >= c.Fps(idx, "Alto") && c.Fps(idx, "Alto") >= c.Fps(idx, "Ultra"), name);
+        Assert.All(GameCatalog.Measured.Keys, n => Assert.Contains(GameCatalog.Games, g => g.Name == n)); // every curve belongs to a catalog game
     }
 }

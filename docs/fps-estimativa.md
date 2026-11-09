@@ -77,6 +77,31 @@ Na GPU de referência (índice 100) nada muda; jogos pesados continuam com expoe
 HD 620 = 2,5 (âncora da cena); i7-7500U = 36 (âncora do GameSim). A razão 940MX/HD 620 pela cena (1,58) fica a 12 % da tabela (1,8).
 Resolução 1280x720 passou a ter fator próprio (×1,59, mesma curva do 1440p) para as sessões gravadas em 720p.
 
+## 0.4 Curvas medidas por jogo e por preset (2026-11-08)
+
+O modelo antigo usava um valor de referência por jogo (RTX 4070, 1080p Alto) e um fator fixo por preset (Baixo ×1,6, Médio ×1,3,
+Ultra ×0,82) igual para todos os jogos. Comparado com benchmarks reais, ele errava em média **51 %** (até ~170 % em Fortnite e
+~110 % em GTA V, The Witcher 3 e Elden Ring), principalmente em GPUs fracas e no preset Baixo (ex.: CS2 numa 940MX: o modelo dizia
+~21 FPS no Baixo; GPUs da mesma classe medem 50–75).
+
+Agora, para 29 jogos do catálogo, a FPS limitada pela GPU em 1920×1080 vem de uma curva por preset ajustada a medições:
+`FPS = A × (índice/100)^b` (classe `PresetCurves` em `GameCatalog.cs`).
+
+- **Fonte:** tabelas de benchmark por jogo do Notebookcheck (notebookcheck.net, páginas "… laptop and desktop benchmarks"),
+  consultadas em 2026-11-08: dezenas de GPUs de desktop, notebook e integradas por jogo. Só os parâmetros ajustados ficam no código;
+  as tabelas não são redistribuídas.
+- **Ajuste:** mínimos quadrados em log, só com pontos abaixo de 80 % do maior valor da coluna (o platô é limite de CPU ou trava do
+  jogo); colunas de 720p/768p de páginas antigas convertidas para 1080p pela curva de resolução (FPS ∝ pixels^−0,57). Um preset
+  mais leve nunca fica mais lento que o mais pesado (o maior dos dois vale).
+- **Resultado:** nos 2 775 pontos medidos, o erro mediano caiu de 51 % para **17 %**.
+- **Casos especiais:** Fortnite (tabela da versão de 2018: usa só o formato da curva, ancorado no nível atual do catálogo);
+  Warzone (curvas do Black Ops 6, mesmo motor, ×130/140); Overwatch 2 usa a tabela do Overwatch (mesmo motor).
+  League of Legends, Marvel Rivals e Minecraft não têm tabela utilizável e seguem o modelo antigo.
+- **Páginas antigas** (R6 2015, PUBG 2017, Rocket League 2017, Dota 2 2017, The Witcher 3 2015): o jogo pode ter ficado mais
+  pesado desde então; a faixa de confiança continua valendo.
+- **Próximo passo possível:** o mesmo conjunto de dados permite reajustar a tabela de índices de GPU (ajuste conjunto: erro 17 % → 12 %),
+  mas isso muda a calibração (SceneK) e o método por especificações; fica para uma revisão separada.
+
 ## 1. Medido neste PC
 
 - Só sessões iniciadas pelo botão JOGAR da página Jogos com **MangoHud** ligado no perfil, usando a configuração do MangoHud gerada
