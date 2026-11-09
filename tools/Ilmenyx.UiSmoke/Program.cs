@@ -1569,9 +1569,59 @@ public sealed class UiSmokeApp : Application
         await Until(() => shell.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnAppsInstall"));
         Console.WriteLine("PASS apps page: Flathub added only after confirmation (user scope), installed apps locked, declined install runs nothing, confirmed install uses user-scope noninteractive flatpak calls; real flatpak never installs");
     }
+    /// <summary>Opt-in (ILMENYX_CONTRAST_AUDIT=1): measures the WCAG contrast of every visible text of every shell page in both themes, against the pixels really rendered behind it, and writes contrast.tsv.</summary>
+    private static async Task ContrastAuditAsync()
+    {
+        static double Lum(double r, double g, double b) { static double C(double v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.Pow((v + 0.055) / 1.055, 2.4); } return 0.2126 * C(r) + 0.7152 * C(g) + 0.0722 * C(b); }
+        var rows = new List<string> { "theme\tpage\tratio\tsize\tbold\tfg\tbg\tname\ttext" }; var seen = new HashSet<string>();
+        var shell = new ShellWindow { Width = 1280, Height = 820 }; shell.Show(); await Task.Delay(1500);
+        var keys = shell.GetVisualDescendants().OfType<Button>().Where(b => b.Name is { Length: > 3 } n && n.StartsWith("Nav", StringComparison.Ordinal)).Select(b => b.Name![3..]).ToList();
+        foreach (string theme in new[] { "escuro", "claro" })
+        {
+            if ((theme == "claro") != Palette.IsLight) { Click(shell, "ToggleTheme"); await Task.Delay(500); }
+            foreach (string key in keys)
+            {
+                try { shell.GetVisualDescendants().OfType<Button>().Single(b => b.Name == "Nav" + key).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); } catch (InvalidOperationException) { rows.Add($"{theme}\t{key}\t0\t0\t0\t\t\tNAV-ERROR\t"); continue; }
+                await Task.Delay(1200);
+                var scroller = shell.GetVisualDescendants().OfType<ScrollViewer>().Where(v => v.IsEffectivelyVisible && v.Bounds.Width > 400).OrderByDescending(v => v.Extent.Height - v.Viewport.Height).FirstOrDefault();
+                double maxOffset = scroller is null ? 0 : Math.Min(Math.Max(0, scroller.Extent.Height - scroller.Viewport.Height), 12000), step = Math.Max(200, (scroller?.Viewport.Height ?? 800) * 0.8);
+                for (double y = 0; ; y += step)
+                {
+                    if (scroller is not null) { scroller.Offset = new Vector(0, Math.Min(y, maxOffset)); await Task.Delay(180); }
+                    Capture(shell, $"audit-{theme}-{key}-{(int)(y / step)}.png");
+                    int w = (int)shell.Bounds.Width, h = (int)shell.Bounds.Height;
+                    using var image = new RenderTargetBitmap(new PixelSize(w, h), new Vector(96, 96)); image.Render(shell);
+                    var px = new byte[w * h * 4]; var pin = System.Runtime.InteropServices.GCHandle.Alloc(px, System.Runtime.InteropServices.GCHandleType.Pinned);
+                    try { image.CopyPixels(new PixelRect(0, 0, w, h), pin.AddrOfPinnedObject(), px.Length, w * 4); } finally { pin.Free(); }
+                    foreach (var tb in shell.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible && !string.IsNullOrWhiteSpace(t.Text) && t.Foreground is Avalonia.Media.ISolidColorBrush))
+                    {
+                        if (tb.TranslatePoint(new Point(0, 0), shell) is not { } at) continue;
+                        int x0 = (int)at.X, y0 = (int)at.Y, x1 = (int)(at.X + tb.Bounds.Width), y1 = (int)(at.Y + tb.Bounds.Height);
+                        if (x0 < 0 || y0 < 0 || x1 > w || y1 > h || x1 - x0 < 4 || y1 - y0 < 4) continue;
+                        if (scroller is not null && scroller.GetVisualDescendants().Contains(tb) && scroller.TranslatePoint(new Point(0, 0), shell) is { } so && (y0 < so.Y || y1 > so.Y + scroller.Bounds.Height)) continue;
+                        var hist = new Dictionary<int, int>();
+                        for (int yy = y0; yy < y1; yy++) for (int xx = x0; xx < x1; xx++) { int i = (yy * w + xx) * 4; int q = (px[i] >> 2) | ((px[i + 1] >> 2) << 6) | ((px[i + 2] >> 2) << 12); hist[q] = hist.GetValueOrDefault(q) + 1; }
+                        int mode = hist.MaxBy(kv => kv.Value).Key; double bb = (mode & 63) * 4 + 2, bg = ((mode >> 6) & 63) * 4 + 2, br = ((mode >> 12) & 63) * 4 + 2;
+                        var c = ((Avalonia.Media.ISolidColorBrush)tb.Foreground!).Color; double op = c.A / 255.0 * ((Avalonia.Media.ISolidColorBrush)tb.Foreground!).Opacity;
+                        for (Visual? v = tb; v is not null; v = v.GetVisualParent()) op *= v.Opacity;
+                        double fr = c.R * op + br * (1 - op), fg = c.G * op + bg * (1 - op), fb = c.B * op + bb * (1 - op);
+                        double l1 = Lum(fr, fg, fb), l2 = Lum(br, bg, bb), ratio = (Math.Max(l1, l2) + 0.05) / (Math.Min(l1, l2) + 0.05);
+                        string text = tb.Text!.ReplaceLineEndings(" "); if (text.Length > 70) text = text[..70];
+                        if (!seen.Add(theme + key + (tb.Name ?? "") + text)) continue;
+                        rows.Add(string.Join('\t', theme, key, ratio.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture), tb.FontSize.ToString(System.Globalization.CultureInfo.InvariantCulture), ((int)tb.FontWeight >= 600) ? "1" : "0", $"#{c.R:X2}{c.G:X2}{c.B:X2}", $"#{(int)br:X2}{(int)bg:X2}{(int)bb:X2}", tb.Name ?? "", text));
+                    }
+                    if (y >= maxOffset) break;
+                }
+            }
+        }
+        File.WriteAllLines(Path.Combine(Program.OutputDirectory, "contrast.tsv"), rows);
+        Console.WriteLine("AUDIT " + Path.Combine(Program.OutputDirectory, "contrast.tsv") + " rows " + rows.Count);
+        shell.Close();
+    }
     private static async Task ExerciseAsync(DashboardWindow window, IClassicDesktopStyleApplicationLifetime desktop)
     {
         var output = Program.OutputDirectory;
+        if (Environment.GetEnvironmentVariable("ILMENYX_CONTRAST_AUDIT") == "1") { await ContrastAuditAsync(); desktop.Shutdown(0); return; }
         await MonitorAsync(desktop);
         await KeyboardAsync(window, desktop);
         await RequirementsAsync(window, desktop);

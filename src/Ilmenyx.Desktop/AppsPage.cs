@@ -95,7 +95,7 @@ public sealed class AppsPage : StackPanel
         var body = new StackPanel { Children = { new TextBlock { Text = title, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap }, new TextBlock { Text = app.Description, Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap } } };
         if (app.Caveat.Length > 0) body.Children.Add(new TextBlock { Name = "AppCaveat_" + key, Text = "Atenção: " + app.Caveat, Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) });
         string meta = string.Join(" · ", new[] { app.FlatpakId.Length > 0 ? "Flathub: " + app.Ref : app.FromGithub ? "GitHub: " + app.GithubRepo + ", " + GithubPackages.Label(installer.Github.Format) : "", app.License.Length > 0 ? "Licença: " + app.License : "" }.Where(x => x.Length > 0));
-        if (meta.Length > 0) body.Children.Add(new TextBlock { Text = meta, Foreground = Palette.Faint, FontSize = 10.5, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 0) });
+        if (meta.Length > 0) body.Children.Add(new TextBlock { Text = meta, Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 0) });
         if (app.Unavailable is not null && !app.LinkOnly && !app.Installed) body.Children.Add(new TextBlock { Name = "AppUnavailable_" + key, Text = app.Unavailable, Foreground = Palette.Muted, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 0) });
         if (app.LinkOnly)
         {

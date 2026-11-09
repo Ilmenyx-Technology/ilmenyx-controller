@@ -191,7 +191,7 @@ public sealed class OptimizePage : StackPanel
             finally { toggle.IsEnabled = true; }
         };
         var head = new Grid(); head.Children.Add(new TextBlock { Text = t.Title, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 110, 0) });
-        if (t.Badge.Length > 0) head.Children.Add(new TextBlock { Text = t.Badge, FontSize = 9.5, FontWeight = FontWeight.Bold, Foreground = Palette.Muted, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 3, 0, 0) });
+        if (t.Badge.Length > 0) head.Children.Add(new TextBlock { Text = t.Badge, FontSize = 11, FontWeight = FontWeight.Bold, Foreground = Palette.Muted, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 3, 0, 0) });
         var effect = new TextBox { Text = t.Effect, IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, FontSize = 11, Foreground = Palette.Faint, BorderThickness = new Thickness(0), Background = Brushes.Transparent, Padding = new Thickness(0), Margin = new Thickness(0, 4, 0, 0) };
         var body = new StackPanel { Children = { head, new TextBlock { Text = t.Description, Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) }, effect, status } };
         var row = new Grid { ColumnDefinitions = new("Auto,*"), Margin = new Thickness(0, 0, 0, 14) }; Grid.SetColumn(body, 1); row.Children.Add(toggle); row.Children.Add(body);

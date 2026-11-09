@@ -426,11 +426,11 @@ public sealed class GamesFpsPage : Grid
             var top = new Grid { ColumnDefinitions = new("*,Auto"), Children = { value } };
             if (row.Rating.Length > 0 && !row.IsProvisional)
             {
-                var rating = new TextBlock { Text = row.Rating, FontSize = 10, FontWeight = FontWeight.Bold, Foreground = tone, LetterSpacing = 0.5, VerticalAlignment = VerticalAlignment.Center };
+                var rating = new TextBlock { Text = row.Rating, FontSize = 11, FontWeight = FontWeight.Bold, Foreground = tone, LetterSpacing = 0.5, VerticalAlignment = VerticalAlignment.Center };
                 Grid.SetColumn(rating, 1); top.Children.Add(rating);
             }
             var meta = new Grid { ColumnDefinitions = new("*,Auto"), Children = { new TextBlock { Text = row.LowText, Foreground = Palette.Muted, FontSize = 11, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(0, 0, 6, 0) } } };
-            var source = new TextBlock { Text = row.Source, Foreground = Palette.Faint, FontSize = 10.5, LetterSpacing = 0.4 }; Grid.SetColumn(source, 1); meta.Children.Add(source);
+            var source = new TextBlock { Text = row.Source, Foreground = Palette.Faint, FontSize = 11, LetterSpacing = 0.4 }; Grid.SetColumn(source, 1); meta.Children.Add(source);
             var body = new StackPanel { Margin = new Thickness(16, 6, 16, 14), Children = { top, bar, meta, new TextBlock { Text = row.Detail, Foreground = Palette.Faint, FontSize = 11, Margin = new Thickness(0, 3, 0, 0), TextTrimming = TextTrimming.CharacterEllipsis, IsVisible = row.Detail.Length > 0 },
                 new TextBlock { Name = "Basis_" + LauncherPage.SafeName(row.Name), Text = row.IsMeasured ? "" : row.BasisText, Foreground = row.IsProvisional ? Palette.Warn : Palette.Faint, FontSize = 11, FontWeight = row.IsProvisional ? FontWeight.SemiBold : FontWeight.Normal, Margin = new Thickness(0, 2, 0, 0), TextWrapping = TextWrapping.Wrap, IsVisible = !row.IsMeasured && row.BasisText.Length > 0 } } };
             var card = new Border

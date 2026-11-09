@@ -106,18 +106,18 @@ public sealed class StartupPage : StackPanel
         {
             Name = "StartupBadge_" + e.Id, BorderBrush = RoleBrush(a.Role), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.Pill), Padding = new Thickness(8, 1),
             Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center,
-            Child = new TextBlock { Text = a.Badge, FontSize = 9.5, FontWeight = FontWeight.Bold, Foreground = RoleBrush(a.Role) },
+            Child = new TextBlock { Text = a.Badge, FontSize = 11, FontWeight = FontWeight.Bold, Foreground = RoleBrush(a.Role) },
         };
         var title = new WrapPanel { Orientation = Orientation.Horizontal, Children = { new TextBlock { Text = e.Name, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center }, badge } };
         if (a.Component.Length > 0) title.Children.Add(new TextBlock { Text = a.Component, FontSize = 11, Foreground = Palette.Faint, Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center });
         var head = new Grid { ColumnDefinitions = new("*,Auto") }; head.Children.Add(title);
-        var state = new TextBlock { Name = "StartupState_" + e.Id, Text = e.State, FontSize = 9.5, FontWeight = FontWeight.Bold, Foreground = Palette.Muted, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(10, 3, 0, 0) };
+        var state = new TextBlock { Name = "StartupState_" + e.Id, Text = e.State, FontSize = 11, FontWeight = FontWeight.Bold, Foreground = Palette.Muted, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(10, 3, 0, 0) };
         Grid.SetColumn(state, 1); head.Children.Add(state);
         var info = new StackPanel { Spacing = 1, Children = { head } };
         if (a.Explanation.Length > 0) info.Children.Add(new TextBlock { Name = "StartupExplain_" + e.Id, Text = a.Explanation, FontSize = 12.5, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 0) });
         info.Children.Add(new TextBlock { Name = "StartupAdvice_" + e.Id, Text = a.Recommendation, FontSize = 12, FontWeight = FontWeight.SemiBold, Foreground = a.RunsHere ? RoleBrush(a.Role) : Palette.Muted, TextWrapping = TextWrapping.Wrap });
-        var command = new TextBlock { Text = e.Command, Foreground = Palette.Faint, FontSize = 10.5, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(0, 3, 0, 0) }; ToolTip.SetTip(command, e.Command);
-        info.Children.Add(command); info.Children.Add(new TextBlock { Text = e.Source, Foreground = Palette.Faint, FontSize = 10.5, TextWrapping = TextWrapping.Wrap });
+        var command = new TextBlock { Text = e.Command, Foreground = Palette.Faint, FontSize = 11, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(0, 3, 0, 0) }; ToolTip.SetTip(command, e.Command);
+        info.Children.Add(command); info.Children.Add(new TextBlock { Text = e.Source, Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap });
         var grid = new Grid { ColumnDefinitions = new("Auto,*,Auto") }; Grid.SetColumn(info, 1);
         grid.Children.Add(toggle); grid.Children.Add(info);
         if (e is { Kind: "Desktop", System: false } && a.Group == StartupGroup.User)
@@ -128,7 +128,7 @@ public sealed class StartupPage : StackPanel
         }
         var card = UiKit.Card(grid, new Thickness(0, 0, 0, 8));
         if (a.Group == StartupGroup.System) card.BorderBrush = a.Role == StartupRole.Required && a.RunsHere ? Palette.Error : Palette.Line;
-        if (!a.RunsHere) card.Opacity = 0.7;
+        if (!a.RunsHere) card.Opacity = 0.92; // was 0.7: the row text fell below the readable contrast
         return card;
     }
 

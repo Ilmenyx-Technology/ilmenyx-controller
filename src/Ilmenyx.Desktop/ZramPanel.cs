@@ -73,7 +73,7 @@ public sealed class ZramPanel : StackPanel
             if (services.RunPrivileged is null) ToolTip.SetTip(b, "O pedido de senha do sistema (pkexec/polkit) não está instalado.");
             b.Click += async (_, _) => await RunAsync(a);
             row.Children.Add(b);
-            scripts.Children.Add(new SelectableTextBlock { Name = "ZramScript" + a.Kind, Text = a.Script, FontFamily = IlmenyxTheme.Mono, FontSize = 10.5, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap });
+            scripts.Children.Add(new SelectableTextBlock { Name = "ZramScript" + a.Kind, Text = a.Script, FontFamily = IlmenyxTheme.Mono, FontSize = 11, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap });
         }
         scripts.IsVisible = false;
         var show = new Button { Name = "BtnZramScript", Content = "VER O SCRIPT", FontSize = 11.5, Background = Brushes.Transparent, Foreground = Palette.AccentText };

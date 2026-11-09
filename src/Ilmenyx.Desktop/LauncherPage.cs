@@ -244,7 +244,7 @@ public sealed class LauncherPage : Grid
             "O jogo de Windows passa a abrir direto no Wayland (PROTON_ENABLE_WAYLAND=1), sem o XWayland.\n\n• Só vale numa sessão Wayland e com GE-Proton ou UMU-Proton 10 ou mais novo; fora disso a opção fica guardada e não entra.\n• É experimental: alguns jogos abrem com janela errada, sem cursor ou sem controle. Se der problema, desmarque.\n• Não combina com o Gamescope.\n• Vale só para este jogo.");
         chkLowLat.IsCheckedChanged += async (_, _) => await ExtraToggledAsync(chkLowLat, "Ligar a baixa latência (experimental)?",
             "Libera o NVIDIA Reflex para o jogo (PROTON_ENABLE_NVAPI=1, pelo DXVK-NVAPI). Depois, ligue a opção Reflex no menu do próprio jogo.\n\n• Só para placas NVIDIA com o driver proprietário. Em AMD e Intel o Proton não documenta uma opção equivalente, então nada é ligado.\n• Não combina com opções que desligam o NVAPI ou trocam o DXVK pelo OpenGL (PROTON_USE_WINED3D).\n• Vale só para este jogo.");
-        extrasBox.Children.Add(new TextBlock { Text = "EXPERIMENTAL (JOGOS DE WINDOWS)", FontSize = 10.5, FontWeight = FontWeight.Bold, Foreground = Palette.Muted, Margin = new Thickness(0, 0, 0, 6) });
+        extrasBox.Children.Add(new TextBlock { Text = "EXPERIMENTAL (JOGOS DE WINDOWS)", FontSize = 11, FontWeight = FontWeight.Bold, Foreground = Palette.Muted, Margin = new Thickness(0, 0, 0, 6) });
         extrasBox.Children.Add(chkWayland); extrasBox.Children.Add(chkLowLat); extrasBox.Children.Add(extrasNote);
         ToolTip.SetTip(chkGpu, multiGpu ? "Define as variáveis de PRIME offload para a GPU dedicada." : "Esta máquina tem uma única GPU: não há o que selecionar.");
         chkGpu.IsEnabled = multiGpu;

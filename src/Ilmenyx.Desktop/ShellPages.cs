@@ -244,7 +244,7 @@ public sealed partial class ShellWindow
         usage.Updated += () => { memoryRow.Text = usage.MemoryLine; procRow.Text = usage.ProcessSummary; cpuName.Text = usage.CpuModel; };
         var score = new TextBlock { Name = "OverviewScore", Text = "—", FontSize = 30, FontWeight = FontWeight.Bold, Margin = new Thickness(0, 2, 0, 0) };
         var scoreDelta = new TextBlock { Name = "OverviewScoreDelta", FontSize = 12.5, Foreground = Palette.Fg, Opacity = 0.85 };
-        var scoreSub = Wrapped("OverviewScoreSub", "rode o Benchmark para ter uma nota", 11, Palette.Fg); scoreSub.Opacity = 0.7;
+        var scoreSub = Wrapped("OverviewScoreSub", "rode o Benchmark para ter uma nota", 11, Palette.Fg); scoreSub.Opacity = 0.9;
         var scoreRows = new StackPanel { Name = "OverviewScores", Margin = new Thickness(0, 8, 0, 0), Spacing = 2 };
         void RefreshScores()
         {
