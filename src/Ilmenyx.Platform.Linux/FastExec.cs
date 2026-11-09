@@ -67,12 +67,9 @@ public static class FastExec
         string libs = string.Join(':', new[] { "lib", "lib64", "lib/wine/x86_64-unix", "lib/wine/i386-unix" }.Select(l => Path.Combine(root, l)).Where(Directory.Exists));
         // Mono is used when the runner ships it (Soda does, like the bottle); Gecko is never downloaded by an installer run.
         string overrides = "winemenubuilder.exe=d;mshtml=" + (Directory.Exists(Path.Combine(root, "share", "wine", "mono")) ? "" : ";mscoree=");
-        // The installer runs inside a Wine virtual desktop (one ordinary window): Wine's own windows sometimes cannot be restored from
-        // the taskbar after being minimized or covered (owner's test 2026-11-08). Only this throwaway prefix gets the setting.
-        const string script = "w=\"$1\"; s=\"$2\"; l=\"$3\"; shift 3; " +
-            "\"$w\" reg add 'HKCU\\Software\\Wine\\Explorer' /v Desktop /d Ilmenyx /f >>\"$l\" 2>&1; " +
-            "\"$w\" reg add 'HKCU\\Software\\Wine\\Explorer\\Desktops' /v Ilmenyx /d " + VirtualDesktopSize + " /f >>\"$l\" 2>&1; " +
-            "\"$w\" \"$@\" >>\"$l\" 2>&1; code=$?; \"$s\" -w; exit $code";
+        // Same run as the owner's successful test (2026-11-08): installer windows go straight to the desktop (the virtual desktop tried
+        // afterwards was rejected by the owner and removed).
+        const string script = "w=\"$1\"; s=\"$2\"; l=\"$3\"; shift 3; \"$w\" \"$@\" >>\"$l\" 2>&1; code=$?; \"$s\" -w; exit $code";
         var env = new List<KeyValuePair<string, string>>();
         foreach (var key in SessionEssentials)
             if (System.Environment.GetEnvironmentVariable(key) is { Length: > 0 } v) env.Add(new(key, v));
@@ -86,9 +83,6 @@ public static class FastExec
         return new(envTool, ["-i", .. env.Select(e => e.Key + "=" + e.Value), "/bin/sh", "-c", script, "ilmenyx-fastexec", wine, Path.Combine(bin, "wineserver"), log, staged, .. extra],
             env, prefix, dest, installer, staged);
     }
-
-    /// <summary>Size of the virtual desktop the plain-Wine installer runs in (Bottles' default).</summary>
-    public const string VirtualDesktopSize = "1280x720";
 
     /// <summary>The only session variables a plain-Wine installer run inherits (display, audio, locale, user).</summary>
     private static readonly string[] SessionEssentials = ["HOME", "USER", "LOGNAME", "PATH", "LANG", "LANGUAGE", "LC_ALL", "TZ", "DISPLAY", "WAYLAND_DISPLAY",

@@ -54,7 +54,7 @@ public sealed class FastExecDialog : Window
         ToolTip.SetTip(tipsMore, "• A maioria dos instaladores já abre com a pasta C:\\Jogos\\<nome do jogo>. Se o seu pedir a pasta, use C:\\Jogos. No fim, o Ilmenyx move o jogo para a pasta acima e apaga o resto; um jogo instalado em outra pasta do C: também é encontrado.\n" +
             "• Desmarque DirectX, .NET, Visual C++ e outros componentes do Windows: o Proton já cuida deles.\n" +
             "• Atalhos do instalador não são criados no seu Linux. Quando ele terminar, feche-o normalmente.\n" +
-            "• Às vezes a janela do instalador some, não volta pela barra de tarefas ou parece travada (limitação do Wine). Ele continua trabalhando enquanto a barra do Ilmenyx se move. No modo Wine comum (Soda) ele roda numa janela própria, que minimiza e volta normalmente.");
+            "• Às vezes a janela do instalador some, não volta pela barra de tarefas ou parece travada (limitação do Wine). Ele continua trabalhando enquanto a barra do Ilmenyx se move.");
         ToolTip.SetShowDelay(tipsMore, 150);
         var tipsLines = new StackPanel { Spacing = 2, Children = { tipsText,
             new TextBlock { Text = "Se a janela do instalador sumir ou parecer travada, ele continua rodando.", Foreground = Palette.Warn, FontSize = 12, TextWrapping = TextWrapping.Wrap } } };

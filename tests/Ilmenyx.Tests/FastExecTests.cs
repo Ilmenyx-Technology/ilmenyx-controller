@@ -233,7 +233,7 @@ public sealed class FastExecTests : IDisposable
         string log = FastExec.LatestLog(fx)!;
         Assert.Equal(Path.Combine(fx, "logs", "wine-pw.log"), log);
         Assert.Contains("wine ran " + plan.Staged, File.ReadAllText(log));
-        Assert.Contains("wine ran reg", File.ReadAllText(log)); // virtual desktop set before the installer starts
+        Assert.DoesNotContain("wine ran reg", File.ReadAllText(log)); // no virtual desktop (owner's choice, 2026-11-08)
         Assert.Contains("waited -w", File.ReadAllText(Path.Combine(root, "runners", "soda-11.0-10", "waited"))); // wineserver -w ran after it
         FastExec.Cleanup(plan);
     }
