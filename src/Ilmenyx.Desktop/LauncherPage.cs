@@ -41,6 +41,8 @@ public sealed class LauncherPage : Grid
     private readonly TextBlock title = new() { Name = "LTitle", FontSize = 32, FontWeight = FontWeight.Bold, TextWrapping = TextWrapping.Wrap };
     private readonly TextBlock sub = new() { Name = "LSub", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap };
     private readonly Button play = UiKit.Primary("BtnPlay", "JOGAR", 40, 14);
+    // Visual feedback between JOGAR and the game's window (Proton can take a while): a moving bar until the game process is seen.
+    private readonly ProgressBar playProgress = new() { Name = "LPlayProgress", IsIndeterminate = true, IsVisible = false, Height = 4, MinHeight = 4, Margin = new Thickness(0, 10, 0, 0) };
     private readonly TextBlock status = new() { Name = "LStatus", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 16) };
     private readonly CheckBox chkPlan = new() { Name = "LChkPlan", Content = "Perfil de energia Alto desempenho enquanto joga (volta ao anterior depois)" };
     private readonly CheckBox chkGpu = new() { Name = "LChkGpu", Content = "Forçar a placa de vídeo dedicada (PRIME offload)" };
@@ -329,7 +331,7 @@ public sealed class LauncherPage : Grid
             }
         });
         status.Margin = new Thickness(4, 12, 0, 4);
-        detail.Content = new StackPanel { Margin = new Thickness(0, 0, 8, 0), Children = { hero, status, UiKit.SectionHeader("Perfil do jogo"), perf, gfx, help } };
+        detail.Content = new StackPanel { Margin = new Thickness(0, 0, 8, 0), Children = { hero, playProgress, status, UiKit.SectionHeader("Perfil do jogo"), perf, gfx, help } };
         Grid.SetColumn(detail, 2); Grid.SetRow(detail, 1); Children.Add(detail);
     }
 
@@ -698,15 +700,20 @@ public sealed class LauncherPage : Grid
         if (launching is not null) { launching.Cancel(); return; }
         if (current is not { } g || profile is not { } p) return;
         launching = CancellationTokenSource.CreateLinkedTokenSource(lifetime); play.Content = "PARAR ACOMPANHAMENTO";
+        playProgress.IsVisible = true; status.Text = $"Abrindo {g.Name}…";
         if (p.MangoHud && OperatingSystem.IsLinux()) MangoHudLogReader.EnsureConfig(settings); // overlay + FPS log ready without visiting the Overlay page
         try
         {
-            var session = await launch(g, p, gpuVendor, t => Avalonia.Threading.Dispatcher.UIThread.Post(() => status.Text = t),
+            var session = await launch(g, p, gpuVendor, t => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                {
+                    status.Text = t;
+                    if (t.Contains(" em execução", StringComparison.Ordinal) || t.StartsWith("Não detectei", StringComparison.Ordinal)) playProgress.IsVisible = false;
+                }),
                 exe => Avalonia.Threading.Dispatcher.UIThread.Post(() => { if (p.ExePath != exe) { p.ExePath = exe; SaveProfile(g, p); if (current == g) exeText.Text = "Executável: " + exe; } }), launching.Token);
             // Measured on this PC (MangoHud log of this launch): kept locally for the FPS page, at most FpsSession.MaxEntries sessions.
             if (session is { IsValid: true }) { if (Save(s => s.AddFpsSession(session)) is { } fresh) settings.FpsSessions = fresh.FpsSessions; else settings.AddFpsSession(session); }
         }
-        finally { launching.Dispose(); launching = null; play.Content = "JOGAR"; }
+        finally { launching.Dispose(); launching = null; play.Content = "JOGAR"; playProgress.IsVisible = false; }
     }
 }
 

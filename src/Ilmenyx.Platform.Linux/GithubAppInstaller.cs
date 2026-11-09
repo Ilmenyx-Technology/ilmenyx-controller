@@ -101,7 +101,8 @@ public sealed class GithubAppInstaller(ProgramRunner run, HttpMessageHandler? ha
                 PackageFormat.Rpm => [Sys("zypper"), "--non-interactive", "install", "--allow-unsigned-rpm", path],
                 _ => [Sys("pacman"), "-U", "--noconfirm", path],
             };
-            var (code, output) = await run(pkexec!, args, TimeSpan.FromMinutes(15), ct);
+            // The runner resolves programs by name in the standard folders (it refuses a path), so pkexec goes by name.
+            var (code, output) = await run("pkexec", args, TimeSpan.FromMinutes(15), ct);
             progress?.Report(1);
             return code switch
             {

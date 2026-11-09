@@ -44,7 +44,7 @@ public sealed class GithubPackagesTests : IDisposable
         Assert.All(craft, a => { Assert.False(a.PreSelect); Assert.Equal("Criação e escritório", a.Category); Assert.StartsWith("gh.", a.Key); });
     }
 
-    private sealed class FakeGithub(byte[] package, string sumsHash) : HttpMessageHandler
+    private sealed class FakeGithub(byte[] package, string sumsHash, string ext = ".AppImage") : HttpMessageHandler
     {
         public readonly List<string> Urls = [];
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage r, CancellationToken ct)
@@ -53,10 +53,10 @@ public sealed class GithubPackagesTests : IDisposable
             HttpContent body = url.Contains("/releases/latest")
                 ? new StringContent($$"""
                     {"tag_name":"v1.2.0","assets":[
-                    {"name":"demo-1.2.0-linux-x86_64.AppImage","size":{{package.Length}},"browser_download_url":"https://github.com/o/demo/releases/download/v1.2.0/demo-1.2.0-linux-x86_64.AppImage"},
+                    {"name":"demo-1.2.0-linux-x86_64{{ext}}","size":{{package.Length}},"browser_download_url":"https://github.com/o/demo/releases/download/v1.2.0/demo-1.2.0-linux-x86_64{{ext}}"},
                     {"name":"SHA256SUMS.txt","size":100,"browser_download_url":"https://github.com/o/demo/releases/download/v1.2.0/SHA256SUMS.txt"}]}
                     """)
-                : url.EndsWith("SHA256SUMS.txt") ? new StringContent(sumsHash + "  demo-1.2.0-linux-x86_64.AppImage\n")
+                : url.EndsWith("SHA256SUMS.txt") ? new StringContent(sumsHash + "  demo-1.2.0-linux-x86_64" + ext + "\n")
                 : new ByteArrayContent(package);
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = body });
         }
@@ -85,6 +85,21 @@ public sealed class GithubPackagesTests : IDisposable
         Assert.False(ran); // AppImage: no root, no package tool
         Assert.NotEmpty(progress);
         Assert.False(Directory.EnumerateFileSystemEntries(Path.Combine(home, ".cache/ilmenyx/downloads")).Any()); // download folder cleaned
+    }
+
+    [Fact]
+    public async Task ADebIsInstalledByAptThroughPkexecCalledByName()
+    {
+        if (!OperatingSystem.IsLinux() || BoundedProcess.FindSystem("pkexec") is null || System.Runtime.InteropServices.RuntimeInformation.OSArchitecture != System.Runtime.InteropServices.Architecture.X64) return;
+        byte[] pkg = [9, 8, 7];
+        var app = new InstallableApp { Name = "Demo", GithubRepo = "o/demo", PackageName = "demo" };
+        string? program = null; IReadOnlyList<string>? args = null;
+        Task<(int, string)> Runner(string p, IReadOnlyList<string> a, TimeSpan t, CancellationToken c) { program = p; args = a; return Task.FromResult((0, "")); }
+        var handler = new FakeGithub(pkg, Convert.ToHexString(SHA256.HashData(pkg)).ToLowerInvariant(), ".deb");
+        var (ok, msg) = await new GithubAppInstaller(Runner, handler, t => t is "apt-get" or "dpkg", home).InstallAsync(app, null, CancellationToken.None);
+        Assert.True(ok, msg);
+        Assert.Equal("pkexec", program); // the runner refuses paths: a full /usr/bin/pkexec failed on the owner's PC (2026-11-08)
+        Assert.EndsWith("apt-get", args![0]); Assert.Equal("install", args[1]); Assert.EndsWith("demo-1.2.0-linux-x86_64.deb", args[^1]);
     }
 
     private sealed class SyncProgress(Action<double> report) : IProgress<double> { public void Report(double value) => report(value); }

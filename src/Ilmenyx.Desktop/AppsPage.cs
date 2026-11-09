@@ -141,11 +141,12 @@ public sealed class AppsPage : StackPanel
                 if (stopRequested) { app.Status = "Não instalado (parado)."; continue; }
                 string head = $"Instalando {app.Name} ({done + 1} de {chosen.Count})…";
                 status.Text = head; app.Status = "Instalando…"; Rebuild();
-                int step = done;
-                var report = new Progress<double>(f => { status.Text = $"{head} {f:P0}"; SetProgress((step + f) / chosen.Count); });
-                try { var (good, message) = await installer.InstallAsync(app, lifetime, progress: report); app.Status = message; if (good) { ok++; app.Installed = true; app.Selected = false; } else failed.Add(app.Name); }
-                catch (OperationCanceledException) { app.Status = "Cancelado."; break; }
-                catch (Exception e) when (e is IOException or TimeoutException or FileNotFoundException or ArgumentException or System.ComponentModel.Win32Exception) { app.Status = "Falhou: " + e.Message; failed.Add(app.Name); }
+                int step = done; bool appDone = false;
+                // Progress reports arrive asynchronously: one landing after the app finished must not overwrite the final message.
+                var report = new Progress<double>(f => { if (appDone) return; status.Text = $"{head} {f:P0}"; SetProgress((step + f) / chosen.Count); });
+                try { var (good, message) = await installer.InstallAsync(app, lifetime, progress: report); appDone = true; app.Status = message; if (good) { ok++; app.Installed = true; app.Selected = false; } else failed.Add(app.Name); }
+                catch (OperationCanceledException) { appDone = true; app.Status = "Cancelado."; break; }
+                catch (Exception e) when (e is IOException or TimeoutException or FileNotFoundException or ArgumentException or System.ComponentModel.Win32Exception) { appDone = true; app.Status = "Falhou: " + e.Message; failed.Add(app.Name); }
                 done++; SetProgress((double)done / chosen.Count);
             }
             status.Text = $"{ok} de {chosen.Count} instalados." + (failed.Count > 0 ? $" Falharam: {string.Join(", ", failed)}." : "") + (stopRequested ? " Parado pelo usuário." : "");
