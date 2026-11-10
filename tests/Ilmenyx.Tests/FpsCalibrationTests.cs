@@ -18,11 +18,13 @@ public sealed class FpsCalibrationTests : IDisposable
     [Fact]
     public void SceneFitReproducesTheTeamAnchorsAndScalesToTheReference()
     {
-        // 940MX 172 → 4,5; HD 620 109 → 2,5; Radeon 610M 150 → 3 (docs/evidencias). One constant, slope 1: each within 25 %.
-        foreach (var (score, index) in new[] { (172.0, 4.5), (109.0, 2.5), (150.0, 3.0) })
-            Assert.InRange(FpsModels.SceneToGpuIndex(score) / index, 0.8, 1.25);
-        Assert.Equal(3.94, FpsModels.SceneToGpuIndex(172));
-        // An RTX 4070 (index 100) would need ~4370 points: ≈ 25× the 940MX, close to their FP32 ratio (≈ 31×).
+        // 940MX 172 → 3,3; HD 620 109 → 1,4; Radeon 610M 150 → 3,9 (docs/evidencias, indices of the 2026-11-10 refit). One constant, slope 1:
+        // the three anchors disagree more after the refit (HD 620 ≈ +45 %, 610M ≈ −29 %), so each stays within a factor of 1,5.
+        foreach (var (score, index) in new[] { (172.0, 3.3), (109.0, 1.4), (150.0, 3.9) })
+            Assert.InRange(FpsModels.SceneToGpuIndex(score) / index, 0.67, 1.5);
+        Assert.Equal(3.2, FpsModels.SceneToGpuIndex(172));
+        Assert.InRange(FpsModels.SceneToGpuIndex(408) / 8.1, 0.9, 1.1); // the owner's Iris Xe, outside the fit
+        // An RTX 4070 (index 100) would need ~5380 points: ≈ 31× the 940MX, close to their FP32 ratio (≈ 31×).
         double score4070 = 100 / FpsModels.SceneK;
         Assert.InRange(score4070 / 172, 20, 32);
         Assert.InRange(FpsModels.Tflops(5888, 2475) / FpsModels.Tflops(384, 1242), 28, 33);
@@ -38,18 +40,18 @@ public sealed class FpsCalibrationTests : IDisposable
     [Theory]
     [InlineData("10DE:2786", "NVIDIA GeForce RTX 4070", 100)]
     [InlineData("10DE:2684", "NVIDIA GeForce RTX 4090", 210)]
-    [InlineData("10DE:2882", "NVIDIA GeForce RTX 4060", 70)]
+    [InlineData("10DE:2882", "NVIDIA GeForce RTX 4060", 61)]
     [InlineData("10DE:2C02", "NVIDIA GeForce RTX 5080", 175)]
-    [InlineData("10DE:2484", "NVIDIA GeForce RTX 3070", 86)]
+    [InlineData("10DE:2484", "NVIDIA GeForce RTX 3070", 70)]
     [InlineData("1002:744C", "AMD Radeon RX 7900 XTX", 170)]
-    [InlineData("1002:7480", "AMD Radeon RX 7600", 70)]
-    [InlineData("1002:7550", "AMD Radeon RX 9070 XT", 160)]
-    [InlineData("10DE:134D", "NVIDIA GeForce 940MX", 4.5)]
-    public void SpecModelReproducesTheIndexTableWithinTenPercent(string pci, string name, double tableIndex)
+    [InlineData("1002:7480", "AMD Radeon RX 7600", 62)]
+    [InlineData("1002:7550", "AMD Radeon RX 9070 XT", 133)]
+    [InlineData("10DE:134D", "NVIDIA GeForce 940MX", 3.3)]
+    public void SpecModelReproducesTheIndexTableWithinFifteenPercent(string pci, string name, double tableIndex)
     {
         var spec = GpuSpecDb.Find(pci[..4], pci[5..], name)!;
         double idx = FpsModels.SpecGpuIndex(spec)!.Value;
-        Assert.InRange(idx / tableIndex, 0.9, 1.1);
+        Assert.InRange(idx / tableIndex, 0.85, 1.15); // mean error 6,4 %; RX 7900 XTX is the widest of these (≈ −12 %)
     }
 
     [Fact]
@@ -90,7 +92,7 @@ public sealed class FpsCalibrationTests : IDisposable
         Assert.Equal(FpsGate.Stale, FpsModels.GateFor(cal, FpsModels.Fingerprint("10de", "134d", "nvidia", "580.105.08", "i7-7500U"))); // driver update
         Assert.Equal(FpsGate.Stale, FpsModels.GateFor(cal, FpsModels.Fingerprint("10de", "134d", "nouveau", "", "i7-7500U")));
         Assert.Equal(FpsGate.Stale, FpsModels.GateFor(cal, FpsModels.Fingerprint("10de", "2786", "nvidia", "580.95.05", "i7-7500U"))); // new GPU
-        Assert.Equal((3.94, 36.0), FpsModels.Indices(cal) is (double g, double c) ? (g, c) : default);
+        Assert.Equal((3.2, 36.0), FpsModels.Indices(cal) is (double g, double c) ? (g, c) : default);
         var none = FpsModels.Indices(cal with { SceneScore = null, CpuSimFps = 0 }); Assert.Null(none.Gpu); Assert.Null(none.Cpu);
     }
 
@@ -177,7 +179,7 @@ public sealed class FpsCalibrationTests : IDisposable
     {
         var row = new GameFpsRow(Game("Elden Ring"));
         var a = FpsModels.Assess(FpsBasis.Calibrated, HardwareMatch.Desktop, 100, false, true, 100);
-        var e = GameCatalog.Estimate(row.Game, 30, 100, "1920x1080", "Alto", "Native");
+        var e = GameCatalog.Estimate(row.Game, 15, 100, "1920x1080", "Alto", "Native"); // GPU-limited, below the 60 FPS cap
         row.SetEstimate(e, a, FpsBasis.Table, true, null);
         Assert.True(row.IsProvisional); Assert.Equal("PROVISÓRIO", row.Source); Assert.Equal("provisório — calibre o PC", row.BasisText); Assert.Equal("sem confiança", row.LowText);
         Assert.StartsWith("Provisório — calibre o PC", row.Summary);

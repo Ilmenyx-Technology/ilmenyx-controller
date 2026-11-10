@@ -219,13 +219,13 @@ public sealed class GpuTests : IDisposable
 public sealed class GameCatalogHardwareTests
 {
     [Theory]
-    [InlineData("GM108M [GeForce 940MX]", 4.5)]        // nouveau / pci.ids name on a Dell laptop
-    [InlineData("NVIDIA GeForce 940MX", 4.5)]          // nvidia-smi name
-    [InlineData("HD Graphics 620", 2.5)]
-    [InlineData("Mendocino", 3)]                      // pci.ids name of the Radeon 610M
-    [InlineData("AMD Radeon 610M (RADV RAPHAEL_MENDOCINO)", 3)]
-    [InlineData("NVIDIA GeForce RTX 3060 Laptop GPU", 50)]
-    [InlineData("NVIDIA GeForce RTX 3060", 60)]
+    [InlineData("GM108M [GeForce 940MX]", 3.3)]        // nouveau / pci.ids name on a Dell laptop
+    [InlineData("NVIDIA GeForce 940MX", 3.3)]          // nvidia-smi name
+    [InlineData("HD Graphics 620", 1.4)]
+    [InlineData("Mendocino", 3.9)]                      // pci.ids name of the Radeon 610M
+    [InlineData("AMD Radeon 610M (RADV RAPHAEL_MENDOCINO)", 3.9)]
+    [InlineData("NVIDIA GeForce RTX 3060 Laptop GPU", 44)]
+    [InlineData("NVIDIA GeForce RTX 3060", 51)]
     public void CommonLaptopAndIntegratedGpusAreInTheTable(string name, double index) => Assert.Equal(index, Ilmenyx.Core.GameCatalog.GpuPerf(name));
 
     [Theory]

@@ -99,8 +99,32 @@ Agora, para 29 jogos do catálogo, a FPS limitada pela GPU em 1920×1080 vem de 
   League of Legends, Marvel Rivals e Minecraft não têm tabela utilizável e seguem o modelo antigo.
 - **Páginas antigas** (R6 2015, PUBG 2017, Rocket League 2017, Dota 2 2017, The Witcher 3 2015): o jogo pode ter ficado mais
   pesado desde então; a faixa de confiança continua valendo.
-- **Próximo passo possível:** o mesmo conjunto de dados permite reajustar a tabela de índices de GPU (ajuste conjunto: erro 17 % → 12 %),
-  mas isso muda a calibração (SceneK) e o método por especificações; fica para uma revisão separada.
+- **Reajuste dos índices:** feito em 2026-11-10, ver a seção 0.5.
+
+## 0.5 Reajuste dos índices de GPU (2026-11-10)
+
+Os índices da tabela (RTX 4070 = 100) e as curvas por jogo foram ajustados **juntos** sobre os mesmos 2 775 pontos: alternando
+"curvas com os índices atuais" e "índice de cada GPU = mediana do que as curvas pedem para os pontos dela" (passo amortecido pela
+metade, 8 rodadas, RTX 4070 fixa em 100).
+
+- **Resultado:** erro médio de 16,6 % para **12,5 %** nos pontos do ajuste e, no teste honesto (validação cruzada em 5 partes: ajusta
+  com 80 % dos pontos, mede nos 20 % que ficaram de fora), de 18,7 % para **14,8 %** (13,8–15,5 % nas cinco partes).
+- **GPUs com poucos pontos:** só as com 8 ou mais pontos limitados pela GPU são reajustadas. RTX 4090 (0 pontos), RX 7900 XTX (3) e
+  RTX 4080 (5) batem no limite da CPU em 1080p e ficam onde estavam em relação à RTX 4070; sem essa regra, a renormalização as
+  puxava para baixo sem nenhum dado (a 4080 caía para 112).
+- **GPUs sem dados** (RTX 50, 4070 SUPER/Ti, RX 9070, RX 6800…) seguem uma irmã da mesma família que tem dados, mantendo a razão
+  antiga entre as duas; apelidos do mesmo chip (Mendocino = Radeon 610M, Van Gogh = Steam Deck) recebem o mesmo índice.
+- **Calibração:** `SceneK` recalculado com os índices novos das três GPUs de referência (940MX 3,3, HD 620 1,4, Radeon 610M 3,9):
+  0,0229 → 0,0186. Conferência independente: a Iris Xe do mantenedor (nota 408, fora do ajuste) dá 7,6 contra o índice 8,1 da
+  tabela; antes dava 9,3 contra 7.
+- **Por especificações:** β e k por arquitetura reajustados nas 33 entradas com especificação e índice: β 0,703 → 0,799, erro médio
+  6,4 %, pior caso 18 % (RX 7700 XT; a RDNA 3 é a família menos regular, ver o limite abaixo).
+- **Limite conhecido:** as intermediárias caíram ~17 % em relação à RTX 4070 e o topo (sem dados) não; há um degrau entre a
+  RX 7900 GRE (106) e a RX 7900 XT (150). Em 1080p essas placas são limitadas pela CPU, então o efeito na estimativa é pequeno; em
+  1440p/4K a faixa de confiança cobre a diferença. Um benchmark 1440p/4K resolveria o topo.
+- Exemplos (1080p Alto, Iris Xe + i5-1135G7, contra Notebookcheck): Valorant 60–146 e Fortnite 9–23 continuam cobrindo o medido.
+  CS2 **não melhorou**: era 17–41, agora 17–43 (centro 30) contra 14,8 medido. A curva do CS2 é dominada pelas placas dedicadas e
+  superestima as integradas; fica como limite conhecido até haver mais medições de integradas nesse jogo.
 
 ## 1. Medido neste PC
 

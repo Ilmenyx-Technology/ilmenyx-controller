@@ -18,7 +18,8 @@ public record GameInfo(string Name, string Genre, double GpuRef, double CpuCap, 
 /// GPU-limited FPS of one game at 1920×1080 per preset, fitted to measured benchmarks (Notebookcheck's per-game laptop and desktop
 /// tables, 2026-11-08): FPS = A × (índice/100)^b for Baixo/Médio/Alto/Ultra. Fitted only on points below 80 % of each column's top
 /// (the CPU/engine plateau); 720p/768p columns of older pages converted to 1080p with the resolution curve. Over 2 775 measured
-/// points the median error went from 51 % (one reference × preset factor) to 17 %. Method and data: docs/fps-estimativa.md.
+/// points the median error went from 51 % (one reference × preset factor) to 17 %; refitted jointly with the GPU indices (2026-11-10):
+/// 12,5 % on those points and 14,8 % on points left out of the fit (5-fold cross-validation; 18,7 % before). Method and data: docs/fps-estimativa.md.
 /// </summary>
 public sealed record PresetCurves(double Low, double LowExp, double Med, double MedExp, double High, double HighExp, double Ultra, double UltraExp, string Source)
 {
@@ -85,33 +86,36 @@ public static class GameCatalog
     /// <summary>Expoentes de GPU dos jogos leves (ver GameInfo.GpuExp e docs/fps-estimativa.md, seção "Jogos leves").</summary>
     public const double LightValorant = 0.73, LightLol = 0.55, LightClass = 0.64;
 
-    // Desempenho relativo em jogos (raster), RTX 4070 = 100. Aproximado.
+    // Desempenho relativo em jogos (raster), RTX 4070 = 100. Aproximado. Reajustado em 2026-11-10 junto com as curvas por jogo (Measured):
+    // GPUs com 8+ pontos de benchmark limitados pela GPU recebem o índice que melhor explica esses pontos; as com menos (RTX 4090/4080,
+    // RX 7900 XTX: em 1080p a CPU limita) ficam onde estavam em relação à RTX 4070; as sem dados seguem a irmã da mesma família.
+    // Método e números: docs/fps-estimativa.md, seção "Reajuste dos índices".
     private static readonly (string Key, double Index)[] GpuIndex =
     {
-        ("RTX 5090", 265), ("RTX 5080", 175), ("RTX 5070 Ti", 150), ("RTX 5070", 118), ("RTX 5060 Ti", 95), ("RTX 5060", 85),
+        ("RTX 5090", 265), ("RTX 5080", 175), ("RTX 5070 Ti", 150), ("RTX 5070", 118), ("RTX 5060 Ti", 80), ("RTX 5060", 74),
         ("RTX 4090", 210), ("RTX 4080 SUPER", 160), ("RTX 4080", 157), ("RTX 4070 Ti SUPER", 136), ("RTX 4070 Ti", 124),
-        ("RTX 4070 SUPER", 116), ("RTX 4070", 100), ("RTX 4060 Ti", 82), ("RTX 4060", 70),
-        ("RTX 3090 Ti", 135), ("RTX 3090", 125), ("RTX 3080 Ti", 122), ("RTX 3080", 112), ("RTX 3070 Ti", 92), ("RTX 3070", 86),
-        ("RTX 3060 Ti", 78), ("RTX 3060", 60), ("RTX 3050", 40), ("GTX 1660", 38), ("GTX 1650", 28),
-        ("RX 9070 XT", 160), ("RX 9070", 140), ("RX 7900 XTX", 170), ("RX 7900 XT", 150), ("RX 7900 GRE", 128),
-        ("RX 7800 XT", 115), ("RX 7700 XT", 98), ("RX 7600 XT", 72), ("RX 7600", 70),
-        ("RX 6950 XT", 125), ("RX 6800 XT", 112), ("RX 6700 XT", 82), ("RX 6600", 58),
-        ("Arc B580", 80), ("Arc A770", 68),
-        ("Radeon(TM) Graphics", 6), ("Radeon Graphics", 6),
+        ("RTX 4070 SUPER", 116), ("RTX 4070", 100), ("RTX 4060 Ti", 69), ("RTX 4060", 61),
+        ("RTX 3090 Ti", 109), ("RTX 3090", 101), ("RTX 3080 Ti", 99), ("RTX 3080", 91), ("RTX 3070 Ti", 75), ("RTX 3070", 70),
+        ("RTX 3060 Ti", 65), ("RTX 3060", 51), ("RTX 3050", 34), ("GTX 1660", 31), ("GTX 1650", 21),
+        ("RX 9070 XT", 133), ("RX 9070", 116), ("RX 7900 XTX", 170), ("RX 7900 XT", 150), ("RX 7900 GRE", 106),
+        ("RX 7800 XT", 95), ("RX 7700 XT", 81), ("RX 7600 XT", 64), ("RX 7600", 62),
+        ("RX 6950 XT", 101), ("RX 6800 XT", 90), ("RX 6700 XT", 66), ("RX 6600", 46),
+        ("Arc B580", 57), ("Arc A770", 49),
+        ("Radeon(TM) Graphics", 5.3), ("Radeon Graphics", 5.3),
         // Ilmenyx additions (2026-11-07): older desktop, laptop and integrated GPUs, so common Linux machines are not left out
         // (approximate relative gaming performance, same scale: RTX 4070 = 100).
-        ("RTX 2080 Ti", 75), ("RTX 2080 SUPER", 65), ("RTX 2080", 61), ("RTX 2070 SUPER", 58), ("RTX 2070", 51), ("RTX 2060 SUPER", 48), ("RTX 2060", 42),
-        ("GTX 1660 Ti", 42), ("GTX 1660 SUPER", 41), ("GTX 1080 Ti", 66), ("GTX 1080", 52), ("GTX 1070 Ti", 47), ("GTX 1070", 43),
-        ("GTX 1060", 30), ("GTX 1050 Ti", 18), ("GTX 1050", 14), ("GT 1030", 7), ("GTX 980 Ti", 40), ("GTX 980", 32), ("GTX 970", 28), ("GTX 960", 18),
-        ("RTX 4060 Laptop", 58), ("RTX 4050 Laptop", 48), ("RTX 3060 Laptop", 50), ("RTX 3050 Laptop", 30), ("RTX 3050 Ti Laptop", 33), ("GTX 1650 Ti", 26),
-        ("MX570", 15), ("MX550", 13), ("MX450", 11), ("MX350", 8), ("MX330", 7.5), ("MX250", 7.5), ("MX230", 6), ("MX150", 7), ("MX130", 4.5), ("MX110", 3.5),
-        ("940MX", 4.5), ("940M", 4), ("930MX", 3.5), ("930M", 3.5), ("920MX", 3), ("GTX 950M", 9), ("GTX 960M", 11), ("GTX 1050 Mobile", 13),
-        ("RX 6800", 98), ("RX 6750 XT", 86), ("RX 6650 XT", 66), ("RX 6600 XT", 64), ("RX 6500 XT", 26), ("RX 6400", 20),
-        ("RX 5700 XT", 55), ("RX 5700", 50), ("RX 5600 XT", 46), ("RX 5500 XT", 33), ("RX 590", 32), ("RX 580", 30), ("RX 570", 26), ("RX 560", 13), ("RX 550", 9),
-        ("Arc A750", 62), ("Arc A580", 52), ("Arc A380", 22), ("Iris Xe", 7), ("Iris Plus", 4), ("UHD Graphics 770", 4), ("UHD Graphics 630", 3), ("UHD Graphics 620", 2.5),
-        ("HD Graphics 630", 3), ("HD Graphics 620", 2.5), ("HD Graphics 520", 2), ("UHD Graphics", 2.5),
-        ("Radeon 890M", 30), ("Radeon 880M", 26), ("Radeon 780M", 21), ("Radeon 760M", 17), ("Radeon 680M", 18), ("Radeon 660M", 12), ("Radeon 610M", 3), ("Mendocino", 3),
-        ("Vega 8", 6), ("Vega 7", 6), ("Vega 6", 5), ("Vega 3", 2.5), ("Steam Deck", 9), ("VanGogh", 9), ("Van Gogh", 9),
+        ("RTX 2080 Ti", 75), ("RTX 2080 SUPER", 58), ("RTX 2080", 54), ("RTX 2070 SUPER", 52), ("RTX 2070", 45), ("RTX 2060 SUPER", 45), ("RTX 2060", 40),
+        ("GTX 1660 Ti", 35), ("GTX 1660 SUPER", 33), ("GTX 1080 Ti", 44), ("GTX 1080", 39), ("GTX 1070 Ti", 36), ("GTX 1070", 33),
+        ("GTX 1060", 24), ("GTX 1050 Ti", 14.1), ("GTX 1050", 11.7), ("GT 1030", 5.8), ("GTX 980 Ti", 30), ("GTX 980", 24), ("GTX 970", 22), ("GTX 960", 14.6),
+        ("RTX 4060 Laptop", 52), ("RTX 4050 Laptop", 45), ("RTX 3060 Laptop", 44), ("RTX 3050 Laptop", 24), ("RTX 3050 Ti Laptop", 30), ("GTX 1650 Ti", 22),
+        ("MX570", 14.9), ("MX550", 16.5), ("MX450", 9.4), ("MX350", 8.1), ("MX330", 6.1), ("MX250", 5.9), ("MX230", 4.1), ("MX150", 5.8), ("MX130", 3.7), ("MX110", 2.9),
+        ("940MX", 3.3), ("940M", 2.8), ("930MX", 2.9), ("930M", 2.9), ("920MX", 2.4), ("GTX 950M", 5.9), ("GTX 960M", 8.1), ("GTX 1050 Mobile", 11.1),
+        ("RX 6800", 79), ("RX 6750 XT", 69), ("RX 6650 XT", 55), ("RX 6600 XT", 51), ("RX 6500 XT", 29), ("RX 6400", 22),
+        ("RX 5700 XT", 47), ("RX 5700", 43), ("RX 5600 XT", 39), ("RX 5500 XT", 26), ("RX 590", 25), ("RX 580", 24), ("RX 570", 25), ("RX 560", 12.5), ("RX 550", 8.7),
+        ("Arc A750", 48), ("Arc A580", 44), ("Arc A380", 19.5), ("Iris Xe", 8.1), ("Iris Plus", 3.5), ("UHD Graphics 770", 2.7), ("UHD Graphics 630", 2), ("UHD Graphics 620", 1.4),
+        ("HD Graphics 630", 2), ("HD Graphics 620", 1.4), ("HD Graphics 520", 1.1), ("UHD Graphics", 1.4),
+        ("Radeon 890M", 19.3), ("Radeon 880M", 14.7), ("Radeon 780M", 16), ("Radeon 760M", 12.7), ("Radeon 680M", 14), ("Radeon 660M", 8.9), ("Radeon 610M", 3.9), ("Mendocino", 3.9),
+        ("Vega 8", 6.9), ("Vega 7", 5.3), ("Vega 6", 4.7), ("Vega 3", 1.7), ("Steam Deck", 11.4), ("VanGogh", 11.4), ("Van Gogh", 11.4),
     };
 
     // Desempenho relativo em jogos (limitado pela CPU), Ryzen 7 7700X = 100. Aproximado.
@@ -173,35 +177,35 @@ public static class GameCatalog
     /// is used, anchored at the catalog's High level; Warzone uses the Black Ops 6 curves (same engine) scaled 130/140.</summary>
     public static readonly IReadOnlyDictionary<string, PresetCurves> Measured = new Dictionary<string, PresetCurves>(StringComparer.Ordinal)
     {
-        ["Counter-Strike 2"] = new(386, 0.73, 343, 0.79, 284, 0.96, 210, 0.99, "cs2"),
-        ["Valorant"] = new(161, 0.25, 318, 0.43, 315, 0.48, 258, 0.48, "valorant"),
-        ["Fortnite"] = new(142, 0.58, 238, 0.87, 160, 0.94, 124, 0.96, "fortnite"),
-        ["Dota 2"] = new(143, 0.29, 143, 0.35, 240, 0.57, 210, 0.56, "dota2"),
-        ["Apex Legends"] = new(337, 0.81, 294, 0.90, 245, 0.90, 241, 0.92, "apex"),
-        ["PUBG: Battlegrounds"] = new(155, 0.54, 230, 0.81, 226, 0.85, 200, 0.94, "pubg"),
-        ["Call of Duty: Black Ops 6"] = new(159, 0.82, 145, 0.83, 104, 0.87, 97, 0.86, "bo6"),
-        ["Battlefield 6"] = new(170, 1.02, 157, 1.09, 136, 1.19, 87, 1.05, "bf6"),
-        ["Rainbow Six Siege"] = new(378, 0.69, 493, 0.88, 500, 0.96, 430, 0.99, "r6"),
-        ["Overwatch 2"] = new(548, 0.74, 804, 0.96, 547, 0.91, 306, 0.88, "overwatch"),
-        ["Rocket League"] = new(580, 0.70, 572, 0.81, 411, 0.82, 337, 0.82, "rocketleague"),
-        ["EA Sports FC 25"] = new(319, 0.84, 259, 0.84, 268, 1.21, 203, 1.05, "fc25"),
-        ["GTA V"] = new(188, 0.50, 217, 0.54, 296, 0.90, 151, 0.94, "gtav"),
-        ["Red Dead Redemption 2"] = new(166, 0.81, 177, 0.90, 122, 0.92, 83, 0.97, "rdr2"),
-        ["Cyberpunk 2077"] = new(181, 0.96, 149, 1.00, 130, 1.06, 115, 1.08, "cyberpunk"),
-        ["The Witcher 3: Wild Hunt"] = new(360, 0.88, 311, 0.94, 277, 1.00, 142, 0.94, "witcher3"),
-        ["Elden Ring"] = new(374, 1.04, 113, 0.62, 93, 0.57, 93, 0.60, "eldenring"),
-        ["Baldur's Gate 3"] = new(194, 0.97, 156, 0.98, 137, 1.03, 136, 1.04, "bg3"),
-        ["Hogwarts Legacy"] = new(189, 0.95, 154, 1.03, 118, 1.00, 101, 1.15, "hogwarts"),
-        ["Starfield"] = new(100, 0.88, 93, 0.97, 77, 1.02, 72, 1.08, "starfield"),
-        ["Black Myth: Wukong"] = new(111, 0.87, 90, 0.99, 73, 1.11, 36, 0.90, "wukong"),
-        ["Alan Wake 2"] = new(95, 1.02, 86, 1.05, 85, 1.11, 70, 1.11, "alanwake2"),
-        ["God of War Ragnarök"] = new(181, 0.95, 153, 0.95, 156, 1.22, 145, 1.28, "gowr"),
-        ["Forza Horizon 5"] = new(231, 0.70, 205, 0.76, 187, 0.82, 107, 0.88, "fh5"),
-        ["Helldivers 2"] = new(183, 0.95, 164, 1.16, 149, 1.17, 149, 1.21, "hd2"),
-        ["Monster Hunter Wilds"] = new(100, 1.05, 84, 1.10, 65, 1.10, 61, 1.20, "mhwilds"),
-        ["Assassin's Creed Shadows"] = new(75, 0.85, 66, 0.81, 55, 0.85, 41, 1.07, "acshadows"),
-        ["Borderlands 4"] = new(97, 1.16, 84, 1.19, 67, 1.21, 39, 1.16, "borderlands4"),
-        ["Call of Duty: Warzone"] = new(148, 0.82, 135, 0.83, 96, 0.87, 90, 0.86, "bo6 (proxy)"),
+        ["Counter-Strike 2"] = new(468, 0.76, 413, 0.81, 344, 0.97, 275, 1.06, "cs2"),
+        ["Valorant"] = new(179, 0.27, 366, 0.46, 382, 0.52, 314, 0.52, "valorant"),
+        ["Fortnite"] = new(117, 0.51, 211, 0.81, 160, 0.92, 137, 0.99, "fortnite"),
+        ["Dota 2"] = new(146, 0.28, 147, 0.34, 255, 0.55, 223, 0.54, "dota2"),
+        ["Apex Legends"] = new(323, 0.74, 371, 0.93, 330, 0.97, 328, 0.99, "apex"),
+        ["PUBG: Battlegrounds"] = new(176, 0.54, 271, 0.79, 270, 0.83, 245, 0.93, "pubg"),
+        ["Call of Duty: Black Ops 6"] = new(201, 0.89, 183, 0.89, 128, 0.91, 120, 0.92, "bo6"),
+        ["Battlefield 6"] = new(200, 0.97, 187, 1.03, 164, 1.12, 97, 0.94, "bf6"),
+        ["Rainbow Six Siege"] = new(417, 0.66, 543, 0.82, 553, 0.89, 488, 0.93, "r6"),
+        ["Overwatch 2"] = new(551, 0.68, 634, 0.80, 604, 0.86, 379, 0.90, "overwatch"),
+        ["Rocket League"] = new(442, 0.56, 535, 0.72, 457, 0.79, 375, 0.79, "rocketleague"),
+        ["EA Sports FC 25"] = new(415, 0.98, 337, 0.98, 265, 1.03, 206, 0.91, "fc25"),
+        ["GTA V"] = new(218, 0.51, 262, 0.56, 345, 0.88, 180, 0.94, "gtav"),
+        ["Red Dead Redemption 2"] = new(186, 0.79, 204, 0.89, 156, 0.98, 104, 1.00, "rdr2"),
+        ["Cyberpunk 2077"] = new(218, 0.97, 191, 1.06, 169, 1.12, 151, 1.15, "cyberpunk"),
+        ["The Witcher 3: Wild Hunt"] = new(425, 0.88, 368, 0.94, 327, 0.98, 168, 0.94, "witcher3"),
+        ["Elden Ring"] = new(310, 0.91, 281, 0.96, 145, 0.73, 147, 0.78, "eldenring"),
+        ["Baldur's Gate 3"] = new(249, 1.04, 203, 1.06, 179, 1.10, 177, 1.11, "bg3"),
+        ["Hogwarts Legacy"] = new(242, 1.00, 197, 1.08, 151, 1.05, 125, 1.15, "hogwarts"),
+        ["Starfield"] = new(114, 0.84, 104, 0.91, 87, 0.95, 82, 1.01, "starfield"),
+        ["Black Myth: Wukong"] = new(139, 0.95, 101, 0.93, 82, 1.03, 38, 0.76, "wukong"),
+        ["Alan Wake 2"] = new(111, 0.96, 99, 0.97, 96, 1.00, 79, 1.00, "alanwake2"),
+        ["God of War Ragnarök"] = new(230, 1.02, 194, 1.03, 178, 1.11, 167, 1.16, "gowr"),
+        ["Forza Horizon 5"] = new(267, 0.73, 247, 0.81, 226, 0.87, 132, 0.95, "fh5"),
+        ["Helldivers 2"] = new(234, 1.00, 192, 1.07, 173, 1.06, 172, 1.10, "hd2"),
+        ["Monster Hunter Wilds"] = new(114, 0.97, 97, 1.02, 74, 1.02, 68, 1.03, "mhwilds"),
+        ["Assassin's Creed Shadows"] = new(82, 0.76, 71, 0.72, 60, 0.74, 44, 0.90, "acshadows"),
+        ["Borderlands 4"] = new(111, 1.04, 99, 1.09, 80, 1.11, 45, 1.04, "borderlands4"),
+        ["Call of Duty: Warzone"] = new(187, 0.89, 170, 0.89, 119, 0.91, 111, 0.92, "bo6 (proxy)"),
     };
 
     /// <summary>FPS = menor entre o teto da GPU, o teto da CPU e a trava do jogo.</summary>
