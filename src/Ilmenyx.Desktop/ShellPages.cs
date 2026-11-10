@@ -17,27 +17,27 @@ public sealed partial class ShellWindow
 {
     private void BuildPages()
     {
-        pages["dash"] = ("Visão geral", Overview, null);
-        pages["system"] = ("Sistema", SystemPage, null);
-        pages["sensors"] = ("Sensores", () => Scroll("SensorsScroll", new SensorPanel(sensors, Destination("sensors"), stop.Token)), null);
+        pages["dash"] = (L.T("Visão geral"), Overview, null);
+        pages["system"] = (L.T("Sistema"), SystemPage, null);
+        pages["sensors"] = (L.T("Sensores"), () => Scroll("SensorsScroll", new SensorPanel(sensors, Destination("sensors"), stop.Token)), null);
         pages["gpu"] = ("GPU", GpuPage, null);
-        pages["disks"] = ("Discos", DisksPage, null);
-        pages["energy"] = ("Energia", EnergyPage, null);
-        pages["net"] = ("Rede", NetPage, null);
-        pages["procs"] = ("Processos", () => new ProcessTable(usage), null);
-        pages["launcher"] = ("Jogos", () =>
+        pages["disks"] = (L.T("Discos"), DisksPage, null);
+        pages["energy"] = (L.T("Energia"), EnergyPage, null);
+        pages["net"] = (L.T("Rede"), NetPage, null);
+        pages["procs"] = (L.T("Processos"), () => new ProcessTable(usage), null);
+        pages["launcher"] = (L.T("Jogos"), () =>
         {
             string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             var gpus = new LinuxGpuCollector().Collect(PciIds.Load());
             // PRIME variables depend on the driver, not only the vendor: NVIDIA on nouveau is offloaded with DRI_PRIME like Mesa GPUs.
-            string vendor = gpus.Count > 0 ? (gpus[0].Card.Vendor == "NVIDIA" && gpus[0].Raw.Driver != "nvidia" ? "NVIDIA-Mesa" : gpus[0].Card.Vendor) : "";
+            string vendor = gpus.Count > 0 ? (gpus[0].Card.Vendor == "NVIDIA" && gpus[0].Raw.Driver != "nvidia" ? L.T("NVIDIA-Mesa") : gpus[0].Card.Vendor) : "";
             bool multi = gpus.Count(x => !x.Raw.Integrated) + gpus.Count(x => x.Raw.Integrated) > 1;
             // Manual games: the experimental Proton options (when they apply) and, with the Otimiza option on, the bigger shader cache variables.
             return new LauncherPage(new LinuxGameLibrary(home), new SteamInfo(home), IlmenyxSettings.DefaultPath(),
                 (g, p, v, status, learned, ct) => new LinuxGameLauncher().RunAsync(g, p, v, status, learned, ct,
                     LinuxGameExtras.ManualContext(g, p, v, multi, LinuxGameExtras.UmuProtonName(home)), new LinuxShaderCache(home).IsOn), () => this, vendor, multi, stop.Token) { Margin = new Thickness(0, 4, 8, 12) };
         }, null);
-        pages["compat"] = ("Compatibilidade", () =>
+        pages["compat"] = (L.T("Compatibilidade"), () =>
         {
             string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             var steam = new SteamInfo(home);
@@ -47,28 +47,28 @@ public sealed partial class ShellWindow
             { Profile = id => IlmenyxSettings.Load(IlmenyxSettings.DefaultPath()).GameProfiles.GetValueOrDefault("Steam:" + id) };
             return Scroll("CompatScroll", new CompatPage(services, () => this, stop.Token) { Margin = new Thickness(0, 4, 8, 12) });
         }, null);
-        pages["fps"] = ("Estimativa de FPS", () => new GamesFpsPage(IlmenyxSettings.Load(IlmenyxSettings.DefaultPath()), IlmenyxSettings.DefaultPath(),
+        pages["fps"] = (L.T("Estimativa de FPS"), () => new GamesFpsPage(IlmenyxSettings.Load(IlmenyxSettings.DefaultPath()), IlmenyxSettings.DefaultPath(),
             () => (usage.Last?.CpuModel ?? "", new LinuxGpuCollector().Collect(PciIds.Load()).FirstOrDefault().Raw?.Name ?? ""), FpsContextNow,
             OperatingSystem.IsLinux() ? FpsCalibratorReal.Create(FpsContextNow, () => usage.Last?.CpuTempC, GpuTemperatureCache()) : null) { Margin = new Thickness(0, 4, 0, 0) }, null); // scrolls by itself (sticky catalogue)
-        pages["bottleneck"] = ("Detector de gargalo", () => Scroll("BottleneckScroll", new BottleneckPage(usage, stop.Token, OperatingSystem.IsLinux() ? () => MangoHudLogReader.Read(MangoHudLogReader.DefaultFolder(), DateTimeOffset.UtcNow) : null) { Margin = new Thickness(0, 4, 8, 12) }), null);
+        pages["bottleneck"] = (L.T("Detector de gargalo"), () => Scroll("BottleneckScroll", new BottleneckPage(usage, stop.Token, OperatingSystem.IsLinux() ? () => MangoHudLogReader.Read(MangoHudLogReader.DefaultFolder(), DateTimeOffset.UtcNow) : null) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["stress"] = ("Stress test", () => Scroll("StressScroll", stressPage = new StressPage(new StressTester(), usage, () => this, () => usage.Last is { MemoryTotal: > 0, MemoryUsed: { } u } l ? l.MemoryTotal!.Value - u : 0, stop.Token, OperatingSystem.IsLinux() ? new VulkanGpuStress() : null, OperatingSystem.IsLinux() ? GpuTemperatureCache() : null) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["bench"] = ("Benchmark", () => Scroll("BenchScroll", new BenchPage(OperatingSystem.IsLinux() ? BenchServices.Real() : throw new PlatformNotSupportedException(), usage, () => this, IlmenyxSettings.DefaultPath(), stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["overlay"] = ("Overlay", () => Scroll("OverlayScroll", new OverlayPage(OperatingSystem.IsLinux() ? RealOverlayServices() : throw new PlatformNotSupportedException(), usage, IlmenyxSettings.DefaultPath(), stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
-        pages["lighting"] = ("Integração", () => Scroll("LightingScroll", new LightingPage(RealLightingServices(), usage, () => this, stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
+        pages["lighting"] = (L.T("Integração"), () => Scroll("LightingScroll", new LightingPage(RealLightingServices(), usage, () => this, stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["oc"] = ("OC", () => Scroll("OcScroll", new OcPage(OperatingSystem.IsLinux() ? RealOcServices() : throw new PlatformNotSupportedException(), usage, () => this, IlmenyxSettings.DefaultPath(), stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
-        pages["validate"] = ("Validações reduzidas", ValidatePage, null);
-        pages["makerports"] = ("Maker · Portas", () => Scroll("MakerPortsScroll", new MakerPortsPage(stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
-        pages["makerdrv"] = ("Maker · Drivers seriais", () => Scroll("MakerDrvScroll", new MakerDriversPage(stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
-        pages["optimize"] = ("Otimiza", () => Scroll("OptimizeScroll", new OptimizePage(new LinuxOptimizer(), new OptimizeServices(LinuxGameLauncher.PowerProfileAsync, LinuxGameLauncher.SetPowerProfileAsync) { SteamRoot = () => new SteamInfo(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)).Root() }, usage, IlmenyxSettings.DefaultPath(), () => this, stop.Token,
+        pages["validate"] = (L.T("Validações reduzidas"), ValidatePage, null);
+        pages["makerports"] = (L.T("Maker · Portas"), () => Scroll("MakerPortsScroll", new MakerPortsPage(stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
+        pages["makerdrv"] = (L.T("Maker · Drivers seriais"), () => Scroll("MakerDrvScroll", new MakerDriversPage(stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
+        pages["optimize"] = (L.T("Otimiza"), () => Scroll("OptimizeScroll", new OptimizePage(new LinuxOptimizer(), new OptimizeServices(LinuxGameLauncher.PowerProfileAsync, LinuxGameLauncher.SetPowerProfileAsync) { SteamRoot = () => new SteamInfo(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)).Root() }, usage, IlmenyxSettings.DefaultPath(), () => this, stop.Token,
             OperatingSystem.IsLinux() ? new ZramServices(new ZramProbe().CollectAsync, NvidiaDriverRunner.Available ? NvidiaDriverRunner.RunAsync : null) : null) { Margin = new Thickness(0, 4, 8, 12) }), null);
-        pages["gamecheck"] = ("Jogo não abre?", () => Scroll("GameCheckScroll", new GameCheckPage(OperatingSystem.IsLinux() ? new GameCheckServices(new GameLaunchProbe().CollectAsync, GameUserFixRunner.RunAsync, Select) : throw new PlatformNotSupportedException(), () => this, stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
-        pages["startup"] = ("Inicialização", () => Scroll("StartupScroll", new StartupPage(LinuxStartupManager.CreateDefault(), () => this, stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
-        pages["apps"] = ("Instalar apps", () => Scroll("AppsScroll", new AppsPage(new LinuxAppInstaller(), LinuxAppInstaller.FlatpakAvailable, () => this, stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
+        pages["gamecheck"] = (L.T("Jogo não abre?"), () => Scroll("GameCheckScroll", new GameCheckPage(OperatingSystem.IsLinux() ? new GameCheckServices(new GameLaunchProbe().CollectAsync, GameUserFixRunner.RunAsync, Select) : throw new PlatformNotSupportedException(), () => this, stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
+        pages["startup"] = (L.T("Inicialização"), () => Scroll("StartupScroll", new StartupPage(LinuxStartupManager.CreateDefault(), () => this, stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
+        pages["apps"] = (L.T("Instalar apps"), () => Scroll("AppsScroll", new AppsPage(new LinuxAppInstaller(), LinuxAppInstaller.FlatpakAvailable, () => this, stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["driver"] = ("Drivers", () => Scroll("DriverScroll", new DriverPage(Destination("drivers"), stop.Token, openNvidiaTab: () => Select("nvdriver")) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["nvdriver"] = ("Driver NVIDIA", () => Scroll("NvDriverScroll", new NvidiaDriverPage(OperatingSystem.IsLinux() ? NvidiaDriverServices.Real() : throw new PlatformNotSupportedException(), () => this, stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
-        pages["report"] = ("Relatório", () => Scroll("ReportScroll", new ReportPage(GatherReportAsync, Destination("report"), stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
-        pages["blocked"] = ("Bloqueados (!)", () => Scroll("BlockedScroll", new BlockedPage(ReadMachineProbe) { Margin = new Thickness(0, 4, 8, 12) }), null);
-        pages["tools"] = ("Requisitos e sobre", ToolsPage, null);
+        pages["report"] = (L.T("Relatório"), () => Scroll("ReportScroll", new ReportPage(GatherReportAsync, Destination("report"), stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
+        pages["blocked"] = (L.T("Bloqueados (!)"), () => Scroll("BlockedScroll", new BlockedPage(ReadMachineProbe) { Margin = new Thickness(0, 4, 8, 12) }), null);
+        pages["tools"] = (L.T("Requisitos e sobre"), ToolsPage, null);
         pages["help"] = (help[HelpKeys.HelpNav], HelpPage, null);
     }
 
@@ -126,7 +126,7 @@ public sealed partial class ShellWindow
     {
         if (!OperatingSystem.IsLinux()) return new(false, false, false, false, false);
         bool rt = false; // what is still blocked for the RT benchmark is a dedicated GPU (the APU path was validated)
-        try { rt = Ilmenyx.Gpu.Vulkan.VulkanDevices.List().Adapters.Any(a => !a.IsSoftware && a.SupportsRayQuery && a.Kind == "GPU dedicada"); } catch (Exception e) when (e is IOException or InvalidOperationException or DllNotFoundException) { }
+        try { rt = Ilmenyx.Gpu.Vulkan.VulkanDevices.List().Adapters.Any(a => !a.IsSoftware && a.SupportsRayQuery && a.Kind == L.T("GPU dedicada")); } catch (Exception e) when (e is IOException or InvalidOperationException or DllNotFoundException) { }
         return MachineProbeReader.Read(rt, MachineProbeReader.HasGameLibrary());
     }
 
@@ -137,7 +137,7 @@ public sealed partial class ShellWindow
         {
             var probe = await Task.Run(ReadMachineProbe);
             int n = BlockedCatalog.AvailableCount(probe);
-            if (nav.TryGetValue("blocked", out var b)) { SetNavLabel("blocked", n > 0 ? $"Bloqueados (!) · {n} p/ testar" : "Bloqueados (!)"); Avalonia.Automation.AutomationProperties.SetName(b, n > 0 ? $"Bloqueados, {n} teste(s) disponível(is) nesta máquina" : "Bloqueados"); }
+            if (nav.TryGetValue("blocked", out var b)) { SetNavLabel("blocked", n > 0 ? L.T($"Bloqueados (!) · {n} p/ testar") : L.T("Bloqueados (!)")); Avalonia.Automation.AutomationProperties.SetName(b, n > 0 ? L.T($"Bloqueados, {n} teste(s) disponível(is) nesta máquina") : L.T("Bloqueados")); }
         }
         catch (Exception e) when (e is IOException or InvalidOperationException) { }
     }
@@ -201,11 +201,11 @@ public sealed partial class ShellWindow
     {
         int range = 300; string metric = "load";
         var chart = new UsageChart { Name = "OverviewChart", Height = 210, HorizontalAlignment = HorizontalAlignment.Stretch };
-        var chartLabel = Label("CPU · CARGA");
+        var chartLabel = Label(L.T("CPU · CARGA"));
         var hero = new TextBlock { Name = "OverviewValue", Text = "—", FontSize = 34, FontWeight = FontWeight.Bold };
         GpuRaw? gpuRaw = null; GpuTelemetry? gpuLast = null;
         var gpuLoad = new List<double>(); var gpuValue = new TextBlock { Name = "OverviewGpuValue", Text = "—", FontSize = 20, FontWeight = FontWeight.SemiBold, Foreground = Palette.Muted, HorizontalAlignment = HorizontalAlignment.Right };
-        var gpuLegend = new TextBlock { Name = "OverviewLegendGpu", Text = "GPU: sem contadores de uso neste monitor", FontSize = 11, Foreground = Palette.Muted };
+        var gpuLegend = new TextBlock { Name = "OverviewLegendGpu", Text = L.T("GPU: sem contadores de uso neste monitor"), FontSize = 11, Foreground = Palette.Muted };
         Button? powerChip = null;
         void Refresh()
         {
@@ -213,18 +213,18 @@ public sealed partial class ShellWindow
             if (powerChip is { IsEnabled: true }) ChipStyle(powerChip, watts);
             chart.SetValues(temp ? usage.TempSeries : watts ? usage.PowerSeries : usage.CpuSeries, temp || watts ? null : 100, range);
             chart.SetSecond(!temp && !watts && gpuLoad.Count > 0 ? gpuLoad : []);
-            chartLabel.Text = temp ? "CPU · TEMPERATURA" : watts ? "CPU · CONSUMO (RAPL)" : "CPU · CARGA";
+            chartLabel.Text = temp ? L.T("CPU · TEMPERATURA") : watts ? L.T("CPU · CONSUMO (RAPL)") : L.T("CPU · CARGA");
             hero.Text = temp ? (usage.Last?.CpuTempC is { } t ? t.ToString("0.0", CultureInfo.InvariantCulture) + " °C" : "—")
                 : watts ? (usage.Last?.CpuPowerW is { } w ? w.ToString("0.0", CultureInfo.InvariantCulture) + " W" : "—") : UsageViewModel.Pct(usage.Last?.CpuPercent);
         }
         usage.Updated += Refresh;
         var ranges = Chips("DashRange", [("1 min", 60), ("5 min", 300), ("15 min", 900)], 300, v => { range = v; Refresh(); });
-        var metrics = Chips("DashMetric", [("Temperatura", "temp"), ("Carga", "load")], "load", v => { metric = v; Refresh(); });
+        var metrics = Chips("DashMetric", [(L.T("Temperatura"), "temp"), (L.T("Carga"), "load")], "load", v => { metric = v; Refresh(); });
         // CPU power (RAPL): enabled once a sample arrives; otherwise the tooltip says why (absent counter or root-only file).
-        var power = new Button { Name = "DashMetricPower", Content = "Consumo", FontSize = 11, Padding = new Thickness(13, 5), CornerRadius = new CornerRadius(IlmenyxTheme.Pill), IsEnabled = false, BorderBrush = Palette.Line, BorderThickness = new Thickness(1) };
-        ToolTip.SetTip(power, "Indisponível: o kernel não deixa ler o consumo da CPU (RAPL) sem permissão. Veja \"Por que não aparece?\" no menu lateral.");
+        var power = new Button { Name = "DashMetricPower", Content = L.T("Consumo"), FontSize = 11, Padding = new Thickness(13, 5), CornerRadius = new CornerRadius(IlmenyxTheme.Pill), IsEnabled = false, BorderBrush = Palette.Line, BorderThickness = new Thickness(1) };
+        ToolTip.SetTip(power, L.T("Indisponível: o kernel não deixa ler o consumo da CPU (RAPL) sem permissão. Veja \"Por que não aparece?\" no menu lateral."));
         power.Click += (_, _) => { metric = "power"; foreach (var c in metrics.Children.OfType<Button>()) ChipStyle(c, ReferenceEquals(c, power)); Refresh(); };
-        usage.Updated += () => { if (!power.IsEnabled && usage.Last?.CpuPowerW is not null) { power.IsEnabled = true; ToolTip.SetTip(power, "Consumo do pacote da CPU (RAPL), em watts."); ChipStyle(power, false); } };
+        usage.Updated += () => { if (!power.IsEnabled && usage.Last?.CpuPowerW is not null) { power.IsEnabled = true; ToolTip.SetTip(power, L.T("Consumo do pacote da CPU (RAPL), em watts.")); ChipStyle(power, false); } };
         powerChip = power; metrics.Children.Add(power);
         var chips = new Grid { Margin = new Thickness(0, 16, 0, 8) };
         metrics.HorizontalAlignment = HorizontalAlignment.Right; chips.Children.Add(ranges); chips.Children.Add(metrics);
@@ -234,9 +234,9 @@ public sealed partial class ShellWindow
         var chartCard = CardBox(new StackPanel { Children = { top, chips, chart, legend } }, new Thickness(22, 18));
 
         // Featured row (reference composition): a cinematic hero of this PC and, beside it, the performance highlight card with two small tiles.
-        var open = UiKit.Translucent("OpenBench", "Abrir Benchmark");
+        var open = UiKit.Translucent("OpenBench", L.T("Abrir Benchmark"));
         open.Click += (_, _) => Select("bench");
-        var openValidations = new Button { Name = "OpenValidations", Content = "Validações reduzidas", Background = Brushes.Transparent, Foreground = Palette.Fg, FontSize = 12, Padding = new Thickness(10, 8) };
+        var openValidations = new Button { Name = "OpenValidations", Content = L.T("Validações reduzidas"), Background = Brushes.Transparent, Foreground = Palette.Fg, FontSize = 12, Padding = new Thickness(10, 8) };
         openValidations.Click += (_, _) => Select("validate");
         string? gpuNotice = ValidationNotices.For(DrmGpuInfoProvider.Vendors());
         var notice = new Border { IsVisible = gpuNotice is not null, HorizontalAlignment = HorizontalAlignment.Left, Background = Palette.WarnBg, CornerRadius = new CornerRadius(IlmenyxTheme.Pill), Padding = new Thickness(11, 4), Child = new TextBlock { Name = "OverviewGpuNotice", Text = gpuNotice ?? "", Foreground = Palette.Warn, TextWrapping = TextWrapping.Wrap, FontSize = 11, FontWeight = FontWeight.Medium } };
@@ -245,21 +245,21 @@ public sealed partial class ShellWindow
         usage.Updated += () => { memoryRow.Text = usage.MemoryLine; procRow.Text = usage.ProcessSummary; cpuName.Text = usage.CpuModel; };
         var score = new TextBlock { Name = "OverviewScore", Text = "—", FontSize = 30, FontWeight = FontWeight.Bold, Margin = new Thickness(0, 2, 0, 0) };
         var scoreDelta = new TextBlock { Name = "OverviewScoreDelta", FontSize = 12.5, Foreground = Palette.Fg, Opacity = 0.85 };
-        var scoreSub = Wrapped("OverviewScoreSub", "rode o Benchmark para ter uma nota", 11, Palette.Fg); scoreSub.Opacity = 0.9;
+        var scoreSub = Wrapped("OverviewScoreSub", L.T("rode o Benchmark para ter uma nota"), 11, Palette.Fg); scoreSub.Opacity = 0.9;
         var scoreRows = new StackPanel { Name = "OverviewScores", Margin = new Thickness(0, 8, 0, 0), Spacing = 2 };
         void RefreshScores()
         {
             var summary = PerformanceSummary.From(IlmenyxSettings.Load(IlmenyxSettings.DefaultPath()).BenchRuns);
             score.Text = summary.CpuScore is double sc ? sc.ToString("N0", CultureInfo.InvariantCulture) : "—";
             scoreDelta.Text = summary.CpuDelta is double d ? (d >= 0 ? "▲ " : "▼ ") + Math.Abs(d).ToString("N0", CultureInfo.InvariantCulture) : "";
-            scoreSub.Text = summary.CpuSubtitle + (summary.CpuScore is null ? "" : " · experimental, não comparável ao Windows");
+            scoreSub.Text = summary.CpuSubtitle + (summary.CpuScore is null ? "" : L.T(" · experimental, não comparável ao Windows"));
             scoreRows.Children.Clear();
             foreach (var kv in summary.Others)
                 scoreRows.Children.Add(new Grid { ColumnDefinitions = new("*,Auto"), Children = { new TextBlock { Text = kv.Key, FontSize = 11.5, Foreground = Palette.Fg, Opacity = 0.75 }, new TextBlock { Text = kv.Value, FontSize = 11.5, FontFamily = IlmenyxTheme.Mono, [Grid.ColumnProperty] = 1 } } });
         }
         overviewRefresh += RefreshScores; RefreshScores();
 
-        string model = "Este PC", distro = LinuxCompatHardware.OsName() ?? "Linux", kernel = "";
+        string model = L.T("Este PC"), distro = LinuxCompatHardware.OsName() ?? "Linux", kernel = "";
         try
         {
             if (File.Exists("/sys/class/dmi/id/product_name") && File.ReadAllText("/sys/class/dmi/id/product_name").Trim() is { Length: > 0 and < 80 } pm) model = pm.Split('_')[0];
@@ -314,12 +314,12 @@ public sealed partial class ShellWindow
         var heroCard = UiKit.Hero(heroContent, height: double.NaN, name: "OverviewHero"); heroCard.MinHeight = 250; heroCard.VerticalAlignment = VerticalAlignment.Stretch;
 
         var feature = UiKit.FeatureCard(new StackPanel { Children = {
-            new TextBlock { Text = "DESEMPENHO", FontSize = 11, FontWeight = FontWeight.SemiBold, LetterSpacing = 0.6, Foreground = Palette.Fg, Opacity = 0.75 }, score, scoreDelta, scoreSub, scoreRows,
+            new TextBlock { Text = L.T("DESEMPENHO"), FontSize = 11, FontWeight = FontWeight.SemiBold, LetterSpacing = 0.6, Foreground = Palette.Fg, Opacity = 0.75 }, score, scoreDelta, scoreSub, scoreRows,
             new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Margin = new Thickness(0, 14, 0, 0), Children = { open, openValidations } } } }, "OverviewPerformance");
         Border SmallTile(string label, string icon, TextBlock value) => UiKit.Card(new StackPanel { Spacing = 6, Children = {
             new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { UiKit.Icon(icon, 14, Palette.Faint), UiKit.Label(label) } }, value } }, new Thickness(0));
         var tiles = new Grid { ColumnDefinitions = new("*,10,*"), Margin = new Thickness(0, 10, 0, 0) };
-        var memTile = SmallTile("MEMÓRIA", Icons.Memory, memoryRow); var procTile = SmallTile("PROCESSOS", Icons.Processes, procRow);
+        var memTile = SmallTile(L.T("MEMÓRIA"), Icons.Memory, memoryRow); var procTile = SmallTile(L.T("PROCESSOS"), Icons.Processes, procRow);
         Grid.SetColumn(procTile, 2); tiles.Children.Add(memTile); tiles.Children.Add(procTile);
         var side = new StackPanel { Children = { feature, tiles } };
         var row1 = new Grid { ColumnDefinitions = new("1.9*,14,*"), Margin = new Thickness(0, 0, 0, 4) };
@@ -344,15 +344,15 @@ public sealed partial class ShellWindow
                 HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Top,
                 Content = new StackPanel { Spacing = 4, Children = { head, modelText, new Border { Height = 6 }, big, line, useText } },
             };
-            AutomationPropertiesName(b, "Abrir " + name);
+            AutomationPropertiesName(b, L.T("Abrir ") + name);
             b.Click += (_, _) => Select(target);
             return b;
         }
         var componentCards = new[]
         {
             ComponentCard("CPU", Icons.Cpu, Palette.DataCpu, "system", "GoCpu"), ComponentCard("GPU", Icons.Gpu, Palette.DataGpu, "gpu", "GoGpu"),
-            ComponentCard("Memória", Icons.Memory, Palette.DataMemory, "system", "GoMemory"), ComponentCard("Discos", Icons.Disks, Palette.DataDisk, "disks", "GoDisk"),
-            ComponentCard("Rede", Icons.Network, Palette.DataNetwork, "net", "GoNet"),
+            ComponentCard(L.T("Memória"), Icons.Memory, Palette.DataMemory, "system", "GoMemory"), ComponentCard(L.T("Discos"), Icons.Disks, Palette.DataDisk, "disks", "GoDisk"),
+            ComponentCard(L.T("Rede"), Icons.Network, Palette.DataNetwork, "net", "GoNet"),
         };
         foreach (var c in componentCards) components.Children.Add(c);
         bool? wideComponents = null;
@@ -387,30 +387,30 @@ public sealed partial class ShellWindow
             var s = usage.Last;
             string mhz = s?.CpuMhz is { } m ? m.ToString("0", CultureInfo.InvariantCulture) + " MHz" : "—";
             string tmp = s?.CpuTempC is { } t ? t.ToString("0.0", CultureInfo.InvariantCulture) + " °C" : "—";
-            Set("CPU", s?.CpuModel ?? "", UsageViewModel.Pct(s?.CpuPercent), $"{tmp} · {mhz}", s?.CpuPowerW is { } cw ? cw.ToString("0.0", CultureInfo.InvariantCulture) + " W (RAPL)" : s?.BusiestCore is { } bc ? "mais ocupado: " + bc : "");
+            Set("CPU", s?.CpuModel ?? "", UsageViewModel.Pct(s?.CpuPercent), $"{tmp} · {mhz}", s?.CpuPowerW is { } cw ? cw.ToString("0.0", CultureInfo.InvariantCulture) + " W (RAPL)" : s?.BusiestCore is { } bc ? L.T("mais ocupado: ") + bc : "");
             // GPU card from the same read-only telemetry as the load line; each missing counter stays "—" (never zero).
             var g = gpuLast;
-            string gUse = g?.PowerW is { } gw ? gw.ToString("0.0", CultureInfo.InvariantCulture) + " W" + (g.PowerIsPackage ? " (pacote CPU+GPU)" : "")
+            string gUse = g?.PowerW is { } gw ? gw.ToString("0.0", CultureInfo.InvariantCulture) + " W" + (g.PowerIsPackage ? L.T(" (pacote CPU+GPU)") : "")
                 : g?.VramUsed is { } vu && g.VramTotal is > 0 ? $"{vu >> 20:N0} / {g.VramTotal.Value >> 20:N0} MB".Replace(",", ".")
-                : "sem contadores";
-            Set("GPU", gpuRaw?.Name is { } rawName ? MarketingName(rawName) : "Inventário DRM/PCI", UsageViewModel.Pct(g?.LoadPercent),
+                : L.T("sem contadores");
+            Set("GPU", gpuRaw?.Name is { } rawName ? MarketingName(rawName) : L.T("Inventário DRM/PCI"), UsageViewModel.Pct(g?.LoadPercent),
                 (g?.TempC is { } gt ? gt.ToString("0.0", CultureInfo.InvariantCulture) + " °C" : "—") + " · " + (g?.CoreMHz is { } gm ? gm.ToString("0", CultureInfo.InvariantCulture) + " MHz" : "—"), gUse);
-            Set("Memória", usage.MemorySub, s is { MemoryTotal: > 0, MemoryUsed: { } u } ? UsageViewModel.Pct(100.0 * u / s.MemoryTotal.Value) : "—", usage.MemoryLine, "");
-            Set("Discos", "Dispositivos inteiros", "E/S", usage.DiskLine, "");
-            Set("Rede", usage.NetSub, "Tráfego", usage.NetLine, "");
+            Set(L.T("Memória"), usage.MemorySub, s is { MemoryTotal: > 0, MemoryUsed: { } u } ? UsageViewModel.Pct(100.0 * u / s.MemoryTotal.Value) : "—", usage.MemoryLine, "");
+            Set(L.T("Discos"), L.T("Dispositivos inteiros"), "E/S", usage.DiskLine, "");
+            Set(L.T("Rede"), usage.NetSub, L.T("Tráfego"), usage.NetLine, "");
             HeroReadings();
         }
         usage.Updated += Components; Components();
         // Health checklist, recent events and occupancy rings.
         var healthList = new StackPanel { Name = "OverviewHealth", Spacing = 6 };
         var healthStatus = new TextBlock { Name = "OverviewHealthStatus", FontSize = 11, Foreground = Palette.Faint };
-        var refreshHealth = new Button { Name = "BtnHealthRefresh", Content = "Verificar agora", Padding = new Thickness(12, 4), FontSize = 11 };
+        var refreshHealth = new Button { Name = "BtnHealthRefresh", Content = L.T("Verificar agora"), Padding = new Thickness(12, 4), FontSize = 11 };
         refreshHealth.Click += async (_, _) => await RefreshHealthAsync();
         var eventsList = new StackPanel { Name = "OverviewEvents", Spacing = 4 };
         var rings = new WrapPanel { Name = "OverviewRings" };
         async Task RefreshHealthAsync()
         {
-            refreshHealth.IsEnabled = false; healthStatus.Text = "Lendo (somente leitura)…";
+            refreshHealth.IsEnabled = false; healthStatus.Text = L.T("Lendo (somente leitura)…");
             try
             {
                 IReadOnlyList<HealthCheck> checks = OperatingSystem.IsLinux() ? await GatherHealthAsync() : [];
@@ -419,7 +419,7 @@ public sealed partial class ShellWindow
                     healthList.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, Children = {
                         new TextBlock { Text = c.Ok == true ? "✓" : c.Ok == false ? "!" : "?", FontWeight = FontWeight.Bold, Width = 16, Foreground = c.Ok == false ? Palette.Warn : Palette.Muted },
                         new StackPanel { Children = { new TextBlock { Text = c.Title, FontSize = 13 }, new TextBlock { Text = c.Detail, FontSize = 11, Foreground = Palette.Faint, TextWrapping = TextWrapping.Wrap, MaxWidth = 520 } } } } });
-                healthStatus.Text = $"Lido às {DateTime.Now:HH:mm:ss}. \"?\" = fonte indisponível, não é sinal de problema.";
+                healthStatus.Text = L.T($"Lido às {DateTime.Now:HH:mm:ss}. \"?\" = fonte indisponível, não é sinal de problema.");
             }
             catch (OperationCanceledException) { }
             finally { refreshHealth.IsEnabled = true; }
@@ -428,7 +428,7 @@ public sealed partial class ShellWindow
         {
             eventsList.Children.Clear();
             var items = sessionEvents.Select(e => (e.At, e.Title, e.Text)).Concat(IlmenyxSettings.Load(IlmenyxSettings.DefaultPath()).BenchRuns.Take(8).Select(r => (r.At, r.Kind, r.Summary))).OrderByDescending(x => x.Item1).Take(8).ToList();
-            if (items.Count == 0) eventsList.Children.Add(new TextBlock { Text = "Nenhum evento ainda. Resultados de benchmark e dispositivos conectados aparecem aqui.", Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap });
+            if (items.Count == 0) eventsList.Children.Add(new TextBlock { Text = L.T("Nenhum evento ainda. Resultados de benchmark e dispositivos conectados aparecem aqui."), Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap });
             foreach (var (at, title, text) in items)
                 eventsList.Children.Add(new StackPanel { Children = { new TextBlock { Text = $"{at.LocalDateTime.ToString("HH:mm", CultureInfo.InvariantCulture)} · {title}", FontSize = 12, FontWeight = FontWeight.SemiBold }, new TextBlock { Text = text, FontSize = 11, Foreground = Palette.Faint, TextWrapping = TextWrapping.Wrap } } });
         }
@@ -438,19 +438,19 @@ public sealed partial class ShellWindow
             void Ring(string title, double fraction, string text) => rings.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 24, 8), Spacing = 12, Children = {
                 new Grid { Children = { new RingGauge(fraction), new TextBlock { Text = (fraction * 100).ToString("0", CultureInfo.InvariantCulture) + "%", FontFamily = new FontFamily("monospace"), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center } } },
                 new StackPanel { VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center, Children = { Label(title), new TextBlock { Text = text, FontSize = 12, Foreground = Palette.Muted } } } } });
-            if (usage.Last is { MemoryTotal: > 0, MemoryUsed: { } u } l) Ring("MEMÓRIA", (double)u / l.MemoryTotal!.Value, usage.MemoryLine);
+            if (usage.Last is { MemoryTotal: > 0, MemoryUsed: { } u } l) Ring(L.T("MEMÓRIA"), (double)u / l.MemoryTotal!.Value, usage.MemoryLine);
             if (OperatingSystem.IsLinux())
-                try { foreach (var d in MountedDrives.Read(File.ReadAllText("/proc/self/mounts")).Take(4)) Ring("DISCO · " + d.Title, d.UsedFraction, d.Sizes); }
+                try { foreach (var d in MountedDrives.Read(File.ReadAllText("/proc/self/mounts")).Take(4)) Ring(L.T("DISCO · ") + d.Title, d.UsedFraction, d.Sizes); }
                 catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
         }
         overviewRefresh += () => { RefreshEvents(); RefreshRings(); };
         overviewRefresh += () => { if (healthList.Children.Count == 0) _ = RefreshHealthAsync(); };
         var lower = new Grid { ColumnDefinitions = new("*,16,*"), Margin = new Thickness(0, 14, 0, 0) };
-        var healthCard = CardBox(new StackPanel { Spacing = 10, Children = { Label("SAÚDE DO PC"), healthList, healthStatus, refreshHealth } }, new Thickness(22, 18));
-        var eventsCard = CardBox(new StackPanel { Spacing = 10, Children = { Label("EVENTOS RECENTES"), eventsList } }, new Thickness(22, 18));
+        var healthCard = CardBox(new StackPanel { Spacing = 10, Children = { Label(L.T("SAÚDE DO PC")), healthList, healthStatus, refreshHealth } }, new Thickness(22, 18));
+        var eventsCard = CardBox(new StackPanel { Spacing = 10, Children = { Label(L.T("EVENTOS RECENTES")), eventsList } }, new Thickness(22, 18));
         Grid.SetColumn(eventsCard, 2); lower.Children.Add(healthCard); lower.Children.Add(eventsCard);
-        var ringCard = CardBox(new StackPanel { Spacing = 8, Children = { Label("OCUPAÇÃO"), rings } }, new Thickness(22, 18)); ringCard.Margin = new Thickness(0, 14, 0, 0);
-        var content = new StackPanel { Margin = new Thickness(0, 0, 8, 12), Children = { row1, UiKit.SectionHeader("Atividade"), chartCard, UiKit.SectionHeader("Componentes"), components, lower, ringCard } };
+        var ringCard = CardBox(new StackPanel { Spacing = 8, Children = { Label(L.T("OCUPAÇÃO")), rings } }, new Thickness(22, 18)); ringCard.Margin = new Thickness(0, 14, 0, 0);
+        var content = new StackPanel { Margin = new Thickness(0, 0, 8, 12), Children = { row1, UiKit.SectionHeader(L.T("Atividade")), chartCard, UiKit.SectionHeader(L.T("Componentes")), components, lower, ringCard } };
         var scroll = Scroll("OverviewScroll", content);
         scroll.AttachedToVisualTree += (_, _) => overviewRefresh?.Invoke();
         var refreshTimer = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(20) };
@@ -527,7 +527,7 @@ public sealed partial class ShellWindow
         return Scroll("ValidateScroll", new StackPanel
         {
             Margin = new Thickness(0, 4, 8, 12),
-            Children = { UiKit.PageHeader("Validações reduzidas", "Execuções curtas e determinísticas que conferem os algoritmos do CPU, da memória e do GameSim · não medem desempenho nem saúde do hardware"), grid }
+            Children = { UiKit.PageHeader(L.T("Validações reduzidas"), L.T("Execuções curtas e determinísticas que conferem os algoritmos do CPU, da memória e do GameSim · não medem desempenho nem saúde do hardware")), grid }
         });
     }
 
@@ -539,17 +539,17 @@ public sealed partial class ShellWindow
     {
         var grants = SensorHelp.Granted(File.Exists);
         if (grants.Count == 0) return null;
-        var list = new StackPanel { Spacing = 8, Children = { UiKit.Label("PERMISSÕES DADAS PELO ILMENYX") } };
+        var list = new StackPanel { Spacing = 8, Children = { UiKit.Label(L.T("PERMISSÕES DADAS PELO ILMENYX")) } };
         for (int i = 0; i < grants.Count; i++)
         {
             var g = grants[i];
             var status = new TextBlock { Name = "GrantStatus" + i, FontSize = 12, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center };
-            var undo = new Button { Name = "GrantUndo" + i, Content = "Desfazer", FontSize = 12, Padding = new Thickness(14, 7), IsEnabled = PrivilegedFix.Available };
-            if (!PrivilegedFix.Available) status.Text = "O pedido de senha do sistema (pkexec/polkit) não está instalado.";
+            var undo = new Button { Name = "GrantUndo" + i, Content = L.T("Desfazer"), FontSize = 12, Padding = new Thickness(14, 7), IsEnabled = PrivilegedFix.Available };
+            if (!PrivilegedFix.Available) status.Text = L.T("O pedido de senha do sistema (pkexec/polkit) não está instalado.");
             undo.Click += async (_, _) =>
             {
-                if (!await ConfirmDialog.AskAsync(this, g.Title, "Desfazer?\n\nO sistema vai abrir a janela dele pedindo a sua senha de administrador.", "Desfazer", "Cancelar")) return;
-                undo.IsEnabled = false; status.Text = "Aguardando a sua senha na janela do sistema…"; status.Foreground = Palette.Muted;
+                if (!await ConfirmDialog.AskAsync(this, g.Title, L.T("Desfazer?\n\nO sistema vai abrir a janela dele pedindo a sua senha de administrador."), L.T("Desfazer"), L.T("Cancelar"))) return;
+                undo.IsEnabled = false; status.Text = L.T("Aguardando a sua senha na janela do sistema…"); status.Foreground = Palette.Muted;
                 var (ok, message) = await PrivilegedFix.RunAsync(g.Undo, stop.Token);
                 status.Text = ok ? g.Done : message; status.Foreground = ok ? Palette.Success : Palette.Warn;
                 undo.IsEnabled = !ok;
@@ -561,13 +561,13 @@ public sealed partial class ShellWindow
 
     private Control ToolsPage()
     {
-        var requirements = new Button { Name = "ShowRequirements", Content = "Requisitos" };
-        var about = new Button { Name = "About", Content = "Licenças e créditos" };
-        var classicButton = new Button { Name = "OpenClassic", Content = "Painel clássico de diagnósticos" };
+        var requirements = new Button { Name = "ShowRequirements", Content = L.T("Requisitos") };
+        var about = new Button { Name = "About", Content = L.T("Licenças e créditos") };
+        var classicButton = new Button { Name = "OpenClassic", Content = L.T("Painel clássico de diagnósticos") };
         requirements.Click += async (_, _) => { await new RequirementsDialog().ShowDialog(this); if (IsVisible) requirements.Focus(); };
         about.Click += async (_, _) => { await new AboutDialog().ShowDialog(this); if (IsVisible) about.Focus(); };
         classicButton.Click += (_, _) => OpenClassicDiagnostics();
-        var toastToggle = new CheckBox { Name = "DeviceToastsToggle", Content = "Avisar quando um pendrive/unidade ou dispositivo USB for conectado ou removido", IsChecked = appSettings.DeviceToasts };
+        var toastToggle = new CheckBox { Name = "DeviceToastsToggle", Content = L.T("Avisar quando um pendrive/unidade ou dispositivo USB for conectado ou removido"), IsChecked = appSettings.DeviceToasts };
         toastToggle.IsCheckedChanged += (_, _) =>
         {
             appSettings.DeviceToasts = toastToggle.IsChecked == true; if (toasts is not null) toasts.Enabled = appSettings.DeviceToasts;
@@ -577,7 +577,7 @@ public sealed partial class ShellWindow
         var page = new StackPanel
         {
             Spacing = 12,
-            Children = { UiKit.PageHeader("Requisitos e sobre"), UiKit.Card(new StackPanel { Spacing = 12, Children = { UiKit.Label("FERRAMENTAS"), new WrapPanel { ItemSpacing = 10, LineSpacing = 8, Children = { requirements, about, classicButton } }, toastToggle,
+            Children = { UiKit.PageHeader(L.T("Requisitos e sobre")), UiKit.Card(new StackPanel { Spacing = 12, Children = { UiKit.Label(L.T("FERRAMENTAS")), new WrapPanel { ItemSpacing = 10, LineSpacing = 8, Children = { requirements, about, classicButton } }, toastToggle,
                 Wrapped("ToolsNote", ProductIdentity.Attribution, 12, Palette.Faint) } }) }
         };
         if (GrantsCard() is { } grants) page.Children.Add(grants);

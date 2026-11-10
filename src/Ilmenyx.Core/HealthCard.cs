@@ -15,7 +15,7 @@ public sealed class HealthCard
     public HealthVerdict Verdict { get; init; } = HealthVerdict.Unknown;
     /// <summary>Badge text; when empty the disk wording is used.</summary>
     public string? Label { get; init; }
-    public string VerdictText => Label ?? Verdict switch { HealthVerdict.Good => "SAUDÁVEL", HealthVerdict.Warning => "ATENÇÃO", HealthVerdict.Critical => "CRÍTICO", _ => "SEM DADOS" };
+    public string VerdictText => Label ?? Verdict switch { HealthVerdict.Good => L.T("SAUDÁVEL"), HealthVerdict.Warning => L.T("ATENÇÃO"), HealthVerdict.Critical => L.T("CRÍTICO"), _ => L.T("SEM DADOS") };
     public bool IsAlert => Verdict != HealthVerdict.Good;
     public string Reasons { get; init; } = "";
     public List<KeyValuePair<string, string>> Metrics { get; init; } = [];

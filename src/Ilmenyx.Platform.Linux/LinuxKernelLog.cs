@@ -12,7 +12,7 @@ public sealed class LinuxKernelLog(Func<IReadOnlyList<string>, CancellationToken
         run ?? ((args, ct) => BoundedProcess.RunAsync("journalctl", args, TimeSpan.FromSeconds(8), 4 << 20, ct));
     private bool? readable;
 
-    public const string NoAccess = "sem permissão para ler o log do kernel (entre no grupo systemd-journal ou adm para habilitar)";
+    public static readonly string NoAccess = L.T("sem permissão para ler o log do kernel (entre no grupo systemd-journal ou adm para habilitar)");
 
     public async Task<KernelHardwareErrors> ErrorsSinceAsync(DateTimeOffset since, CancellationToken ct = default)
     {
@@ -24,9 +24,9 @@ public sealed class LinuxKernelLog(Func<IReadOnlyList<string>, CancellationToken
                 readable = probeCode == 0 && probe.Trim().Length > 0;
             }
             if (readable != true) return KernelHardwareErrors.Unavailable(NoAccess);
-            string from = since.UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture) + " UTC";
+            string from = since.UtcDateTime.ToString(L.T("yyyy-MM-dd HH:mm:ss"), CultureInfo.InvariantCulture) + " UTC";
             var (code, output) = await run(["-k", "--since", from, "--no-pager", "-q", "-o", "short-iso"], ct);
-            return code == 0 ? KernelLogParser.Parse(output) : KernelHardwareErrors.Unavailable($"journalctl terminou com código {code}");
+            return code == 0 ? KernelLogParser.Parse(output) : KernelHardwareErrors.Unavailable(L.T($"journalctl terminou com código {code}"));
         }
         catch (Exception e) when (e is IOException or TimeoutException or FileNotFoundException or InvalidOperationException)
         {

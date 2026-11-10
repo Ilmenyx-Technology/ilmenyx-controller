@@ -22,7 +22,7 @@ public sealed record FpsCalibration(DateTimeOffset At, string Fingerprint, strin
 /// <summary>Personal correction from sessions measured on this PC: factor applied to estimates with the same limiter and preset.</summary>
 public sealed record PersonalFactor(double Factor, int Sessions, IReadOnlyList<string> Games)
 {
-    public string Text => Sessions == 1 ? "sua 1 sessão medida" : $"suas {Sessions} sessões medidas";
+    public string Text => Sessions == 1 ? L.T("sua 1 sessão medida") : L.T($"suas {Sessions} sessões medidas");
 }
 
 public static class FpsModels
@@ -160,26 +160,26 @@ public static class FpsModels
         {
             case FpsBasis.Calibrated:
                 level = FpsConfidence.Low; spread = FpsAccuracy.LowSpread;
-                reasons.Add("GPU medida neste PC pela cena de teste do Ilmenyx (uma cena sintética: cada jogo reage diferente)");
+                reasons.Add(L.T("GPU medida neste PC pela cena de teste do Ilmenyx (uma cena sintética: cada jogo reage diferente)"));
                 break;
             case FpsBasis.Specs:
                 level = FpsConfidence.VeryLow; spread = 0.45;
-                reasons.Add("GPU fora da tabela: força calculada pelas especificações (shaders × clock), sem medição");
+                reasons.Add(L.T("GPU fora da tabela: força calculada pelas especificações (shaders × clock), sem medição"));
                 break;
             default:
                 var t = FpsAccuracy.Assess(tableMatch, gpuIdx, false, cpuIdx);
-                level = t.Confidence; spread = t.Spread - 0.03 * cpuDist; reasons.AddRange(t.Reasons.Where(r => !r.StartsWith("GPU e CPU de desktop", StringComparison.Ordinal)));
+                level = t.Confidence; spread = t.Spread - 0.03 * cpuDist; reasons.AddRange(t.Reasons.Where(r => !r.StartsWith(L.T("GPU e CPU de desktop"), StringComparison.Ordinal)));
                 break;
         }
-        if (cpuMeasured) reasons.Add("CPU medida neste PC (simulação de jogo em uma thread)");
-        else if (laptopCpu) { reasons.Add("CPU de notebook: o clock sustentado depende de refrigeração e do limite de energia"); if (level == FpsConfidence.Medium) level = FpsConfidence.Low; spread = Math.Max(spread, FpsAccuracy.LowSpread); }
+        if (cpuMeasured) reasons.Add(L.T("CPU medida neste PC (simulação de jogo em uma thread)"));
+        else if (laptopCpu) { reasons.Add(L.T("CPU de notebook: o clock sustentado depende de refrigeração e do limite de energia")); if (level == FpsConfidence.Medium) level = FpsConfidence.Low; spread = Math.Max(spread, FpsAccuracy.LowSpread); }
         if (basis != FpsBasis.Table)
         {
             spread += 0.04 * gpuDist;
             if (gpuDist > FpsAccuracy.FarFromReference && level != FpsConfidence.VeryLow)
             {
                 level = level == FpsConfidence.Medium ? FpsConfidence.Low : FpsConfidence.VeryLow;
-                reasons.Add("muito longe da GPU de referência (RTX 4070): a escala por índice erra mais");
+                reasons.Add(L.T("muito longe da GPU de referência (RTX 4070): a escala por índice erra mais"));
             }
         }
         spread += 0.03 * cpuDist;
@@ -189,7 +189,7 @@ public static class FpsModels
     /// <summary>Applies a personal factor to an assessment: ≥ 3 sessions raise the confidence one level and narrow the range by 20 %.</summary>
     public static FpsAssessment WithPersonal(FpsAssessment a, PersonalFactor p)
     {
-        var reasons = a.Reasons.Append($"ajustada por {p.Text} com a mesma qualidade gráfica (fator {p.Factor.ToString("0.00", DecimalComma)})").ToList();
+        var reasons = a.Reasons.Append(L.T($"ajustada por {p.Text} com a mesma qualidade gráfica (fator {p.Factor.ToString("0.00", DecimalComma)})")).ToList();
         if (p.Sessions < ConfidentSessions) return a with { Reasons = reasons };
         var level = a.Confidence switch { FpsConfidence.VeryLow => FpsConfidence.Low, _ => FpsConfidence.Medium };
         return new(level, Math.Max(0.1, a.Spread * 0.8), reasons);
@@ -197,8 +197,8 @@ public static class FpsModels
 
     public static string BasisText(FpsBasis basis) => basis switch
     {
-        FpsBasis.Calibrated => "benchmark deste PC",
-        FpsBasis.Specs => "especificações",
-        _ => "tabela de referência",
+        FpsBasis.Calibrated => L.T("benchmark deste PC"),
+        FpsBasis.Specs => L.T("especificações"),
+        _ => L.T("tabela de referência"),
     };
 }

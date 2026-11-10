@@ -215,7 +215,7 @@ public static partial class GameLaunchChecks
         ["i915"] = ("Intel", ["libvulkan_intel.so", "libvulkan_intel_hasvk.so"]),
         ["xe"] = ("Intel", ["libvulkan_intel.so"]),
         ["amdgpu"] = ("AMD", ["libvulkan_radeon.so", "amdvlk64.so", "amdvlk.so"]),
-        ["nvidia"] = ("NVIDIA (driver proprietário)", ["libGLX_nvidia.so.0", "libEGL_nvidia.so.0"]),
+        ["nvidia"] = (L.T("NVIDIA (driver proprietário)"), ["libGLX_nvidia.so.0", "libEGL_nvidia.so.0"]),
         ["nouveau"] = ("NVIDIA (nouveau/NVK)", ["libvulkan_nouveau.so"]),
     };
 
@@ -241,50 +241,50 @@ public static partial class GameLaunchChecks
             bool bwrapProfile = f.UsernsProfiles.Any(p => p.Contains("bwrap", StringComparison.OrdinalIgnoreCase) || p.Contains("flatpak", StringComparison.OrdinalIgnoreCase));
             string profiles = f.UsernsProfiles.Count > 0 ? string.Join(", ", f.UsernsProfiles) : "nenhum";
             var status = restrict == 0 ? CheckStatus.Ok : bwrapProfile ? CheckStatus.Info : CheckStatus.Attention;
-            list.Add(new("apparmor", "AppArmor: restrição de namespaces de usuário", status,
-                restrict == 0 ? "Restrição desligada (kernel.apparmor_restrict_unprivileged_userns = 0)." : $"Restrição LIGADA (kernel.apparmor_restrict_unprivileged_userns = 1). Perfis de AppArmor encontrados para bwrap/Flatpak/Steam: {profiles}.",
-                "O Flatpak e a Steam (pressure-vessel, o \"contêiner\" do Proton) usam o bubblewrap (bwrap), que cria um namespace de usuário. Desde o Ubuntu 23.10/24.04 o AppArmor só deixa isso para programas com um perfil próprio. Sem perfil, o sintoma é o jogo ou o app Flatpak fechar na hora, com erros como \"bwrap: setting up uid map: Permission denied\" ou \"No permissions to create new namespace\". Se a Steam e o Flatpak abrem normalmente, não mude nada.",
-                "A correção afrouxa uma proteção do sistema: o bwrap passa a poder criar namespaces sem restrição. É o que a própria Steam/Flatpak precisa, mas também amplia o que um programa malicioso poderia explorar. Por isso o Ilmenyx só mostra os comandos.",
+            list.Add(new("apparmor", L.T("AppArmor: restrição de namespaces de usuário"), status,
+                restrict == 0 ? L.T("Restrição desligada (kernel.apparmor_restrict_unprivileged_userns = 0).") : L.T($"Restrição LIGADA (kernel.apparmor_restrict_unprivileged_userns = 1). Perfis de AppArmor encontrados para bwrap/Flatpak/Steam: {profiles}."),
+                L.T("O Flatpak e a Steam (pressure-vessel, o \"contêiner\" do Proton) usam o bubblewrap (bwrap), que cria um namespace de usuário. Desde o Ubuntu 23.10/24.04 o AppArmor só deixa isso para programas com um perfil próprio. Sem perfil, o sintoma é o jogo ou o app Flatpak fechar na hora, com erros como \"bwrap: setting up uid map: Permission denied\" ou \"No permissions to create new namespace\". Se a Steam e o Flatpak abrem normalmente, não mude nada."),
+                L.T("A correção afrouxa uma proteção do sistema: o bwrap passa a poder criar namespaces sem restrição. É o que a própria Steam/Flatpak precisa, mas também amplia o que um programa malicioso poderia explorar. Por isso o Ilmenyx só mostra os comandos."),
                 restrict == 0 ? [] : Cmds(
-                    ("Ver se o kernel bloqueou algo (procure userns_create)", "sudo journalctl -k -g 'apparmor=\"DENIED\"' --since today"),
-                    ("Criar um perfil só para o bwrap (permanente)", "printf '%s\\n' 'abi <abi/4.0>,' 'include <tunables/global>' 'profile ilmenyx-bwrap /usr/bin/bwrap flags=(unconfined) {' '  userns,' '}' | sudo tee " + AppArmorProfilePath + " && sudo apparmor_parser -r " + AppArmorProfilePath),
-                    ("Desfazer o perfil", "sudo apparmor_parser -R " + AppArmorProfilePath + " && sudo rm " + AppArmorProfilePath),
-                    ("Alternativa só até reiniciar (desliga a restrição para TODOS os programas)", "sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0")),
-                [], restrict == 0 ? null : "Reduz a segurança. Só aplique se a Steam/Flatpak realmente não abre e o log mostra o bloqueio. O perfil vale apenas para /usr/bin/bwrap; a alternativa com sysctl desliga a proteção do sistema inteiro."));
+                    (L.T("Ver se o kernel bloqueou algo (procure userns_create)"), "sudo journalctl -k -g 'apparmor=\"DENIED\"' --since today"),
+                    (L.T("Criar um perfil só para o bwrap (permanente)"), "printf '%s\\n' 'abi <abi/4.0>,' 'include <tunables/global>' 'profile ilmenyx-bwrap /usr/bin/bwrap flags=(unconfined) {' '  userns,' '}' | sudo tee " + AppArmorProfilePath + " && sudo apparmor_parser -r " + AppArmorProfilePath),
+                    (L.T("Desfazer o perfil"), "sudo apparmor_parser -R " + AppArmorProfilePath + " && sudo rm " + AppArmorProfilePath),
+                    (L.T("Alternativa só até reiniciar (desliga a restrição para TODOS os programas)"), "sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0")),
+                [], restrict == 0 ? null : L.T("Reduz a segurança. Só aplique se a Steam/Flatpak realmente não abre e o log mostra o bloqueio. O perfil vale apenas para /usr/bin/bwrap; a alternativa com sysctl desliga a proteção do sistema inteiro.")));
         }
 
         // 2. Unprivileged user namespaces disabled outright.
         if (f.UnprivilegedUsernsClone is not null || f.MaxUserNamespaces is not null)
         {
             bool cloneOff = f.UnprivilegedUsernsClone == 0, maxOff = f.MaxUserNamespaces == 0;
-            string found = string.Join(" · ", new[] { f.UnprivilegedUsernsClone is { } c ? $"kernel.unprivileged_userns_clone = {c}" : null, f.MaxUserNamespaces is { } m ? $"user.max_user_namespaces = {m}" : null }.OfType<string>());
-            list.Add(new("userns", "Namespaces de usuário sem privilégio", cloneOff || maxOff ? CheckStatus.Problem : CheckStatus.Ok, found + (cloneOff || maxOff ? " — desligados." : " — permitidos."),
-                "O Flatpak, a Steam (pressure-vessel) e o Proton precisam criar namespaces de usuário sem ser root. Se o kernel estiver configurado para negar, nada disso abre.",
-                "Religar volta ao padrão da maioria das distribuições, mas desfaz um endurecimento que alguém (ou um script de segurança) fez de propósito. Confira antes por que estava desligado.",
+            string found = string.Join(" · ", new[] { f.UnprivilegedUsernsClone is { } c ? L.T($"kernel.unprivileged_userns_clone = {c}") : null, f.MaxUserNamespaces is { } m ? L.T($"user.max_user_namespaces = {m}") : null }.OfType<string>());
+            list.Add(new("userns", L.T("Namespaces de usuário sem privilégio"), cloneOff || maxOff ? CheckStatus.Problem : CheckStatus.Ok, found + (cloneOff || maxOff ? L.T(" — desligados.") : L.T(" — permitidos.")),
+                L.T("O Flatpak, a Steam (pressure-vessel) e o Proton precisam criar namespaces de usuário sem ser root. Se o kernel estiver configurado para negar, nada disso abre."),
+                L.T("Religar volta ao padrão da maioria das distribuições, mas desfaz um endurecimento que alguém (ou um script de segurança) fez de propósito. Confira antes por que estava desligado."),
                 cloneOff || maxOff ? Cmds(
-                    ("Religar até reiniciar", (cloneOff ? "sudo sysctl -w kernel.unprivileged_userns_clone=1" : "") + (cloneOff && maxOff ? " && " : "") + (maxOff ? "sudo sysctl -w user.max_user_namespaces=63000" : "")),
-                    ("Procurar quem desligou (arquivos de sysctl)", "grep -rn 'userns\\|max_user_namespaces' /etc/sysctl.conf /etc/sysctl.d/ /usr/lib/sysctl.d/ 2>/dev/null")) : [],
-                [], cloneOff || maxOff ? "Reduz o endurecimento do sistema. Não aplique em servidores ou PCs gerenciados por outra pessoa." : null));
+                    (L.T("Religar até reiniciar"), (cloneOff ? "sudo sysctl -w kernel.unprivileged_userns_clone=1" : "") + (cloneOff && maxOff ? " && " : "") + (maxOff ? "sudo sysctl -w user.max_user_namespaces=63000" : "")),
+                    (L.T("Procurar quem desligou (arquivos de sysctl)"), "grep -rn 'userns\\|max_user_namespaces' /etc/sysctl.conf /etc/sysctl.d/ /usr/lib/sysctl.d/ 2>/dev/null")) : [],
+                [], cloneOff || maxOff ? L.T("Reduz o endurecimento do sistema. Não aplique em servidores ou PCs gerenciados por outra pessoa.") : null));
         }
 
         // 3. SELinux execmod (openSUSE Tumbleweed/Fedora): Wine/Proton need executable memory mappings.
         if (f.SelinuxEnforce is 1 && f.SelinuxExecmod is { } execmod)
-            list.Add(new("selinux", "SELinux: permissão execmod (Wine/Proton)", execmod ? CheckStatus.Ok : CheckStatus.Attention,
-                $"SELinux em modo enforcing · selinuxuser_execmod = {(execmod ? "ligado" : "desligado")}.",
-                "Wine e Proton precisam de memória que é escrita e depois executada. Com o SELinux aplicando as regras e a permissão selinuxuser_execmod desligada, alguns jogos fecham ao abrir ou aparecem negações \"execmod\" no log de auditoria.",
-                "Ligar a permissão deixa qualquer programa do usuário fazer esse tipo de mapeamento, o que reduz uma proteção contra exploração de falhas.",
-                execmod ? [] : Cmds(("Ver negações recentes", "sudo ausearch -m avc -ts recent | grep execmod"), ("Ligar (permanente)", "sudo setsebool -P selinuxuser_execmod 1"), ("Desfazer", "sudo setsebool -P selinuxuser_execmod 0")),
-                [], execmod ? null : "Reduz a segurança. Só ligue se o log mostrar negações execmod de Wine/Proton/Steam."));
+            list.Add(new("selinux", L.T("SELinux: permissão execmod (Wine/Proton)"), execmod ? CheckStatus.Ok : CheckStatus.Attention,
+                L.T($"SELinux em modo enforcing · selinuxuser_execmod = {(execmod ? "ligado" : "desligado")}."),
+                L.T("Wine e Proton precisam de memória que é escrita e depois executada. Com o SELinux aplicando as regras e a permissão selinuxuser_execmod desligada, alguns jogos fecham ao abrir ou aparecem negações \"execmod\" no log de auditoria."),
+                L.T("Ligar a permissão deixa qualquer programa do usuário fazer esse tipo de mapeamento, o que reduz uma proteção contra exploração de falhas."),
+                execmod ? [] : Cmds((L.T("Ver negações recentes"), "sudo ausearch -m avc -ts recent | grep execmod"), (L.T("Ligar (permanente)"), "sudo setsebool -P selinuxuser_execmod 1"), (L.T("Desfazer"), "sudo setsebool -P selinuxuser_execmod 0")),
+                [], execmod ? null : L.T("Reduz a segurança. Só ligue se o log mostrar negações execmod de Wine/Proton/Steam.")));
 
         // 4. Arch multilib (needed by the native Steam package).
         if (fam == DistroFamily.Arch && f.PacmanConf is { } pacman)
         {
             bool on = MultilibEnabled(pacman);
-            list.Add(new("multilib", "Repositório multilib (Arch e derivadas)", on ? CheckStatus.Ok : f.SteamNative ? CheckStatus.Problem : CheckStatus.Attention,
-                on ? "[multilib] ativo em /etc/pacman.conf." : "[multilib] desativado (comentado) em /etc/pacman.conf.",
-                "A Steam nativa do Arch e as bibliotecas de 32 bits (lib32-*) vêm do repositório multilib. Sem ele, o pacote steam não instala e jogos de 32 bits não abrem. A Steam Flatpak não precisa dele.",
-                "Baixo: é um repositório oficial do Arch. Ative e atualize o sistema inteiro em seguida (nunca só um pacote).",
-                on ? [] : Cmds(("Abrir o arquivo para tirar o # das linhas [multilib] e Include", "sudo nano /etc/pacman.conf"), ("Depois, atualizar o sistema", "sudo pacman -Syu")), []));
+            list.Add(new("multilib", L.T("Repositório multilib (Arch e derivadas)"), on ? CheckStatus.Ok : f.SteamNative ? CheckStatus.Problem : CheckStatus.Attention,
+                on ? L.T("[multilib] ativo em /etc/pacman.conf.") : L.T("[multilib] desativado (comentado) em /etc/pacman.conf."),
+                L.T("A Steam nativa do Arch e as bibliotecas de 32 bits (lib32-*) vêm do repositório multilib. Sem ele, o pacote steam não instala e jogos de 32 bits não abrem. A Steam Flatpak não precisa dele."),
+                L.T("Baixo: é um repositório oficial do Arch. Ative e atualize o sistema inteiro em seguida (nunca só um pacote)."),
+                on ? [] : Cmds((L.T("Abrir o arquivo para tirar o # das linhas [multilib] e Include"), "sudo nano /etc/pacman.conf"), (L.T("Depois, atualizar o sistema"), "sudo pacman -Syu")), []));
         }
 
         // 5. Fedora RPM Fusion (native Steam, codecs, NVIDIA).
@@ -292,43 +292,43 @@ public static partial class GameLaunchChecks
         {
             bool free = f.RpmFusionFree == true, nonFree = f.RpmFusionNonFree == true;
             list.Add(new("rpmfusion", "RPM Fusion (Fedora)", free && nonFree ? CheckStatus.Ok : CheckStatus.Attention,
-                $"RPM Fusion free: {(free ? "ativo" : "ausente ou desativado")} · nonfree: {(nonFree ? "ativo" : "ausente ou desativado")}.",
-                "O Fedora não traz a Steam nativa, os codecs completos de vídeo nem o driver NVIDIA. Eles vêm do RPM Fusion (free e nonfree). Sem ele, vídeos de abertura de jogos podem ficar pretos e a Steam nativa não instala. Com a Steam Flatpak, a falta é menor.",
-                "Baixo a médio: é um repositório de terceiros muito usado e recomendado pela comunidade do Fedora, mas passa a fornecer pacotes ao seu sistema.",
-                free && nonFree ? [] : Cmds(("Instalar o RPM Fusion free e nonfree (comando oficial)", "sudo dnf install https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm")), []));
+                L.T($"RPM Fusion free: {(free ? "ativo" : L.T("ausente ou desativado"))} · nonfree: {(nonFree ? "ativo" : L.T("ausente ou desativado"))}."),
+                L.T("O Fedora não traz a Steam nativa, os codecs completos de vídeo nem o driver NVIDIA. Eles vêm do RPM Fusion (free e nonfree). Sem ele, vídeos de abertura de jogos podem ficar pretos e a Steam nativa não instala. Com a Steam Flatpak, a falta é menor."),
+                L.T("Baixo a médio: é um repositório de terceiros muito usado e recomendado pela comunidade do Fedora, mas passa a fornecer pacotes ao seu sistema."),
+                free && nonFree ? [] : Cmds((L.T("Instalar o RPM Fusion free e nonfree (comando oficial)"), "sudo dnf install https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm")), []));
         }
 
         // 6. Flathub remote (system and user).
         if (!f.FlatpakInstalled)
-            list.Add(new("flathub", "Flatpak e Flathub", CheckStatus.Info, "Flatpak não está instalado.",
-                "Sem o Flatpak, não há Steam Flatpak, Heroic Flatpak nem os apps da página Instalar apps. Se você usa a Steam nativa, pode ignorar este item.",
-                "Baixo: é o pacote oficial da sua distribuição.", f.FlatpakInstallHint.Length > 0 ? Cmds(("Instalar o Flatpak", f.FlatpakInstallHint)) : [], []));
+            list.Add(new("flathub", L.T("Flatpak e Flathub"), CheckStatus.Info, L.T("Flatpak não está instalado."),
+                L.T("Sem o Flatpak, não há Steam Flatpak, Heroic Flatpak nem os apps da página Instalar apps. Se você usa a Steam nativa, pode ignorar este item."),
+                L.T("Baixo: é o pacote oficial da sua distribuição."), f.FlatpakInstallHint.Length > 0 ? Cmds((L.T("Instalar o Flatpak"), f.FlatpakInstallHint)) : [], []));
         else
         {
             var sys = Flathub(f.SystemRemotes); var user = Flathub(f.UserRemotes);
-            string Text(FlathubState s) => s switch { FlathubState.Ok => "ok", FlathubState.Disabled => "DESATIVADO", FlathubState.WrongUrl => "endereço diferente do oficial", _ => "ausente" };
+            string Text(FlathubState s) => s switch { FlathubState.Ok => "ok", FlathubState.Disabled => L.T("DESATIVADO"), FlathubState.WrongUrl => L.T("endereço diferente do oficial"), _ => "ausente" };
             bool any = sys == FlathubState.Ok || user == FlathubState.Ok;
             var fixes = new List<UserFix>();
             var cmds = new List<(string, string)>();
             if (!any && user == FlathubState.Missing)
             {
-                fixes.Add(new("flathub-add", "Adicionar Flathub (só para mim)", "Adicionar o Flathub para o seu usuário?\n\nRoda: flatpak remote-add --user --if-not-exists flathub " + FlathubRepoFile + "\n\nNão precisa de senha e baixa a lista do Flathub (flathub.org).",
+                fixes.Add(new("flathub-add", L.T("Adicionar Flathub (só para mim)"), L.T("Adicionar o Flathub para o seu usuário?\n\nRoda: flatpak remote-add --user --if-not-exists flathub ") + FlathubRepoFile + L.T("\n\nNão precisa de senha e baixa a lista do Flathub (flathub.org)."),
                     ["remote-add", "--user", "--if-not-exists", "flathub", FlathubRepoFile]));
-                cmds.Add(("Adicionar o Flathub para o seu usuário", "flatpak remote-add --user --if-not-exists flathub " + FlathubRepoFile));
+                cmds.Add((L.T("Adicionar o Flathub para o seu usuário"), "flatpak remote-add --user --if-not-exists flathub " + FlathubRepoFile));
             }
             if (user == FlathubState.Disabled)
             {
-                fixes.Add(new("flathub-enable", "Reativar Flathub (só para mim)", "Reativar o Flathub do seu usuário?\n\nRoda: flatpak remote-modify --user --enable flathub\n\nNão precisa de senha.", ["remote-modify", "--user", "--enable", "flathub"]));
-                cmds.Add(("Reativar o Flathub do usuário", "flatpak remote-modify --user --enable flathub"));
+                fixes.Add(new("flathub-enable", L.T("Reativar Flathub (só para mim)"), L.T("Reativar o Flathub do seu usuário?\n\nRoda: flatpak remote-modify --user --enable flathub\n\nNão precisa de senha."), ["remote-modify", "--user", "--enable", "flathub"]));
+                cmds.Add((L.T("Reativar o Flathub do usuário"), "flatpak remote-modify --user --enable flathub"));
             }
-            if (sys == FlathubState.Disabled) cmds.Add(("Reativar o Flathub do sistema (pede senha)", "sudo flatpak remote-modify --enable flathub"));
-            if (sys == FlathubState.WrongUrl) cmds.Add(("Corrigir o endereço do Flathub do sistema", "sudo flatpak remote-modify --url=https://dl.flathub.org/repo/ flathub"));
-            if (user == FlathubState.WrongUrl) cmds.Add(("Corrigir o endereço do Flathub do usuário", "flatpak remote-modify --user --url=https://dl.flathub.org/repo/ flathub"));
-            if (!any && sys == FlathubState.Missing) cmds.Add(("Ou adicionar para todos os usuários (pede senha)", "sudo flatpak remote-add --if-not-exists flathub " + FlathubRepoFile));
+            if (sys == FlathubState.Disabled) cmds.Add((L.T("Reativar o Flathub do sistema (pede senha)"), "sudo flatpak remote-modify --enable flathub"));
+            if (sys == FlathubState.WrongUrl) cmds.Add((L.T("Corrigir o endereço do Flathub do sistema"), "sudo flatpak remote-modify --url=https://dl.flathub.org/repo/ flathub"));
+            if (user == FlathubState.WrongUrl) cmds.Add((L.T("Corrigir o endereço do Flathub do usuário"), "flatpak remote-modify --user --url=https://dl.flathub.org/repo/ flathub"));
+            if (!any && sys == FlathubState.Missing) cmds.Add((L.T("Ou adicionar para todos os usuários (pede senha)"), "sudo flatpak remote-add --if-not-exists flathub " + FlathubRepoFile));
             var status = any && sys is not (FlathubState.Disabled or FlathubState.WrongUrl) && user is not (FlathubState.Disabled or FlathubState.WrongUrl) ? CheckStatus.Ok : any ? CheckStatus.Attention : CheckStatus.Problem;
-            list.Add(new("flathub", "Flatpak: remoto Flathub", status, $"Flathub do sistema: {Text(sys)} · do usuário: {Text(user)}.",
-                "O Flathub é a loja de onde vêm a Steam Flatpak, o Heroic, o ProtonPlus e os runtimes de jogos. Se ele faltar ou estiver desativado, instalar e atualizar esses apps falha (\"No remote refs found\", \"Unable to load summary\").",
-                "Baixo: o remoto do usuário não precisa de senha e só afeta a sua conta. Para desfazer: flatpak remote-delete --user flathub (os apps instalados por ele também saem).",
+            list.Add(new("flathub", L.T("Flatpak: remoto Flathub"), status, L.T($"Flathub do sistema: {Text(sys)} · do usuário: {Text(user)}."),
+                L.T("O Flathub é a loja de onde vêm a Steam Flatpak, o Heroic, o ProtonPlus e os runtimes de jogos. Se ele faltar ou estiver desativado, instalar e atualizar esses apps falha (\"No remote refs found\", \"Unable to load summary\")."),
+                L.T("Baixo: o remoto do usuário não precisa de senha e só afeta a sua conta. Para desfazer: flatpak remote-delete --user flathub (os apps instalados por ele também saem)."),
                 cmds, fixes));
         }
 
@@ -337,17 +337,17 @@ public static partial class GameLaunchChecks
         {
             var blocked = f.Drives.Where(d => SafeOverridePath(d.MountPoint) && !Covers(f.SteamFilesystems, d.MountPoint, f.Home)).ToList();
             var allowed = f.Drives.Where(d => Covers(f.SteamFilesystems, d.MountPoint, f.Home)).ToList();
-            var fixes = blocked.Take(8).Select(d => new UserFix("steam-fs:" + d.MountPoint, "Liberar " + Short(d.MountPoint) + " para a Steam",
-                $"Deixar a Steam Flatpak usar {d.MountPoint}?\n\nRoda: flatpak override --user --filesystem={d.MountPoint} {SteamAppId}\n\nNão precisa de senha. Feche e abra a Steam depois. Dá para desfazer aqui.",
-                ["override", "--user", "--filesystem=" + d.MountPoint, SteamAppId], ["override", "--user", "--nofilesystem=" + d.MountPoint, SteamAppId], "Desfazer")).ToList();
+            var fixes = blocked.Take(8).Select(d => new UserFix("steam-fs:" + d.MountPoint, L.T("Liberar ") + Short(d.MountPoint) + L.T(" para a Steam"),
+                L.T($"Deixar a Steam Flatpak usar {d.MountPoint}?\n\nRoda: flatpak override --user --filesystem={d.MountPoint} {SteamAppId}\n\nNão precisa de senha. Feche e abra a Steam depois. Dá para desfazer aqui."),
+                ["override", "--user", "--filesystem=" + d.MountPoint, SteamAppId], ["override", "--user", "--nofilesystem=" + d.MountPoint, SteamAppId], L.T("Desfazer"))).ToList();
             bool library = blocked.Any(d => d.HasSteamLibrary);
-            string found = f.Drives.Count == 0 ? "Nenhum disco extra montado em /mnt, /media ou /run/media."
-                : (blocked.Count > 0 ? "Sem acesso: " + string.Join(", ", blocked.Select(d => d.MountPoint + (d.HasSteamLibrary ? " (tem biblioteca Steam)" : ""))) + "." : "")
-                + (allowed.Count > 0 ? (blocked.Count > 0 ? " " : "") + "Com acesso: " + string.Join(", ", allowed.Select(d => d.MountPoint)) + "." : "");
-            list.Add(new("steamdrives", "Steam Flatpak: acesso aos discos de jogos", library ? CheckStatus.Problem : blocked.Count > 0 ? CheckStatus.Info : CheckStatus.Ok, found,
-                "A Steam Flatpak roda isolada e só enxerga a sua pasta pessoal. Uma biblioteca em outro disco (HD/SSD extra em /mnt ou /media) some da Steam ou os jogos de lá não abrem, até você liberar o acesso àquela pasta.",
-                "Baixo: libera só aquela pasta, só para a Steam e só para o seu usuário. Desfazer: flatpak override --user --nofilesystem=<pasta> " + SteamAppId + ".",
-                Cmds(("Liberar outra pasta (troque o caminho)", "flatpak override --user --filesystem=/caminho/do/disco " + SteamAppId), ("Ver o que a Steam Flatpak pode acessar", "flatpak info --show-permissions " + SteamAppId)), fixes));
+            string found = f.Drives.Count == 0 ? L.T("Nenhum disco extra montado em /mnt, /media ou /run/media.")
+                : (blocked.Count > 0 ? L.T("Sem acesso: ") + string.Join(", ", blocked.Select(d => d.MountPoint + (d.HasSteamLibrary ? L.T(" (tem biblioteca Steam)") : ""))) + "." : "")
+                + (allowed.Count > 0 ? (blocked.Count > 0 ? " " : "") + L.T("Com acesso: ") + string.Join(", ", allowed.Select(d => d.MountPoint)) + "." : "");
+            list.Add(new("steamdrives", L.T("Steam Flatpak: acesso aos discos de jogos"), library ? CheckStatus.Problem : blocked.Count > 0 ? CheckStatus.Info : CheckStatus.Ok, found,
+                L.T("A Steam Flatpak roda isolada e só enxerga a sua pasta pessoal. Uma biblioteca em outro disco (HD/SSD extra em /mnt ou /media) some da Steam ou os jogos de lá não abrem, até você liberar o acesso àquela pasta."),
+                L.T("Baixo: libera só aquela pasta, só para a Steam e só para o seu usuário. Desfazer: flatpak override --user --nofilesystem=<pasta> ") + SteamAppId + ".",
+                Cmds((L.T("Liberar outra pasta (troque o caminho)"), "flatpak override --user --filesystem=/caminho/do/disco " + SteamAppId), (L.T("Ver o que a Steam Flatpak pode acessar"), "flatpak info --show-permissions " + SteamAppId)), fixes));
         }
 
         // 8. Vulkan driver (ICD) for the GPUs in use.
@@ -358,22 +358,22 @@ public static partial class GameLaunchChecks
             foreach (var d in drivers)
             {
                 if (IcdByDriver.TryGetValue(d, out var e)) { if (!e.Libraries.Any(l => f.IcdLibraries.Contains(l))) missing.Add(e.Vendor + " (" + d + ")"); }
-                else if (d == "radeon") notes.Add("Placa AMD antiga no driver radeon: ele não tem Vulkan. Placas GCN 1.0/2.0 podem usar o amdgpu (parâmetro do kernel); mais antigas não rodam DXVK.");
-                else if (d is "virtio-pci" or "virtio_gpu" or "vmwgfx" or "qxl" or "bochs-drm" or "bochs") notes.Add("Placa de vídeo virtual (máquina virtual): o Vulkan depende do hipervisor.");
+                else if (d == "radeon") notes.Add(L.T("Placa AMD antiga no driver radeon: ele não tem Vulkan. Placas GCN 1.0/2.0 podem usar o amdgpu (parâmetro do kernel); mais antigas não rodam DXVK."));
+                else if (d is "virtio-pci" or "virtio_gpu" or "vmwgfx" or "qxl" or "bochs-drm" or "bochs") notes.Add(L.T("Placa de vídeo virtual (máquina virtual): o Vulkan depende do hipervisor."));
             }
             bool onlyCpu = devices.Count > 0 && devices.All(x => x.Cpu);
             var status = drivers.Count == 0 ? CheckStatus.Info : missing.Count > 0 || onlyCpu ? CheckStatus.Problem : CheckStatus.Ok;
-            string found = (drivers.Count > 0 ? "Drivers de vídeo em uso: " + string.Join(", ", drivers) + ". " : "Nenhuma placa de vídeo encontrada em /sys/class/drm. ")
-                + (missing.Count > 0 ? "Sem driver Vulkan para: " + string.Join(", ", missing) + ". " : drivers.Count > 0 ? "Driver Vulkan presente para cada uma. " : "")
-                + (devices.Count > 0 ? "vulkaninfo: " + string.Join("; ", devices.Select(x => x.Name + (x.Driver.Length > 0 ? " (" + x.Driver + ")" : "") + (x.Cpu ? " [CPU]" : ""))) + "." : f.VulkaninfoInstalled ? "vulkaninfo não respondeu." : "vulkaninfo não instalado (pacote vulkan-tools), então só os arquivos foram conferidos.");
-            string explain = "O Proton traduz DirectX para Vulkan (DXVK/VKD3D). Sem o driver Vulkan da sua placa, os jogos não abrem ou caem para a renderização pela CPU (llvmpipe), que é lentíssima." + (notes.Count > 0 ? " " + string.Join(" ", notes) : "") + (onlyCpu ? " O vulkaninfo só achou a renderização pela CPU." : "");
+            string found = (drivers.Count > 0 ? L.T("Drivers de vídeo em uso: ") + string.Join(", ", drivers) + ". " : L.T("Nenhuma placa de vídeo encontrada em /sys/class/drm. "))
+                + (missing.Count > 0 ? L.T("Sem driver Vulkan para: ") + string.Join(", ", missing) + ". " : drivers.Count > 0 ? L.T("Driver Vulkan presente para cada uma. ") : "")
+                + (devices.Count > 0 ? "vulkaninfo: " + string.Join("; ", devices.Select(x => x.Name + (x.Driver.Length > 0 ? " (" + x.Driver + ")" : "") + (x.Cpu ? " [CPU]" : ""))) + "." : f.VulkaninfoInstalled ? L.T("vulkaninfo não respondeu.") : L.T("vulkaninfo não instalado (pacote vulkan-tools), então só os arquivos foram conferidos."));
+            string explain = L.T("O Proton traduz DirectX para Vulkan (DXVK/VKD3D). Sem o driver Vulkan da sua placa, os jogos não abrem ou caem para a renderização pela CPU (llvmpipe), que é lentíssima.") + (notes.Count > 0 ? " " + string.Join(" ", notes) : "") + (onlyCpu ? L.T(" O vulkaninfo só achou a renderização pela CPU.") : "");
             bool needNvidia = missing.Any(m => m.Contains("(nvidia)"));
             var cmds = Cmds(
-                ("Instalar o driver Vulkan do Mesa (Intel/AMD/nouveau)", missing.Any(m => !m.Contains("(nvidia)")) || onlyCpu ? Sudo(fam, "sudo apt install mesa-vulkan-drivers", "sudo dnf install mesa-vulkan-drivers", "sudo pacman -S --needed " + string.Join(' ', drivers.Select(d => d switch { "i915" or "xe" => "vulkan-intel", "amdgpu" => "vulkan-radeon", "nouveau" => "vulkan-nouveau", _ => "" }).Where(x => x.Length > 0).DefaultIfEmpty("vulkan-intel vulkan-radeon").Distinct()), "sudo zypper install libvulkan_intel libvulkan_radeon") : ""),
-                ("Ferramenta para conferir (vulkaninfo)", f.VulkaninfoInstalled ? "" : Sudo(fam, "sudo apt install vulkan-tools", "sudo dnf install vulkan-tools", "sudo pacman -S --needed vulkan-tools", "sudo zypper install vulkan-tools")),
-                ("Conferir as placas que o Vulkan enxerga", f.VulkaninfoInstalled ? "vulkaninfo --summary" : ""));
-            list.Add(new("vulkan", "Vulkan para a sua placa de vídeo", status, found.Trim(), explain,
-                "Baixo: são pacotes oficiais da distribuição.", cmds, [], LinkPage: needNvidia ? "nvdriver" : null, LinkLabel: needNvidia ? "Abrir Driver NVIDIA" : null));
+                (L.T("Instalar o driver Vulkan do Mesa (Intel/AMD/nouveau)"), missing.Any(m => !m.Contains("(nvidia)")) || onlyCpu ? Sudo(fam, "sudo apt install mesa-vulkan-drivers", "sudo dnf install mesa-vulkan-drivers", "sudo pacman -S --needed " + string.Join(' ', drivers.Select(d => d switch { "i915" or "xe" => "vulkan-intel", "amdgpu" => "vulkan-radeon", "nouveau" => "vulkan-nouveau", _ => "" }).Where(x => x.Length > 0).DefaultIfEmpty(L.T("vulkan-intel vulkan-radeon")).Distinct()), "sudo zypper install libvulkan_intel libvulkan_radeon") : ""),
+                (L.T("Ferramenta para conferir (vulkaninfo)"), f.VulkaninfoInstalled ? "" : Sudo(fam, "sudo apt install vulkan-tools", "sudo dnf install vulkan-tools", "sudo pacman -S --needed vulkan-tools", "sudo zypper install vulkan-tools")),
+                (L.T("Conferir as placas que o Vulkan enxerga"), f.VulkaninfoInstalled ? L.T("vulkaninfo --summary") : ""));
+            list.Add(new("vulkan", L.T("Vulkan para a sua placa de vídeo"), status, found.Trim(), explain,
+                L.T("Baixo: são pacotes oficiais da distribuição."), cmds, [], LinkPage: needNvidia ? "nvdriver" : null, LinkLabel: needNvidia ? L.T("Abrir Driver NVIDIA") : null));
         }
 
         // 9. 32-bit Vulkan/GL libraries for the native Steam.
@@ -383,29 +383,29 @@ public static partial class GameLaunchChecks
             var missing = needed.Where(n => !f.Lib32Present.Contains(n)).ToList();
             bool nvidia = f.GpuDrivers.Contains("nvidia");
             string install = Sudo(fam,
-                "sudo dpkg --add-architecture i386 && sudo apt update && sudo apt install libvulkan1:i386 libgl1:i386 mesa-vulkan-drivers:i386" + (nvidia ? " libnvidia-gl-XXX:i386   (troque XXX pelo ramo do seu driver NVIDIA, ex.: 580)" : ""),
+                "sudo dpkg --add-architecture i386 && sudo apt update && sudo apt install libvulkan1:i386 libgl1:i386 mesa-vulkan-drivers:i386" + (nvidia ? L.T(" libnvidia-gl-XXX:i386   (troque XXX pelo ramo do seu driver NVIDIA, ex.: 580)") : ""),
                 "sudo dnf install vulkan-loader.i686 mesa-libGL.i686 mesa-vulkan-drivers.i686" + (nvidia ? " xorg-x11-drv-nvidia-libs.i686" : ""),
                 "sudo pacman -S --needed lib32-vulkan-icd-loader lib32-mesa" + string.Concat(f.GpuDrivers.Distinct().Select(d => d switch { "i915" or "xe" => " lib32-vulkan-intel", "amdgpu" => " lib32-vulkan-radeon", "nvidia" => " lib32-nvidia-utils", _ => "" })),
                 "sudo zypper install libvulkan1-32bit Mesa-libGL1-32bit" + string.Concat(f.GpuDrivers.Distinct().Select(d => d switch { "i915" or "xe" => " libvulkan_intel-32bit", "amdgpu" => " libvulkan_radeon-32bit", _ => "" })));
-            list.Add(new("lib32", "Bibliotecas de 32 bits (Steam nativa)", missing.Count == 0 ? CheckStatus.Ok : CheckStatus.Problem,
-                missing.Count == 0 ? $"Encontradas em {Lib32Folder(fam)}: {string.Join(", ", needed)}." : $"Faltando em {Lib32Folder(fam)}: {string.Join(", ", missing)}.",
-                "A Steam nativa e muitos jogos (e partes do Proton) ainda são de 32 bits. Eles precisam das versões de 32 bits do carregador Vulkan, do OpenGL e do driver da sua placa. Sem elas, a Steam não abre ou mostra \"glXChooseVisual failed\" / \"You are missing the following 32-bit libraries\". A Steam Flatpak já traz tudo isso.",
-                "Baixo: pacotes oficiais da distribuição (no Ubuntu/Debian é preciso ativar a arquitetura i386 antes).",
-                missing.Count == 0 ? [] : Cmds(("Instalar as bibliotecas de 32 bits", install)), []));
+            list.Add(new("lib32", L.T("Bibliotecas de 32 bits (Steam nativa)"), missing.Count == 0 ? CheckStatus.Ok : CheckStatus.Problem,
+                missing.Count == 0 ? L.T($"Encontradas em {Lib32Folder(fam)}: {string.Join(", ", needed)}.") : L.T($"Faltando em {Lib32Folder(fam)}: {string.Join(", ", missing)}."),
+                L.T("A Steam nativa e muitos jogos (e partes do Proton) ainda são de 32 bits. Eles precisam das versões de 32 bits do carregador Vulkan, do OpenGL e do driver da sua placa. Sem elas, a Steam não abre ou mostra \"glXChooseVisual failed\" / \"You are missing the following 32-bit libraries\". A Steam Flatpak já traz tudo isso."),
+                L.T("Baixo: pacotes oficiais da distribuição (no Ubuntu/Debian é preciso ativar a arquitetura i386 antes)."),
+                missing.Count == 0 ? [] : Cmds((L.T("Instalar as bibliotecas de 32 bits"), install)), []));
         }
 
         // 10. vm.max_map_count: handled by the Otimiza page (link, no duplicate).
         if (f.MaxMapCount is { } mmc)
-            list.Add(new("maxmap", "vm.max_map_count", mmc >= GameTweakRules.RecommendedMaxMapCount ? CheckStatus.Ok : CheckStatus.Attention, $"Atual: {mmc.ToString(CultureInfo.InvariantCulture)}.",
-                "Limite de mapeamentos de memória por processo. Com o valor antigo (65530), jogos como CS2 e vários títulos com Proton fecham sozinhos ou travam no carregamento. A página Otimiza explica e mostra o comando.",
-                "Baixo.", [], [], LinkPage: "optimize", LinkLabel: "Abrir Otimiza"));
+            list.Add(new("maxmap", "vm.max_map_count", mmc >= GameTweakRules.RecommendedMaxMapCount ? CheckStatus.Ok : CheckStatus.Attention, L.T($"Atual: {mmc.ToString(CultureInfo.InvariantCulture)}."),
+                L.T("Limite de mapeamentos de memória por processo. Com o valor antigo (65530), jogos como CS2 e vários títulos com Proton fecham sozinhos ou travam no carregamento. A página Otimiza explica e mostra o comando."),
+                "Baixo.", [], [], LinkPage: "optimize", LinkLabel: L.T("Abrir Otimiza")));
 
         // 11. Split-lock mitigation (information only).
         if (f.SplitLockMitigate is { } sl)
-            list.Add(new("splitlock", "Mitigação de split-lock", CheckStatus.Info, sl == 0 ? "Desligada (kernel.split_lock_mitigate = 0)." : "Ligada (kernel.split_lock_mitigate = 1), o padrão do kernel.",
-                "Quando um programa faz um acesso \"split-lock\" (comum em alguns jogos antigos de Windows), o kernel o atrasa de propósito para proteger o resto do sistema. Em poucos jogos isso aparece como quedas fortes de FPS. Só vale mexer se um jogo específico estiver com esse problema; o log do kernel mostra \"split lock detection\" com o nome do processo.",
-                "Desligar tira uma proteção contra programas que travam o barramento da memória (afeta outros usuários e VMs no mesmo PC). Vale só até reiniciar.",
-                sl == 0 ? Cmds(("Voltar ao padrão", "sudo sysctl -w kernel.split_lock_mitigate=1")) : Cmds(("Ver se algum jogo disparou", "sudo journalctl -k -g 'split lock' --since today"), ("Desligar até reiniciar", "sudo sysctl -w kernel.split_lock_mitigate=0")), []));
+            list.Add(new("splitlock", L.T("Mitigação de split-lock"), CheckStatus.Info, sl == 0 ? L.T("Desligada (kernel.split_lock_mitigate = 0).") : L.T("Ligada (kernel.split_lock_mitigate = 1), o padrão do kernel."),
+                L.T("Quando um programa faz um acesso \"split-lock\" (comum em alguns jogos antigos de Windows), o kernel o atrasa de propósito para proteger o resto do sistema. Em poucos jogos isso aparece como quedas fortes de FPS. Só vale mexer se um jogo específico estiver com esse problema; o log do kernel mostra \"split lock detection\" com o nome do processo."),
+                L.T("Desligar tira uma proteção contra programas que travam o barramento da memória (afeta outros usuários e VMs no mesmo PC). Vale só até reiniciar."),
+                sl == 0 ? Cmds((L.T("Voltar ao padrão"), "sudo sysctl -w kernel.split_lock_mitigate=1")) : Cmds((L.T("Ver se algum jogo disparou"), "sudo journalctl -k -g 'split lock' --since today"), (L.T("Desligar até reiniciar"), "sudo sysctl -w kernel.split_lock_mitigate=0")), []));
 
         return list;
     }
@@ -417,13 +417,13 @@ public static partial class GameLaunchChecks
         return name.ToUpperInvariant();
     }
 
-    public static string StatusText(CheckStatus s) => s switch { CheckStatus.Ok => "OK", CheckStatus.Info => "INFORMAÇÃO", CheckStatus.Attention => "ATENÇÃO", _ => "PROBLEMA" };
+    public static string StatusText(CheckStatus s) => s switch { CheckStatus.Ok => "OK", CheckStatus.Info => L.T("INFORMAÇÃO"), CheckStatus.Attention => L.T("ATENÇÃO"), _ => L.T("PROBLEMA") };
 
     /// <summary>One line for the top of the page.</summary>
     public static string Summary(IReadOnlyList<GameCheck> checks)
     {
         int problems = checks.Count(c => c.Status == CheckStatus.Problem), attention = checks.Count(c => c.Status == CheckStatus.Attention);
-        if (problems == 0 && attention == 0) return $"Nenhum problema encontrado nas {checks.Count} verificações. Se um jogo ainda não abre, veja a página Compatibilidade.";
-        return (problems > 0 ? $"{problems} problema(s)" : "") + (problems > 0 && attention > 0 ? " e " : "") + (attention > 0 ? $"{attention} ponto(s) de atenção" : "") + $" em {checks.Count} verificações. Leia cada item: nada foi alterado.";
+        if (problems == 0 && attention == 0) return L.T($"Nenhum problema encontrado nas {checks.Count} verificações. Se um jogo ainda não abre, veja a página Compatibilidade.");
+        return (problems > 0 ? L.T($"{problems} problema(s)") : "") + (problems > 0 && attention > 0 ? " e " : "") + (attention > 0 ? L.T($"{attention} ponto(s) de atenção") : "") + L.T($" em {checks.Count} verificações. Leia cada item: nada foi alterado.");
     }
 }

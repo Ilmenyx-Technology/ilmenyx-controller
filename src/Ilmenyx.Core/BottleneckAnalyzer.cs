@@ -26,18 +26,18 @@ public static class BottleneckAnalyzer
 {
     public static string Title(Limiter l) => l switch
     {
-        Limiter.Gpu => "GPU no limite", Limiter.Cpu => "Gargalo de CPU", Limiter.Vram => "Memória de vídeo cheia", Limiter.Ram => "Memória RAM cheia",
-        Limiter.Thermal => "Limitado por temperatura", _ => "Nada no limite"
+        Limiter.Gpu => L.T("GPU no limite"), Limiter.Cpu => L.T("Gargalo de CPU"), Limiter.Vram => L.T("Memória de vídeo cheia"), Limiter.Ram => L.T("Memória RAM cheia"),
+        Limiter.Thermal => L.T("Limitado por temperatura"), _ => L.T("Nada no limite")
     };
 
     public static string Advice(Limiter l) => l switch
     {
-        Limiter.Gpu => "Normal em jogos pesados: a placa de vídeo está sendo bem aproveitada. Para mais FPS, reduza resolução ou qualidade gráfica, ou ative DLSS/FSR.",
-        Limiter.Cpu => "A CPU (ou um núcleo dela) não acompanha a GPU. Subir resolução/gráficos quase não custa FPS. Para ganhar FPS: reduza opções que pesam na CPU (distância de visão, multidões, física), feche programas em segundo plano e confira se o XMP/EXPO da RAM está ativo na BIOS.",
-        Limiter.Vram => "A memória da placa de vídeo encheu, o que causa travadas. Reduza a qualidade das texturas ou a resolução.",
-        Limiter.Ram => "Pouca RAM livre: o sistema passa a usar swap no disco e o jogo engasga. Feche navegadores e outros programas.",
-        Limiter.Thermal => "Temperatura alta está derrubando o clock. Verifique ventilação do gabinete, poeira e pasta térmica.",
-        _ => "Nem CPU nem GPU estão no limite: provavelmente há trava de FPS, V-Sync/G-Sync limitando, ou o jogo está em menu/pausa. Normal se o FPS já é o desejado."
+        Limiter.Gpu => L.T("Normal em jogos pesados: a placa de vídeo está sendo bem aproveitada. Para mais FPS, reduza resolução ou qualidade gráfica, ou ative DLSS/FSR."),
+        Limiter.Cpu => L.T("A CPU (ou um núcleo dela) não acompanha a GPU. Subir resolução/gráficos quase não custa FPS. Para ganhar FPS: reduza opções que pesam na CPU (distância de visão, multidões, física), feche programas em segundo plano e confira se o XMP/EXPO da RAM está ativo na BIOS."),
+        Limiter.Vram => L.T("A memória da placa de vídeo encheu, o que causa travadas. Reduza a qualidade das texturas ou a resolução."),
+        Limiter.Ram => L.T("Pouca RAM livre: o sistema passa a usar swap no disco e o jogo engasga. Feche navegadores e outros programas."),
+        Limiter.Thermal => L.T("Temperatura alta está derrubando o clock. Verifique ventilação do gabinete, poeira e pasta térmica."),
+        _ => L.T("Nem CPU nem GPU estão no limite: provavelmente há trava de FPS, V-Sync/G-Sync limitando, ou o jogo está em menu/pausa. Normal se o FPS já é o desejado.")
     };
 
     /// <summary>Theoretical balance from relative performance (GPU: RTX 4070 = 100; CPU: Ryzen 7 7700X = 100).</summary>
@@ -46,11 +46,11 @@ public static class BottleneckAnalyzer
         double ratio = gpuIdx / cpuIdx;
         string text = ratio switch
         {
-            > 1.8 => "GPU muito mais forte que a CPU: em boa parte dos jogos a CPU vai limitar o FPS, principalmente em 1080p.",
-            > 1.3 => "GPU um pouco à frente da CPU: jogos competitivos em 1080p tendem a ficar limitados pela CPU; em 1440p/4K a GPU volta a ser o limite.",
-            >= 0.7 => "Hardware equilibrado: na maioria dos jogos a GPU será o limite, que é o cenário ideal.",
-            > 0.4 => "CPU mais forte que a GPU: a placa de vídeo é o limite. Upgrade de GPU traria o maior ganho.",
-            _ => "GPU muito fraca para esta CPU: a placa de vídeo limita quase tudo."
+            > 1.8 => L.T("GPU muito mais forte que a CPU: em boa parte dos jogos a CPU vai limitar o FPS, principalmente em 1080p."),
+            > 1.3 => L.T("GPU um pouco à frente da CPU: jogos competitivos em 1080p tendem a ficar limitados pela CPU; em 1440p/4K a GPU volta a ser o limite."),
+            >= 0.7 => L.T("Hardware equilibrado: na maioria dos jogos a GPU será o limite, que é o cenário ideal."),
+            > 0.4 => L.T("CPU mais forte que a GPU: a placa de vídeo é o limite. Upgrade de GPU traria o maior ganho."),
+            _ => L.T("GPU muito fraca para esta CPU: a placa de vídeo limita quase tudo.")
         };
         return (ratio, text);
     }

@@ -36,8 +36,8 @@ public static class GeneralReport
     /// <summary>Copy of the tree without serial numbers and without nodes marked "omitido dos relatórios", such as the host name (privacy: reports are often shared).</summary>
     public static InfoNode? WithoutSerials(InfoNode node)
     {
-        if (node.Header.Contains("série", StringComparison.OrdinalIgnoreCase) || node.Header.Contains("serial", StringComparison.OrdinalIgnoreCase)
-            || node.Header.Contains("omitido dos relatórios", StringComparison.OrdinalIgnoreCase)) return null;
+        if (node.Header.Contains(L.T("série"), StringComparison.OrdinalIgnoreCase) || node.Header.Contains("serial", StringComparison.OrdinalIgnoreCase)
+            || node.Header.Contains(L.T("omitido dos relatórios"), StringComparison.OrdinalIgnoreCase)) return null;
         var copy = new InfoNode { Header = node.Header, Value = node.Value };
         foreach (var child in node.Children) if (WithoutSerials(child) is { } kept) copy.Children.Add(kept);
         return copy;
@@ -65,7 +65,7 @@ public static class GeneralReport
     {
         foreach (var n in nodes)
         {
-            sb.Append($"<div class=\"node\" style=\"margin-left:{Math.Min(depth, 8) * 14}px\">");
+            sb.Append(L.T($"<div class=\"node\" style=\"margin-left:{Math.Min(depth, 8) * 14}px\">"));
             sb.Append(n.Value.Length > 0 ? $"<span class=\"k\">{E(n.Header)}</span> {E(n.Value)}" : $"<b>{E(n.Header)}</b>");
             sb.Append("</div>");
             Tree(sb, n.Children, depth + 1);
@@ -79,7 +79,7 @@ public static class GeneralReport
         foreach (var c in cards)
         {
             string cls = c.Verdict switch { HealthVerdict.Good => "ok", HealthVerdict.Unknown => "na", _ => "bad" };
-            sb.Append($"<div class=\"card\"><div class=\"row\"><b>{E(c.Title)}</b><span class=\"badge {cls}\">{E(c.VerdictText)}</span></div>");
+            sb.Append(L.T($"<div class=\"card\"><div class=\"row\"><b>{E(c.Title)}</b><span class=\"badge {cls}\">{E(c.VerdictText)}</span></div>"));
             if (c.Meta.Length > 0) sb.Append($"<p class=\"muted\">{E(c.Meta)}</p>");
             if (c.Reasons.Length > 0) sb.Append($"<p>{E(c.Reasons)}</p>");
             if (c.Metrics.Count > 0) { sb.Append("<table>"); foreach (var m in c.Metrics) sb.Append($"<tr><td class=\"k\">{E(m.Key)}</td><td>{E(m.Value)}</td></tr>"); sb.Append("</table>"); }
@@ -91,10 +91,10 @@ public static class GeneralReport
     public static string Html(ReportData d)
     {
         var sb = new StringBuilder(64 * 1024);
-        sb.Append("""
-            <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+        sb.Append($$$"""
+            <!doctype html><html lang="{{{L.Current}}}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
             <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
-            <title>Ilmenyx — Relatório</title><style>
+            <title>{{{L.T("Ilmenyx — Relatório")}}}</title><style>
             *{box-sizing:border-box}body{margin:0;font:15px system-ui,sans-serif;line-height:1.5}.wrap{max-width:1100px;margin:auto;padding:24px}
             h1{margin:0}h2{margin:28px 0 8px}.sub,.muted{opacity:.7}.card{border:1px solid #8884;border-radius:12px;padding:12px 16px;margin:10px 0}
             .row{display:flex;justify-content:space-between;gap:12px}.badge{border:1px solid #888;border-radius:12px;padding:0 10px;font-size:12px;font-weight:700}
@@ -103,42 +103,42 @@ public static class GeneralReport
             .node{font-size:13px;overflow-wrap:anywhere}.num{text-align:right}footer{margin-top:28px;font-size:12px;opacity:.7}
             @media(max-width:600px){.wrap{padding:12px}}@media print{.wrap{padding:0}}</style></head><body><div class="wrap">
             """);
-        sb.Append($"<header><h1>Ilmenyx Controller</h1><p class=\"sub\">by Ilmenyx Technology · Relatório de hardware · {E(d.Date.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture))}");
+        sb.Append(L.T($"<header><h1>Ilmenyx Controller</h1><p class=\"sub\">by Ilmenyx Technology · Relatório de hardware · {E(d.Date.ToString(L.T("yyyy-MM-dd HH:mm"), CultureInfo.InvariantCulture))}"));
         if (d.AppVersion.Length > 0) sb.Append($" · v{E(d.AppVersion)}");
-        sb.Append("</p></header><p class=\"muted\">Números de série e o nome do computador foram omitidos. Arquivo offline: sem scripts nem recursos remotos.</p>");
+        sb.Append(L.T("</p></header><p class=\"muted\">Números de série e o nome do computador foram omitidos. Arquivo offline: sem scripts nem recursos remotos.</p>"));
         foreach (var note in d.Notes) sb.Append($"<p class=\"muted\">{E(note)}</p>");
-        Cards(sb, "Saúde dos discos", d.Disks); Cards(sb, "Bateria e energia", d.Power); Cards(sb, "Teste de rede", d.Network);
+        Cards(sb, L.T("Saúde dos discos"), d.Disks); Cards(sb, L.T("Bateria e energia"), d.Power); Cards(sb, L.T("Teste de rede"), d.Network);
         if (d.System.Count > 0)
         {
             sb.Append("<section><h2>Sistema</h2>");
-            foreach (var n in Clean(d.System)) { sb.Append($"<div class=\"card\"><h3>{E(n.Header)}</h3>"); Tree(sb, n.Children, 0); sb.Append("</div>"); }
+            foreach (var n in Clean(d.System)) { sb.Append(L.T($"<div class=\"card\"><h3>{E(n.Header)}</h3>")); Tree(sb, n.Children, 0); sb.Append("</div>"); }
             sb.Append("</section>");
         }
         foreach (var g in d.Gpus)
         {
-            sb.Append($"<section><h2>Placa de vídeo · {E(g.Name)}</h2>");
+            sb.Append(L.T($"<section><h2>Placa de vídeo · {E(g.Name)}</h2>"));
             if (g.Subtitle.Length > 0) sb.Append($"<p class=\"muted\">{E(g.Subtitle)}</p>");
-            foreach (var s in Clean(g.Sections)) { sb.Append($"<div class=\"card\"><h3>{E(s.Header)}</h3>"); Tree(sb, s.Children, 0); sb.Append("</div>"); }
+            foreach (var s in Clean(g.Sections)) { sb.Append(L.T($"<div class=\"card\"><h3>{E(s.Header)}</h3>")); Tree(sb, s.Children, 0); sb.Append("</div>"); }
             sb.Append("</section>");
         }
         if (d.Sensors.Count > 0)
         {
-            sb.Append("<section><h2>Sensores (leitura no momento da exportação)</h2>");
+            sb.Append(L.T("<section><h2>Sensores (leitura no momento da exportação)</h2>"));
             foreach (var grp in d.Sensors.GroupBy(s => s.Hardware))
             {
-                sb.Append($"<div class=\"card\"><h3>{E(grp.Key)}</h3><table><tr><th>Sensor</th><th class=\"num\">Valor</th><th>Qualidade</th></tr>");
-                foreach (var s in grp) sb.Append($"<tr><td>{E(s.Name)}</td><td class=\"num\">{E(s.Value)}</td><td class=\"muted\">{E(s.Quality)}</td></tr>");
+                sb.Append(L.T($"<div class=\"card\"><h3>{E(grp.Key)}</h3><table><tr><th>Sensor</th><th class=\"num\">Valor</th><th>Qualidade</th></tr>"));
+                foreach (var s in grp) sb.Append(L.T($"<tr><td>{E(s.Name)}</td><td class=\"num\">{E(s.Value)}</td><td class=\"muted\">{E(s.Quality)}</td></tr>"));
                 sb.Append("</table></div>");
             }
             sb.Append("</section>");
         }
         if (d.Benchmarks.Count > 0)
         {
-            sb.Append("<section><h2>Benchmarks e testes recentes</h2><div class=\"card\"><table><tr><th>Data</th><th>Teste</th><th>Resultado</th></tr>");
-            foreach (var b in d.Benchmarks) sb.Append($"<tr><td class=\"muted\">{E(b.At.LocalDateTime.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture))}</td><td>{E(b.Kind)}</td><td>{E(b.Summary)}</td></tr>");
-            sb.Append("</table><p class=\"muted\">Pontuações experimentais do port Linux; não comparáveis a scores do Windows.</p></div></section>");
+            sb.Append(L.T("<section><h2>Benchmarks e testes recentes</h2><div class=\"card\"><table><tr><th>Data</th><th>Teste</th><th>Resultado</th></tr>"));
+            foreach (var b in d.Benchmarks) sb.Append($"<tr><td class=\"muted\">{E(b.At.LocalDateTime.ToString(L.T("yyyy-MM-dd HH:mm"), CultureInfo.InvariantCulture))}</td><td>{E(b.Kind)}</td><td>{E(b.Summary)}</td></tr>");
+            sb.Append(L.T("</table><p class=\"muted\">Pontuações experimentais do port Linux; não comparáveis a scores do Windows.</p></div></section>"));
         }
-        sb.Append("<footer>Gerado pelo Ilmenyx (adaptação independente e não oficial do RESET EXPLODE, de Gustavo/GustavoReset, MIT). Dados lidos de /proc, /sys, /etc e das ferramentas locais; podem variar conforme o hardware. Revise antes de compartilhar.</footer></div></body></html>");
+        sb.Append(L.T("<footer>Gerado pelo Ilmenyx (adaptação independente e não oficial do RESET EXPLODE, de Gustavo/GustavoReset, MIT). Dados lidos de /proc, /sys, /etc e das ferramentas locais; podem variar conforme o hardware. Revise antes de compartilhar.</footer></div></body></html>"));
         return sb.ToString();
     }
 

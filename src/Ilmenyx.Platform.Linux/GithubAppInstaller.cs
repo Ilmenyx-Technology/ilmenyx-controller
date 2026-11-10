@@ -38,20 +38,20 @@ public sealed class GithubAppInstaller(ProgramRunner run, HttpMessageHandler? ha
 
     public async Task<(bool Ok, string Message)> InstallAsync(InstallableApp app, IProgress<double>? progress, CancellationToken ct)
     {
-        if (!GithubPackages.ValidRepo(app.GithubRepo) || !GithubPackages.ValidPackage(app.PackageName)) return (false, "Origem do app inválida.");
-        if (GithubPackages.Arch(RuntimeInformation.OSArchitecture) is not { } arch) return (false, "Processador não suportado por este app.");
+        if (!GithubPackages.ValidRepo(app.GithubRepo) || !GithubPackages.ValidPackage(app.PackageName)) return (false, L.T("Origem do app inválida."));
+        if (GithubPackages.Arch(RuntimeInformation.OSArchitecture) is not { } arch) return (false, L.T("Processador não suportado por este app."));
         var format = Format;
         string? pkexec = BoundedProcess.FindSystem("pkexec");
-        if (format != PackageFormat.AppImage && pkexec is null) return (false, "O pedido de senha do sistema (pkexec) não está instalado.");
+        if (format != PackageFormat.AppImage && pkexec is null) return (false, L.T("O pedido de senha do sistema (pkexec) não está instalado."));
 
         // 1. Latest release: tag and the two files needed.
         string tag; string? assetUrl = null, sumsUrl = null; long size = 0;
         using (var response = await http.GetAsync($"https://api.github.com/repos/{app.GithubRepo}/releases/latest", ct))
         {
-            if (!response.IsSuccessStatusCode) return (false, $"Não consegui consultar a versão mais recente ({(int)response.StatusCode}).");
+            if (!response.IsSuccessStatusCode) return (false, L.T($"Não consegui consultar a versão mais recente ({(int)response.StatusCode})."));
             using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
             tag = doc.RootElement.GetProperty("tag_name").GetString() ?? "";
-            if (!GithubPackages.ValidVersion(tag)) return (false, "Versão publicada inválida.");
+            if (!GithubPackages.ValidVersion(tag)) return (false, L.T("Versão publicada inválida."));
             string want = GithubPackages.AssetName(app.PackageName, tag, arch, format);
             foreach (var a in doc.RootElement.GetProperty("assets").EnumerateArray())
             {
@@ -60,13 +60,13 @@ public sealed class GithubAppInstaller(ProgramRunner run, HttpMessageHandler? ha
                 if (name == want) { assetUrl = url; size = a.GetProperty("size").GetInt64(); }
                 else if (name == "SHA256SUMS.txt") sumsUrl = url;
             }
-            if (assetUrl is null) return (false, $"A versão {tag} não tem {GithubPackages.Label(format)} para este computador.");
-            if (sumsUrl is null) return (false, "A versão não publica somas SHA-256; nada foi instalado.");
-            if (size <= 0 || size > MaxDownload) return (false, "Tamanho do pacote inesperado; nada foi instalado.");
+            if (assetUrl is null) return (false, L.T($"A versão {tag} não tem {GithubPackages.Label(format)} para este computador."));
+            if (sumsUrl is null) return (false, L.T("A versão não publica somas SHA-256; nada foi instalado."));
+            if (size <= 0 || size > MaxDownload) return (false, L.T("Tamanho do pacote inesperado; nada foi instalado."));
         }
         string file = Path.GetFileName(new Uri(assetUrl).AbsolutePath);
         string? expected = GithubPackages.Sha256For(await http.GetStringAsync(sumsUrl, ct), file);
-        if (expected is null) return (false, "O pacote não está na lista de somas SHA-256; nada foi instalado.");
+        if (expected is null) return (false, L.T("O pacote não está na lista de somas SHA-256; nada foi instalado."));
 
         // 2. Download with progress, hashing as it goes.
         string dir = Path.Combine(home, ".cache", "ilmenyx", "downloads", Guid.NewGuid().ToString("N"));
@@ -83,12 +83,12 @@ public sealed class GithubAppInstaller(ProgramRunner run, HttpMessageHandler? ha
                 var buffer = new byte[1 << 20]; long total = 0; int read;
                 while ((read = await source.ReadAsync(buffer, ct)) > 0)
                 {
-                    total += read; if (total > size) return (false, "O pacote ficou maior que o anunciado; descartado.");
+                    total += read; if (total > size) return (false, L.T("O pacote ficou maior que o anunciado; descartado."));
                     await target.WriteAsync(buffer.AsMemory(0, read), ct); sha.AppendData(buffer, 0, read);
                     progress?.Report(0.9 * total / size);
                 }
                 if (total != size || Convert.ToHexString(sha.GetHashAndReset()).ToLowerInvariant() != expected)
-                    return (false, "O arquivo baixado não confere com a soma SHA-256 oficial; descartado.");
+                    return (false, L.T("O arquivo baixado não confere com a soma SHA-256 oficial; descartado."));
             }
 
             // 3. Install with the distribution's tool (or place the AppImage).
@@ -106,10 +106,10 @@ public sealed class GithubAppInstaller(ProgramRunner run, HttpMessageHandler? ha
             progress?.Report(1);
             return code switch
             {
-                0 => (true, $"Instalado ({tag})."),
-                126 => (false, "Instalação cancelada na janela de senha."),
-                127 => (false, "Senha não autorizada."),
-                _ => (false, $"Falhou (código {code}). {AppCatalog.LastLine(output)}".Trim()),
+                0 => (true, L.T($"Instalado ({tag}).")),
+                126 => (false, L.T("Instalação cancelada na janela de senha.")),
+                127 => (false, L.T("Senha não autorizada.")),
+                _ => (false, L.T($"Falhou (código {code}). {AppCatalog.LastLine(output)}").Trim()),
             };
         }
         finally { try { Directory.Delete(dir, true); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { } }
@@ -124,6 +124,6 @@ public sealed class GithubAppInstaller(ProgramRunner run, HttpMessageHandler? ha
         string apps = Path.Combine(home, ".local", "share", "applications"); Directory.CreateDirectory(apps);
         File.WriteAllText(Path.Combine(apps, "ilmenyx-" + app.PackageName + ".desktop"),
             $"[Desktop Entry]\nType=Application\nName={app.Name}\nComment={app.Description}\nExec=\"{target}\"\nTerminal=false\nCategories=Office;Graphics;\n");
-        return (true, $"Instalado ({tag}) em {target}.");
+        return (true, L.T($"Instalado ({tag}) em {target}."));
     }
 }

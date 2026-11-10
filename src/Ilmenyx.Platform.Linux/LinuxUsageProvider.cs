@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using Ilmenyx.Contracts;
+using Ilmenyx.Core;
 
 namespace Ilmenyx.Platform.Linux;
 
@@ -93,7 +94,7 @@ public sealed partial class LinuxUsageProvider(string procRoot = "/proc", string
             if (coreBefore.TryGetValue(p[0], out var b) && total > b.Total && idle >= b.Idle)
             {
                 double load = Math.Clamp(100.0 * (1.0 - (double)(idle - b.Idle) / (total - b.Total)), 0, 100);
-                if (best is null || load > best) { best = load; name = "núcleo " + p[0][3..]; }
+                if (best is null || load > best) { best = load; name = L.T("núcleo ") + p[0][3..]; }
             }
             coreBefore[p[0]] = (total, idle);
         }

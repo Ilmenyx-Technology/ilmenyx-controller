@@ -44,12 +44,12 @@ public sealed partial class LinuxDiskHealthReader(string sysRoot = "/sys")
             {
                 passed = d.ReportedPassed.Value;
                 double? Get(string metric) => d.Metrics?.FirstOrDefault(m => m.Name == metric)?.Value;
-                temp ??= Get("Temperatura"); wear = Get("Percentual usado (NVMe)");
-                hours = Get("Horas ligado") is { } hv ? (long)hv : null; cycles = Get("Ciclos liga/desliga") is { } cv ? (long)cv : null;
+                temp ??= Get(L.T("Temperatura")); wear = Get(L.T("Percentual usado (NVMe)"));
+                hours = Get(L.T("Horas ligado")) is { } hv ? (long)hv : null; cycles = Get(L.T("Ciclos liga/desliga")) is { } cv ? (long)cv : null;
                 long? Sum(params string[] names) { var v = names.Select(n => Get(n)).Where(x => x is not null).Select(x => (long)x!.Value).ToList(); return v.Count == 0 ? null : v.Sum(); }
-                uncorrected = Sum("Erros de mídia", "Setores pendentes", "Setores incorrigíveis (offline)");
-                realloc = Get("Setores realocados") is { } rv ? (long)rv : null;
-                written = Get("Total gravado"); read = Get("Total lido");
+                uncorrected = Sum(L.T("Erros de mídia"), L.T("Setores pendentes"), L.T("Setores incorrigíveis (offline)"));
+                realloc = Get(L.T("Setores realocados")) is { } rv ? (long)rv : null;
+                written = Get(L.T("Total gravado")); read = Get(L.T("Total lido"));
             }
             string mountText = mounts.TryGetValue(name, out var m) ? string.Join(", ", m.OrderBy(x => x.Length).ThenBy(x => x, StringComparer.Ordinal).Take(4)) : "";
             list.Add(new(name, model.Length == 0 ? name : model, fw, bus.Value ?? "", media, size, mountText, passed, temp, wear, hours, cycles, uncorrected, realloc, written, read));

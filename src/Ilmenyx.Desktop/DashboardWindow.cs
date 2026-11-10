@@ -24,11 +24,11 @@ public sealed class DashboardWindow : Window
     {
         Icon = AppIcon.Window; Title = ProductIdentity.Name; Width = 1060; Height = 780; MinWidth = 640; MinHeight = 480;
         Background = Palette.Bg; DataContext = vm;
-        var refresh = new Button { Name = "RefreshHardware", Content = "Atualizar" };
-        var export = new Button { Name = "ExportHardware", Content = "Exportar hardware JSON" };
-        var exportHtml = new Button { Name = "ExportHardwareHtml", Content = "Exportar hardware HTML" };
-        var about = new Button { Name = "About", Content = "Licenças e créditos" };
-        var requirements = new Button { Name = "ShowRequirements", Content = "Requisitos" };
+        var refresh = new Button { Name = "RefreshHardware", Content = L.T("Atualizar") };
+        var export = new Button { Name = "ExportHardware", Content = L.T("Exportar hardware JSON") };
+        var exportHtml = new Button { Name = "ExportHardwareHtml", Content = L.T("Exportar hardware HTML") };
+        var about = new Button { Name = "About", Content = L.T("Licenças e créditos") };
+        var requirements = new Button { Name = "ShowRequirements", Content = L.T("Requisitos") };
         requirements.Click += async (_, _) => { await new RequirementsDialog().ShowDialog(this); if (IsVisible) requirements.Focus(); };
         about.Click += async (_, _) => { await new AboutDialog().ShowDialog(this); if (IsVisible) about.Focus(); };
         refresh.Click += async (_, _) => { refresh.IsEnabled = false; try { await vm.RefreshAsync(stop.Token); } finally { refresh.IsEnabled = true; } };
@@ -36,7 +36,7 @@ public sealed class DashboardWindow : Window
         exportHtml.Click += async (_, _) => await ExportHardwareAsync(true);
         async Task ExportHardwareAsync(bool html)
         {
-            if (vm.Snapshot is not { } snapshot) { vm.SetStatus("Atualize os dados antes de exportar."); return; }
+            if (vm.Snapshot is not { } snapshot) { vm.SetStatus(L.T("Atualize os dados antes de exportar.")); return; }
             export.IsEnabled = false; exportHtml.IsEnabled = false;
             try
             {
@@ -45,10 +45,10 @@ public sealed class DashboardWindow : Window
                 if (path is null) return;
                 if (html) await Task.Run(() => HardwareHtmlReport.ExportAsync(snapshot, path, stop.Token), stop.Token);
                 else await SnapshotReport.ExportAsync(snapshot, path, stop.Token);
-                vm.SetStatus("Snapshot exportado para arquivo local.");
+                vm.SetStatus(L.T("Snapshot exportado para arquivo local."));
             }
-            catch (OperationCanceledException) { vm.SetStatus("Exportação cancelada."); }
-            catch (Exception e) when (e is IOException or UnauthorizedAccessException or NotSupportedException or ArgumentException) { vm.SetStatus("Não foi possível exportar. Escolha um nome novo: " + e.Message); }
+            catch (OperationCanceledException) { vm.SetStatus(L.T("Exportação cancelada.")); }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException or NotSupportedException or ArgumentException) { vm.SetStatus(L.T("Não foi possível exportar. Escolha um nome novo: ") + e.Message); }
             finally
             {
                 export.IsEnabled = true; exportHtml.IsEnabled = true;
@@ -59,9 +59,9 @@ public sealed class DashboardWindow : Window
         var stack = new StackPanel { Margin = new Thickness(32), Spacing = 18 };
         stack.Children.Add(new TextBlock { Name = "ProductName", Text = ProductIdentity.Name, FontSize = 32, FontWeight = FontWeight.Bold });
         stack.Children.Add(new TextBlock { Name = "MaintainerSignature", Text = ProductIdentity.Signature });
-        stack.Children.Add(new TextBlock { Text = "Diagnóstico de hardware · Linux · 0.30.0", Foreground = Palette.Muted });
+        stack.Children.Add(new TextBlock { Text = L.T("Diagnóstico de hardware · Linux · 0.30.0"), Foreground = Palette.Muted });
         stack.Children.Add(new WrapPanel { Orientation = Orientation.Horizontal, ItemSpacing = 12, LineSpacing = 8, Children = { refresh, export, exportHtml, requirements, about } });
-        foreach (var (label, property) in new[] { ("PROCESSADOR", nameof(vm.Cpu)), ("MEMÓRIA", nameof(vm.Memory)), ("SISTEMA", nameof(vm.System)), ("DISPOSITIVOS DE BLOCO", nameof(vm.Disks)) })
+        foreach (var (label, property) in new[] { (L.T("PROCESSADOR"), nameof(vm.Cpu)), (L.T("MEMÓRIA"), nameof(vm.Memory)), (L.T("SISTEMA"), nameof(vm.System)), (L.T("DISPOSITIVOS DE BLOCO"), nameof(vm.Disks)) })
         {
             var value = new TextBlock { TextWrapping = TextWrapping.Wrap, FontSize = 17 };
             value.Bind(TextBlock.TextProperty, new Binding(property));
@@ -98,7 +98,7 @@ public sealed class DashboardWindow : Window
                 }
             }
         });
-        stack.Children.Add(new TextBlock { Text = "Fontes: /proc/cpuinfo, /proc/meminfo, /etc/os-release, /sys/block.\nSensores Linux e validação CPU reduzida disponíveis abaixo. GPU: inventário DRM/PCI; SMART: consulta somente CLI por opt-in; importação offline de arquivo abaixo.\nCapacidade de dispositivo não representa espaço livre. Dados não indicam saúde.", TextWrapping = TextWrapping.Wrap, Foreground = Palette.Muted });
+        stack.Children.Add(new TextBlock { Text = L.T("Fontes: /proc/cpuinfo, /proc/meminfo, /etc/os-release, /sys/block.\nSensores Linux e validação CPU reduzida disponíveis abaixo. GPU: inventário DRM/PCI; SMART: consulta somente CLI por opt-in; importação offline de arquivo abaixo.\nCapacidade de dispositivo não representa espaço livre. Dados não indicam saúde."), TextWrapping = TextWrapping.Wrap, Foreground = Palette.Muted });
         var status = new TextBlock { Name = "HardwareStatus", TextWrapping = TextWrapping.Wrap }; status.Bind(TextBlock.TextProperty, new Binding(nameof(vm.Status))); stack.Children.Add(status);
         stack.Children.Add(new SensorPanel(sensors,
             extension => JsonSaveDialog.ChooseAsync(this, $"ilmenyx-sensors-{DateTime.Now:yyyyMMdd-HHmmss}{extension}", extension), stop.Token));
@@ -115,7 +115,7 @@ public sealed class DashboardWindow : Window
         Opened += async (_, _) =>
         {
             if (OperatingSystem.IsLinux()) { await vm.RefreshAsync(stop.Token); await sensors.RefreshAsync(stop.Token); }
-            else vm.SetStatus("Backend disponível apenas no Linux.");
+            else vm.SetStatus(L.T("Backend disponível apenas no Linux."));
         };
         Closed += (_, _) => { stop.Cancel(); sensors.Dispose(); smartImport.Dispose(); cpu.Dispose(); memory.Dispose(); simulation.Dispose(); cpuPanel.Dispose(); };
     }

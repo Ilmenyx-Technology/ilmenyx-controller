@@ -17,7 +17,7 @@ public sealed record StartupEntry(string Id, string Name, string Command, string
     internal IReadOnlyDictionary<string, string> Keys { get; init; } = new Dictionary<string, string>();
     internal bool OverridesSystem { get; init; }
 
-    public string State => FileMissing ? "ARQUIVO NÃO EXISTE" : Enabled ? "ATIVADO" : "DESATIVADO";
+    public string State => FileMissing ? L.T("ARQUIVO NÃO EXISTE") : Enabled ? L.T("ATIVADO") : L.T("DESATIVADO");
 }
 
 /// <summary>Removed or overridden item kept so "Restaurar removidos" can undo it.</summary>
@@ -136,7 +136,7 @@ public sealed class LinuxStartupManager(string configHome, string dataHome, IRea
         string name = d.GetValueOrDefault("Name") is { Length: > 0 } n ? n : Path.GetFileNameWithoutExtension(file);
         string exec = DesktopEntry.CleanExec(d.GetValueOrDefault("Exec") ?? "");
         string? exe = DesktopEntry.ExeOf(exec);
-        bool enabled = !string.Equals(d.GetValueOrDefault("Hidden"), "true", StringComparison.OrdinalIgnoreCase) && !string.Equals(d.GetValueOrDefault("X-GNOME-Autostart-enabled"), "false", StringComparison.OrdinalIgnoreCase);
+        bool enabled = !string.Equals(d.GetValueOrDefault("Hidden"), "true", StringComparison.OrdinalIgnoreCase) && !string.Equals(d.GetValueOrDefault(L.T("X-GNOME-Autostart-enabled")), "false", StringComparison.OrdinalIgnoreCase);
         string detail = string.Join(" · ", new[] { d.GetValueOrDefault("Comment"), d.GetValueOrDefault("GenericName") }.Where(s => !string.IsNullOrWhiteSpace(s)).Distinct());
         return new(Path.GetFileName(file), name, exec, overrideNote is null ? source : source + " · " + overrideNote, system, enabled, detail, exe is not null && exe is not ("env" or "sh" or "bash") && !DesktopEntry.ExistsOnPathOrAbsolute(exe), "Desktop", file)
         { Keys = d, OverridesSystem = overrideNote is not null };
@@ -158,26 +158,26 @@ public sealed class LinuxStartupManager(string configHome, string dataHome, IRea
                     {
                         if (new FileInfo(file).Length > 65536) continue;
                         if (!system) userFiles.Add(id);
-                        list.Add(FromDesktop(file, source, system, !system && systemDirs.Any(s => File.Exists(Path.Combine(s, id))) ? "substitui o do sistema" : null));
+                        list.Add(FromDesktop(file, source, system, !system && systemDirs.Any(s => File.Exists(Path.Combine(s, id))) ? L.T("substitui o do sistema") : null));
                     }
                     catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
                 }
             }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
         }
-        ReadDir(UserDir, "Autostart · usuário", false);
-        foreach (var dir in systemDirs) ReadDir(dir, "Autostart · todos os usuários (" + Path.GetDirectoryName(dir) + ")", true);
+        ReadDir(UserDir, L.T("Autostart · usuário"), false);
+        foreach (var dir in systemDirs) ReadDir(dir, L.T("Autostart · todos os usuários (") + Path.GetDirectoryName(dir) + ")", true);
 
         if (systemctl is not null)
         {
             try
             {
                 var (code, output) = await systemctl(["--user", "list-unit-files", "--type=service", "--state=enabled", "--no-legend", "--no-pager"], ct);
-                if (code == 0) foreach (var unit in ParseUnits(output)) list.Add(new(unit, unit[..^8], "systemctl --user start " + unit, "Serviço systemd · usuário", false, true, "", false, "Service", null));
+                if (code == 0) foreach (var unit in ParseUnits(output)) list.Add(new(unit, unit[..^8], "systemctl --user start " + unit, L.T("Serviço systemd · usuário"), false, true, "", false, "Service", null));
             }
             catch (Exception e) when (e is IOException or FileNotFoundException or TimeoutException or System.ComponentModel.Win32Exception) { }
             foreach (var b in Removed().Where(b => b.Kind == "Service" && b.Unit is not null && !list.Any(e => e.Id == b.Unit)))
-                list.Add(new(b.Unit!, b.Unit![..^8], "systemctl --user start " + b.Unit, "Serviço systemd · usuário (desativado pelo Ilmenyx)", false, false, "", false, "Service", null));
+                list.Add(new(b.Unit!, b.Unit![..^8], "systemctl --user start " + b.Unit, L.T("Serviço systemd · usuário (desativado pelo Ilmenyx)"), false, false, "", false, "Service", null));
         }
         return (await AdviseAsync(list, ct)).OrderBy(e => e.Advice.Group).ThenBy(e => e.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
     }
@@ -216,19 +216,19 @@ public sealed class LinuxStartupManager(string configHome, string dataHome, IRea
     {
         if (e.Kind == "Service")
         {
-            if (!UnitName.IsMatch(e.Id) || systemctl is null) throw new ArgumentException("Unidade inválida.");
+            if (!UnitName.IsMatch(e.Id) || systemctl is null) throw new ArgumentException(L.T("Unidade inválida."));
             var (code, _) = await systemctl(["--user", enabled ? "enable" : "disable", "--", e.Id], ct);
             if (code != 0) throw new IOException($"systemctl retornou código {code}.");
             var list = Removed().Where(b => !(b.Kind == "Service" && b.Unit == e.Id)).ToList();
             if (!enabled) list.Add(new("Service", e.Name, null, null, e.Id));
             SaveRemoved(list); return;
         }
-        if (e.FilePath is null) throw new ArgumentException("Entrada sem arquivo.");
+        if (e.FilePath is null) throw new ArgumentException(L.T("Entrada sem arquivo."));
         string target = Path.Combine(UserDir, e.Id);
         string text = File.ReadAllText(e.FilePath);
-        if (e.System && !File.Exists(target)) text = DesktopEntry.WithKey(text, "X-Ilmenyx-Override", "true");
+        if (e.System && !File.Exists(target)) text = DesktopEntry.WithKey(text, L.T("X-Ilmenyx-Override"), "true");
         text = DesktopEntry.WithKey(text, "Hidden", enabled ? null : "true");
-        text = DesktopEntry.WithKey(text, "X-GNOME-Autostart-enabled", enabled ? null : "false");
+        text = DesktopEntry.WithKey(text, L.T("X-GNOME-Autostart-enabled"), enabled ? null : "false");
         if (enabled && DesktopEntry.Parse(text).ContainsKey("X-Ilmenyx-Override")) { if (File.Exists(target)) File.Delete(target); return; } // drop our override: the system entry applies again
         WriteAtomic(target, text);
     }
@@ -236,8 +236,8 @@ public sealed class LinuxStartupManager(string configHome, string dataHome, IRea
     /// <summary>Removes a user autostart file (moved to the backup folder). System entries cannot be removed, only disabled.</summary>
     public StartupBackup Remove(StartupEntry e)
     {
-        if (e.Kind != "Desktop" || e.System || e.FilePath is null || Path.GetDirectoryName(e.FilePath) != UserDir) throw new InvalidOperationException("Só entradas do próprio usuário podem ser removidas; desative as do sistema.");
-        if (DesktopEntry.Parse(File.ReadAllText(e.FilePath)).ContainsKey("X-Ilmenyx-Override")) throw new InvalidOperationException("Esta entrada é um override do Ilmenyx sobre uma entrada do sistema; reative-a em vez de removê-la.");
+        if (e.Kind != "Desktop" || e.System || e.FilePath is null || Path.GetDirectoryName(e.FilePath) != UserDir) throw new InvalidOperationException(L.T("Só entradas do próprio usuário podem ser removidas; desative as do sistema."));
+        if (DesktopEntry.Parse(File.ReadAllText(e.FilePath)).ContainsKey("X-Ilmenyx-Override")) throw new InvalidOperationException(L.T("Esta entrada é um override do Ilmenyx sobre uma entrada do sistema; reative-a em vez de removê-la."));
         Directory.CreateDirectory(BackupDir);
         string copy = Path.Combine(BackupDir, $"{DateTime.Now:yyyyMMdd-HHmmss}-{e.Id}");
         File.Move(e.FilePath, copy);
@@ -248,7 +248,7 @@ public sealed class LinuxStartupManager(string configHome, string dataHome, IRea
     public void Restore(StartupBackup b)
     {
         if (b.Kind == "Service") { SaveRemoved(Removed().Where(x => x != b).ToList()); return; }
-        if (b.Backup is null || b.Original is null || !File.Exists(b.Backup) || Path.GetDirectoryName(b.Original) != UserDir) throw new IOException("Backup indisponível.");
+        if (b.Backup is null || b.Original is null || !File.Exists(b.Backup) || Path.GetDirectoryName(b.Original) != UserDir) throw new IOException(L.T("Backup indisponível."));
         Directory.CreateDirectory(UserDir); File.Move(b.Backup, b.Original, overwrite: false);
         SaveRemoved(Removed().Where(x => x != b).ToList());
     }

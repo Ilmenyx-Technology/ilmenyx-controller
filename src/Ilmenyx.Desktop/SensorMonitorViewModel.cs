@@ -20,8 +20,8 @@ public sealed class SensorMonitorViewModel(ISensorProvider provider) : INotifyPr
     public bool CanRefresh => !disposed && !IsRefreshing;
     public bool CanPoll => !disposed && !IsPolling;
     public bool CanExport => !disposed && Snapshot is not null && !IsRefreshing && !IsExporting;
-    public string Status { get; private set; } = "Aguardando leitura de sensores Linux.";
-    public string Text => Snapshot is { } snapshot ? SensorPresentation.Text(snapshot) : "Sem snapshot de sensores.";
+    public string Status { get; private set; } = L.T("Aguardando leitura de sensores Linux.");
+    public string Text => Snapshot is { } snapshot ? SensorPresentation.Text(snapshot) : L.T("Sem snapshot de sensores.");
 
     public async Task RefreshAsync(CancellationToken ct = default)
     {
@@ -33,11 +33,11 @@ public sealed class SensorMonitorViewModel(ISensorProvider provider) : INotifyPr
             var snapshot = await Task.Run(() => provider.CollectAsync(ct), ct);
             if (disposed) return;
             Snapshot = snapshot;
-            Status = $"{snapshot.Readings.Count} canais · {snapshot.Status} · {snapshot.CollectedAt.LocalDateTime:T}";
+            Status = L.T($"{snapshot.Readings.Count} canais · {snapshot.Status} · {snapshot.CollectedAt.LocalDateTime:T}");
         }
-        catch (OperationCanceledException) { SetStatus("Leitura cancelada; último snapshot preservado."); }
+        catch (OperationCanceledException) { SetStatus(L.T("Leitura cancelada; último snapshot preservado.")); }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
-        { SetStatus("Leitura indisponível; último snapshot preservado: " + e.Message); }
+        { SetStatus(L.T("Leitura indisponível; último snapshot preservado: ") + e.Message); }
         finally { IsRefreshing = false; NotifyAll(); }
     }
     public void StartPolling(CancellationToken lifetime = default)
@@ -79,19 +79,19 @@ public sealed class SensorMonitorViewModel(ISensorProvider provider) : INotifyPr
             token.ThrowIfCancellationRequested();
             var path = await chooseDestination(html ? ".html" : ".json");
             token.ThrowIfCancellationRequested();
-            if (path is null) { SetStatus("Exportação cancelada."); return; }
+            if (path is null) { SetStatus(L.T("Exportação cancelada.")); return; }
             if (!ReferenceEquals(selected, Snapshot) || IsRefreshing)
             {
-                SetStatus("O snapshot mudou. Pare o monitor e selecione novamente para exportar.");
+                SetStatus(L.T("O snapshot mudou. Pare o monitor e selecione novamente para exportar."));
                 return;
             }
             if (html) await Task.Run(() => SensorHtmlReport.ExportAsync(selected, path, token), token);
             else await Task.Run(() => SnapshotReport.ExportAsync(selected, path, token), token);
-            SetStatus("Snapshot de sensores exportado para arquivo local.");
+            SetStatus(L.T("Snapshot de sensores exportado para arquivo local."));
         }
-        catch (OperationCanceledException) { SetStatus("Exportação cancelada."); }
+        catch (OperationCanceledException) { SetStatus(L.T("Exportação cancelada.")); }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
-        { SetStatus("Não foi possível exportar: " + e.Message); }
+        { SetStatus(L.T("Não foi possível exportar: ") + e.Message); }
         finally { IsExporting = false; NotifyAll(); }
     }
     public void SetStatus(string status) { if (!disposed) { Status = status; Notify(nameof(Status)); } }

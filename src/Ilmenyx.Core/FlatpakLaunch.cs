@@ -27,7 +27,7 @@ public static class FlatpakLaunch
     /// </summary>
     public static IReadOnlyList<string> WithMangoHud(IReadOnlyList<string> args, string defaultCommand, string? configFile, string logFolder)
     {
-        string app = AppId(args) ?? throw new ArgumentException("Não é um comando flatpak run.", nameof(args));
+        string app = AppId(args) ?? throw new ArgumentException(L.T("Não é um comando flatpak run."), nameof(args));
         int appAt = args.ToList().IndexOf(app, 1);
         var options = args.Skip(1).Take(appAt - 1).ToList();
         string command = options.FirstOrDefault(o => o.StartsWith("--command=", StringComparison.Ordinal))?["--command=".Length..] ?? defaultCommand;

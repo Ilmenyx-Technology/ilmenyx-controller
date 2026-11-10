@@ -49,7 +49,7 @@ public sealed class GpuInfoPage : Grid
             IsVisible = gpuNotice is not null, HorizontalAlignment = HorizontalAlignment.Left, Background = Palette.WarnBg, CornerRadius = new CornerRadius(IlmenyxTheme.ControlRadius), Padding = new Thickness(10, 5), Margin = new Thickness(0, 6, 0, 8),
             Child = new TextBlock { Name = "GpuValidationNotice", Text = gpuNotice ?? "", Foreground = Palette.Warn, TextWrapping = TextWrapping.Wrap, FontSize = 12 }
         };
-        var heroText = new StackPanel { Children = { UiKit.Label("ADAPTADOR GRÁFICO"), name, subtitle, tags, notice, status } };
+        var heroText = new StackPanel { Children = { UiKit.Label(L.T("ADAPTADOR GRÁFICO")), name, subtitle, tags, notice, status } };
         heroText.Children[0].Margin = new Thickness(0, 0, 0, 6);
         var heroGrid = new Grid { ColumnDefinitions = new("*,Auto"), Children = { heroText } };
         Grid.SetColumn(vendor, 1); heroGrid.Children.Add(vendor);
@@ -57,11 +57,11 @@ public sealed class GpuInfoPage : Grid
 
         var page = new StackPanel { Name = "GpuBody", Margin = new Thickness(0, 0, 10, 16) };
         page.SizeChanged += (_, e) => Fit(e.NewSize.Width);
-        page.Children.Add(UiKit.PageHeader("Placa de vídeo", "Especificações completas e sensores em tempo real", chips));
+        page.Children.Add(UiKit.PageHeader(L.T("Placa de vídeo"), L.T("Especificações completas e sensores em tempo real"), chips));
         page.Children.Add(hero);
-        page.Children.Add(UiKit.SectionHeader("Sensores ao vivo", new TextBlock { Text = "atualiza a cada 2 s", FontSize = 11.5, Foreground = Palette.Faint, VerticalAlignment = VerticalAlignment.Center }));
+        page.Children.Add(UiKit.SectionHeader(L.T("Sensores ao vivo"), new TextBlock { Text = L.T("atualiza a cada 2 s"), FontSize = 11.5, Foreground = Palette.Faint, VerticalAlignment = VerticalAlignment.Center }));
         page.Children.Add(live); page.Children.Add(extras);
-        page.Children.Add(UiKit.SectionHeader("Especificações"));
+        page.Children.Add(UiKit.SectionHeader(L.T("Especificações")));
         page.Children.Add(sections);
         Children.Add(new ScrollViewer { Name = "GpuSectionsScroll", Content = page });
         Loaded += async (_, _) => { if (IsVisible) StartPolling(); if (gpus.Count == 0) await LoadAsync(); };
@@ -79,7 +79,7 @@ public sealed class GpuInfoPage : Grid
 
     public async Task LoadAsync()
     {
-        status.Text = "Lendo as GPUs (sysfs e, se houver, nvidia-smi — somente leitura)…";
+        status.Text = L.T("Lendo as GPUs (sysfs e, se houver, nvidia-smi — somente leitura)…");
         try
         {
             var smi = await LinuxGpuCollector.QuerySmiAsync(lifetime);
@@ -92,11 +92,11 @@ public sealed class GpuInfoPage : Grid
                 chip.Click += (_, _) => Show(index);
                 chips.Children.Add(chip);
             }
-            if (gpus.Count == 0) { name.Text = "Nenhuma GPU PCI encontrada"; subtitle.Text = ""; vendor.Text = ""; status.Text = "O inventário DRM/PCI não listou GPUs."; return; }
+            if (gpus.Count == 0) { name.Text = L.T("Nenhuma GPU PCI encontrada"); subtitle.Text = ""; vendor.Text = ""; status.Text = L.T("O inventário DRM/PCI não listou GPUs."); return; }
             Show(Math.Min(selected, gpus.Count - 1));
-            status.Text = $"{gpus.Count} GPU(s) · lido às {DateTime.Now:HH:mm:ss}." + (gpuNotice is null ? "" : " Contadores AMD/NVIDIA: veja o aviso acima.");
+            status.Text = L.T($"{gpus.Count} GPU(s) · lido às {DateTime.Now:HH:mm:ss}.") + (gpuNotice is null ? "" : L.T(" Contadores AMD/NVIDIA: veja o aviso acima."));
         }
-        catch (OperationCanceledException) { status.Text = "Leitura cancelada."; }
+        catch (OperationCanceledException) { status.Text = L.T("Leitura cancelada."); }
     }
 
     public void Show(int index)
@@ -135,9 +135,9 @@ public sealed class GpuInfoPage : Grid
             int cut = v.IndexOf(" (", StringComparison.Ordinal); if (cut > 0) v = v[..cut];
             return v.Length <= 34 ? v : null;
         }
-        var memory = card.Sections.FirstOrDefault(s => s.Header == "MEMÓRIA")?.Children.FirstOrDefault()?.Header is "Tamanho" ? Value("MEMÓRIA", "Tamanho") : null;
-        string? driver = Value("DRIVER E BIOS", "Driver do kernel") is { } d && d != "sem driver" ? "Driver " + d + (Value("DRIVER E BIOS", "Versão do driver") is { } ver ? " " + ver : "") : null;
-        foreach (var t in new[] { Value("IDENTIFICAÇÃO", "Arquitetura"), Value("IDENTIFICAÇÃO", "Processo"), memory is null ? null : "VRAM " + memory, Value("MEMÓRIA", "Tipo"), Value("BARRAMENTO", "Interface"), driver })
+        var memory = card.Sections.FirstOrDefault(s => s.Header == L.T("MEMÓRIA"))?.Children.FirstOrDefault()?.Header == L.T("Tamanho") ? Value(L.T("MEMÓRIA"), L.T("Tamanho")) : null;
+        string? driver = Value(L.T("DRIVER E BIOS"), L.T("Driver do kernel")) is { } d && d != L.T("sem driver") ? "Driver " + d + (Value(L.T("DRIVER E BIOS"), L.T("Versão do driver")) is { } ver ? " " + ver : "") : null;
+        foreach (var t in new[] { Value(L.T("IDENTIFICAÇÃO"), L.T("Arquitetura")), Value(L.T("IDENTIFICAÇÃO"), L.T("Processo")), memory is null ? null : "VRAM " + memory, Value(L.T("MEMÓRIA"), L.T("Tipo")), Value(L.T("BARRAMENTO"), "Interface"), driver })
             if (t is not null) yield return t;
     }
 
@@ -192,7 +192,7 @@ public sealed class GpuInfoPage : Grid
         }
         var rows = GpuLive.Rows(t);
         if (rows.Count == 0 && pairs.Count == 0)
-            live.Children.Add(new TextBlock { Name = "GpuLiveEmpty", Text = gpus.Count > selected && gpus[selected].Raw is { VendorId: "10de", Driver: "nouveau" } ? GpuTelemetrySensors.NouveauReason : "Esta GPU não expõe contadores sem privilégios (típico de iGPU Intel; NVIDIA exige nvidia-smi, AMD usa sysfs).", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(2, 0, 0, 10) });
+            live.Children.Add(new TextBlock { Name = "GpuLiveEmpty", Text = gpus.Count > selected && gpus[selected].Raw is { VendorId: "10de", Driver: "nouveau" } ? GpuTelemetrySensors.NouveauReason : L.T("Esta GPU não expõe contadores sem privilégios (típico de iGPU Intel; NVIDIA exige nvidia-smi, AMD usa sysfs)."), Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(2, 0, 0, 10) });
         foreach (var r in rows)
         {
             string category = r.Category.TrimEnd(' ', '·');
@@ -204,17 +204,15 @@ public sealed class GpuInfoPage : Grid
         if (liveTiles.Children.Count > 0) live.Children.Add(liveTiles);
     }
 
-    private static string TileIcon(string category) => category switch
-    {
-        "Temperatura" => Icons.Temperature, "Carga" => Icons.Gpu, "Clock" => Icons.Fps, "Tensão" or "Energia" => Icons.Oc,
-        _ when category.StartsWith("VRAM", StringComparison.Ordinal) => Icons.Memory, "Ventoinha" => Icons.Sensors, _ => Icons.Gpu,
-    };
+    // Sensor categories arrive translated, so they are compared with the translated names.
+    private static string TileIcon(string category) =>
+        category == L.T("Temperatura") ? Icons.Temperature : category == L.T("Carga") ? Icons.Gpu : category == "Clock" ? Icons.Fps
+        : category == L.T("Tensão") || category == L.T("Energia") ? Icons.Oc : category.StartsWith("VRAM", StringComparison.Ordinal) ? Icons.Memory
+        : category == L.T("Ventoinha") ? Icons.Sensors : Icons.Gpu;
 
-    private static IBrush TileTint(string category) => category switch
-    {
-        "Temperatura" => Palette.DataTemperature, "Carga" => Palette.DataGpu, "Clock" => Palette.DataCpu, "Tensão" or "Energia" => Palette.Energy,
-        _ when category.StartsWith("VRAM", StringComparison.Ordinal) => Palette.DataMemory, _ => Palette.Faint,
-    };
+    private static IBrush TileTint(string category) =>
+        category == L.T("Temperatura") ? Palette.DataTemperature : category == L.T("Carga") ? Palette.DataGpu : category == "Clock" ? Palette.DataCpu
+        : category == L.T("Tensão") || category == L.T("Energia") ? Palette.Energy : category.StartsWith("VRAM", StringComparison.Ordinal) ? Palette.DataMemory : Palette.Faint;
 
     /// <summary>Compact key/value capsule for secondary live readings (PCIe link, perf state, limiter).</summary>
     private static Border Pair(string key, string value)

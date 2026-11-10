@@ -3,6 +3,7 @@
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
+using Ilmenyx.Core;
 
 namespace Ilmenyx.Platform.Linux;
 
@@ -22,12 +23,12 @@ public sealed class OpenRgbServer : IAsyncDisposable
 
     public static async Task<OpenRgbServer> StartAsync(int port, TimeSpan readyTimeout, CancellationToken ct)
     {
-        if (port is < 1024 or > 65535) throw new ArgumentOutOfRangeException(nameof(port), "Porta fora de 1024–65535.");
-        string program = BoundedProcess.Find("openrgb") ?? throw new FileNotFoundException("OpenRGB não encontrado (nem no pacote, nem no sistema).");
+        if (port is < 1024 or > 65535) throw new ArgumentOutOfRangeException(nameof(port), L.T("Porta fora de 1024–65535."));
+        string program = BoundedProcess.Find("openrgb") ?? throw new FileNotFoundException(L.T("OpenRGB não encontrado (nem no pacote, nem no sistema)."));
         Directory.CreateDirectory(ConfigFolder());
         var start = HostSpawn.Start(program, ["--server", "--server-host", "127.0.0.1", "--server-port", port.ToString(System.Globalization.CultureInfo.InvariantCulture), "--noautoconnect", "--config", ConfigFolder()]);
         var p = new Process { StartInfo = start };
-        if (!p.Start()) throw new IOException("Não foi possível iniciar o OpenRGB.");
+        if (!p.Start()) throw new IOException(L.T("Não foi possível iniciar o OpenRGB."));
         var errors = new System.Text.StringBuilder();
         _ = DrainAsync(p.StandardOutput, null); _ = DrainAsync(p.StandardError, errors);   // keep the pipes from filling; only a short error tail is kept
         var server = new OpenRgbServer(p, port, program);
@@ -36,13 +37,13 @@ public sealed class OpenRgbServer : IAsyncDisposable
             using var limit = CancellationTokenSource.CreateLinkedTokenSource(ct); limit.CancelAfter(readyTimeout);
             while (true)
             {
-                if (p.HasExited) { await Task.Delay(100, CancellationToken.None); throw new IOException($"O OpenRGB encerrou ao iniciar (código {p.ExitCode}). {Tail(errors)}".TrimEnd()); }
+                if (p.HasExited) { await Task.Delay(100, CancellationToken.None); throw new IOException(L.T($"O OpenRGB encerrou ao iniciar (código {p.ExitCode}). {Tail(errors)}").TrimEnd()); }
                 using var tcp = new TcpClient();
                 try { await tcp.ConnectAsync(IPAddress.Loopback, port, limit.Token); return server; }
                 catch (SocketException) { await Task.Delay(300, limit.Token); }
             }
         }
-        catch (OperationCanceledException) when (!ct.IsCancellationRequested) { await server.DisposeAsync(); throw new TimeoutException("O servidor do OpenRGB não respondeu a tempo."); }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested) { await server.DisposeAsync(); throw new TimeoutException(L.T("O servidor do OpenRGB não respondeu a tempo.")); }
         catch { await server.DisposeAsync(); throw; }
     }
 

@@ -21,15 +21,15 @@ public sealed class DriverPage : StackPanel
     private readonly Func<string, Task<string?>> destination;
     private readonly CancellationToken lifetime;
     private readonly Action? openNvidiaTab;
-    private readonly TextBlock status = new() { Name = "DrvStatus", Text = "Clique em Verificar tudo.", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12) };
-    private readonly TextBlock headline = new() { Name = "DrvHeadline", Text = "Ainda não verificado.", FontSize = 17, FontWeight = FontWeight.Bold, TextWrapping = TextWrapping.Wrap };
+    private readonly TextBlock status = new() { Name = "DrvStatus", Text = L.T("Clique em Verificar tudo."), Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12) };
+    private readonly TextBlock headline = new() { Name = "DrvHeadline", Text = L.T("Ainda não verificado."), FontSize = 17, FontWeight = FontWeight.Bold, TextWrapping = TextWrapping.Wrap };
     private readonly StackPanel summaryLines = new() { Name = "DrvSummaryLines", Spacing = 3, Margin = new Thickness(0, 8, 0, 0) };
     private readonly Grid categories = new() { Name = "DrvCategories", ColumnDefinitions = new("*,14,*") };
     private readonly StackPanel colA = new() { Name = "DrvColumnA" }, colB = new() { Name = "DrvColumnB" };
     private readonly TextBlock board = new() { Name = "DrvBoard", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0) };
-    private readonly Button boardPage = new() { Name = "BtnDrvBoardPage", Content = "Abrir suporte do fabricante", IsEnabled = false, Margin = new Thickness(0, 14, 0, 8) };
+    private readonly Button boardPage = new() { Name = "BtnDrvBoardPage", Content = L.T("Abrir suporte do fabricante"), IsEnabled = false, Margin = new Thickness(0, 14, 0, 8) };
     private readonly StackPanel fwList = new() { Name = "DrvFirmware", Spacing = 4, Margin = new Thickness(0, 8, 0, 0) };
-    private readonly Button fwCopy = new() { Name = "BtnDrvFwCopy", Content = "Copiar comando de atualização", IsVisible = false, Margin = new Thickness(0, 8, 0, 0) };
+    private readonly Button fwCopy = new() { Name = "BtnDrvFwCopy", Content = L.T("Copiar comando de atualização"), IsVisible = false, Margin = new Thickness(0, 8, 0, 0) };
     private readonly StackPanel list = new() { Name = "DrvList", Margin = new Thickness(0, 10, 0, 0) };
     private IReadOnlyList<GpuDriverStatus> gpus = [];
     private IReadOnlyList<DriverRow> rows = [];
@@ -46,9 +46,9 @@ public sealed class DriverPage : StackPanel
         this.launchManager = launchManager ?? DriverTools.LaunchDriverManager;
         this.findManager = findManager ?? BoundedProcess.FindSystem;
         this.destination = destination; this.lifetime = lifetime; Spacing = 4;
-        var scan = new Button { Name = "BtnDrvScan", Content = "Verificar tudo", Background = Palette.Accent, Foreground = Palette.OnAccent, FontWeight = FontWeight.Bold, Padding = new Thickness(20, 9), HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top };
+        var scan = new Button { Name = "BtnDrvScan", Content = L.T("Verificar tudo"), Background = Palette.Accent, Foreground = Palette.OnAccent, FontWeight = FontWeight.Bold, Padding = new Thickness(20, 9), HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top };
         scan.Click += async (_, _) => await ScanAsync();
-        var header = UiKit.PageHeader("Drivers", "Driver é o programa que faz o Linux conversar com cada peça. Aqui você vê, por tipo de peça, se está tudo funcionando e o que fazer quando não está. Nada é instalado sem você pedir.");
+        var header = UiKit.PageHeader("Drivers", L.T("Driver é o programa que faz o Linux conversar com cada peça. Aqui você vê, por tipo de peça, se está tudo funcionando e o que fazer quando não está. Nada é instalado sem você pedir."));
         header.RowDefinitions = new("Auto,Auto");
         Grid.SetRow(scan, 1); scan.Margin = new Thickness(0, 10, 0, 0);
         header.Children.Add(scan);
@@ -57,7 +57,7 @@ public sealed class DriverPage : StackPanel
         var summary = UiKit.FeatureCard(new StackPanel { Children =
         {
             UiKit.Label("RESUMO"), headline, summaryLines,
-            new TextBlock { Text = "Livre = código aberto, já vem com o Linux e se atualiza com o sistema. Proprietário = feito pelo fabricante, código fechado (como o driver oficial da NVIDIA).", Foreground = Palette.Muted, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0) },
+            new TextBlock { Text = L.T("Livre = código aberto, já vem com o Linux e se atualiza com o sistema. Proprietário = feito pelo fabricante, código fechado (como o driver oficial da NVIDIA)."), Foreground = Palette.Muted, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0) },
         } }, "DrvSummary");
         summary.Margin = new Thickness(0, 0, 0, 14);
         Children.Add(summary);
@@ -65,17 +65,17 @@ public sealed class DriverPage : StackPanel
         categories.SizeChanged += (_, e) => { if (e.WidthChanged && (e.NewSize.Width >= 860) != colB.IsVisible) Arrange2(e.NewSize.Width); };
         Children.Add(categories);
 
-        var fw = new Button { Name = "BtnDrvFwupd", Content = "Procurar atualizações de firmware", Margin = new Thickness(0, 12, 0, 8) };
+        var fw = new Button { Name = "BtnDrvFwupd", Content = L.T("Procurar atualizações de firmware"), Margin = new Thickness(0, 12, 0, 8) };
         fw.Click += async (_, _) => await FirmwareAsync(fw);
-        fwCopy.Click += async (_, _) => { if (TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard) { await clipboard.SetTextAsync("fwupdmgr update"); status.Text = "Comando copiado: cole no terminal e confirme por conta própria."; } };
-        Children.Add(Card("FIRMWARE DAS PEÇAS E DA BIOS", new StackPanel { Children = { Note("Firmware é o programa que fica gravado dentro da peça (SSD, BIOS, touchpad…). O serviço fwupd do Linux sabe quais peças têm atualização oficial (LVFS)."), fwList, new WrapPanel { ItemSpacing = 10, Children = { fw, fwCopy } }, Note("Somente leitura. Para atualizar, rode `fwupdmgr update` no terminal; o Ilmenyx não instala firmware nem pede senha.") } }));
+        fwCopy.Click += async (_, _) => { if (TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard) { await clipboard.SetTextAsync(L.T("fwupdmgr update")); status.Text = L.T("Comando copiado: cole no terminal e confirme por conta própria."); } };
+        Children.Add(Card(L.T("FIRMWARE DAS PEÇAS E DA BIOS"), new StackPanel { Children = { Note(L.T("Firmware é o programa que fica gravado dentro da peça (SSD, BIOS, touchpad…). O serviço fwupd do Linux sabe quais peças têm atualização oficial (LVFS).")), fwList, new WrapPanel { ItemSpacing = 10, Children = { fw, fwCopy } }, Note(L.T("Somente leitura. Para atualizar, rode `fwupdmgr update` no terminal; o Ilmenyx não instala firmware nem pede senha.")) } }));
         boardPage.Click += async (_, _) => await OpenAsync(boardInfo.SupportUrl);
-        Children.Add(Card("PLACA-MÃE E FABRICANTE", new StackPanel { Children = { board, boardPage, Note("Fabricantes não têm um serviço público de versões. Abrimos o suporte oficial do fabricante detectado (chipset, áudio, rede, BIOS); se a página não abrir no seu modelo, busque o modelo mostrado acima no site.") } }));
-        var backup = new Button { Name = "BtnDrvBackup", Content = "Exportar inventário (JSON)", Margin = new Thickness(0, 14, 0, 0), HorizontalAlignment = HorizontalAlignment.Left };
+        Children.Add(Card(L.T("PLACA-MÃE E FABRICANTE"), new StackPanel { Children = { board, boardPage, Note(L.T("Fabricantes não têm um serviço público de versões. Abrimos o suporte oficial do fabricante detectado (chipset, áudio, rede, BIOS); se a página não abrir no seu modelo, busque o modelo mostrado acima no site.")) } }));
+        var backup = new Button { Name = "BtnDrvBackup", Content = L.T("Exportar inventário (JSON)"), Margin = new Thickness(0, 14, 0, 0), HorizontalAlignment = HorizontalAlignment.Left };
         backup.Click += async (_, _) => await ExportAsync(backup);
-        Children.Add(Card("BACKUP DO INVENTÁRIO", new StackPanel { Children = { new TextBlock { Text = "Salva a lista de peças e drivers em um arquivo novo (útil para mandar a um técnico). No Linux os drivers fazem parte do kernel e dos pacotes da distribuição; não há instaladores para exportar.", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0) }, backup } }));
-        var full = new Expander { Name = "DrvListExpander", HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch, Header = new TextBlock { Text = "Lista técnica completa (todos os dispositivos e módulos do kernel)", FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap }, Content = list };
-        Children.Add(Card("PARA TÉCNICOS", full));
+        Children.Add(Card(L.T("BACKUP DO INVENTÁRIO"), new StackPanel { Children = { new TextBlock { Text = L.T("Salva a lista de peças e drivers em um arquivo novo (útil para mandar a um técnico). No Linux os drivers fazem parte do kernel e dos pacotes da distribuição; não há instaladores para exportar."), Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0) }, backup } }));
+        var full = new Expander { Name = "DrvListExpander", HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch, Header = new TextBlock { Text = L.T("Lista técnica completa (todos os dispositivos e módulos do kernel)"), FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap }, Content = list };
+        Children.Add(Card(L.T("PARA TÉCNICOS"), full));
         Loaded += async (_, _) => { if (rows.Count == 0) await ScanAsync(); };
     }
 
@@ -109,15 +109,15 @@ public sealed class DriverPage : StackPanel
     public async Task ScanAsync()
     {
         if (busy) return;
-        busy = true; status.Text = "Lendo dispositivos e drivers (sysfs, somente leitura)…";
+        busy = true; status.Text = L.T("Lendo dispositivos e drivers (sysfs, somente leitura)…");
         try
         {
             var (inv, g, b, distro) = await Task.Run(() => (inventory.Inventory(pciIds), inventory.Gpus(pciIds), inventory.Board(), inventory.Distro()), lifetime);
             rows = inv; gpus = g; boardInfo = b;
             Fill(distro);
-            status.Text = $"Pronto às {DateTime.Now:HH:mm:ss}. {inv.Count} dispositivo(s) lido(s).";
+            status.Text = L.T($"Pronto às {DateTime.Now:HH:mm:ss}. {inv.Count} dispositivo(s) lido(s).");
         }
-        catch (OperationCanceledException) { status.Text = "Leitura cancelada."; }
+        catch (OperationCanceledException) { status.Text = L.T("Leitura cancelada."); }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { status.Text = "Falhou: " + e.Message; }
         finally { busy = false; }
     }
@@ -141,7 +141,7 @@ public sealed class DriverPage : StackPanel
         foreach (var c in cards) { var card = CategoryCard(c, distro, manager); card.Tag = order++; colA.Children.Add(card); }
         Arrange2(categories.Bounds.Width > 0 ? categories.Bounds.Width : Bounds.Width);
 
-        board.Text = $"{boardInfo.Maker} {boardInfo.Model}\nBIOS: {(boardInfo.Bios.Length > 0 ? boardInfo.Bios : "—")}" + (boardInfo.Brand.Length > 0 ? $"\nFabricante reconhecido: {boardInfo.Brand}" : "\nFabricante não reconhecido");
+        board.Text = $"{boardInfo.Maker} {boardInfo.Model}\nBIOS: {(boardInfo.Bios.Length > 0 ? boardInfo.Bios : "—")}" + (boardInfo.Brand.Length > 0 ? L.T($"\nFabricante reconhecido: {boardInfo.Brand}") : L.T("\nFabricante não reconhecido"));
         boardPage.IsEnabled = boardInfo.SupportUrl.Length > 0;
         list.Children.Clear();
         foreach (var r in rows)
@@ -156,7 +156,7 @@ public sealed class DriverPage : StackPanel
     private Control CategoryCard(DriverCategoryView c, (string Id, string IdLike) distro, DriverTools.DriverManager? manager)
     {
         var body = new StackPanel { Spacing = 0 };
-        string state = c.Devices.Count == 0 ? "NADA ENCONTRADO" : c.Health switch { DriverHealth.Attention => "ATENÇÃO", DriverHealth.Ok => "OK", _ => "OK" };
+        string state = c.Devices.Count == 0 ? L.T("NADA ENCONTRADO") : c.Health switch { DriverHealth.Attention => L.T("ATENÇÃO"), DriverHealth.Ok => "OK", _ => "OK" };
         var title = new Grid { ColumnDefinitions = new("Auto,*,Auto") };
         var icon = UiKit.Icon(IconOf(c.Category), 18, Palette.Muted); icon.Margin = new Thickness(0, 0, 10, 0);
         var name = new TextBlock { Text = c.Title, FontSize = 15, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center };
@@ -170,12 +170,12 @@ public sealed class DriverPage : StackPanel
             // Many small devices: plain tally first, the list folded (attention items stay visible).
             int ok = c.Devices.Count(d => d.Health == DriverHealth.Ok), idle = c.Devices.Count(d => d.Health == DriverHealth.Info);
             var kinds = string.Join(", ", c.Devices.GroupBy(d => d.Kind).OrderByDescending(g => g.Count()).Select(g => $"{g.Key} ({g.Count()})"));
-            body.Children.Add(new TextBlock { Name = "DrvOtherTally", Text = $"{ok} com driver funcionando" + (idle > 0 ? $" · {idle} sem driver em uso (normal para peças internas)" : "") + ".", FontSize = 12.5, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 2) });
+            body.Children.Add(new TextBlock { Name = "DrvOtherTally", Text = L.T($"{ok} com driver funcionando") + (idle > 0 ? L.T($" · {idle} sem driver em uso (normal para peças internas)") : "") + ".", FontSize = 12.5, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 2) });
             body.Children.Add(new TextBlock { Text = kinds, FontSize = 11, Foreground = Palette.Faint, TextWrapping = TextWrapping.Wrap });
             foreach (var d in c.Devices.Where(d => d.Health == DriverHealth.Attention)) body.Children.Add(DeviceRow(d, distro, manager));
             var more = new StackPanel();
             foreach (var d in c.Devices.Where(d => d.Health != DriverHealth.Attention)) more.Children.Add(DeviceRow(d, distro, manager));
-            body.Children.Add(new Expander { Name = "DrvOtherExpander", HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch, Margin = new Thickness(0, 8, 0, 0), Header = new TextBlock { Text = $"Mostrar os {more.Children.Count} dispositivos", FontSize = 12.5 }, Content = more });
+            body.Children.Add(new Expander { Name = "DrvOtherExpander", HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch, Margin = new Thickness(0, 8, 0, 0), Header = new TextBlock { Text = L.T($"Mostrar os {more.Children.Count} dispositivos"), FontSize = 12.5 }, Content = more });
         }
         else foreach (var d in c.Devices) body.Children.Add(DeviceRow(d, distro, manager));
         var card = UiKit.Card(body, new Thickness(0, 0, 0, 14)); card.Name = "DrvCat_" + c.Category; card.Padding = new Thickness(20, 16);
@@ -191,7 +191,7 @@ public sealed class DriverPage : StackPanel
         head.Children.Add(new TextBlock { Text = device, FontWeight = FontWeight.SemiBold, FontSize = 13.5, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 10, 0) });
         var badge = Badge(d.Badge, HealthBrush(d.Health)); Grid.SetColumn(badge, 1); head.Children.Add(badge);
         var panel = new StackPanel { Spacing = 2, Children = { head } };
-        panel.Children.Add(new TextBlock { Text = $"{d.Kind} · Driver em uso: {(DriverOverview.HasDriver(r) ? r.Driver : "nenhum")} · {d.License}", FontSize = 11.5, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap });
+        panel.Children.Add(new TextBlock { Text = L.T($"{d.Kind} · Driver em uso: {(DriverOverview.HasDriver(r) ? r.Driver : "nenhum")} · {d.License}"), FontSize = 11.5, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap });
         panel.Children.Add(new TextBlock { Text = d.Plain, FontSize = 12.5, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 0, 0) });
 
         // ONE recommended action, when there is something to do.
@@ -203,24 +203,24 @@ public sealed class DriverPage : StackPanel
         };
         if (action is not null) { action.Margin = new Thickness(0, 8, 0, 0); panel.Children.Add(action); }
         else if (d.Action == DriverAction.OpenDriverManager)
-            panel.Children.Add(Note("Procure o driver ou o firmware desta peça no gerenciador de pacotes da sua distribuição (pacotes \"firmware\" / \"linux-firmware\")."));
+            panel.Children.Add(Note(L.T("Procure o driver ou o firmware desta peça no gerenciador de pacotes da sua distribuição (pacotes \"firmware\" / \"linux-firmware\").")));
 
         var details = new StackPanel { Spacing = 4 };
-        details.Children.Add(new SelectableTextBlock { Text = $"Módulo do kernel: {r.Driver}\nVersão: {r.Version}\nTipo: {r.Flags}\nBarramento: {(r.Bus.Length > 0 ? r.Bus : "—")} · ID: {(r.Id.Length > 0 ? r.Id : "—")} · Classe: {(r.ClassCode.Length > 0 ? r.ClassCode : r.Class)}\nFabricante: {r.Vendor}", FontSize = 11.5, Foreground = Palette.Muted, FontFamily = new FontFamily("monospace"), TextWrapping = TextWrapping.Wrap });
+        details.Children.Add(new SelectableTextBlock { Text = L.T($"Módulo do kernel: {r.Driver}\nVersão: {r.Version}\nTipo: {r.Flags}\nBarramento: {(r.Bus.Length > 0 ? r.Bus : "—")} · ID: {(r.Id.Length > 0 ? r.Id : "—")} · Classe: {(r.ClassCode.Length > 0 ? r.ClassCode : r.Class)}\nFabricante: {r.Vendor}"), FontSize = 11.5, Foreground = Palette.Muted, FontFamily = new FontFamily("monospace"), TextWrapping = TextWrapping.Wrap });
         if (d.Gpu is { } g) details.Children.Add(GpuTools(g, distro, manager));
-        panel.Children.Add(new Expander { Name = "DrvDetails", HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch, Margin = new Thickness(0, 6, 0, 0), Header = new TextBlock { Text = "Detalhes técnicos", FontSize = 12, Foreground = Palette.Muted }, Content = details });
+        panel.Children.Add(new Expander { Name = "DrvDetails", HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch, Margin = new Thickness(0, 6, 0, 0), Header = new TextBlock { Text = L.T("Detalhes técnicos"), FontSize = 12, Foreground = Palette.Muted }, Content = details });
         return panel;
     }
 
     private Button ManagerButton(string name, DriverTools.DriverManager? manager, bool primary)
     {
-        var open = primary ? UiKit.Primary(name, "Abrir gerenciador de drivers") : new Button { Name = name, Content = "Abrir gerenciador de drivers da distribuição" };
+        var open = primary ? UiKit.Primary(name, L.T("Abrir gerenciador de drivers")) : new Button { Name = name, Content = L.T("Abrir gerenciador de drivers da distribuição") };
         open.IsEnabled = manager is not null; open.HorizontalAlignment = HorizontalAlignment.Left;
         open.Click += (_, _) =>
         {
             if (lifetime.IsCancellationRequested || manager is null) return;
-            try { launchManager(manager); status.Text = "Gerenciador de drivers aberto. Escolha o driver recomendado pela distribuição."; }
-            catch (Exception e) when (e is IOException or System.ComponentModel.Win32Exception or ArgumentException or UnauthorizedAccessException) { status.Text = "Não foi possível abrir o gerenciador: " + e.Message; }
+            try { launchManager(manager); status.Text = L.T("Gerenciador de drivers aberto. Escolha o driver recomendado pela distribuição."); }
+            catch (Exception e) when (e is IOException or System.ComponentModel.Win32Exception or ArgumentException or UnauthorizedAccessException) { status.Text = L.T("Não foi possível abrir o gerenciador: ") + e.Message; }
         };
         return open;
     }
@@ -229,50 +229,50 @@ public sealed class DriverPage : StackPanel
     private Control GpuTools(GpuDriverStatus g, (string Id, string IdLike) distro, DriverTools.DriverManager? manager)
     {
         var info = new TextBlock { Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap };
-        string branchText = g.SupportedBranch is { } sb ? $" do ramo {sb}" : "";
-        void Refresh() => info.Text = $"Instalado: {(g.Installed.Length > 0 ? g.Installed : "—")}  ·  Mais recente{branchText}: {(g.Latest.Length > 0 ? g.Latest : "não consultado")}  ·  Driver: {g.Driver}";
+        string branchText = g.SupportedBranch is { } sb ? L.T($" do ramo {sb}") : "";
+        void Refresh() => info.Text = L.T($"Instalado: {(g.Installed.Length > 0 ? g.Installed : "—")}  ·  Mais recente{branchText}: {(g.Latest.Length > 0 ? g.Latest : L.T("não consultado"))}  ·  Driver: {g.Driver}");
         Refresh();
         var message = new TextBlock { Text = g.Message, TextWrapping = TextWrapping.Wrap, FontSize = 12, Margin = new Thickness(0, 4, 0, 0) };
         var hint = new TextBox { Name = "DrvInstallHint", Text = DriverInstallHints.For(distro.Id, distro.IdLike, g.Vendor), IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0) };
         var buttons = new WrapPanel { ItemSpacing = 10, LineSpacing = 8, Margin = new Thickness(0, 10, 0, 0) };
         if (g.Vendor == "NVIDIA")
         {
-            var latest = new Button { Name = "BtnDrvNvidiaLatest", Content = "Verificar versão mais recente (internet)", IsEnabled = g.SupportedBranch is not null };
-            ToolTip.SetTip(latest, "Consulta " + DriverTools.NvidiaReleasesUrl + " (somente ao clicar) e compara só com o ramo que suporta esta placa.");
+            var latest = new Button { Name = "BtnDrvNvidiaLatest", Content = L.T("Verificar versão mais recente (internet)"), IsEnabled = g.SupportedBranch is not null };
+            ToolTip.SetTip(latest, L.T("Consulta ") + DriverTools.NvidiaReleasesUrl + L.T(" (somente ao clicar) e compara só com o ramo que suporta esta placa."));
             latest.Click += async (_, _) =>
             {
                 if (g.SupportedBranch is not { } branch) return;
-                latest.IsEnabled = false; status.Text = "Consultando " + DriverTools.NvidiaReleasesUrl + "…";
+                latest.IsEnabled = false; status.Text = L.T("Consultando ") + DriverTools.NvidiaReleasesUrl + "…";
                 try
                 {
                     string? v = await DriverTools.NvidiaBranchLatestAsync(branch, lifetime);
                     var gen = NvidiaGenerations.Classify(g.DeviceId).Generation;
-                    string why = NvidiaGenerations.Support(gen).Legacy ? $" Ramo {branch} = último que suporta {NvidiaGenerations.Name(gen)}; não instale 590 ou mais novo." : "";
-                    if (v is null) { message.Text = $"A listagem da NVIDIA não tem versões do ramo {branch}."; }
-                    else { g.Latest = v; Refresh(); message.Text = (g.UpdateAvailable ? $"Há uma versão mais recente do ramo {branch} ({v}). Atualize pela aba Driver NVIDIA (quando a distribuição já publicar o pacote)." : $"Você está na versão mais recente do ramo {branch} publicada pela NVIDIA (ou mais nova).") + why; }
-                    status.Text = "Consulta concluída.";
+                    string why = NvidiaGenerations.Support(gen).Legacy ? L.T($" Ramo {branch} = último que suporta {NvidiaGenerations.Name(gen)}; não instale 590 ou mais novo.") : "";
+                    if (v is null) { message.Text = L.T($"A listagem da NVIDIA não tem versões do ramo {branch}."); }
+                    else { g.Latest = v; Refresh(); message.Text = (g.UpdateAvailable ? L.T($"Há uma versão mais recente do ramo {branch} ({v}). Atualize pela aba Driver NVIDIA (quando a distribuição já publicar o pacote).") : L.T($"Você está na versão mais recente do ramo {branch} publicada pela NVIDIA (ou mais nova).")) + why; }
+                    status.Text = L.T("Consulta concluída.");
                 }
-                catch (OperationCanceledException) { status.Text = "Consulta cancelada."; }
-                catch (Exception e) when (e is HttpRequestException or TaskCanceledException or IOException) { message.Text = "Não foi possível consultar a NVIDIA: " + e.Message; status.Text = "Consulta falhou."; }
+                catch (OperationCanceledException) { status.Text = L.T("Consulta cancelada."); }
+                catch (Exception e) when (e is HttpRequestException or TaskCanceledException or IOException) { message.Text = L.T("Não foi possível consultar a NVIDIA: ") + e.Message; status.Text = L.T("Consulta falhou."); }
                 finally { latest.IsEnabled = true; }
             };
             buttons.Children.Add(latest);
             if (g.Driver == "nouveau") buttons.Children.Add(ManagerButton("BtnDrvManager", manager, primary: false));
         }
-        var page = new Button { Name = "BtnDrvGpuPage", Content = "Abrir página oficial", IsEnabled = g.OfficialPage.Length > 0 };
+        var page = new Button { Name = "BtnDrvGpuPage", Content = L.T("Abrir página oficial"), IsEnabled = g.OfficialPage.Length > 0 };
         page.Click += async (_, _) => await OpenAsync(g.OfficialPage);
-        var copy = new Button { Name = "BtnDrvCopyHint", Content = "Copiar comando sugerido" };
-        copy.Click += async (_, _) => { if (TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard) { await clipboard.SetTextAsync(hint.Text ?? ""); status.Text = "Comando copiado; execute-o no terminal por conta própria."; } };
+        var copy = new Button { Name = "BtnDrvCopyHint", Content = L.T("Copiar comando sugerido") };
+        copy.Click += async (_, _) => { if (TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard) { await clipboard.SetTextAsync(hint.Text ?? ""); status.Text = L.T("Comando copiado; execute-o no terminal por conta própria."); } };
         buttons.Children.Add(page); buttons.Children.Add(copy);
         var tools = new StackPanel { Children = { info, message, hint, buttons } };
         if (g.Vendor == "NVIDIA" && g.Driver == "nouveau")
-            tools.Children.Add(Note(manager is null ? DriverInstallHints.For(distro.Id, distro.IdLike, g.Vendor) : "A aba Driver NVIDIA instala o driver certo para esta placa (DKMS para o kernel em uso, com simulação antes). O gerenciador da distribuição é a alternativa."));
+            tools.Children.Add(Note(manager is null ? DriverInstallHints.For(distro.Id, distro.IdLike, g.Vendor) : L.T("A aba Driver NVIDIA instala o driver certo para esta placa (DKMS para o kernel em uso, com simulação antes). O gerenciador da distribuição é a alternativa.")));
         return tools;
     }
 
     private Button NvidiaTabButton(string name, bool primary = true)
     {
-        var b = primary ? UiKit.Primary(name, "Abrir a aba Driver NVIDIA") : new Button { Name = name, Content = "Abrir a aba Driver NVIDIA" };
+        var b = primary ? UiKit.Primary(name, L.T("Abrir a aba Driver NVIDIA")) : new Button { Name = name, Content = L.T("Abrir a aba Driver NVIDIA") };
         b.HorizontalAlignment = HorizontalAlignment.Left; b.IsEnabled = openNvidiaTab is not null;
         b.Click += (_, _) => openNvidiaTab?.Invoke();
         return b;
@@ -280,41 +280,41 @@ public sealed class DriverPage : StackPanel
 
     private async Task OpenAsync(string url)
     {
-        try { await DriverTools.OpenUrlAsync(url, lifetime); status.Text = "Página aberta no navegador: " + url; }
-        catch (Exception e) when (e is ArgumentException or FileNotFoundException or IOException or TimeoutException) { status.Text = "Não foi possível abrir a página (" + e.Message + "). Endereço: " + url; }
+        try { await DriverTools.OpenUrlAsync(url, lifetime); status.Text = L.T("Página aberta no navegador: ") + url; }
+        catch (Exception e) when (e is ArgumentException or FileNotFoundException or IOException or TimeoutException) { status.Text = L.T("Não foi possível abrir a página (") + e.Message + L.T("). Endereço: ") + url; }
     }
 
     private async Task FirmwareAsync(Button button)
     {
-        button.IsEnabled = false; status.Text = "Consultando o fwupd (somente leitura, 10 s)…";
+        button.IsEnabled = false; status.Text = L.T("Consultando o fwupd (somente leitura, 10 s)…");
         try
         {
             var items = await DriverTools.FwupdDevicesAsync(lifetime);
             fwList.Children.Clear();
             foreach (var i in items)
-                fwList.Children.Add(new TextBlock { Text = $"{i.Name} · versão {i.Version}" + (i.Update.Length > 0 ? $"  →  atualização {i.Update} disponível" : "  ·  em dia"), TextWrapping = TextWrapping.Wrap, Foreground = i.Update.Length > 0 ? Palette.Warn : Palette.Fg });
+                fwList.Children.Add(new TextBlock { Text = L.T($"{i.Name} · versão {i.Version}") + (i.Update.Length > 0 ? L.T($"  →  atualização {i.Update} disponível") : L.T("  ·  em dia")), TextWrapping = TextWrapping.Wrap, Foreground = i.Update.Length > 0 ? Palette.Warn : Palette.Fg });
             int updates = items.Count(i => i.Update.Length > 0);
             fwCopy.IsVisible = updates > 0;
-            status.Text = items.Count == 0 ? "O fwupd não listou dispositivos atualizáveis." : updates > 0 ? $"{items.Count} dispositivo(s) no fwupd; {updates} com atualização de firmware." : $"{items.Count} dispositivo(s) no fwupd, todos em dia.";
+            status.Text = items.Count == 0 ? L.T("O fwupd não listou dispositivos atualizáveis.") : updates > 0 ? L.T($"{items.Count} dispositivo(s) no fwupd; {updates} com atualização de firmware.") : L.T($"{items.Count} dispositivo(s) no fwupd, todos em dia.");
         }
-        catch (OperationCanceledException) { status.Text = "Consulta cancelada."; }
-        catch (Exception e) when (e is IOException or FileNotFoundException or TimeoutException or System.Text.Json.JsonException or System.ComponentModel.Win32Exception) { status.Text = "fwupd indisponível: " + e.Message; }
+        catch (OperationCanceledException) { status.Text = L.T("Consulta cancelada."); }
+        catch (Exception e) when (e is IOException or FileNotFoundException or TimeoutException or System.Text.Json.JsonException or System.ComponentModel.Win32Exception) { status.Text = L.T("fwupd indisponível: ") + e.Message; }
         finally { button.IsEnabled = true; }
     }
 
     private async Task ExportAsync(Button button)
     {
-        if (rows.Count == 0) { status.Text = "Verifique os drivers antes de exportar."; return; }
+        if (rows.Count == 0) { status.Text = L.T("Verifique os drivers antes de exportar."); return; }
         button.IsEnabled = false;
         try
         {
             var path = await destination(".json");
             if (path is null) return;
-            await SnapshotReport.ExportAsync(new DriverInventoryReport("1.1", DateTimeOffset.UtcNow, "Inventário de drivers do kernel; sem binários nem números de série.", rows), path, lifetime);
-            status.Text = "Inventário exportado para arquivo local.";
+            await SnapshotReport.ExportAsync(new DriverInventoryReport("1.1", DateTimeOffset.UtcNow, L.T("Inventário de drivers do kernel; sem binários nem números de série."), rows), path, lifetime);
+            status.Text = L.T("Inventário exportado para arquivo local.");
         }
-        catch (OperationCanceledException) { status.Text = "Exportação cancelada."; }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException) { status.Text = "Não foi possível exportar. Escolha um nome novo: " + e.Message; }
+        catch (OperationCanceledException) { status.Text = L.T("Exportação cancelada."); }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException) { status.Text = L.T("Não foi possível exportar. Escolha um nome novo: ") + e.Message; }
         finally { button.IsEnabled = true; }
     }
 }

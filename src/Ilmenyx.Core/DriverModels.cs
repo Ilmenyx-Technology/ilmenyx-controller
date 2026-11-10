@@ -67,7 +67,7 @@ public static class DriverBoard
         string model = boardModel.Length > 0 && !boardModel.Contains("Default", StringComparison.OrdinalIgnoreCase) && boardModel != "—" ? boardModel : productName;
         string q = Uri.EscapeDataString(model);
         if (Has("ASUS")) { b.Brand = "ASUS"; b.SupportUrl = "https://www.asus.com/support/download-center/"; }
-        else if (Has("Micro-Star") || Has("MSI")) { b.Brand = "MSI"; b.SupportUrl = "https://www.msi.com/search/" + q; }
+        else if (Has(L.T("Micro-Star")) || Has("MSI")) { b.Brand = "MSI"; b.SupportUrl = "https://www.msi.com/search/" + q; }
         else if (Has("GIGABYTE")) { b.Brand = "Gigabyte"; b.SupportUrl = "https://www.gigabyte.com/Support"; }
         else if (Has("ASRock")) { b.Brand = "ASRock"; b.SupportUrl = "https://www.asrock.com/support/index.asp"; }
         else if (Has("Dell")) { b.Brand = "Dell"; b.SupportUrl = "https://www.dell.com/support/home/"; }
@@ -91,7 +91,7 @@ public static class DriverInstallHints
         {
             "NVIDIA" when Is("arch", "cachyos", "manjaro", "endeavouros") => "sudo pacman -S nvidia-open-dkms nvidia-utils",
             // Not "ubuntu-drivers install": on Mint 22.3 it chose the prebuilt HWE modules, pulled a new kernel with incomplete headers and left the driver half-installed.
-            "NVIDIA" when Is("ubuntu") => "Use a aba Driver NVIDIA do Ilmenyx (DKMS para o kernel em uso, com simulação antes).\nEvite `ubuntu-drivers install`: ele pode puxar um kernel novo com cabeçalhos incompletos.",
+            "NVIDIA" when Is("ubuntu") => L.T("Use a aba Driver NVIDIA do Ilmenyx (DKMS para o kernel em uso, com simulação antes).\nEvite `ubuntu-drivers install`: ele pode puxar um kernel novo com cabeçalhos incompletos."),
             "NVIDIA" when Is("debian") => "sudo apt install nvidia-driver",
             "NVIDIA" when Is("fedora", "rhel") => "sudo dnf install akmod-nvidia   # requer RPM Fusion",
             "AMD" when Is("arch", "cachyos", "manjaro", "endeavouros") => "sudo pacman -S mesa vulkan-radeon",
@@ -100,7 +100,7 @@ public static class DriverInstallHints
             "AMD" or "Intel" when Is("fedora", "rhel") => "sudo dnf install mesa-dri-drivers mesa-vulkan-drivers",
             _ => ""
         };
-        return pkg.Length > 0 ? $"Sugestão para a sua distribuição (não é executada pelo Ilmenyx; confira a documentação antes):\n{pkg}"
-            : "Instale o driver pelo gerenciador de pacotes da sua distribuição; o Ilmenyx não instala drivers.";
+        return pkg.Length > 0 ? L.T($"Sugestão para a sua distribuição (não é executada pelo Ilmenyx; confira a documentação antes):\n{pkg}")
+            : L.T("Instale o driver pelo gerenciador de pacotes da sua distribuição; o Ilmenyx não instala drivers.");
     }
 }

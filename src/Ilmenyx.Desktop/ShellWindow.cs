@@ -47,21 +47,22 @@ public sealed partial class ShellWindow : Window
         if (appSettings.ThemeLight) Palette.Apply(true);
         BuildPages();
         // Header actions: round icon buttons; their accessible name (and Tag) is the action they perform.
-        var theme = UiKit.IconButton("ToggleTheme", Palette.IsLight ? Icons.Moon : Icons.Sun, Palette.IsLight ? "Tema escuro" : "Tema claro");
+        var theme = UiKit.IconButton("ToggleTheme", Palette.IsLight ? Icons.Moon : Icons.Sun, Palette.IsLight ? L.T("Tema escuro") : L.T("Tema claro"));
         themeButton = theme;
         theme.Click += (_, _) =>
         {
             Palette.Apply(!Palette.IsLight); appSettings.ThemeLight = Palette.IsLight; RebuildAmbient();
             foreach (var (k, button) in nav) Style(k, button, k == CurrentPage);
-            UiKit.SetAction(theme, Palette.IsLight ? Icons.Moon : Icons.Sun, Palette.IsLight ? "Tema escuro" : "Tema claro");
+            UiKit.SetAction(theme, Palette.IsLight ? Icons.Moon : Icons.Sun, Palette.IsLight ? L.T("Tema escuro") : L.T("Tema claro"));
             bool light = appSettings.ThemeLight;
             try { IlmenyxSettings.Update(settingsPath, s => s.ThemeLight = light); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
         };
-        var pause = UiKit.IconButton("ToggleMonitor", Icons.Pause, "Pausar monitor");
+        var language = LanguageButton();
+        var pause = UiKit.IconButton("ToggleMonitor", Icons.Pause, L.T("Pausar monitor"));
         pause.Click += async (_, _) =>
         {
             if (usage.IsRunning) await usage.StopAsync(); else usage.Start(stop.Token);
-            UiKit.SetAction(pause, usage.IsRunning ? Icons.Pause : Icons.Play, usage.IsRunning ? "Pausar monitor" : "Retomar monitor");
+            UiKit.SetAction(pause, usage.IsRunning ? Icons.Pause : Icons.Play, usage.IsRunning ? L.T("Pausar monitor") : L.T("Retomar monitor"));
             if (IsVisible && !stop.IsCancellationRequested) pause.Focus();
         };
         var header = new Grid { Name = "ShellHeader", ColumnDefinitions = new("Auto,*,Auto"), Margin = new Thickness(20, 18, 22, 14) };
@@ -71,7 +72,7 @@ public sealed partial class ShellWindow : Window
         pageHelpButton = pageHelp;
         header.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 18, 0), Children = { titlePage, pageHelp } });
         var searchBox = SearchBox(); Grid.SetColumn(searchBox, 1); header.Children.Add(searchBox);
-        var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(16, 0, 0, 0), Children = { theme, pause, MachineChip() } };
+        var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(16, 0, 0, 0), Children = { language, theme, pause, MachineChip() } };
         Grid.SetColumn(actions, 2); header.Children.Add(actions);
 
         var main = new Grid { RowDefinitions = new("Auto,*") };
@@ -87,7 +88,7 @@ public sealed partial class ShellWindow : Window
         Select("dash");
         Opened += async (_, _) =>
         {
-            if (!OperatingSystem.IsLinux()) { hardware.SetStatus("Backend disponível apenas no Linux."); return; }
+            if (!OperatingSystem.IsLinux()) { hardware.SetStatus(L.T("Backend disponível apenas no Linux.")); return; }
             usage.Start(stop.Token);
             toasts = new DeviceToastService(() => LinuxDeviceWatcher.Read()) { Enabled = appSettings.DeviceToasts }; toasts.Notified += t => { sessionEvents.Insert(0, (DateTimeOffset.Now, t.Title, t.Text)); if (sessionEvents.Count > 50) sessionEvents.RemoveAt(50); overviewRefresh?.Invoke(); }; toasts.Start();
             _ = RefreshBlockedBadgeAsync();
@@ -98,13 +99,13 @@ public sealed partial class ShellWindow : Window
         Closed += async (_, _) =>
         {
             stop.Cancel(); toasts?.Dispose(); await usage.StopAsync(); usage.Dispose(); sensors.Dispose(); smartImport.Dispose();
-            cpu.Dispose(); memory.Dispose(); simulation.Dispose(); cpuPanel?.Dispose(); stressPage?.Stop("Parado: janela fechada");
+            cpu.Dispose(); memory.Dispose(); simulation.Dispose(); cpuPanel?.Dispose(); stressPage?.Stop(L.T("Parado: janela fechada"));
         };
     }
 
     public void Select(string key)
     {
-        if (!pages.TryGetValue(key, out var entry)) throw new ArgumentException("Página desconhecida: " + key);
+        if (!pages.TryGetValue(key, out var entry)) throw new ArgumentException(L.T("Página desconhecida: ") + key);
         if (entry.Page is null) { var page = entry.Build(); pages[key] = entry = (entry.Title, entry.Build, page); host.Children.Add(page); }
         foreach (var (k, e) in pages) if (e.Page is { } p) p.IsVisible = k == key;
         if (key == "dash") overviewRefresh?.Invoke();
@@ -164,7 +165,7 @@ public sealed partial class ShellWindow : Window
             new TextBlock { Name = "MaintainerSignature", Text = ProductIdentity.Signature, FontSize = 11, Foreground = Palette.Faint } } });
 
         var items = new StackPanel { Margin = new Thickness(8, 0, 12, 8) };
-        items.Children.Add(NavItem("dash", "Visão geral"));
+        items.Children.Add(NavItem("dash", L.T("Visão geral")));
         void Group(string title, params (string Key, string Label)[] entries)
         {
             var list = new StackPanel();
@@ -176,28 +177,28 @@ public sealed partial class ShellWindow : Window
                 Background = Brushes.Transparent, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch, Margin = new Thickness(0, 14, 0, 2), Padding = new Thickness(14, 4, 10, 4),
             };
             Grid.SetColumn(chevron, 1);
-            AutomationProperties.SetName(head, "Grupo " + title);
+            AutomationProperties.SetName(head, L.T("Grupo ") + title);
             head.Click += (_, _) => { list.IsVisible = !list.IsVisible; chevron.Data = Geometry.Parse(list.IsVisible ? Icons.ChevronDown : Icons.ChevronRight); };
             foreach (var (key, _) in entries) navExpand[key] = () => { if (!list.IsVisible) { list.IsVisible = true; chevron.Data = Geometry.Parse(Icons.ChevronDown); } };
             items.Children.Add(head); items.Children.Add(list);
         }
-        Group("DIAGNÓSTICO", ("system", "Sistema"), ("sensors", "Sensores"), ("gpu", "GPU"), ("disks", "Discos"), ("energy", "Energia"), ("net", "Rede"), ("procs", "Processos"));
-        Group("JOGOS", ("launcher", "Jogos"), ("compat", "Compatibilidade"), ("gamecheck", "Jogo não abre?"), ("fps", "Estimativa de FPS"), ("bottleneck", "Detector de gargalo"));
-        Group("DESEMPENHO", ("bench", "Benchmark"), ("oc", "OC"), ("overlay", "Overlay"), ("validate", "Validações reduzidas"), ("stress", "Stress test"));
-        Group("MAKER", ("makerports", "Portas"), ("makerdrv", "Drivers seriais"));
-        Group("FERRAMENTAS", ("optimize", "Otimiza"), ("lighting", "Integração"), ("startup", "Inicialização"), ("apps", "Instalar apps"), ("driver", "Drivers"), ("nvdriver", "Driver NVIDIA"), ("report", "Relatório"), ("blocked", "Bloqueados (!)"), ("tools", "Requisitos e sobre"));
+        Group(L.T("DIAGNÓSTICO"), ("system", L.T("Sistema")), ("sensors", L.T("Sensores")), ("gpu", "GPU"), ("disks", L.T("Discos")), ("energy", L.T("Energia")), ("net", L.T("Rede")), ("procs", L.T("Processos")));
+        Group("JOGOS", ("launcher", L.T("Jogos")), ("compat", L.T("Compatibilidade")), ("gamecheck", L.T("Jogo não abre?")), ("fps", L.T("Estimativa de FPS")), ("bottleneck", L.T("Detector de gargalo")));
+        Group(L.T("DESEMPENHO"), ("bench", "Benchmark"), ("oc", "OC"), ("overlay", "Overlay"), ("validate", L.T("Validações reduzidas")), ("stress", "Stress test"));
+        Group("MAKER", ("makerports", L.T("Portas")), ("makerdrv", L.T("Drivers seriais")));
+        Group(L.T("FERRAMENTAS"), ("optimize", L.T("Otimiza")), ("lighting", L.T("Integração")), ("startup", L.T("Inicialização")), ("apps", L.T("Instalar apps")), ("driver", "Drivers"), ("nvdriver", "Driver NVIDIA"), ("report", L.T("Relatório")), ("blocked", L.T("Bloqueados (!)")), ("tools", L.T("Requisitos e sobre")));
         // Help Center at the bottom of the menu (also reachable from the header "?" and the search).
         var helpItem = NavItem("help", help[HelpKeys.HelpNav]); helpItem.Margin = new Thickness(0, 14, 0, 1); items.Children.Add(helpItem);
 
         var temp = new TextBlock { Name = "SideTemp", Text = "—", FontSize = 12, FontFamily = IlmenyxTheme.Mono };
         var load = new TextBlock { Name = "SideLoad", Text = "—", FontSize = 12, Foreground = Palette.Muted, FontFamily = IlmenyxTheme.Mono };
-        var state = new TextBlock { Name = "SideMonitor", Text = "monitor parado", FontSize = 11, Foreground = Palette.Faint };
+        var state = new TextBlock { Name = "SideMonitor", Text = L.T("monitor parado"), FontSize = 11, Foreground = Palette.Faint };
         usage.Updated += () =>
         {
             temp.Text = usage.Last?.CpuTempC is { } t ? t.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " °C" : "—";
             load.Text = UsageViewModel.Pct(usage.Last?.CpuPercent);
         };
-        usage.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(usage.IsRunning)) state.Text = usage.IsRunning ? "monitor ativo" : "monitor parado"; };
+        usage.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(usage.IsRunning)) state.Text = usage.IsRunning ? L.T("monitor ativo") : L.T("monitor parado"); };
         var readout = new Grid { ColumnDefinitions = new("Auto,*,Auto"), RowDefinitions = new("Auto,Auto") };
         var cpuIcon = UiKit.Icon(Icons.Cpu, 15, Palette.Faint); cpuIcon.Margin = new Thickness(0, 0, 8, 0);
         readout.Children.Add(cpuIcon); Grid.SetColumn(temp, 1); readout.Children.Add(temp); Grid.SetColumn(load, 2); readout.Children.Add(load);
@@ -211,10 +212,10 @@ public sealed partial class ShellWindow : Window
             Content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = {
                 UiKit.Icon(Icons.Blocked, 15, Palette.Warn),
                 new StackPanel { Children = {
-                    new TextBlock { Text = "Liberar sensores da CPU", FontSize = 12, FontWeight = FontWeight.SemiBold, Foreground = Palette.Warn },
-                    new TextBlock { Text = "consumo/temperatura bloqueados", FontSize = 11, Foreground = Palette.Warn, Opacity = 0.8 } } } } },
+                    new TextBlock { Text = L.T("Liberar sensores da CPU"), FontSize = 12, FontWeight = FontWeight.SemiBold, Foreground = Palette.Warn },
+                    new TextBlock { Text = L.T("consumo/temperatura bloqueados"), FontSize = 11, Foreground = Palette.Warn, Opacity = 0.8 } } } } },
         };
-        AutomationProperties.SetName(fix, "Por que a temperatura ou o consumo da CPU não aparecem");
+        AutomationProperties.SetName(fix, L.T("Por que a temperatura ou o consumo da CPU não aparecem"));
         fix.Click += async (_, _) => await new SensorHelpDialog(CurrentFixes(), PrivilegedFix.Available ? script => PrivilegedFix.RunAsync(script, stop.Token) : null).ShowDialog(this);
         usage.Updated += () => fix.IsVisible = CurrentFixes().Count > 0;
         Grid.SetRow(fix, 2); Grid.SetColumnSpan(fix, 3); readout.RowDefinitions.Add(new RowDefinition(GridLength.Auto)); readout.Children.Add(fix);
@@ -248,7 +249,7 @@ public sealed partial class ShellWindow : Window
         }
         var box = new AutoCompleteBox
         {
-            Name = "GlobalSearch", PlaceholderText = "Buscar no Ilmenyx (páginas, ferramentas e ajuda)", HorizontalAlignment = HorizontalAlignment.Stretch, MinimumPrefixLength = 1,
+            Name = "GlobalSearch", PlaceholderText = L.T("Buscar no Ilmenyx (páginas, ferramentas e ajuda)"), HorizontalAlignment = HorizontalAlignment.Stretch, MinimumPrefixLength = 1,
             FilterMode = AutoCompleteFilterMode.ContainsOrdinal, ItemsSource = targets.Keys.OrderBy(t => t, StringComparer.CurrentCulture).ToList(), Padding = new Thickness(34, 7, 10, 7),
         };
         box.SelectionChanged += (_, _) =>
@@ -263,9 +264,46 @@ public sealed partial class ShellWindow : Window
     }
 
     /// <summary>Where the reference has the user profile: this machine (DMI product name, read-only). Opens the System page.</summary>
+    /// <summary>Header menu with the interface languages, each written in itself. A change is saved and applies after a restart.</summary>
+    private Button LanguageButton()
+    {
+        var button = UiKit.IconButton("ChooseLanguage", Icons.Translate, L.T("Idioma"));
+        var menu = new MenuFlyout { Placement = PlacementMode.BottomEdgeAlignedRight };
+        foreach (var language in L.Languages)
+        {
+            var item = new MenuItem { Name = "Language_" + language.Code, Header = language.Name, ToggleType = MenuItemToggleType.Radio, IsChecked = language.Code == L.Current };
+            item.Click += async (_, _) =>
+            {
+                if (language.Code == L.Current) return;
+                try { IlmenyxSettings.Update(settingsPath, s => s.Language = language.Code); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+                // Asked in the chosen language: whoever picked it may not read the current one.
+                string code = language.Code;
+                if (await ConfirmDialog.AskAsync(this, language.Name, L.In(code, "O idioma muda quando o Ilmenyx abrir de novo. Reiniciar agora?"),
+                        L.In(code, "Reiniciar agora"), L.In(code, "Depois")))
+                    Restart();
+            };
+            menu.Items.Add(item);
+        }
+        button.Flyout = menu;
+        return button;
+    }
+
+    /// <summary>Starts a new copy of the app with the same arguments and closes this one.</summary>
+    private void Restart()
+    {
+        string[] args = Environment.GetCommandLineArgs();
+        string? appImage = Environment.GetEnvironmentVariable("APPIMAGE");
+        string program = appImage ?? Environment.ProcessPath ?? args[0];
+        // Under "dotnet Ilmenyx.Desktop.dll" the first argument is the assembly and must be passed again.
+        var rest = appImage is null && System.IO.Path.GetFileNameWithoutExtension(program) == "dotnet" ? args : args.Skip(1).ToArray();
+        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(program, rest) { UseShellExecute = false }); }
+        catch (Exception e) when (e is System.ComponentModel.Win32Exception or IOException) { return; }
+        Close();
+    }
+
     private Button MachineChip()
     {
-        string model = "Este PC";
+        string model = L.T("Este PC");
         try { if (File.Exists("/sys/class/dmi/id/product_name") && File.ReadAllText("/sys/class/dmi/id/product_name").Trim() is { Length: > 0 and < 80 } m) model = m.Split('_')[0]; }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
         var avatar = new Border { Width = 30, Height = 30, CornerRadius = new CornerRadius(15), Background = Palette.AccentContainer, Child = UiKit.Icon(Icons.System, 16, Palette.OnAccentContainer) };
@@ -274,7 +312,7 @@ public sealed partial class ShellWindow : Window
             Name = "MachineChip", Background = Brushes.Transparent, Padding = new Thickness(4, 2, 8, 2), CornerRadius = new CornerRadius(IlmenyxTheme.Pill),
             Content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, Children = { avatar, new TextBlock { Text = model, FontSize = 12.5, VerticalAlignment = VerticalAlignment.Center, MaxWidth = 170, TextTrimming = TextTrimming.CharacterEllipsis }, UiKit.Icon(Icons.ChevronDown, 12, Palette.Faint) } },
         };
-        AutomationProperties.SetName(chip, "Este computador: " + model + " — abrir Sistema");
+        AutomationProperties.SetName(chip, L.T("Este computador: ") + model + L.T(" — abrir Sistema"));
         chip.Click += (_, _) => Select("system");
         return chip;
     }

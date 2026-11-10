@@ -3,6 +3,7 @@
 // Runs the ray tracing benchmark adapted from RESET EXPLODE GpuRtBench (MIT, see NOTICE.md).
 using System.Globalization;
 using System.Text.Json;
+using Ilmenyx.Core;
 using Ilmenyx.Gpu.Vulkan;
 using Ilmenyx.Platform.Linux;
 
@@ -85,7 +86,7 @@ public static class GpuRtCommand
         if (adapter is null) { Console.Error.WriteLine("Ray tracing indisponível: " + why); return 1; }
         if (adapter.IsSoftware) Console.Error.WriteLine($"AVISO: o adaptador {adapter.Index} ({adapter.Name}) é renderização por CPU, escolhido só porque foi pedido com --adapter.");
         var options = request.Options with { AdapterIndex = adapter.Index };
-        bool integrated = adapter.Kind == "GPU integrada" || adapter.IsSoftware;
+        bool integrated = adapter.Kind == L.T("GPU integrada") || adapter.IsSoftware;
         Func<double?> temperature = integrated ? () => LinuxThermalProbe.CpuTempC() : () => LinuxThermalProbe.GpuTempC(adapter.VendorId, adapter.DeviceId);
         string sensor = integrated ? "CPU" : "GPU";
         if (temperature() is null) Console.Error.WriteLine($"ATENÇÃO: nenhum sensor de temperatura da {sensor} está sendo lido; o corte automático NÃO funcionará.");

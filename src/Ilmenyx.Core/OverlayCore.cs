@@ -16,15 +16,15 @@ public static class OverlayMetrics
 {
     public static readonly OverlayMetric[] All =
     [
-        new("fps", "FPS", "FPS", true), new("frametime", "FPS", "Frametime (ms)", true), new("low1", "FPS", "1% low", true), new("graph", "FPS", "Gráfico de frametime", true),
-        new("gpu_load", "GPU", "Uso", true), new("gpu_temp", "GPU", "Temperatura", true), new("gpu_hotspot", "GPU", "Hotspot", false), new("gpu_clock", "GPU", "Clock do núcleo", true),
-        new("gpu_memclock", "GPU", "Clock da memória", false), new("gpu_power", "GPU", "Consumo", true), new("gpu_volt", "GPU", "Tensão do núcleo", false), new("gpu_fan", "GPU", "Ventoinha", false),
-        new("gpu_perfcap", "GPU", "Limitador (NVIDIA)", false),
-        new("vram_used", "VRAM", "Usada (GB)", true), new("vram_pct", "VRAM", "Uso (%)", false), new("vram_temp", "VRAM", "Temperatura", false),
-        new("cpu_load", "CPU", "Uso total", true), new("cpu_maxcore", "CPU", "Núcleo mais ocupado", false), new("cpu_temp", "CPU", "Temperatura", true), new("cpu_clock", "CPU", "Clock médio", true),
-        new("cpu_clockmax", "CPU", "Clock máximo (núcleo)", false), new("cpu_power", "CPU", "Consumo", true),
-        new("ram_used", "RAM", "Usada (GB)", true), new("ram_pct", "RAM", "Uso (%)", false),
-        new("game", "Outros", "Nome do jogo", true), new("clock", "Outros", "Hora", false),
+        new("fps", "FPS", "FPS", true), new("frametime", "FPS", L.T("Frametime (ms)"), true), new("low1", "FPS", "1% low", true), new("graph", "FPS", L.T("Gráfico de frametime"), true),
+        new("gpu_load", "GPU", L.T("Uso"), true), new("gpu_temp", "GPU", L.T("Temperatura"), true), new("gpu_hotspot", "GPU", "Hotspot", false), new("gpu_clock", "GPU", L.T("Clock do núcleo"), true),
+        new("gpu_memclock", "GPU", L.T("Clock da memória"), false), new("gpu_power", "GPU", L.T("Consumo"), true), new("gpu_volt", "GPU", L.T("Tensão do núcleo"), false), new("gpu_fan", "GPU", L.T("Ventoinha"), false),
+        new("gpu_perfcap", "GPU", L.T("Limitador (NVIDIA)"), false),
+        new("vram_used", "VRAM", L.T("Usada (GB)"), true), new("vram_pct", "VRAM", L.T("Uso (%)"), false), new("vram_temp", "VRAM", L.T("Temperatura"), false),
+        new("cpu_load", "CPU", L.T("Uso total"), true), new("cpu_maxcore", "CPU", L.T("Núcleo mais ocupado"), false), new("cpu_temp", "CPU", L.T("Temperatura"), true), new("cpu_clock", "CPU", L.T("Clock médio"), true),
+        new("cpu_clockmax", "CPU", L.T("Clock máximo (núcleo)"), false), new("cpu_power", "CPU", L.T("Consumo"), true),
+        new("ram_used", "RAM", L.T("Usada (GB)"), true), new("ram_pct", "RAM", L.T("Uso (%)"), false),
+        new("game", L.T("Outros"), L.T("Nome do jogo"), true), new("clock", L.T("Outros"), L.T("Hora"), false),
     ];
 
     public static HashSet<string> Defaults() => All.Where(m => m.Default).Select(m => m.Key).ToHashSet();
@@ -58,10 +58,10 @@ public static class OverlayLines
         if (show.Contains("gpu_temp")) g.Add(T(gpu?.TempC));
         if (show.Contains("gpu_hotspot")) g.Add("HS " + T(gpu?.TempHotspotC));
         if (show.Contains("gpu_clock")) g.Add(gpu?.CoreMHz is double c ? c.ToString("0", CultureInfo.InvariantCulture) + " MHz" : "— MHz");
-        if (show.Contains("gpu_memclock")) g.Add(gpu?.MemMHz is double m ? "mem " + m.ToString("0", CultureInfo.InvariantCulture) + " MHz" : "mem —");
+        if (show.Contains("gpu_memclock")) g.Add(gpu?.MemMHz is double m ? "mem " + m.ToString("0", CultureInfo.InvariantCulture) + " MHz" : L.T("mem —"));
         if (show.Contains("gpu_power")) g.Add(gpu?.PowerW is double w ? w.ToString("0", CultureInfo.InvariantCulture) + " W" : "— W");
         if (show.Contains("gpu_volt")) g.Add(gpu?.CoreVoltageV is double vv ? vv.ToString("0.000", CultureInfo.InvariantCulture) + " V" : "— V");
-        if (show.Contains("gpu_perfcap")) g.Add(gpu?.ThrottleMask is ulong mask ? GpuCardBuilder.PerfCap(mask) : "limitador —"); // nvidia-smi only
+        if (show.Contains("gpu_perfcap")) g.Add(gpu?.ThrottleMask is ulong mask ? GpuCardBuilder.PerfCap(mask) : L.T("limitador —")); // nvidia-smi only
         if (show.Contains("gpu_fan")) g.Add(gpu?.FanRpm is double rpm && rpm > 0 ? rpm.ToString("0", CultureInfo.InvariantCulture) + " RPM" : gpu?.FanPercent is double fp ? "fan " + fp.ToString("0", CultureInfo.InvariantCulture) + "%" : "fan —");
         Line("GPU", g);
 
@@ -73,10 +73,10 @@ public static class OverlayLines
 
         var cpu = new List<string>();
         if (show.Contains("cpu_load")) cpu.Add(P(usage?.CpuPercent));
-        if (show.Contains("cpu_maxcore")) cpu.Add(usage?.CpuMaxCorePercent is double mx ? "núcleo " + mx.ToString("0", CultureInfo.InvariantCulture) + "%" : "núcleo —");
+        if (show.Contains("cpu_maxcore")) cpu.Add(usage?.CpuMaxCorePercent is double mx ? L.T("núcleo ") + mx.ToString("0", CultureInfo.InvariantCulture) + "%" : L.T("núcleo —"));
         if (show.Contains("cpu_temp")) cpu.Add(T(usage?.CpuTempC));
         if (show.Contains("cpu_clock")) cpu.Add(usage?.CpuMhz is double mhz ? (mhz / 1000).ToString("0.00", CultureInfo.InvariantCulture) + " GHz" : "— GHz");
-        if (show.Contains("cpu_clockmax")) cpu.Add(usage?.CpuMaxMhz is double mxz ? "máx " + (mxz / 1000).ToString("0.00", CultureInfo.InvariantCulture) + " GHz" : "máx —");
+        if (show.Contains("cpu_clockmax")) cpu.Add(usage?.CpuMaxMhz is double mxz ? L.T("máx ") + (mxz / 1000).ToString("0.00", CultureInfo.InvariantCulture) + " GHz" : L.T("máx —"));
         if (show.Contains("cpu_power")) cpu.Add(usage?.CpuPowerW is double cw ? cw.ToString("0", CultureInfo.InvariantCulture) + " W" : "— W"); // RAPL, only when the kernel lets this user read it
         Line("CPU", cpu);
 
@@ -101,7 +101,7 @@ public static class MangoHudConfig
 
     public static string Build(ISet<string> show, string corner, double scale, string? logFolder)
     {
-        if (!Corners.Contains(corner)) throw new ArgumentException("Canto inválido.", nameof(corner));
+        if (!Corners.Contains(corner)) throw new ArgumentException(L.T("Canto inválido."), nameof(corner));
         if (scale is < MinScale or > MaxScale) throw new ArgumentOutOfRangeException(nameof(scale));
         var sb = new StringBuilder("# Gerado pelo Ilmenyx (by Ilmenyx Technology). Não é o seu MangoHud.conf; regenerado pela página Overlay.\n");
         void Flag(bool on, string key) { if (on) sb.Append(key).Append('\n'); }
@@ -125,8 +125,8 @@ public static class MangoHudConfig
         sb.Append("toggle_hud=").Append(ToggleKeys).Append('\n');
         if (logFolder is not null)
         {
-            if (!Path.IsPathRooted(logFolder) || logFolder.Contains('\n') || logFolder.Contains('\r')) throw new ArgumentException("Pasta de log inválida.", nameof(logFolder));
-            sb.Append("output_folder=").Append(logFolder).Append('\n').Append("log_interval=100\nautostart_log=1\nlog_duration=0\n");
+            if (!Path.IsPathRooted(logFolder) || logFolder.Contains('\n') || logFolder.Contains('\r')) throw new ArgumentException(L.T("Pasta de log inválida."), nameof(logFolder));
+            sb.Append("output_folder=").Append(logFolder).Append('\n').Append(L.T("log_interval=100\nautostart_log=1\nlog_duration=0\n"));
         }
         return sb.ToString();
     }

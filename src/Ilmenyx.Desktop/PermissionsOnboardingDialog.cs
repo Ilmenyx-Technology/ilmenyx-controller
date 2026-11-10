@@ -22,13 +22,13 @@ public sealed class PermissionsOnboardingDialog : Window
 
     public PermissionsOnboardingDialog(IReadOnlyList<SensorFix> fixes, Func<string, Task<(bool Ok, string Message)>> run)
     {
-        Icon = AppIcon.Window; Title = "Ilmenyx Controller — Permissões"; Width = 620; MinWidth = 460; SizeToContent = SizeToContent.Height; MaxHeight = 720;
+        Icon = AppIcon.Window; Title = L.T("Ilmenyx Controller — Permissões"); Width = 620; MinWidth = 460; SizeToContent = SizeToContent.Height; MaxHeight = 720;
         WindowStartupLocation = WindowStartupLocation.CenterOwner; Background = Palette.Panel; Foreground = Palette.Fg; CanResize = false;
         KeyboardNavigation.SetTabNavigation(this, KeyboardNavigationMode.Cycle);
         var applicable = fixes.Where(f => f.Apply is { Length: > 0 }).ToList();
         var list = new StackPanel { Spacing = 10 };
-        list.Children.Add(UiKit.PageHeader("Antes de começar",
-            "O Linux esconde alguns sensores de usuários comuns. Libere tudo agora com uma única senha (o sistema pede; o Ilmenyx nunca a vê)."));
+        list.Children.Add(UiKit.PageHeader(L.T("Antes de começar"),
+            L.T("O Linux esconde alguns sensores de usuários comuns. Libere tudo agora com uma única senha (o sistema pede; o Ilmenyx nunca a vê).")));
         var boxes = new List<(CheckBox Box, SensorFix Fix)>();
         for (int i = 0; i < applicable.Count; i++)
         {
@@ -43,11 +43,11 @@ public sealed class PermissionsOnboardingDialog : Window
             list.Children.Add(UiKit.Card(row, new Thickness(0)));
             boxes.Add((box, fix));
         }
-        list.Children.Add(new TextBlock { Text = "Tudo continua valendo depois de reiniciar o PC. Se preferir agora não, dá para liberar depois pelo botão \"Liberar sensores da CPU\" no menu lateral, e também desfazer por lá.",
+        list.Children.Add(new TextBlock { Text = L.T("Tudo continua valendo depois de reiniciar o PC. Se preferir agora não, dá para liberar depois pelo botão \"Liberar sensores da CPU\" no menu lateral, e também desfazer por lá."),
             FontSize = 11.5, Foreground = Palette.Faint, TextWrapping = TextWrapping.Wrap });
         var status = new TextBlock { Name = "OnboardStatus", FontSize = 12, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center };
-        var apply = UiKit.Primary("OnboardApply", "Liberar com uma senha");
-        var skip = new Button { Name = "OnboardSkip", Content = "Agora não", IsCancel = true, Padding = new Thickness(18, 8) };
+        var apply = UiKit.Primary("OnboardApply", L.T("Liberar com uma senha"));
+        var skip = new Button { Name = "OnboardSkip", Content = L.T("Agora não"), IsCancel = true, Padding = new Thickness(18, 8) };
         void Refresh() => apply.IsEnabled = boxes.Any(b => b.Box.IsChecked == true);
         foreach (var (box, _) in boxes) box.IsCheckedChanged += (_, _) => Refresh();
         skip.Click += (_, _) => Close();
@@ -56,17 +56,17 @@ public sealed class PermissionsOnboardingDialog : Window
             var chosen = boxes.Where(b => b.Box.IsChecked == true).Select(b => b.Fix).ToList();
             if (SensorHelp.Combined(chosen) is not { } script) return;
             apply.IsEnabled = false; skip.IsEnabled = false; foreach (var (box, _) in boxes) box.IsEnabled = false;
-            status.Foreground = Palette.Muted; status.Text = "Aguardando a sua senha na janela do sistema…";
+            status.Foreground = Palette.Muted; status.Text = L.T("Aguardando a sua senha na janela do sistema…");
             var (ok, message) = await run(script);
             if (ok)
             {
                 Applied = true;
-                status.Foreground = Palette.Success; status.Text = "Pronto. As leituras aparecem em poucos segundos.";
-                skip.Content = "Continuar"; skip.IsEnabled = true; skip.Focus();
+                status.Foreground = Palette.Success; status.Text = L.T("Pronto. As leituras aparecem em poucos segundos.");
+                skip.Content = L.T("Continuar"); skip.IsEnabled = true; skip.Focus();
             }
             else
             {
-                status.Foreground = Palette.Warn; status.Text = message + " Você pode tentar de novo ou liberar depois pelo menu lateral.";
+                status.Foreground = Palette.Warn; status.Text = message + L.T(" Você pode tentar de novo ou liberar depois pelo menu lateral.");
                 skip.IsEnabled = true; foreach (var (box, _) in boxes) box.IsEnabled = true; Refresh();
             }
         };

@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 using System.Globalization;
 using Ilmenyx.Contracts;
+using Ilmenyx.Core;
 
 namespace Ilmenyx.Platform.Linux;
 
@@ -15,7 +16,7 @@ public static class DmiDecodeParser
 
     public static MemoryInventory Parse(string text)
     {
-        if (text.Length > MaxCharacters) throw new IOException("Saída do dmidecode excede o limite de 1 Mi caracteres.");
+        if (text.Length > MaxCharacters) throw new IOException(L.T("Saída do dmidecode excede o limite de 1 Mi caracteres."));
         int slots = 0; ulong maxBytes = 0; var modules = new List<MemoryModule>();
         foreach (var block in text.Replace("\r", "").Split("\n\n", StringSplitOptions.RemoveEmptyEntries))
         {

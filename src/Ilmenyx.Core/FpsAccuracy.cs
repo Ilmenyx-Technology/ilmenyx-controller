@@ -15,7 +15,7 @@ public enum FpsConfidence { Medium, Low, VeryLow }
 /// <summary>Confidence of the local estimate for this PC, the relative spread of the range and the short reasons shown to the user.</summary>
 public sealed record FpsAssessment(FpsConfidence Confidence, double Spread, IReadOnlyList<string> Reasons)
 {
-    public string ConfidenceText => Confidence switch { FpsConfidence.Medium => "confiança média", FpsConfidence.Low => "confiança baixa", _ => "confiança muito baixa" };
+    public string ConfidenceText => Confidence switch { FpsConfidence.Medium => L.T("confiança média"), FpsConfidence.Low => L.T("confiança baixa"), _ => L.T("confiança muito baixa") };
 }
 
 /// <summary>Estimated FPS range around the central estimate. Never a measurement.</summary>
@@ -69,20 +69,20 @@ public static class FpsAccuracy
         double spread = weak ? LowSpread : BaseSpread;
         switch (gpu)
         {
-            case HardwareMatch.Laptop: reasons.Add("GPU de notebook: o limite de energia/temperatura do modelo muda o resultado"); break;
-            case HardwareMatch.Integrated: reasons.Add("GPU integrada: divide memória e energia com a CPU; RAM em canal único derruba o FPS"); break;
-            case HardwareMatch.Generic: reasons.Add("nome genérico da GPU integrada: pode ser chips bem diferentes"); spread += 0.1; break;
+            case HardwareMatch.Laptop: reasons.Add(L.T("GPU de notebook: o limite de energia/temperatura do modelo muda o resultado")); break;
+            case HardwareMatch.Integrated: reasons.Add(L.T("GPU integrada: divide memória e energia com a CPU; RAM em canal único derruba o FPS")); break;
+            case HardwareMatch.Generic: reasons.Add(L.T("nome genérico da GPU integrada: pode ser chips bem diferentes")); spread += 0.1; break;
         }
-        if (laptopCpu) reasons.Add("CPU de notebook: o clock sustentado depende de refrigeração e do limite de energia");
+        if (laptopCpu) reasons.Add(L.T("CPU de notebook: o clock sustentado depende de refrigeração e do limite de energia"));
         double gpuDist = Math.Abs(Math.Log2(Math.Max(gpuIdx, 0.1) / 100)), cpuDist = Math.Abs(Math.Log2(Math.Max(cpuIdx, 0.1) / 100));
         spread += 0.04 * gpuDist + 0.03 * cpuDist;
         var level = weak ? FpsConfidence.Low : FpsConfidence.Medium;
         if (gpuDist > FarFromReference)
         {
             level = level == FpsConfidence.Medium ? FpsConfidence.Low : FpsConfidence.VeryLow;
-            reasons.Add("muito longe da GPU de referência (RTX 4070): a escala por índice erra mais");
+            reasons.Add(L.T("muito longe da GPU de referência (RTX 4070): a escala por índice erra mais"));
         }
-        if (reasons.Count == 0) reasons.Add("GPU e CPU de desktop na tabela; a faixa cobre versões do jogo, drivers e cenas diferentes");
+        if (reasons.Count == 0) reasons.Add(L.T("GPU e CPU de desktop na tabela; a faixa cobre versões do jogo, drivers e cenas diferentes"));
         return new(level, Math.Min(spread, MaxSpread), reasons);
     }
 
@@ -108,9 +108,9 @@ public static class FpsAccuracy
     {
         ["grandtheftautov"] = "GTA V", ["grandtheftautovenhanced"] = "GTA V", ["grandtheftautovlegacy"] = "GTA V",
         ["tomclancysrainbowsixsiege"] = "Rainbow Six Siege", ["tomclancysrainbowsixsiegex"] = "Rainbow Six Siege", ["rainbowsixsiegex"] = "Rainbow Six Siege",
-        ["thewitcher3wildhuntcompleteedition"] = "The Witcher 3: Wild Hunt", ["witcher3wildhunt"] = "The Witcher 3: Wild Hunt",
-        ["pubg"] = "PUBG: Battlegrounds", ["cs2"] = "Counter-Strike 2", ["easpfc25"] = "EA Sports FC 25",
-        ["helldiversii"] = "Helldivers 2", ["godofwarragnarok"] = "God of War Ragnarök",
+        ["thewitcher3wildhuntcompleteedition"] = L.T("The Witcher 3: Wild Hunt"), ["witcher3wildhunt"] = L.T("The Witcher 3: Wild Hunt"),
+        ["pubg"] = L.T("PUBG: Battlegrounds"), ["cs2"] = L.T("Counter-Strike 2"), ["easpfc25"] = "EA Sports FC 25",
+        ["helldiversii"] = L.T("Helldivers 2"), ["godofwarragnarok"] = L.T("God of War Ragnarök"),
     };
 
     /// <summary>True when a recorded session name refers to the catalog game (normalized equality or a known store alias).</summary>
@@ -154,21 +154,21 @@ public static class FpsAlerts
         string gpu = FpsAccuracy.DisplayGpuName(c.GpuName);
         bool nvidia = c.GpuVendorId.Equals("10de", StringComparison.OrdinalIgnoreCase);
         if (nvidia && c.GpuDriver == "nouveau")
-            alerts.Add(new("Driver nouveau na GeForce", "O nouveau roda bem abaixo do driver NVIDIA (na maioria das GeForce não sobe o clock)" +
-                (NvidiaPreTuring(c.GpuVendorId, c.GpuDeviceId) ? " e, nesta geração (anterior à Turing), em geral não oferece Vulkan, que o Proton/DXVK exige." : ".") +
-                " A estimativa assume o driver NVIDIA; instale-o pela página Drivers."));
+            alerts.Add(new(L.T("Driver nouveau na GeForce"), L.T("O nouveau roda bem abaixo do driver NVIDIA (na maioria das GeForce não sobe o clock)") +
+                (NvidiaPreTuring(c.GpuVendorId, c.GpuDeviceId) ? L.T(" e, nesta geração (anterior à Turing), em geral não oferece Vulkan, que o Proton/DXVK exige.") : ".") +
+                L.T(" A estimativa assume o driver NVIDIA; instale-o pela página Drivers.")));
         else if (!c.GpuIntegrated && c.GpuDriver.Length == 0 && c.GpuVendorId.Length > 0)
-            alerts.Add(new("GPU sem driver", $"Nenhum driver está carregado para a {gpu}: os jogos não vão usá-la."));
+            alerts.Add(new(L.T("GPU sem driver"), L.T($"Nenhum driver está carregado para a {gpu}: os jogos não vão usá-la.")));
         if (!c.GpuIntegrated && c.GpuVramBytes > 0 && c.GpuVramBytes < LowVram)
-            alerts.Add(new($"{(c.GpuVramBytes / 1073741824.0).ToString("0.#", CultureInfo.InvariantCulture)} GB de VRAM", "Texturas no Alto/Ultra passam da memória da placa: travadas e queda de FPS. Use texturas no Médio ou Baixo."));
+            alerts.Add(new(L.T($"{(c.GpuVramBytes / 1073741824.0).ToString("0.#", CultureInfo.InvariantCulture)} GB de VRAM"), L.T("Texturas no Alto/Ultra passam da memória da placa: travadas e queda de FPS. Use texturas no Médio ou Baixo.")));
         if (c.OnBattery == true)
-            alerts.Add(new("Notebook na bateria", "Na bateria o sistema limita CPU e GPU; o FPS fica abaixo da estimativa até ligar o carregador."));
+            alerts.Add(new(L.T("Notebook na bateria"), L.T("Na bateria o sistema limita CPU e GPU; o FPS fica abaixo da estimativa até ligar o carregador.")));
         if (!c.GpuIntegrated && c.OtherIntegratedGpu is { Length: > 0 } igpu)
         {
             string i = FpsAccuracy.DisplayGpuName(igpu);
-            alerts.Add(new("Notebook com duas GPUs", c.ProfilesWithPrime == 0
-                ? $"Nenhum perfil de jogo força a placa dedicada (PRIME offload, página Jogos): sem isso o jogo roda na {i} e o FPS fica muito abaixo desta estimativa, que é para a {gpu}."
-                : $"Jogos sem a GPU dedicada (PRIME) ligada no perfil rodam na {i}, bem abaixo desta estimativa ({c.ProfilesWithPrime} de {c.Profiles} perfis com PRIME)."));
+            alerts.Add(new(L.T("Notebook com duas GPUs"), c.ProfilesWithPrime == 0
+                ? L.T($"Nenhum perfil de jogo força a placa dedicada (PRIME offload, página Jogos): sem isso o jogo roda na {i} e o FPS fica muito abaixo desta estimativa, que é para a {gpu}.")
+                : L.T($"Jogos sem a GPU dedicada (PRIME) ligada no perfil rodam na {i}, bem abaixo desta estimativa ({c.ProfilesWithPrime} de {c.Profiles} perfis com PRIME).")));
         }
         return alerts;
     }

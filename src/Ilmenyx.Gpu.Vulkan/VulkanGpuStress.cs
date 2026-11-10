@@ -14,7 +14,7 @@ public sealed class VulkanGpuStress : IGpuStressEngine
     private volatile string? error;
     public string? UnavailableReason { get; }
     public string AdapterName => adapter?.Name ?? "";
-    public bool SharesCpuThermals => adapter?.Kind == "GPU integrada";
+    public bool SharesCpuThermals => adapter?.Kind == L.T("GPU integrada");
     public bool Running => loop is { IsCompleted: false };
     public double Fps => fps;
     public string? Error => error;
@@ -22,8 +22,8 @@ public sealed class VulkanGpuStress : IGpuStressEngine
     public VulkanGpuStress(VulkanDeviceList? devices = null)
     {
         devices ??= VulkanDevices.List();
-        adapter = devices.Adapters.Where(a => !a.IsSoftware && a.SupportsVulkan13).OrderBy(a => a.Kind == "GPU dedicada" ? 0 : 1).FirstOrDefault();
-        UnavailableReason = adapter is not null ? null : devices.Error ?? (devices.Adapters.Count == 0 ? "Nenhum adaptador Vulkan encontrado." : "Nenhum adaptador Vulkan 1.3 com GPU real (só renderização por CPU ou Vulkan antigo).");
+        adapter = devices.Adapters.Where(a => !a.IsSoftware && a.SupportsVulkan13).OrderBy(a => a.Kind == L.T("GPU dedicada") ? 0 : 1).FirstOrDefault();
+        UnavailableReason = adapter is not null ? null : devices.Error ?? (devices.Adapters.Count == 0 ? L.T("Nenhum adaptador Vulkan encontrado.") : L.T("Nenhum adaptador Vulkan 1.3 com GPU real (só renderização por CPU ou Vulkan antigo)."));
     }
 
     public void Start()

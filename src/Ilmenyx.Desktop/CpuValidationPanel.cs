@@ -12,6 +12,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Ilmenyx.Core.Benchmarks;
+using Ilmenyx.Core;
 
 namespace Ilmenyx.Desktop;
 
@@ -28,10 +29,10 @@ public sealed class CpuValidationPanel : Border, IDisposable
         this.model = model;
         DataContext = model;
         ValidationLook.Surface(this);
-        var start = new Button { Name = "ValidateCpu", Content = "Validar CPU (reduzido)", Margin = new Thickness(0, 0, 8, 8) };
-        var cancel = new Button { Name = "CancelCpu", Content = "Cancelar CPU", Margin = new Thickness(0, 0, 8, 8) };
-        var export = new Button { Name = "ExportCpu", Content = "Exportar CPU JSON", Margin = new Thickness(0, 0, 8, 8) };
-        var exportHtml = new Button { Name = "ExportCpuHtml", Content = "Exportar CPU HTML", Margin = new Thickness(0, 0, 8, 8) };
+        var start = new Button { Name = "ValidateCpu", Content = L.T("Validar CPU (reduzido)"), Margin = new Thickness(0, 0, 8, 8) };
+        var cancel = new Button { Name = "CancelCpu", Content = L.T("Cancelar CPU"), Margin = new Thickness(0, 0, 8, 8) };
+        var export = new Button { Name = "ExportCpu", Content = L.T("Exportar CPU JSON"), Margin = new Thickness(0, 0, 8, 8) };
+        var exportHtml = new Button { Name = "ExportCpuHtml", Content = L.T("Exportar CPU HTML"), Margin = new Thickness(0, 0, 8, 8) };
         start.Bind(IsEnabledProperty, new Binding(nameof(model.CanStart)));
         cancel.Bind(IsEnabledProperty, new Binding(nameof(model.CanCancel)));
         export.Bind(IsEnabledProperty, new Binding(nameof(model.CanExport)));
@@ -48,13 +49,13 @@ public sealed class CpuValidationPanel : Border, IDisposable
             {
                 string? path = await chooseDestination(html ? ".html" : ".json");
                 if (path is null) return;
-                if (!ReferenceEquals(selectedReport, model.Report)) { model.SetStatus("O resultado mudou. Escolha novamente o relatório."); return; }
+                if (!ReferenceEquals(selectedReport, model.Report)) { model.SetStatus(L.T("O resultado mudou. Escolha novamente o relatório.")); return; }
                 if (html) await model.ExportHtmlAsync(path, lifetime);
                 else await model.ExportAsync(path, lifetime);
             }
-            catch (OperationCanceledException) { model.SetStatus("Exportação cancelada."); }
+            catch (OperationCanceledException) { model.SetStatus(L.T("Exportação cancelada.")); }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException or NotSupportedException or InvalidOperationException)
-            { model.SetStatus("Seletor de arquivo indisponível: " + e.Message); }
+            { model.SetStatus(L.T("Seletor de arquivo indisponível: ") + e.Message); }
             finally
             {
                 var button = html ? exportHtml : export;
@@ -69,17 +70,17 @@ public sealed class CpuValidationPanel : Border, IDisposable
         var progress = new ProgressBar { Minimum = 0, Maximum = CpuValidationViewModel.MaximumSamples, Height = 5, MinHeight = 5 };
         progress.Bind(ProgressBar.ValueProperty, new Binding(nameof(model.CompletedSamples)));
         progress.Bind(IsVisibleProperty, new Binding(nameof(model.IsRunning)));
-        AutomationProperties.SetName(progress, "Amostras concluídas da validação CPU");
-        AutomationProperties.SetName(preview, "Imagem final da validação CPU reduzida; contagens e hash no resumo textual");
+        AutomationProperties.SetName(progress, L.T("Amostras concluídas da validação CPU"));
+        AutomationProperties.SetName(preview, L.T("Imagem final da validação CPU reduzida; contagens e hash no resumo textual"));
         RenderOptions.SetBitmapInterpolationMode(preview, BitmapInterpolationMode.None);
-        placeholder.Child = new TextBlock { Text = "A imagem final aparece aqui depois da validação.", FontSize = 11.5, Foreground = Palette.Faint, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(16) };
+        placeholder.Child = new TextBlock { Text = L.T("A imagem final aparece aqui depois da validação."), FontSize = 11.5, Foreground = Palette.Faint, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(16) };
         Child = new StackPanel
         {
             Spacing = 10,
             Children =
             {
-                ValidationLook.Title(Icons.Cpu, "VALIDAÇÃO DO RENDERIZADOR CPU"),
-                ValidationLook.Description("32×18 pixels · 8 amostras/pixel · uma passada · sem score.\nA imagem é calculada ao clicar. Este modo não mede desempenho nem saúde do hardware."),
+                ValidationLook.Title(Icons.Cpu, L.T("VALIDAÇÃO DO RENDERIZADOR CPU")),
+                ValidationLook.Description(L.T("32×18 pixels · 8 amostras/pixel · uma passada · sem score.\nA imagem é calculada ao clicar. Este modo não mede desempenho nem saúde do hardware.")),
                 new WrapPanel { Orientation = Orientation.Horizontal, Children = { start, cancel, export, exportHtml } },
                 progress, status, preview, placeholder, summary
             }

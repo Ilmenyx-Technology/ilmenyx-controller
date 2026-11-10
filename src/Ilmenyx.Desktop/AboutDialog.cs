@@ -14,26 +14,26 @@ public sealed class AboutDialog : Window
 {
     public AboutDialog()
     {
-        Icon = AppIcon.Window; Title = "Ilmenyx Controller — Licenças e créditos"; Width = 740; Height = 560;
+        Icon = AppIcon.Window; Title = L.T("Ilmenyx Controller — Licenças e créditos"); Width = 740; Height = 560;
         MinWidth = 480; MinHeight = 360; WindowStartupLocation = WindowStartupLocation.CenterOwner;
         Background = Palette.Panel; Foreground = Palette.Fg;
         KeyboardNavigation.SetTabNavigation(this, KeyboardNavigationMode.Cycle);
-        var close = new Button { Name = "CloseAbout", Content = "Fechar", IsCancel = true, HorizontalAlignment = HorizontalAlignment.Right };
+        var close = new Button { Name = "CloseAbout", Content = L.T("Fechar"), IsCancel = true, HorizontalAlignment = HorizontalAlignment.Right };
         close.Click += (_, _) => Close();
         var documents = new[]
         {
-            (Title: "Origem", Text: ProductIdentity.Attribution + "\n\n" + Read("NOTICE.md")),
-            (Title: "MIT (partes do RESET EXPLODE)", Text: Read("LICENSES/MIT.txt")),
-            (Title: "Dependências", Text: Read("THIRD-PARTY-NOTICES.md")),
-            (Title: "Licença Ilmenyx", Text: LicenseDocuments.OwnTerms(Read))
+            (Title: L.T("Origem"), Text: ProductIdentity.Attribution + "\n\n" + Read("NOTICE.md")),
+            (Title: L.T("MIT (partes do RESET EXPLODE)"), Text: Read("LICENSES/MIT.txt")),
+            (Title: L.T("Dependências"), Text: Read("THIRD-PARTY-NOTICES.md")),
+            (Title: L.T("Licença Ilmenyx"), Text: LicenseDocuments.OwnTerms(Read))
         };
         var selector = new ComboBox
         {
             Name = "LicenseDocument", ItemsSource = documents.Select(d => d.Title).ToArray(),
             HorizontalAlignment = HorizontalAlignment.Stretch, SelectedIndex = 0
         };
-        var label = new TextBlock { Text = "Documento", TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) };
-        AutomationProperties.SetName(selector, "Documento de licença ou crédito");
+        var label = new TextBlock { Text = L.T("Documento"), TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) };
+        AutomationProperties.SetName(selector, L.T("Documento de licença ou crédito"));
         AutomationProperties.SetLabeledBy(selector, label);
         var content = new TextBox
         {
@@ -47,7 +47,7 @@ public sealed class AboutDialog : Window
             content.Text = document.Text;
             content.CaretIndex = 0;
             content.SelectionStart = content.SelectionEnd = 0;
-            AutomationProperties.SetName(content, document.Title + " — texto para leitura e cópia");
+            AutomationProperties.SetName(content, document.Title + L.T(" — texto para leitura e cópia"));
         }
         selector.SelectionChanged += (_, _) => SelectDocument();
         SelectDocument();
@@ -65,7 +65,7 @@ public sealed class AboutDialog : Window
     {
         try { return File.ReadAllText(Path.Combine(AppContext.BaseDirectory, file)); }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
-        { return "Indisponível: arquivo de atribuição não encontrado no pacote: " + file + ". Consulte o código-fonte e revise o empacotamento."; }
+        { return L.T("Indisponível: arquivo de atribuição não encontrado no pacote: ") + file + L.T(". Consulte o código-fonte e revise o empacotamento."); }
     }
 }
 /// <summary>Texts of the Ilmenyx license shown in About: explanation, additional permission and the PolyForm text in LICENSE.</summary>

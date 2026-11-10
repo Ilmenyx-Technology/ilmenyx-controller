@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 using System.Diagnostics;
+using Ilmenyx.Core;
 
 namespace Ilmenyx.Platform.Linux;
 
@@ -30,7 +31,7 @@ public static class HostSpawn
         if (environment is not null)
             foreach (var (key, value) in environment.OrderBy(e => e.Key, StringComparer.Ordinal))
             {
-                if (key.Length == 0 || key.Contains('=')) throw new ArgumentException("Variável de ambiente inválida: " + key);
+                if (key.Length == 0 || key.Contains('=')) throw new ArgumentException(L.T("Variável de ambiente inválida: ") + key);
                 list.Add("--env=" + key + "=" + value);
             }
         list.Add(path);

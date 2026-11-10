@@ -27,7 +27,7 @@ public static class LinuxReportGatherer
         var notes = new List<string>();
         List<HealthCard> disks = [], batteries = [];
         try { disks = new LinuxDiskHealthReader(sysRoot).Read(mounts, smart).Select(DiskHealthEvaluator.Evaluate).Select(Redact).ToList(); }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { notes.Add("Discos indisponíveis: " + Scrub(e.Message)); }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { notes.Add(L.T("Discos indisponíveis: ") + Scrub(e.Message)); }
         var power = Redact(sensors, out var rows);
         try
         {
@@ -35,9 +35,9 @@ public static class LinuxReportGatherer
             string? plan = await LinuxPowerReader.ActiveProfileAsync(ct);
             batteries = BatteryEvaluator.Evaluate(readout.Batteries, readout.MainsOnline, plan, power).Select(Redact).ToList();
         }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { notes.Add("Energia indisponível: " + Scrub(e.Message)); }
-        notes.AddRange(new[] { "SMART: " + (smart.Count == 0 ? "não consultado (nenhum relatório importado)." : $"{smart.Count} relatório(s) importado(s) pelo usuário.") });
-        if (gpus.Count == 0) notes.Add("Nenhuma GPU PCI listada pelo inventário DRM.");
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { notes.Add(L.T("Energia indisponível: ") + Scrub(e.Message)); }
+        notes.AddRange(new[] { "SMART: " + (smart.Count == 0 ? L.T("não consultado (nenhum relatório importado).") : L.T($"{smart.Count} relatório(s) importado(s) pelo usuário.")) });
+        if (gpus.Count == 0) notes.Add(L.T("Nenhuma GPU PCI listada pelo inventário DRM."));
         return new ReportData
         {
             AppVersion = appVersion, Date = DateTimeOffset.Now,

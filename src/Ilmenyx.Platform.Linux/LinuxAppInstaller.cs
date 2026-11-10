@@ -49,11 +49,11 @@ public sealed class LinuxAppInstaller(ProgramRunner? run = null, Func<string, bo
         foreach (var a in addons)
         {
             a.Branch = await RuntimeBranchAsync(a.RuntimeFor, ct);
-            a.Unavailable = a.Branch is null ? $"Precisa da Steam instalada em Flatpak ({a.RuntimeFor}), que não foi encontrada." : null;
+            a.Unavailable = a.Branch is null ? L.T($"Precisa da Steam instalada em Flatpak ({a.RuntimeFor}), que não foi encontrada.") : null;
             a.Installed = a.Branch is not null && runtimes.Contains(a.Ref);
             if (a.Installed || a.Unavailable is not null) a.Selected = false;
         }
-        foreach (var a in list.Where(a => a.LinkOnly)) { a.Unavailable ??= "Instalação fora do Flathub: abra a página oficial."; a.Selected = false; }
+        foreach (var a in list.Where(a => a.LinkOnly)) { a.Unavailable ??= L.T("Instalação fora do Flathub: abra a página oficial."); a.Selected = false; }
     }
 
     /// <summary>Runtime branch of an installed Flatpak app (user installation first), e.g. "25.08"; null when the app is not installed as a Flatpak.</summary>
@@ -78,26 +78,26 @@ public sealed class LinuxAppInstaller(ProgramRunner? run = null, Func<string, bo
     public async Task<(bool Ok, string Message)> AddFlathubAsync(CancellationToken ct = default)
     {
         var (code, output) = await runner("flatpak", ["remote-add", "--user", "--if-not-exists", "flathub", "https://flathub.org/repo/flathub.flatpakrepo"], TimeSpan.FromSeconds(60), ct);
-        return code == 0 ? (true, "Flathub adicionado ao seu usuário.") : (false, $"Falhou (código {code}). {AppCatalog.LastLine(output)}".Trim());
+        return code == 0 ? (true, L.T("Flathub adicionado ao seu usuário.")) : (false, L.T($"Falhou (código {code}). {AppCatalog.LastLine(output)}").Trim());
     }
 
     public static IReadOnlyList<string> InstallArguments(InstallableApp app, bool upgrade = false)
     {
-        if (!AppCatalog.ValidId(app.FlatpakId)) throw new ArgumentException("Identificador Flatpak inválido.");
-        if (app.RuntimeFor.Length > 0 && app.Branch is null) throw new ArgumentException("A versão (branch) da extensão não foi encontrada.");
+        if (!AppCatalog.ValidId(app.FlatpakId)) throw new ArgumentException(L.T("Identificador Flatpak inválido."));
+        if (app.RuntimeFor.Length > 0 && app.Branch is null) throw new ArgumentException(L.T("A versão (branch) da extensão não foi encontrada."));
         return upgrade ? ["update", "--user", "-y", "--noninteractive", app.Ref] : ["install", "--user", "-y", "--noninteractive", "flathub", app.Ref];
     }
 
     public async Task<(bool Ok, string Message)> InstallAsync(InstallableApp app, CancellationToken ct, bool upgrade = false, IProgress<double>? progress = null)
     {
         if (app.FromGithub) return await Github.InstallAsync(app, progress, ct);
-        if (app.LinkOnly) return (false, "Este item não é instalado pelo Ilmenyx: abra a página oficial.");
-        if (app.RuntimeFor.Length > 0 && app.Branch is null) return (false, app.Unavailable ?? "Precisa da Steam instalada em Flatpak.");
+        if (app.LinkOnly) return (false, L.T("Este item não é instalado pelo Ilmenyx: abra a página oficial."));
+        if (app.RuntimeFor.Length > 0 && app.Branch is null) return (false, app.Unavailable ?? L.T("Precisa da Steam instalada em Flatpak."));
         var (code, output) = await runner("flatpak", InstallArguments(app, upgrade), TimeSpan.FromMinutes(20), ct);
         if (code == 0) return (true, "Instalado.");
-        if (output.Contains("already installed", StringComparison.OrdinalIgnoreCase) || output.Contains("já instalado", StringComparison.OrdinalIgnoreCase)) return (true, "Já estava instalado.");
-        if (output.Contains("No remote refs found", StringComparison.OrdinalIgnoreCase) || output.Contains("not found", StringComparison.OrdinalIgnoreCase)) return (false, "Pacote não encontrado no Flathub.");
-        if (output.Contains("Network", StringComparison.OrdinalIgnoreCase) || output.Contains("Could not resolve", StringComparison.OrdinalIgnoreCase)) return (false, "Falha no download: confira a internet e tente de novo.");
-        return (false, $"Falhou (código {code}). {AppCatalog.LastLine(output)}".Trim());
+        if (output.Contains("already installed", StringComparison.OrdinalIgnoreCase) || output.Contains("já instalado", StringComparison.OrdinalIgnoreCase)) return (true, L.T("Já estava instalado."));
+        if (output.Contains("No remote refs found", StringComparison.OrdinalIgnoreCase) || output.Contains("not found", StringComparison.OrdinalIgnoreCase)) return (false, L.T("Pacote não encontrado no Flathub."));
+        if (output.Contains("Network", StringComparison.OrdinalIgnoreCase) || output.Contains("Could not resolve", StringComparison.OrdinalIgnoreCase)) return (false, L.T("Falha no download: confira a internet e tente de novo."));
+        return (false, L.T($"Falhou (código {code}). {AppCatalog.LastLine(output)}").Trim());
     }
 }

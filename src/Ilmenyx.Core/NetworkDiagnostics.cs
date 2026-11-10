@@ -15,14 +15,14 @@ public static class NetworkEndpoints
 {
     public const string Cloudflare = "1.1.1.1", Google = "8.8.8.8", DnsName = "www.cloudflare.com";
     public const string Download = "https://speed.cloudflare.com/__down?bytes=25000000", Upload = "https://speed.cloudflare.com/__up";
-    public const string Description = "ping ao roteador, a 1.1.1.1 e a 8.8.8.8; resolução de www.cloudflare.com; download e upload de dados de teste em speed.cloudflare.com (cerca de 100 MB no total, mais em conexões muito rápidas)";
+    public static readonly string Description = L.T("ping ao roteador, a 1.1.1.1 e a 8.8.8.8; resolução de www.cloudflare.com; download e upload de dados de teste em speed.cloudflare.com (cerca de 100 MB no total, mais em conexões muito rápidas)");
 }
 
 public sealed record PingStat(string Name, string Address, int Sent, int Lost, double Min, double Avg, double Max, double Jitter)
 {
     public double LossPct => Sent == 0 ? 0 : 100.0 * Lost / Sent;
     public bool Answered => Sent - Lost > 0;
-    public string Text => !Answered ? "não responde" : $"média {Avg:0.#} ms · mín {Min:0.#} · máx {Max:0.#} · jitter {Jitter:0.#} ms · perda {LossPct:0.#}%";
+    public string Text => !Answered ? L.T("não responde") : L.T($"média {Avg:0.#} ms · mín {Min:0.#} · máx {Max:0.#} · jitter {Jitter:0.#} ms · perda {LossPct:0.#}%");
 
     public static PingStat From(string name, string address, IReadOnlyList<double> rtts, int sent)
     {
@@ -51,8 +51,8 @@ public static class NetworkVerdict
 {
     public static HealthCard NoConnection() => new()
     {
-        Device = "rede", Title = "Sem conexão", Meta = "Nenhum adaptador conectado com gateway", Verdict = HealthVerdict.Critical, Label = "SEM REDE",
-        Reasons = "O sistema não encontrou uma conexão ativa com acesso ao roteador. Verifique o cabo, o Wi-Fi ou o adaptador."
+        Device = "rede", Title = L.T("Sem conexão"), Meta = L.T("Nenhum adaptador conectado com gateway"), Verdict = HealthVerdict.Critical, Label = L.T("SEM REDE"),
+        Reasons = L.T("O sistema não encontrou uma conexão ativa com acesso ao roteador. Verifique o cabo, o Wi-Fi ou o adaptador.")
     };
 
     public static HealthCard Evaluate(NetworkMeasurements m, DateTime now)
@@ -62,35 +62,35 @@ public static class NetworkVerdict
         double netAvg = net.Count > 0 ? net.Average(p => p.Avg) : 0, netLoss = pings.Skip(1).Average(p => p.LossPct), netJit = net.Count > 0 ? net.Max(p => p.Jitter) : 0;
         var warn = new List<string>(); bool bad = false;
         bool lanBad = gwS.Answered && (gwS.LossPct > 2 || gwS.Avg > 30 || gwS.Jitter > 15);
-        if (lanBad) warn.Add($"A rede local está instável (roteador: {gwS.Avg:0} ms, perda {gwS.LossPct:0.#}%, jitter {gwS.Jitter:0} ms). Se for Wi-Fi, aproxime-se do roteador ou use cabo.");
-        if (!gwS.Answered) warn.Add("O roteador não responde a ping (alguns modelos bloqueiam). Isso por si só não é problema.");
-        if (net.Count == 0) { bad = true; warn.Add("Nenhum dos servidores da internet respondeu: sem acesso à internet ou ping bloqueado pela rede."); }
+        if (lanBad) warn.Add(L.T($"A rede local está instável (roteador: {gwS.Avg:0} ms, perda {gwS.LossPct:0.#}%, jitter {gwS.Jitter:0} ms). Se for Wi-Fi, aproxime-se do roteador ou use cabo."));
+        if (!gwS.Answered) warn.Add(L.T("O roteador não responde a ping (alguns modelos bloqueiam). Isso por si só não é problema."));
+        if (net.Count == 0) { bad = true; warn.Add(L.T("Nenhum dos servidores da internet respondeu: sem acesso à internet ou ping bloqueado pela rede.")); }
         else
         {
             if (netLoss > 5 || netAvg > 150) bad = true;
-            if (netLoss > 1) warn.Add($"Há perda de pacotes até a internet ({netLoss:0.#}%). {(lanBad ? "Provavelmente vem da rede local." : "Como o roteador está bem, o problema deve estar na linha ou no provedor.")}");
-            if (netAvg > 80) warn.Add($"Latência alta até a internet ({netAvg:0} ms).{(lanBad ? "" : " O roteador responde bem, então o atraso vem do provedor.")}");
-            if (netJit > 20) warn.Add($"O jitter está alto ({netJit:0} ms): a latência oscila, o que causa engasgos em jogos online.");
+            if (netLoss > 1) warn.Add(L.T($"Há perda de pacotes até a internet ({netLoss:0.#}%). {(lanBad ? L.T("Provavelmente vem da rede local.") : L.T("Como o roteador está bem, o problema deve estar na linha ou no provedor."))}"));
+            if (netAvg > 80) warn.Add(L.T($"Latência alta até a internet ({netAvg:0} ms).{(lanBad ? "" : L.T(" O roteador responde bem, então o atraso vem do provedor."))}"));
+            if (netJit > 20) warn.Add(L.T($"O jitter está alto ({netJit:0} ms): a latência oscila, o que causa engasgos em jogos online."));
         }
         if (m.LoadedMs is { } loaded && net.Count > 0 && loaded - net.Min(p => p.Avg) > 100)
-            warn.Add($"A latência sobe para {loaded:0} ms quando a conexão está cheia (bufferbloat). Ative SQM/QoS no roteador ou limite a velocidade a ~90%.");
-        if (m.DnsMs > 150) warn.Add($"O DNS demorou {m.DnsMs:0} ms. Trocar para 1.1.1.1 ou 8.8.8.8 pode acelerar o carregamento de sites.");
-        if (m.DownMbps is < 10) warn.Add($"Download baixo ({m.DownMbps:0.#} Mbps) para jogos, streaming e atualizações.");
-        if (m.Error != null && m.DownMbps == null) warn.Add("Não foi possível medir a velocidade (speed.cloudflare.com inacessível ou bloqueado).");
+            warn.Add(L.T($"A latência sobe para {loaded:0} ms quando a conexão está cheia (bufferbloat). Ative SQM/QoS no roteador ou limite a velocidade a ~90%."));
+        if (m.DnsMs > 150) warn.Add(L.T($"O DNS demorou {m.DnsMs:0} ms. Trocar para 1.1.1.1 ou 8.8.8.8 pode acelerar o carregamento de sites."));
+        if (m.DownMbps is < 10) warn.Add(L.T($"Download baixo ({m.DownMbps:0.#} Mbps) para jogos, streaming e atualizações."));
+        if (m.Error != null && m.DownMbps == null) warn.Add(L.T("Não foi possível medir a velocidade (speed.cloudflare.com inacessível ou bloqueado)."));
 
-        var verdict = bad ? HealthVerdict.Critical : warn.Any(w => !w.StartsWith("O roteador não responde", StringComparison.Ordinal)) ? HealthVerdict.Warning : HealthVerdict.Good;
-        string label = verdict switch { HealthVerdict.Critical => "RUIM", HealthVerdict.Warning => "ATENÇÃO", _ => "ESTÁVEL" };
-        string reasons = warn.Count > 0 ? string.Join(" ", warn) : "Latência baixa, sem perda de pacotes e sem sinais de bufferbloat. Se o jogo ainda engasga, o problema provavelmente não é a conexão: veja o Gargalo e as temperaturas.";
+        var verdict = bad ? HealthVerdict.Critical : warn.Any(w => !w.StartsWith(L.T("O roteador não responde"), StringComparison.Ordinal)) ? HealthVerdict.Warning : HealthVerdict.Good;
+        string label = verdict switch { HealthVerdict.Critical => "RUIM", HealthVerdict.Warning => L.T("ATENÇÃO"), _ => L.T("ESTÁVEL") };
+        string reasons = warn.Count > 0 ? string.Join(" ", warn) : L.T("Latência baixa, sem perda de pacotes e sem sinais de bufferbloat. Se o jogo ainda engasga, o problema provavelmente não é a conexão: veja o Gargalo e as temperaturas.");
         var metrics = new List<KeyValuePair<string, string>>();
         foreach (var p in pings) metrics.Add(new($"{p.Name} ({p.Address})", p.Text));
         var c = System.Globalization.CultureInfo.InvariantCulture;
-        if (m.DnsMs is { } d) metrics.Add(new("Resolução de DNS", d.ToString("0", c) + " ms"));
-        metrics.Add(new("Download", m.DownMbps is { } dn ? dn.ToString("0.#", c) + " Mbps" : "—"));
-        metrics.Add(new("Upload", m.UpMbps is { } u ? u.ToString("0.#", c) + " Mbps" : "—"));
-        if (m.LoadedMs is { } l) metrics.Add(new("Latência sob carga", l.ToString("0", c) + " ms (durante o download)"));
-        metrics.Add(new("Adaptador", $"{m.Adapter.Name} · {m.Adapter.Type} · link {m.Adapter.Link}"));
-        metrics.Add(new("IP / Gateway / DNS", $"{m.Adapter.Ip} / {m.Adapter.Gateway} / {m.Adapter.Dns}"));
-        return new() { Device = "rede", Title = "Diagnóstico de rede", Meta = $"{m.Adapter.Type} · testado às {now:HH:mm:ss}", Verdict = verdict, Label = label, Reasons = reasons, Metrics = metrics };
+        if (m.DnsMs is { } d) metrics.Add(new(L.T("Resolução de DNS"), d.ToString("0", c) + " ms"));
+        metrics.Add(new("Download", m.DownMbps is { } dn ? dn.ToString("0.#", c) + L.T(" Mbps") : "—"));
+        metrics.Add(new(L.T("Upload"), m.UpMbps is { } u ? u.ToString("0.#", c) + L.T(" Mbps") : "—"));
+        if (m.LoadedMs is { } l) metrics.Add(new(L.T("Latência sob carga"), l.ToString("0", c) + L.T(" ms (durante o download)")));
+        metrics.Add(new(L.T("Adaptador"), $"{m.Adapter.Name} · {m.Adapter.Type} · link {m.Adapter.Link}"));
+        metrics.Add(new(L.T("IP / Gateway / DNS"), $"{m.Adapter.Ip} / {m.Adapter.Gateway} / {m.Adapter.Dns}"));
+        return new() { Device = "rede", Title = L.T("Diagnóstico de rede"), Meta = L.T($"{m.Adapter.Type} · testado às {now:HH:mm:ss}"), Verdict = verdict, Label = label, Reasons = reasons, Metrics = metrics };
     }
 }
 
@@ -99,20 +99,20 @@ public static class NetworkTestRunner
     /// <summary>Same sequence as the original: latency/loss to router and two public DNS in parallel, DNS lookup, download with loaded ping, upload.</summary>
     public static async Task<HealthCard> RunAsync(INetworkProbe probe, Action<string, double> progress, CancellationToken ct, int pingCount = 30, int intervalMs = 200, int downloadSeconds = 8, int uploadSeconds = 6)
     {
-        progress("Procurando a conexão ativa…", 0.02);
+        progress(L.T("Procurando a conexão ativa…"), 0.02);
         var adapter = probe.ActiveAdapter();
         if (adapter is null) return NetworkVerdict.NoConnection();
 
-        progress($"Medindo latência e perda de pacotes (≈ {pingCount * intervalMs / 1000} s)…", 0.08);
-        var targets = new (string Name, IPAddress Addr)[] { ("Roteador", adapter.GatewayAddress), ("Internet · Cloudflare", IPAddress.Parse(NetworkEndpoints.Cloudflare)), ("Internet · Google", IPAddress.Parse(NetworkEndpoints.Google)) };
+        progress(L.T($"Medindo latência e perda de pacotes (≈ {pingCount * intervalMs / 1000} s)…"), 0.08);
+        var targets = new (string Name, IPAddress Addr)[] { (L.T("Roteador"), adapter.GatewayAddress), (L.T("Internet · Cloudflare"), IPAddress.Parse(NetworkEndpoints.Cloudflare)), (L.T("Internet · Google"), IPAddress.Parse(NetworkEndpoints.Google)) };
         var pings = await Task.WhenAll(targets.Select(async t => { var (rtts, sent) = await probe.PingLoopAsync(t.Addr, pingCount, intervalMs, ct); return PingStat.From(t.Name, t.Addr.ToString(), rtts, sent); }));
         ct.ThrowIfCancellationRequested();
 
-        progress("Testando o DNS…", 0.30);
+        progress(L.T("Testando o DNS…"), 0.30);
         double? dnsMs = null;
         try { dnsMs = await probe.DnsAsync(NetworkEndpoints.DnsName, ct); } catch (OperationCanceledException) { throw; } catch (Exception e) when (e is SocketException or IOException or HttpRequestException) { }
 
-        progress($"Medindo a velocidade de download (≈ {downloadSeconds} s)…", 0.36);
+        progress(L.T($"Medindo a velocidade de download (≈ {downloadSeconds} s)…"), 0.36);
         using var loadStop = CancellationTokenSource.CreateLinkedTokenSource(ct);
         var loadedPing = probe.PingLoopAsync(IPAddress.Parse(NetworkEndpoints.Cloudflare), 0, intervalMs, loadStop.Token);
         double? down = null; string? error = null;
@@ -123,15 +123,15 @@ public static class NetworkTestRunner
         var (lrtts, _) = await loadedPing;
         double? loadedMs = lrtts.Count >= 5 ? lrtts.Average() : null;
 
-        progress($"Medindo a velocidade de upload (≈ {uploadSeconds} s)…", 0.66);
+        progress(L.T($"Medindo a velocidade de upload (≈ {uploadSeconds} s)…"), 0.66);
         double? up = null;
         try { up = await probe.UploadAsync(uploadSeconds, ct); }
         catch (OperationCanceledException) { throw; }
         catch (Exception e) when (e is HttpRequestException or IOException or SocketException) { error ??= e.Message; }
 
-        progress("Analisando…", 0.95);
+        progress(L.T("Analisando…"), 0.95);
         var card = NetworkVerdict.Evaluate(new(adapter, pings, dnsMs, down, up, loadedMs, error), DateTime.Now);
-        progress("Concluído", 1);
+        progress(L.T("Concluído"), 1);
         return card;
     }
 }
@@ -143,8 +143,8 @@ public sealed class SystemNetworkProbe : INetworkProbe
 
     public static string AdapterType(NetworkInterfaceType t) => t switch
     {
-        NetworkInterfaceType.Wireless80211 => "Wi-Fi",
-        NetworkInterfaceType.Ethernet or NetworkInterfaceType.GigabitEthernet or NetworkInterfaceType.FastEthernetT => "Ethernet (cabo)",
+        NetworkInterfaceType.Wireless80211 => L.T("Wi-Fi"),
+        NetworkInterfaceType.Ethernet or NetworkInterfaceType.GigabitEthernet or NetworkInterfaceType.FastEthernetT => L.T("Ethernet (cabo)"),
         _ => t.ToString()
     };
 
@@ -161,7 +161,7 @@ public sealed class SystemNetworkProbe : INetworkProbe
             var gw = props.GatewayAddresses.First(g => g.Address.AddressFamily == AddressFamily.InterNetwork && !g.Address.Equals(IPAddress.Any)).Address;
             string ip = props.UnicastAddresses.FirstOrDefault(u => u.Address.AddressFamily == AddressFamily.InterNetwork)?.Address.ToString() ?? "—";
             string dns = props.DnsAddresses.FirstOrDefault(d => d.AddressFamily == AddressFamily.InterNetwork)?.ToString() ?? "—";
-            return new(nic.Name, AdapterType(nic.NetworkInterfaceType), nic.Speed > 0 ? $"{nic.Speed / 1_000_000.0:0} Mbps" : "—", ip, gw.ToString(), dns, gw);
+            return new(nic.Name, AdapterType(nic.NetworkInterfaceType), nic.Speed > 0 ? L.T($"{nic.Speed / 1_000_000.0:0} Mbps") : "—", ip, gw.ToString(), dns, gw);
         }
         catch (Exception e) when (e is NetworkInformationException or InvalidOperationException or PlatformNotSupportedException) { return null; }
     }

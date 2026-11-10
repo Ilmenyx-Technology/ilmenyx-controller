@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 using System.Diagnostics;
+using Ilmenyx.Core;
 
 namespace Ilmenyx.Platform.Linux;
 
@@ -30,28 +31,28 @@ public static class FastExec
     /// <summary>Command and environment for one run. Throws when the installer or the destination is not acceptable, or umu is missing.</summary>
     public static FastExecPlan Plan(string installer, string destination, Func<string, string?> find, string? tempRoot = null, string? id = null, bool geProton = false, string? protonPath = null, string? wineBin = null)
     {
-        if (!LinuxGameLibrary.IsWindowsExe(installer)) throw new ArgumentException("Escolha o instalador do Windows (arquivo .exe).");
-        if (!Path.IsPathFullyQualified(destination)) throw new ArgumentException("Escolha a pasta onde o jogo vai ficar.");
+        if (!LinuxGameLibrary.IsWindowsExe(installer)) throw new ArgumentException(L.T("Escolha o instalador do Windows (arquivo .exe)."));
+        if (!Path.IsPathFullyQualified(destination)) throw new ArgumentException(L.T("Escolha a pasta onde o jogo vai ficar."));
         string dest = Path.GetFullPath(destination).TrimEnd('/');
         string home = Path.GetFullPath(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)).TrimEnd('/');
         if (dest.Length == 0 || dest == home || dest is "/" or "/usr" or "/etc" or "/bin" or "/boot" or "/proc" or "/sys" or "/dev" or "/var" || dest.StartsWith("/proc/", StringComparison.Ordinal) || dest.StartsWith("/sys/", StringComparison.Ordinal) || dest.StartsWith("/dev/", StringComparison.Ordinal))
-            throw new ArgumentException("Escolha uma pasta própria para os jogos (por exemplo ~/Jogos), não a pasta pessoal inteira nem uma pasta do sistema.");
+            throw new ArgumentException(L.T("Escolha uma pasta própria para os jogos (por exemplo ~/Jogos), não a pasta pessoal inteira nem uma pasta do sistema."));
         string runId = id ?? Guid.NewGuid().ToString("N")[..12];
         string prefix = Path.Combine(tempRoot ?? TempRoot(), PrefixPrefix + runId);
         string staged = Path.Combine(prefix, "drive_c", "Instalador", Path.GetFileName(installer));
         // The installer opens already pointing at C:\Jogos\<game> when it accepts a folder on its command line (Inno Setup, NSIS).
         string[] extra = InstallerDefaults.DirArguments(installer) is { } dirArg ? [dirArg] : [];
         if (wineBin is { Length: > 0 }) return PlainWinePlan(wineBin, staged, extra, prefix, dest, installer, Path.Combine(LogFolder(tempRoot), "wine-" + runId + ".log"));
-        string umu = find("umu-run") ?? throw new InvalidOperationException("O umu-launcher (Proton fora da Steam) não foi encontrado.");
+        string umu = find("umu-run") ?? throw new InvalidOperationException(L.T("O umu-launcher (Proton fora da Steam) não foi encontrado."));
         return new(umu, [staged, .. extra], [
-            new("WINEPREFIX", prefix), new("GAMEID", "umu-default"), new("STORE", "none"),
-            new("WINEDLLOVERRIDES", "winemenubuilder.exe=d"), // no menu entries, icons or file associations from the installer
+            new(L.T("WINEPREFIX"), prefix), new("GAMEID", "umu-default"), new("STORE", "none"),
+            new(L.T("WINEDLLOVERRIDES"), "winemenubuilder.exe=d"), // no menu entries, icons or file associations from the installer
             // Xalia (gamepad UI helper) only burns CPU here. fsync/esync stay ON: turning them off made a multi-threaded installer about
             // ten times slower and did not prevent its CRC failure (owner's tests 2026-11-08); Bottles keeps them on and installs fine.
             new("PROTON_USE_XALIA", "0"),
             new("PROTON_LOG", "1"), new("PROTON_LOG_DIR", LogFolder(tempRoot)),
-            .. (protonPath is { Length: > 0 } pp ? new KeyValuePair<string, string>[] { new("PROTONPATH", pp) } // e.g. the classic Proton 9 folder
-                : geProton ? [new("PROTONPATH", "GE-Proton")] : []), // umu downloads the latest GE-Proton
+            .. (protonPath is { Length: > 0 } pp ? new KeyValuePair<string, string>[] { new(L.T("PROTONPATH"), pp) } // e.g. the classic Proton 9 folder
+                : geProton ? [new(L.T("PROTONPATH"), L.T("GE-Proton"))] : []), // umu downloads the latest GE-Proton
         ], prefix, dest, installer, staged);
     }
 
@@ -74,8 +75,8 @@ public static class FastExec
         foreach (var key in SessionEssentials)
             if (System.Environment.GetEnvironmentVariable(key) is { Length: > 0 } v) env.Add(new(key, v));
         env.AddRange([
-            new("WINEPREFIX", prefix), new("WINEARCH", "win64"), new("WINEDEBUG", "fixme-all"),
-            new("WINEDLLOVERRIDES", overrides), // no menu entries or file associations from the installer
+            new(L.T("WINEPREFIX"), prefix), new(L.T("WINEARCH"), "win64"), new(L.T("WINEDEBUG"), "fixme-all"),
+            new(L.T("WINEDLLOVERRIDES"), overrides), // no menu entries or file associations from the installer
             new("WINE_LARGE_ADDRESS_AWARE", "1"), new("STAGING_SHARED_MEMORY", "1"), // as Bottles runs it
             .. (libs.Length > 0 ? new KeyValuePair<string, string>[] { new("LD_LIBRARY_PATH", libs) } : []),
         ]);
@@ -85,8 +86,8 @@ public static class FastExec
     }
 
     /// <summary>The only session variables a plain-Wine installer run inherits (display, audio, locale, user).</summary>
-    private static readonly string[] SessionEssentials = ["HOME", "USER", "LOGNAME", "PATH", "LANG", "LANGUAGE", "LC_ALL", "TZ", "DISPLAY", "WAYLAND_DISPLAY",
-        "XAUTHORITY", "XDG_RUNTIME_DIR", "XDG_SESSION_TYPE", "DBUS_SESSION_BUS_ADDRESS", "PULSE_SERVER"];
+    private static readonly string[] SessionEssentials = ["HOME", "USER", L.T("LOGNAME"), "PATH", "LANG", "LANGUAGE", "LC_ALL", "TZ", "DISPLAY", "WAYLAND_DISPLAY",
+        L.T("XAUTHORITY"), "XDG_RUNTIME_DIR", "XDG_SESSION_TYPE", "DBUS_SESSION_BUS_ADDRESS", "PULSE_SERVER"];
 
     /// <summary>Where the Proton log of each installer run is kept (outside the throwaway prefix, so it survives the cleanup).</summary>
     public static string LogFolder(string? tempRoot = null) => Path.Combine(tempRoot ?? TempRoot(), "logs");
@@ -114,7 +115,7 @@ public static class FastExec
         File.CreateSymbolicLink(d, plan.Destination);
     }
 
-    private static readonly string[] BroadFolders = ["Downloads", "Transferências", "Desktop", "Área de trabalho", "Área de Trabalho", "Documents", "Documentos"];
+    private static readonly string[] BroadFolders = ["Downloads", L.T("Transferências"), "Desktop", L.T("Área de trabalho"), L.T("Área de Trabalho"), "Documents", L.T("Documentos")];
 
     /// <summary>
     /// Puts the installer's folder inside the temporary Windows (C:\Instalador) before it runs. Installers read their data files from
@@ -132,7 +133,7 @@ public static class FastExec
         bool broad = full == home || full == "/" || BroadFolders.Any(b => full == Path.Combine(home, b));
         var files = new DirectoryInfo(source).EnumerateFiles("*", new EnumerationOptions { RecurseSubdirectories = !broad, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.System })
             .Where(f => f.LinkTarget is null).ToList();
-        if (files.Count > 20000) throw new IOException("A pasta do instalador tem arquivos demais; coloque o instalador numa pasta só dele.");
+        if (files.Count > 20000) throw new IOException(L.T("A pasta do instalador tem arquivos demais; coloque o instalador numa pasta só dele."));
         Directory.CreateDirectory(target);
         bool linked = TryLink(files[0].FullName, Path.Combine(target, ".ilmenyx-linktest"));
         if (linked) File.Delete(Path.Combine(target, ".ilmenyx-linktest"));
@@ -140,7 +141,7 @@ public static class FastExec
         {
             long need = files.Sum(f => f.Length);
             var drive = new DriveInfo(target);
-            if (drive.AvailableFreeSpace < need + (1L << 30)) throw new IOException($"Sem espaço para copiar o instalador para dentro do Windows temporário (precisa de {need / 1e9:0.0} GB livres).");
+            if (drive.AvailableFreeSpace < need + (1L << 30)) throw new IOException(L.T($"Sem espaço para copiar o instalador para dentro do Windows temporário (precisa de {need / 1e9:0.0} GB livres)."));
         }
         foreach (var f in files)
         {
@@ -164,7 +165,7 @@ public static class FastExec
     public static async Task<int> RunAsync(FastExecPlan plan, CancellationToken ct)
     {
         var psi = HostSpawn.Start(plan.Program, plan.Arguments, plan.Environment.ToDictionary(e => e.Key, e => e.Value), Path.GetDirectoryName(plan.Staged.Length > 0 ? plan.Staged : plan.Arguments[0]), redirect: false);
-        using var process = Process.Start(psi) ?? throw new IOException("Não foi possível iniciar o instalador.");
+        using var process = Process.Start(psi) ?? throw new IOException(L.T("Não foi possível iniciar o instalador."));
         try { await process.WaitForExitAsync(ct); }
         catch (OperationCanceledException)
         {
@@ -275,7 +276,7 @@ public static class FastExec
 
     /// <summary>Folders Wine itself creates in Program Files; anything else there came from the installer.</summary>
     private static readonly string[] DriveRootDefaults = ["windows", "users", "programdata", "program files", "program files (x86)", "instalador", "jogos", "games", "$recycle.bin", "temp", "tmp"];
-    private static readonly string[] WineDefaults = ["common files", "internet explorer", "windows media player", "windows nt", "windowspowershell", "microsoft.net", "msbuild", "reference assemblies", "uninstall information", "windows defender", "windows mail", "windows photo viewer", "windows portable devices", "windows sidebar", "steam", "microsoft"]; // Proton creates Program Files (x86)\\Steam itself
+    private static readonly string[] WineDefaults = ["common files", L.T("internet explorer"), "windows media player", "windows nt", "windowspowershell", "microsoft.net", "msbuild", "reference assemblies", L.T("uninstall information"), "windows defender", "windows mail", "windows photo viewer", "windows portable devices", L.T("windows sidebar"), "steam", "microsoft"]; // Proton creates Program Files (x86)\\Steam itself
 
     /// <summary>
     /// What the installer put inside the temporary Windows: every folder in C:\Jogos and C:\Games, plus folders in Program Files that

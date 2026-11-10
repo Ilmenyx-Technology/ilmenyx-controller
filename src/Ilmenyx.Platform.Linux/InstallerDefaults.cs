@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 using System.Text;
+using Ilmenyx.Core;
 
 namespace Ilmenyx.Platform.Linux;
 
@@ -49,7 +50,7 @@ public static class InstallerDefaults
             return name.Length is >= 2 and <= 80 ? name : null;
         }
         string folder = Path.GetFileName(Path.GetDirectoryName(Path.GetFullPath(installer)) ?? "");
-        string[] generic = ["downloads", "transferências", "desktop", "área de trabalho", "documentos", "documents", "tmp", "temp", "instalador", "installer", "setup"];
+        string[] generic = ["downloads", L.T("transferências"), "desktop", L.T("área de trabalho"), "documentos", "documents", "tmp", "temp", "instalador", "installer", "setup"];
         if (!generic.Contains(folder.ToLowerInvariant()) && Clean(folder) is { } fromFolder) return fromFolder;
         string file = Path.GetFileNameWithoutExtension(installer);
         if (file.ToLowerInvariant() is "setup" or "install" or "installer" or "autorun") return null;

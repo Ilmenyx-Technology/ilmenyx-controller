@@ -3,6 +3,7 @@
 // SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // New Ilmenyx additions, adapted from the behaviour of the original DriveMap (MIT, see NOTICE): see LICENSING.md.
 using System.Globalization;
+using Ilmenyx.Core;
 
 namespace Ilmenyx.Platform.Linux;
 
@@ -55,7 +56,7 @@ public static class MountedDrives
             var main = mounts.OrderBy(m => m.Mount.Length).ThenBy(m => m.Mount, StringComparer.Ordinal).First();
             if (stat(main.Mount) is not { Total: > 0 } s) continue;
             double used = Math.Clamp((double)(s.Total - s.Free) / s.Total, 0, 1);
-            cards.Add(new(main.Mount, $"{Bytes(s.Free)} livres de {Bytes(s.Total)}", $"{main.Fs} · {source}" + (mounts.Count > 1 ? $" · +{mounts.Count - 1} ponto(s) de montagem" : ""), used));
+            cards.Add(new(main.Mount, L.T($"{Bytes(s.Free)} livres de {Bytes(s.Total)}"), $"{main.Fs} · {source}" + (mounts.Count > 1 ? L.T($" · +{mounts.Count - 1} ponto(s) de montagem") : ""), used));
         }
         return cards;
     }

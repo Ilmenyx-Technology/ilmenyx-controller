@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 using System.Security.Cryptography;
+using Ilmenyx.Core;
 
 namespace Ilmenyx.Platform.Linux;
 
@@ -49,6 +50,6 @@ public static class ClassicProton
     {
         if (IsInstalled(root)) return;
         await RunnerDownload.FetchAsync(http, Url, Size, HashAlgorithmName.SHA512, Sha512, Folder(root), Version, progress, ct);
-        if (!IsInstalled(root)) throw new IOException("Não consegui extrair o " + Version + ".");
+        if (!IsInstalled(root)) throw new IOException(L.T("Não consegui extrair o ") + Version + ".");
     }
 }

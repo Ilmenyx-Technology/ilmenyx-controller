@@ -24,7 +24,7 @@ public static class MemoryBench
     /// <summary>Null when the plan fits; otherwise the reason it must not run.</summary>
     public static string? Check(long availableBytes) =>
         availableBytes < RequiredBytes
-            ? $"Memória disponível insuficiente: são necessários {RequiredBytes >> 20} MiB livres (2,3 GiB do teste + 1 GiB de reserva), há {availableBytes >> 20} MiB."
+            ? L.T($"Memória disponível insuficiente: são necessários {RequiredBytes >> 20} MiB livres (2,3 GiB do teste + 1 GiB de reserva), há {availableBytes >> 20} MiB.")
             : null;
 
     public static Task<MemoryBenchResult> RunAsync(long availableBytes, TimeSpan timeout, CancellationToken ct,
@@ -45,16 +45,16 @@ public static class MemoryBench
         int threads = Environment.ProcessorCount;
         long allocated = latencyBytes;
         MemoryBenchResult Stopped() => new(external.IsCancellationRequested ? BenchRunStatus.Cancelled : BenchRunStatus.TimedOut,
-            null, null, null, allocated, threads, "Interrompido: nenhum valor é publicado.");
+            null, null, null, allocated, threads, L.T("Interrompido: nenhum valor é publicado."));
 
-        progress?.Report(("Latência da RAM", 0));
+        progress?.Report((L.T("Latência da RAM"), 0));
         double? ns = MeasureLatencyNs(stop.Token, latencyBytes, latencySteps);
         if (ns is null) return Stopped();
-        progress?.Report(("Banda da RAM", 0.4));
+        progress?.Report((L.T("Banda da RAM"), 0.4));
         allocated = latencyBytes + 2 * bandwidthBytes;
-        var bw = MeasureBandwidth(stop.Token, bandwidthBytes, threads, p => progress?.Report(("Banda da RAM", 0.4 + 0.6 * p)));
+        var bw = MeasureBandwidth(stop.Token, bandwidthBytes, threads, p => progress?.Report((L.T("Banda da RAM"), 0.4 + 0.6 * p)));
         if (bw is null) return Stopped();
-        progress?.Report(("Concluído", 1));
+        progress?.Report((L.T("Concluído"), 1));
         return new(BenchRunStatus.Completed, ns, bw.Value.Read, bw.Value.Copy, allocated, threads, null);
     }
 

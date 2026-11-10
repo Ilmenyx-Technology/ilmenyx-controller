@@ -11,6 +11,7 @@ internal static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        Ilmenyx.Core.L.Use(Ilmenyx.Core.L.Resolve(Ilmenyx.Core.IlmenyxSettings.Load(Ilmenyx.Core.IlmenyxSettings.DefaultPath()).Language));
         DisplayBackend backend;
         try { backend = DesktopBackend.Parse(DesktopBackend.ReadSelection()); }
         catch (ArgumentException e) { Console.Error.WriteLine(e.Message); return 2; }

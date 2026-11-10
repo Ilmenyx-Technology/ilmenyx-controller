@@ -23,13 +23,13 @@ public static class GpuLive
     public static IReadOnlyList<KeyValuePair<string, string>> Extras(GpuTelemetry t)
     {
         var list = new List<KeyValuePair<string, string>>();
-        if (t.PState is { Length: > 0 } p) list.Add(new("Estado de desempenho", p));
-        if (t.ThrottleMask is { } r) list.Add(new("PerfCap (limitador)", GpuCardBuilder.PerfCap(r)));
-        if (t.PowerW is { } pw && t.PowerLimitW is > 0) list.Add(new("Consumo / limite", $"{F1(pw)} W · {F0(100.0 * pw / t.PowerLimitW.Value)} %"));
-        if (t.MemControllerPercent is { } m) list.Add(new("Controlador de memória", F0(m) + " %"));
+        if (t.PState is { Length: > 0 } p) list.Add(new(L.T("Estado de desempenho"), p));
+        if (t.ThrottleMask is { } r) list.Add(new(L.T("PerfCap (limitador)"), GpuCardBuilder.PerfCap(r)));
+        if (t.PowerW is { } pw && t.PowerLimitW is > 0) list.Add(new(L.T("Consumo / limite"), $"{F1(pw)} W · {F0(100.0 * pw / t.PowerLimitW.Value)} %"));
+        if (t.MemControllerPercent is { } m) list.Add(new(L.T("Controlador de memória"), F0(m) + " %"));
         if (t.EncoderPercent is { } e) list.Add(new("Encoder", F0(e) + " %"));
         if (t.DecoderPercent is { } d) list.Add(new("Decoder", F0(d) + " %"));
-        if (t.PcieGen is { } g && t.PcieWidth is { } w) list.Add(new("PCIe em uso", $"{GpuCardBuilder.PcieName(g)} x{w}"));
+        if (t.PcieGen is { } g && t.PcieWidth is { } w) list.Add(new(L.T("PCIe em uso"), $"{GpuCardBuilder.PcieName(g)} x{w}"));
         return list;
     }
 
@@ -37,19 +37,19 @@ public static class GpuLive
     {
         var rows = new List<LiveRow>();
         void Add(string cat, string name, string? value) { if (value is not null) rows.Add(new(cat, name, value)); }
-        Add("Carga · ", "GPU", t.LoadPercent is { } l ? F0(l) + " %" : null);
-        Add("Temperatura · ", "Núcleo", t.TempC is { } c ? F1(c) + " °C" : null);
-        Add("Temperatura · ", "Hotspot", t.TempHotspotC is { } h ? F1(h) + " °C" : null);
-        Add("Temperatura · ", "Memória", t.TempMemC is { } m ? F1(m) + " °C" : null);
-        Add("Clock · ", "Núcleo", t.CoreMHz is { } cc ? F0(cc) + " MHz" : null);
-        Add("Clock · ", "Memória", t.MemMHz is { } mm ? F0(mm) + " MHz" : null);
-        Add("Tensão · ", "Núcleo", t.CoreVoltageV is { } cv ? cv.ToString("0.000", CultureInfo.InvariantCulture) + " V" : null);
-        string vram = t.Integrated ? "VRAM reservada · " : "VRAM · ";
-        Add(vram, "Usada", t.VramUsed is { } u ? (u / 1048576.0).ToString("N0", CultureInfo.InvariantCulture).Replace(",", ".") + " MB" : null);
+        Add(L.T("Carga · "), "GPU", t.LoadPercent is { } l ? F0(l) + " %" : null);
+        Add(L.T("Temperatura · "), L.T("Núcleo"), t.TempC is { } c ? F1(c) + " °C" : null);
+        Add(L.T("Temperatura · "), "Hotspot", t.TempHotspotC is { } h ? F1(h) + " °C" : null);
+        Add(L.T("Temperatura · "), L.T("Memória"), t.TempMemC is { } m ? F1(m) + " °C" : null);
+        Add("Clock · ", L.T("Núcleo"), t.CoreMHz is { } cc ? F0(cc) + " MHz" : null);
+        Add("Clock · ", L.T("Memória"), t.MemMHz is { } mm ? F0(mm) + " MHz" : null);
+        Add(L.T("Tensão · "), L.T("Núcleo"), t.CoreVoltageV is { } cv ? cv.ToString("0.000", CultureInfo.InvariantCulture) + " V" : null);
+        string vram = t.Integrated ? L.T("VRAM reservada · ") : "VRAM · ";
+        Add(vram, L.T("Usada"), t.VramUsed is { } u ? (u / 1048576.0).ToString("N0", CultureInfo.InvariantCulture).Replace(",", ".") + " MB" : null);
         Add(vram, "Total", t.VramTotal is { } tt ? (tt / 1048576.0).ToString("N0", CultureInfo.InvariantCulture).Replace(",", ".") + " MB" : null);
-        Add(vram, "Ocupação", t.VramUsed is { } uu && t.VramTotal is > 0 ? F0(100.0 * uu / t.VramTotal.Value) + " %" : null);
-        Add("Energia · ", t.PowerIsPackage ? "Pacote (CPU+GPU)" : "Consumo", t.PowerW is { } p ? F1(p) + " W" : null);
-        Add("Ventoinha · ", "Velocidade", t.FanPercent is { } f ? F0(f) + " %" : t.FanRpm is { } rpm ? F0(rpm) + " RPM" : null);
+        Add(vram, L.T("Ocupação"), t.VramUsed is { } uu && t.VramTotal is > 0 ? F0(100.0 * uu / t.VramTotal.Value) + " %" : null);
+        Add(L.T("Energia · "), t.PowerIsPackage ? L.T("Pacote (CPU+GPU)") : L.T("Consumo"), t.PowerW is { } p ? F1(p) + " W" : null);
+        Add(L.T("Ventoinha · "), L.T("Velocidade"), t.FanPercent is { } f ? F0(f) + " %" : t.FanRpm is { } rpm ? F0(rpm) + " RPM" : null);
         return rows;
     }
 }

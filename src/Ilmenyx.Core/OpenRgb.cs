@@ -38,8 +38,8 @@ public sealed class OpenRgbClient : IAsyncDisposable
 
     public static async Task<OpenRgbClient> ConnectAsync(string host, int port, CancellationToken ct)
     {
-        if (!IsLoopback(host)) throw new OpenRgbException("O Ilmenyx só se conecta ao OpenRGB na própria máquina (localhost): o servidor SDK não tem autenticação.");
-        if (port is < 1024 or > 65535) throw new OpenRgbException("Porta inválida.");
+        if (!IsLoopback(host)) throw new OpenRgbException(L.T("O Ilmenyx só se conecta ao OpenRGB na própria máquina (localhost): o servidor SDK não tem autenticação."));
+        if (port is < 1024 or > 65535) throw new OpenRgbException(L.T("Porta inválida."));
         var tcp = new TcpClient { NoDelay = true };
         try
         {
@@ -50,7 +50,7 @@ public sealed class OpenRgbClient : IAsyncDisposable
         catch (Exception e) when (e is SocketException or OperationCanceledException && !ct.IsCancellationRequested)
         {
             tcp.Dispose();
-            throw new OpenRgbException($"O OpenRGB não está com o servidor SDK ligado em {host}:{port} (abra o OpenRGB e ative Server → Start Server, ou rode `openrgb --server`).", e);
+            throw new OpenRgbException(L.T($"O OpenRGB não está com o servidor SDK ligado em {host}:{port} (abra o OpenRGB e ative Server → Start Server, ou rode `openrgb --server`)."), e);
         }
     }
 
@@ -72,7 +72,7 @@ public sealed class OpenRgbClient : IAsyncDisposable
         while (read < count)
         {
             int n = await stream.ReadAsync(buffer.AsMemory(read, count - read), ct);
-            if (n <= 0) throw new OpenRgbException("Conexão encerrada pelo OpenRGB.");
+            if (n <= 0) throw new OpenRgbException(L.T("Conexão encerrada pelo OpenRGB."));
             read += n;
         }
         return buffer;
@@ -87,22 +87,22 @@ public sealed class OpenRgbClient : IAsyncDisposable
             for (int i = 0; i < 20; i++)
             {
                 var header = await ReadExactAsync(16, timeout.Token);
-                if (header[0] != 'O' || header[1] != 'R' || header[2] != 'G' || header[3] != 'B') throw new OpenRgbException("Resposta inválida (não é o protocolo do OpenRGB).");
+                if (header[0] != 'O' || header[1] != 'R' || header[2] != 'G' || header[3] != 'B') throw new OpenRgbException(L.T("Resposta inválida (não é o protocolo do OpenRGB)."));
                 uint type = BinaryPrimitives.ReadUInt32LittleEndian(header.AsSpan(8)), size = BinaryPrimitives.ReadUInt32LittleEndian(header.AsSpan(12));
-                if (size > MaxPacket) throw new OpenRgbException("Pacote grande demais.");
+                if (size > MaxPacket) throw new OpenRgbException(L.T("Pacote grande demais."));
                 var data = size > 0 ? await ReadExactAsync((int)size, timeout.Token) : [];
                 if (type == wanted) return data;
             }
         }
-        catch (OperationCanceledException) when (!ct.IsCancellationRequested) { throw new OpenRgbException("O OpenRGB não respondeu a tempo."); }
-        throw new OpenRgbException("O OpenRGB não respondeu como esperado.");
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested) { throw new OpenRgbException(L.T("O OpenRGB não respondeu a tempo.")); }
+        throw new OpenRgbException(L.T("O OpenRGB não respondeu como esperado."));
     }
 
     private static string Str(BinaryReader r)
     {
         int len = r.ReadUInt16();
         var b = r.ReadBytes(len);
-        if (b.Length != len) throw new OpenRgbException("Dados do dispositivo truncados.");
+        if (b.Length != len) throw new OpenRgbException(L.T("Dados do dispositivo truncados."));
         int n = b.Length; while (n > 0 && b[n - 1] == 0) n--;
         return Encoding.UTF8.GetString(b, 0, n);
     }
@@ -135,7 +135,7 @@ public sealed class OpenRgbClient : IAsyncDisposable
             }
             return (name, vendor, r.ReadUInt16(), active, activeBytes);
         }
-        catch (EndOfStreamException e) { throw new OpenRgbException("Dados do dispositivo truncados.", e); }
+        catch (EndOfStreamException e) { throw new OpenRgbException(L.T("Dados do dispositivo truncados."), e); }
     }
 
     /// <summary>Negotiates the protocol and lists devices that have LEDs.</summary>
@@ -145,9 +145,9 @@ public sealed class OpenRgbClient : IAsyncDisposable
         await WriteAsync(0, ReqProtocolVersion, BitConverter.GetBytes(3u), ct);
         uint server;
         try { server = BitConverter.ToUInt32(await ReadTypeAsync(ReqProtocolVersion, ct), 0); }
-        catch (OpenRgbException) { throw new OpenRgbException("O OpenRGB é antigo demais (sem negociação de protocolo). Atualize para a versão 0.9 ou mais nova."); }
+        catch (OpenRgbException) { throw new OpenRgbException(L.T("O OpenRGB é antigo demais (sem negociação de protocolo). Atualize para a versão 0.9 ou mais nova.")); }
         Protocol = (int)Math.Min(3u, server);
-        if (Protocol < 3) throw new OpenRgbException($"Protocolo {Protocol} do OpenRGB é antigo. Atualize para a versão 0.9 ou mais nova.");
+        if (Protocol < 3) throw new OpenRgbException(L.T($"Protocolo {Protocol} do OpenRGB é antigo. Atualize para a versão 0.9 ou mais nova."));
         await WriteAsync(0, ReqControllerCount, [], ct);
         int count = (int)Math.Min(BitConverter.ToUInt32(await ReadTypeAsync(ReqControllerCount, ct), 0), (uint)MaxDevices);
         devices.Clear();
@@ -211,7 +211,7 @@ public static class LightEffects
 
     public static (byte R, byte G, byte B)[] Frame(string effect, double[] ledX, double seconds, double speed, (byte R, byte G, byte B) color, double brightness, double? live)
     {
-        if (!Names.Contains(effect)) throw new ArgumentException("Efeito desconhecido.", nameof(effect));
+        if (!Names.Contains(effect)) throw new ArgumentException(L.T("Efeito desconhecido."), nameof(effect));
         brightness = Math.Clamp(brightness, 0, 1);
         var colors = new (byte, byte, byte)[ledX.Length];
         var liveColor = effect is "cpu" or "gpu" or "load" ? Live(effect, live) : default;

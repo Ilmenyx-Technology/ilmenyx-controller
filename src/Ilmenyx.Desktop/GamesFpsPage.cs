@@ -44,7 +44,7 @@ public sealed class GamesFpsPage : Grid
     private readonly WrapPanel cards = new() { Name = "GameCards", ItemSpacing = 10, LineSpacing = 10 };
     private double cardWidth = 222;
     private readonly TextBlock sub = new() { Name = "GamesSub", Foreground = Palette.Muted, FontSize = 12.5, TextWrapping = TextWrapping.Wrap };
-    private readonly TextBox search = new() { Name = "GameSearch", Width = 240, PlaceholderText = "Buscar jogo…", Padding = new Thickness(34, 7, 10, 7) };
+    private readonly TextBox search = new() { Name = "GameSearch", Width = 240, PlaceholderText = L.T("Buscar jogo…"), Padding = new Thickness(34, 7, 10, 7) };
     private readonly TextBlock sourceTitle = new() { Name = "GameSourceTitle", FontWeight = FontWeight.SemiBold, FontSize = 13.5, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center };
     private readonly TextBlock sourceText = new() { Name = "GameSourceText", Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 0) };
     private string res = "1920x1080", preset = "Alto", upscaling = "Native";
@@ -64,8 +64,8 @@ public sealed class GamesFpsPage : Grid
     private PersonalFactor? personalGpu, personalCpu;
     private readonly TextBlock gateTitle = new() { Name = "FpsGateTitle", FontWeight = FontWeight.SemiBold, FontSize = 14, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center };
     private readonly TextBlock gateText = new() { Name = "FpsGateText", FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) };
-    private readonly Button calibrate = UiKit.Primary("BtnFpsCalibrate", "Calibrar agora (≈1 min)", 18, 9);
-    private readonly Button cancelCal = new() { Name = "BtnFpsCalibrateCancel", Content = "Cancelar", Padding = new Thickness(16, 8), FontSize = 12.5, IsVisible = false };
+    private readonly Button calibrate = UiKit.Primary("BtnFpsCalibrate", L.T("Calibrar agora (≈1 min)"), 18, 9);
+    private readonly Button cancelCal = new() { Name = "BtnFpsCalibrateCancel", Content = L.T("Cancelar"), Padding = new Thickness(16, 8), FontSize = 12.5, IsVisible = false };
     private readonly ProgressBar gateProgress = new() { Name = "FpsGateProgress", Minimum = 0, Maximum = 1, Height = 6, MinHeight = 6, Margin = new Thickness(0, 10, 0, 0), IsVisible = false };
     private readonly Border gateCard;
     private readonly PathIconHolder gateIcon = new();
@@ -94,7 +94,7 @@ public sealed class GamesFpsPage : Grid
     {
         this.context = context; this.settings = settings; this.settingsPath = settingsPath; this.hardware = hardware; this.calibrator = calibrator;
         var icon = UiKit.Icon(Icons.Search, 15, Palette.Faint); icon.HorizontalAlignment = HorizontalAlignment.Left; icon.Margin = new Thickness(12, 0, 0, 0); icon.IsHitTestVisible = false;
-        var header = UiKit.PageHeader("Estimativa de FPS");
+        var header = UiKit.PageHeader(L.T("Estimativa de FPS"));
         ((StackPanel)header.Children[0]).Children.Add(sub);
         search.TextChanged += (_, _) => Filter();
         top.Children.Add(header);
@@ -106,17 +106,17 @@ public sealed class GamesFpsPage : Grid
         top.Children.Add(gateCard);
         DetachedFromVisualTree += (_, _) => calCts?.Cancel();
         var resChips = new UiKit.ChipGroup<string>("GameResPanel", [("1080p", "1920x1080"), ("1440p", "2560x1440"), ("4K", "3840x2160")], res, v => { res = v; RefreshLocal(); });
-        var presetChips = new UiKit.ChipGroup<string>("GamePresetPanel", [("Baixo", "Baixo"), ("Médio", "Médio"), ("Alto", "Alto"), ("Ultra", "Ultra")], preset, v => { preset = v; RefreshLocal(); });
-        var upChips = new UiKit.ChipGroup<string>("GameUpscalePanel", [("Nativo", "Native"), ("Qualidade", "Quality"), ("Desempenho", "Performance")], upscaling, v => { upscaling = v; RefreshLocal(); });
+        var presetChips = new UiKit.ChipGroup<string>("GamePresetPanel", [(L.T("Baixo"), "Baixo"), (L.T("Médio"), "Médio"), (L.T("Alto"), "Alto"), ("Ultra", "Ultra")], preset, v => { preset = v; RefreshLocal(); });
+        var upChips = new UiKit.ChipGroup<string>("GameUpscalePanel", [(L.T("Nativo"), "Native"), (L.T("Qualidade"), "Quality"), (L.T("Desempenho"), "Performance")], upscaling, v => { upscaling = v; RefreshLocal(); });
         Control Opt(string label, Control chips) => new StackPanel { Margin = new Thickness(0, 0, 28, 4), Children = { UiKit.Label(label), new Border { Height = 6 }, chips } };
-        top.Children.Add(UiKit.Card(new WrapPanel { LineSpacing = 10, Children = { Opt("RESOLUÇÃO", resChips.Panel), Opt("GRÁFICOS", presetChips.Panel), Opt("UPSCALING (DLSS / FSR)", upChips.Panel) } }));
+        top.Children.Add(UiKit.Card(new WrapPanel { LineSpacing = 10, Children = { Opt(L.T("RESOLUÇÃO"), resChips.Panel), Opt(L.T("GRÁFICOS"), presetChips.Panel), Opt(L.T("UPSCALING (DLSS / FSR)"), upChips.Panel) } }));
         var srcHead = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { UiKit.Icon(Icons.About, 15, Palette.AccentText), sourceTitle } };
         top.Children.Add(UiKit.Card(new StackPanel { Children = { srcHead, sourceText } }));
-        var alertHead = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { UiKit.Icon(Icons.Blocked, 15, Palette.Warn), new TextBlock { Text = "O que pode derrubar o FPS neste PC", FontWeight = FontWeight.SemiBold, FontSize = 13.5, VerticalAlignment = VerticalAlignment.Center } } };
+        var alertHead = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { UiKit.Icon(Icons.Blocked, 15, Palette.Warn), new TextBlock { Text = L.T("O que pode derrubar o FPS neste PC"), FontWeight = FontWeight.SemiBold, FontSize = 13.5, VerticalAlignment = VerticalAlignment.Center } } };
         alertCard = UiKit.Card(new StackPanel { Spacing = 10, Children = { alertHead, alertList } }); alertCard.IsVisible = false;
         top.Children.Add(alertCard);
         // Catalogue header: it becomes the fixed bar at the top once the page above has scrolled away; the search stays next to the games.
-        var title = new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center, Children = { new TextBlock { Text = "Jogos do catálogo", FontSize = 14, FontWeight = FontWeight.SemiBold }, catalogCount } };
+        var title = new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center, Children = { new TextBlock { Text = L.T("Jogos do catálogo"), FontSize = 14, FontWeight = FontWeight.SemiBold }, catalogCount } };
         var searchBox = new Grid { Margin = new Thickness(12, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center, Children = { search, icon } }; Grid.SetColumn(searchBox, 1);
         catalogHeader.Children.Add(title); catalogHeader.Children.Add(searchBox);
         cardsScroll.Content = cards;
@@ -153,7 +153,7 @@ public sealed class GamesFpsPage : Grid
         toTop.HorizontalAlignment = HorizontalAlignment.Right; toTop.VerticalAlignment = VerticalAlignment.Bottom; toTop.Margin = new Thickness(0, 0, 26, 26);
         toTop.HorizontalContentAlignment = HorizontalAlignment.Center; toTop.VerticalContentAlignment = VerticalAlignment.Center;
         toTop.Background = Palette.Accent; toTop.Content = UiKit.Icon(arrowUp, 20, Palette.OnAccent); toTop.IsVisible = false;
-        AutomationProperties.SetName(toTop, "Voltar ao topo"); ToolTip.SetTip(toTop, "Voltar ao topo");
+        AutomationProperties.SetName(toTop, L.T("Voltar ao topo")); ToolTip.SetTip(toTop, L.T("Voltar ao topo"));
         void Shadow() => toTop.Effect = new DropShadowEffect { OffsetY = 6, BlurRadius = 18, Color = Color.FromArgb((byte)(Palette.IsLight ? 0x40 : 0x80), 0, 0, 0) };
         Shadow(); toTop.ActualThemeVariantChanged += (_, _) => Shadow();
         toTop.Click += (_, _) => ScrollToTop();
@@ -226,7 +226,7 @@ public sealed class GamesFpsPage : Grid
         foreach (var a in Alerts)
             alertList.Children.Add(new StackPanel { Spacing = 2, Children = { new TextBlock { Text = a.Title, FontWeight = FontWeight.SemiBold, FontSize = 12.5, Foreground = Palette.Warn, TextWrapping = TextWrapping.Wrap }, new TextBlock { Text = a.Text, Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap } } });
         alertCard.IsVisible = Alerts.Count > 0;
-        sub.Text = $"FPS esperado no seu PC · {(gpu.Length > 0 ? FpsAccuracy.DisplayGpuName(gpu) : "GPU desconhecida")} · {(cpu.Length > 0 ? GameCatalog.ShortCpuName(cpu) : "CPU desconhecida")}";
+        sub.Text = L.T($"FPS esperado no seu PC · {(gpu.Length > 0 ? FpsAccuracy.DisplayGpuName(gpu) : L.T("GPU desconhecida"))} · {(cpu.Length > 0 ? GameCatalog.ShortCpuName(cpu) : L.T("CPU desconhecida"))}");
         ComputeIndices();
         RefreshLocal();
     }
@@ -241,9 +241,9 @@ public sealed class GamesFpsPage : Grid
         if (cg is double x) { g = x; basis = FpsBasis.Calibrated; }
         else if (gpuTable is { } t) { g = t.Index; basis = FpsBasis.Table; }
         else if (specIdx is double sp) { g = sp; basis = FpsBasis.Specs; }
-        else { g = null; missing.Add("a GPU " + (gpuName.Length > 0 ? GameCatalog.ShortGpuName(gpuName) : "(não identificada)")); }
+        else { g = null; missing.Add("a GPU " + (gpuName.Length > 0 ? GameCatalog.ShortGpuName(gpuName) : L.T("(não identificada)"))); }
         double? c = cc ?? cpuTable; cpuMeasured = cc is not null;
-        if (c is null) missing.Add("a CPU " + (cpuName.Length > 0 ? GameCatalog.ShortCpuName(cpuName) : "(não identificada)"));
+        if (c is null) missing.Add("a CPU " + (cpuName.Length > 0 ? GameCatalog.ShortCpuName(cpuName) : L.T("(não identificada)")));
         hasIndices = missing.Count == 0;
         if (!hasIndices) unknownHardware = string.Join(" e ", missing);
         gpuIdx = g ?? 50; cpuIdx = c ?? 80;
@@ -264,29 +264,29 @@ public sealed class GamesFpsPage : Grid
         switch (Gate)
         {
             case FpsGate.Running:
-                gateTitle.Text = "Calibrando este PC…"; gateIcon.Set(Icons.Bench, Palette.AccentText); gateText.Foreground = Palette.Muted;
+                gateTitle.Text = L.T("Calibrando este PC…"); gateIcon.Set(Icons.Bench, Palette.AccentText); gateText.Foreground = Palette.Muted;
                 break;
             case FpsGate.Calibrated when calibration is { } c:
                 var (g, cpu) = FpsModels.Indices(c);
-                gateTitle.Text = "PC calibrado"; gateIcon.Set(Icons.Validate, Palette.Success); gateText.Foreground = Palette.Muted;
-                gateText.Text = $"Calibrado em {c.At.ToLocalTime().ToString("dd/MM/yyyy HH:mm", inv)}"
-                    + (g is double gi ? $" · GPU {c.Adapter}: nota {c.SceneScore!.Value.ToString("0", inv)} na cena de teste → índice {gi.ToString("0.0#", inv)}" : " · GPU não medida" + (c.Note is { Length: > 0 } n ? $" ({n})" : ""))
-                    + (cpu is double ci ? $" · CPU: {c.CpuSimFps!.Value.ToString("0.0", inv)} FPS na simulação de uma thread → índice {ci.ToString("0", inv)}" : " · CPU não medida")
+                gateTitle.Text = L.T("PC calibrado"); gateIcon.Set(Icons.Validate, Palette.Success); gateText.Foreground = Palette.Muted;
+                gateText.Text = L.T($"Calibrado em {c.At.ToLocalTime().ToString(L.T("dd/MM/yyyy HH:mm"), inv)}")
+                    + (g is double gi ? L.T($" · GPU {c.Adapter}: nota {c.SceneScore!.Value.ToString("0", inv)} na cena de teste → índice {gi.ToString("0.0#", inv)}") : L.T(" · GPU não medida") + (c.Note is { Length: > 0 } n ? $" ({n})" : ""))
+                    + (cpu is double ci ? L.T($" · CPU: {c.CpuSimFps!.Value.ToString("0.0", inv)} FPS na simulação de uma thread → índice {ci.ToString("0", inv)}") : L.T(" · CPU não medida"))
                     + (c.Driver.Length > 0 ? $" · driver {c.Driver} {c.DriverVersion}".TrimEnd() : "")
-                    + ". Os índices são da escala do Ilmenyx (RTX 4070 = 100, Ryzen 7 7700X = 100). Se trocar a GPU, o driver ou a CPU, o Ilmenyx pede uma nova calibração."
+                    + L.T(". Os índices são da escala do Ilmenyx (RTX 4070 = 100, Ryzen 7 7700X = 100). Se trocar a GPU, o driver ou a CPU, o Ilmenyx pede uma nova calibração.")
                     + (CalibrationMessage is { } m0 ? " " + m0 : "");
-                calibrate.Content = "Recalibrar (≈1 min)";
+                calibrate.Content = L.T("Recalibrar (≈1 min)");
                 break;
             default:
                 bool stale = Gate == FpsGate.Stale;
-                gateTitle.Text = stale ? "A GPU, o driver ou a CPU mudou: as estimativas não são confiáveis até recalibrar" : "As estimativas ainda não são confiáveis: este PC não foi calibrado";
+                gateTitle.Text = stale ? L.T("A GPU, o driver ou a CPU mudou: as estimativas não são confiáveis até recalibrar") : L.T("As estimativas ainda não são confiáveis: este PC não foi calibrado");
                 gateIcon.Set(Icons.Blocked, Palette.Warn); gateText.Foreground = Palette.Muted;
-                gateText.Text = (stale ? $"A calibração de {calibration!.At.ToLocalTime().ToString("dd/MM/yyyy", inv)} foi feita com outro hardware ou driver. " : "")
-                    + $"A calibração mede esta máquina com dois testes curtos: uma cena de jogo na GPU ({FpsModels.SceneSeconds} s) e uma simulação de jogo em uma thread da CPU ({FpsModels.SimSeconds} s). "
-                    + $"Leva cerca de 1 minuto, esquenta o PC por pouco tempo e para sozinha se a CPU ou a GPU chegar a {FpsModels.AbortTempC:0} °C. Nada é enviado pela internet. "
-                    + "Até calibrar, os números dos cartões ficam cinza e marcados \"provisório\"." + (CalibrationMessage is { } m1 ? " " + m1 : "")
-                    + (calibrator is null ? " (Calibração indisponível neste sistema.)" : "");
-                calibrate.Content = "Calibrar agora (≈1 min)";
+                gateText.Text = (stale ? L.T($"A calibração de {calibration!.At.ToLocalTime().ToString("dd/MM/yyyy", inv)} foi feita com outro hardware ou driver. ") : "")
+                    + L.T($"A calibração mede esta máquina com dois testes curtos: uma cena de jogo na GPU ({FpsModels.SceneSeconds} s) e uma simulação de jogo em uma thread da CPU ({FpsModels.SimSeconds} s). ")
+                    + L.T($"Leva cerca de 1 minuto, esquenta o PC por pouco tempo e para sozinha se a CPU ou a GPU chegar a {FpsModels.AbortTempC:0} °C. Nada é enviado pela internet. ")
+                    + L.T("Até calibrar, os números dos cartões ficam cinza e marcados \"provisório\".") + (CalibrationMessage is { } m1 ? " " + m1 : "")
+                    + (calibrator is null ? L.T(" (Calibração indisponível neste sistema.)") : "");
+                calibrate.Content = L.T("Calibrar agora (≈1 min)");
                 break;
         }
     }
@@ -295,15 +295,15 @@ public sealed class GamesFpsPage : Grid
     public async Task CalibrateAsync()
     {
         if (calibrator is null || Gate == FpsGate.Running) return;
-        if (TopLevel.GetTopLevel(this) is Window w && !await ConfirmDialog.AskAsync(w, "Calibrar este PC",
-            $"Isto roda uma cena de jogo na GPU por {FpsModels.SceneSeconds} s e uma simulação de jogo na CPU por {FpsModels.SimSeconds} s (cerca de 1 minuto). O PC esquenta um pouco; o teste para sozinho se a CPU ou a GPU chegar a {FpsModels.AbortTempC:0} °C. Deixe o notebook na tomada e feche jogos e programas pesados. Calibrar agora?", "Calibrar", "Cancelar")) return;
+        if (TopLevel.GetTopLevel(this) is Window w && !await ConfirmDialog.AskAsync(w, L.T("Calibrar este PC"),
+            L.T($"Isto roda uma cena de jogo na GPU por {FpsModels.SceneSeconds} s e uma simulação de jogo na CPU por {FpsModels.SimSeconds} s (cerca de 1 minuto). O PC esquenta um pouco; o teste para sozinho se a CPU ou a GPU chegar a {FpsModels.AbortTempC:0} °C. Deixe o notebook na tomada e feche jogos e programas pesados. Calibrar agora?"), L.T("Calibrar"), L.T("Cancelar"))) return;
         double? hot = Hottest();
-        if (hot >= FpsModels.AbortTempC) { CalibrationMessage = $"O PC já está a {hot:0} °C: espere esfriar e tente de novo."; UpdateGate(); return; }
+        if (hot >= FpsModels.AbortTempC) { CalibrationMessage = L.T($"O PC já está a {hot:0} °C: espere esfriar e tente de novo."); UpdateGate(); return; }
         var previous = Gate; Gate = FpsGate.Running; CalibrationMessage = null; calAbort = null; gateProgress.Value = 0;
-        gateText.Text = "Preparando…"; UpdateGate();
+        gateText.Text = L.T("Preparando…"); UpdateGate();
         calCts = new CancellationTokenSource();
         var guard = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
-        guard.Tick += (_, _) => { if (Hottest() is double t && t >= FpsModels.AbortTempC && calAbort is null) { calAbort = $"Calibração interrompida: {t:0} °C (limite {FpsModels.AbortTempC:0} °C). Nada foi salvo; espere esfriar e tente de novo."; calCts.Cancel(); } };
+        guard.Tick += (_, _) => { if (Hottest() is double t && t >= FpsModels.AbortTempC && calAbort is null) { calAbort = L.T($"Calibração interrompida: {t:0} °C (limite {FpsModels.AbortTempC:0} °C). Nada foi salvo; espere esfriar e tente de novo."); calCts.Cancel(); } };
         guard.Start();
         FpsCalibrationMeasurement? m = null;
         try { m = await calibrator.Run(new Progress<(string Phase, double Fraction)>(p => { if (Gate == FpsGate.Running) { gateText.Text = p.Phase; gateProgress.Value = Math.Clamp(p.Fraction, 0, 1); } }), calCts.Token); }
@@ -311,13 +311,13 @@ public sealed class GamesFpsPage : Grid
         finally { guard.Stop(); }
         bool cancelled = calCts.IsCancellationRequested; calCts.Dispose(); calCts = null;
         Gate = previous;
-        if (calAbort is not null || cancelled || m is null) { CalibrationMessage = calAbort ?? "Calibração cancelada: nada foi salvo."; ComputeIndices(); RefreshLocal(); return; }
-        if (m.CpuSimFps is null && m.SceneScore is null) { CalibrationMessage = "A calibração não mediu nada" + (m.Reason is { } r ? ": " + r : ".") + " Nada foi salvo."; ComputeIndices(); RefreshLocal(); return; }
+        if (calAbort is not null || cancelled || m is null) { CalibrationMessage = calAbort ?? L.T("Calibração cancelada: nada foi salvo."); ComputeIndices(); RefreshLocal(); return; }
+        if (m.CpuSimFps is null && m.SceneScore is null) { CalibrationMessage = L.T("A calibração não mediu nada") + (m.Reason is { } r ? ": " + r : ".") + L.T(" Nada foi salvo."); ComputeIndices(); RefreshLocal(); return; }
         var cal = new FpsCalibration(DateTimeOffset.Now, fingerprint, gpuName, ctx?.GpuDriver ?? "", ctx?.GpuDriverVersion ?? "", cpuName, m.SceneScore, m.Adapter, m.CpuSimFps, m.Reason);
         try { settings.FpsSessions = IlmenyxSettings.Update(settingsPath, s => s.FpsCalibration = cal).FpsSessions; }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { CalibrationMessage = "Não foi possível salvar a calibração: " + e.Message; ComputeIndices(); RefreshLocal(); return; }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { CalibrationMessage = L.T("Não foi possível salvar a calibração: ") + e.Message; ComputeIndices(); RefreshLocal(); return; }
         calibration = cal; settings.FpsCalibration = cal;
-        CalibrationMessage = m.SceneScore is null ? $"A GPU não foi medida ({m.Reason ?? "sem Vulkan"}); a GPU usa a tabela ou as especificações." : null;
+        CalibrationMessage = m.SceneScore is null ? L.T($"A GPU não foi medida ({m.Reason ?? L.T("sem Vulkan")}); a GPU usa a tabela ou as especificações.") : null;
         ComputeIndices(); RefreshLocal();
     }
 
@@ -347,31 +347,31 @@ public sealed class GamesFpsPage : Grid
         }
         else
         {
-            foreach (var row in rows) row.Set(0, 0, "SEM ESTIMATIVA", $"{unknownHardware} não está na tabela de referência do Ilmenyx");
+            foreach (var row in rows) row.Set(0, 0, L.T("SEM ESTIMATIVA"), L.T($"{unknownHardware} não está na tabela de referência do Ilmenyx"));
             GameFpsRow.ApplyMeasured(rows, sessions);
         }
         int measured = rows.Count(r => r.IsMeasured);
-        string measuredNote = measured == 0 ? " Para ver o FPS real deste PC, abra o jogo pela página Jogos com MangoHud ligado: ao fechar, a sessão aparece aqui como MEDIDO NESTE PC."
-            : $" {measured} jogo(s) com sessão MEDIDO NESTE PC (MangoHud, pela página Jogos): esse valor vale nas configurações usadas no jogo, não nas opções acima.";
-        string estimateNote = $" A faixa é uma estimativa, não uma medição ({assessment.ConfidenceText}): {string.Join("; ", assessment.Reasons)}.";
+        string measuredNote = measured == 0 ? L.T(" Para ver o FPS real deste PC, abra o jogo pela página Jogos com MangoHud ligado: ao fechar, a sessão aparece aqui como MEDIDO NESTE PC.")
+            : L.T($" {measured} jogo(s) com sessão MEDIDO NESTE PC (MangoHud, pela página Jogos): esse valor vale nas configurações usadas no jogo, não nas opções acima.");
+        string estimateNote = L.T($" A faixa é uma estimativa, não uma medição ({assessment.ConfidenceText}): {string.Join("; ", assessment.Reasons)}.");
         string personalNote = (personalGpu ?? personalCpu) is { } pf
-            ? $" Ajuste pessoal: {pf.Text} na qualidade {preset} corrigem as estimativas de jogos com o mesmo gargalo (fator {(personalGpu ?? pf).Factor.ToString("0.00", PtBr)})."
-            : provisional ? "" : $" Ajuste pessoal: nenhuma sessão medida na qualidade {preset} com a resolução informada (informe a qualidade gráfica no perfil do jogo, página Jogos).";
+            ? L.T($" Ajuste pessoal: {pf.Text} na qualidade {preset} corrigem as estimativas de jogos com o mesmo gargalo (fator {(personalGpu ?? pf).Factor.ToString("0.00", PtBr)}).")
+            : provisional ? "" : L.T($" Ajuste pessoal: nenhuma sessão medida na qualidade {preset} com a resolução informada (informe a qualidade gráfica no perfil do jogo, página Jogos).");
         if (unknownHardware is { } missingNow)
         {
-            sourceTitle.Text = "Fonte: sem estimativa para este PC";
-            sourceText.Text = $"Não há referência de desempenho para {missingNow}, então o Ilmenyx não calcula um FPS (seria inventado)."
-                + (Gate != FpsGate.Calibrated ? " Calibre o PC: a medição dá uma estimativa mesmo para peças fora da tabela." : "") + measuredNote;
+            sourceTitle.Text = L.T("Fonte: sem estimativa para este PC");
+            sourceText.Text = L.T($"Não há referência de desempenho para {missingNow}, então o Ilmenyx não calcula um FPS (seria inventado).")
+                + (Gate != FpsGate.Calibrated ? L.T(" Calibre o PC: a medição dá uma estimativa mesmo para peças fora da tabela.") : "") + measuredNote;
         }
         else if (provisional)
         {
-            sourceTitle.Text = "Fonte: provisória (PC ainda não calibrado)";
-            sourceText.Text = $"Por enquanto os números usam a base \"{FpsModels.BasisText(basis)}\" (pelo nome ou ID da GPU e pelo nome da CPU), sem medir esta máquina e sem usar a internet: não confie neles antes de calibrar." + measuredNote;
+            sourceTitle.Text = L.T("Fonte: provisória (PC ainda não calibrado)");
+            sourceText.Text = L.T($"Por enquanto os números usam a base \"{FpsModels.BasisText(basis)}\" (pelo nome ou ID da GPU e pelo nome da CPU), sem medir esta máquina e sem usar a internet: não confie neles antes de calibrar.") + measuredNote;
         }
         else
         {
-            sourceTitle.Text = "Fonte: estimativa calibrada neste PC";
-            sourceText.Text = $"Calculada neste PC, sem usar a internet. GPU: base {FpsModels.BasisText(basis)} (índice {gpuIdx.ToString("0.0#", PtBr)}); CPU: base {(cpuMeasured ? "benchmark deste PC" : "tabela de referência")} (índice {cpuIdx.ToString("0", PtBr)})."
+            sourceTitle.Text = L.T("Fonte: estimativa calibrada neste PC");
+            sourceText.Text = L.T($"Calculada neste PC, sem usar a internet. GPU: base {FpsModels.BasisText(basis)} (índice {gpuIdx.ToString("0.0#", PtBr)}); CPU: base {(cpuMeasured ? L.T("benchmark deste PC") : L.T("tabela de referência"))} (índice {cpuIdx.ToString("0", PtBr)}).")
                 + estimateNote + personalNote + measuredNote;
         }
         Rebuild();
@@ -406,8 +406,8 @@ public sealed class GamesFpsPage : Grid
         string q = (search.Text ?? "").Trim();
         cards.Children.Clear();
         int shown = rows.Count(r => q.Length == 0 || r.Name.Contains(q, StringComparison.OrdinalIgnoreCase));
-        string resText = res switch { "2560x1440" => "1440p", "3840x2160" => "4K", _ => "1080p" }, upText = upscaling switch { "Quality" => "Qualidade", "Performance" => "Desempenho", _ => "Nativo" };
-        catalogCount.Text = (q.Length == 0 ? $"{rows.Count} jogos" : $"{shown} de {rows.Count} jogos") + $" · {resText} · {preset} · {upText}";
+        string resText = res switch { "2560x1440" => "1440p", "3840x2160" => "4K", _ => "1080p" }, upText = upscaling switch { "Quality" => L.T("Qualidade"), "Performance" => L.T("Desempenho"), _ => L.T("Nativo") };
+        catalogCount.Text = (q.Length == 0 ? $"{rows.Count} jogos" : L.T($"{shown} de {rows.Count} jogos")) + $" · {resText} · {preset} · {upText}";
         foreach (var row in rows.Where(r => q.Length == 0 || r.Name.Contains(q, StringComparison.OrdinalIgnoreCase)))
         {
             // Before calibration the estimate is greyed out and labelled provisional (the measured value of a session is never greyed).

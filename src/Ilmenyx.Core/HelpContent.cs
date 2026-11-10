@@ -94,10 +94,11 @@ public static partial class HelpContent
 
     public static IReadOnlyCollection<string> Languages => sets.Keys;
 
-    /// <summary>The set for <paramref name="code"/> ("pt-BR", later "en", "es"); unknown or null falls back to pt-BR.</summary>
+    /// <summary>The set for <paramref name="code"/> ("pt-BR", "en", "es"; null = the interface language); unknown falls back to pt-BR.</summary>
     public static HelpLanguage For(string? code = null)
     {
-        string key = code is not null && sets.ContainsKey(code) ? code : DefaultLanguage;
+        code ??= L.Current;
+        string key = sets.ContainsKey(code) ? code : DefaultLanguage;
         return cache.GetOrAdd(key, k => sets[k]());
     }
 }

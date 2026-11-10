@@ -6,21 +6,22 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Ilmenyx.Core;
 
 namespace Ilmenyx.Desktop;
 
 /// <summary>Asks for one line of text (e.g. a game's name). Escape or closing the window returns null; empty text is not accepted.</summary>
 public sealed class TextInputDialog : Window
 {
-    public TextInputDialog(string title, string label, string initial, int maxLength = 80, string ok = "Salvar")
+    public TextInputDialog(string title, string label, string initial, int maxLength = 80, string? ok = null)
     {
         Icon = AppIcon.Window; Title = title; Width = 460; MinWidth = 340; SizeToContent = SizeToContent.Height; CanResize = false; WindowStartupLocation = WindowStartupLocation.CenterOwner;
         Background = Palette.Panel; Foreground = Palette.Fg;
         KeyboardNavigation.SetTabNavigation(this, KeyboardNavigationMode.Cycle);
         var box = new TextBox { Name = "InputText", Text = initial, MaxLength = maxLength };
         AutomationProperties.SetName(box, label);
-        var okButton = new Button { Name = "InputOk", Content = ok, IsDefault = true, Padding = new Thickness(20, 8) };
-        var cancel = new Button { Name = "InputCancel", Content = "Cancelar", IsCancel = true, Padding = new Thickness(20, 8) };
+        var okButton = new Button { Name = "InputOk", Content = ok ?? L.T("Salvar"), IsDefault = true, Padding = new Thickness(20, 8) };
+        var cancel = new Button { Name = "InputCancel", Content = L.T("Cancelar"), IsCancel = true, Padding = new Thickness(20, 8) };
         void Refresh() => okButton.IsEnabled = !string.IsNullOrWhiteSpace(box.Text);
         box.TextChanged += (_, _) => Refresh(); Refresh();
         okButton.Click += (_, _) => { if (!string.IsNullOrWhiteSpace(box.Text)) Close(box.Text.Trim()); };

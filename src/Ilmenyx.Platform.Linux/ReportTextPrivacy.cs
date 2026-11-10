@@ -3,6 +3,7 @@
 using System.Text.RegularExpressions;
 using System.Net;
 using System.Net.Sockets;
+using Ilmenyx.Core;
 
 namespace Ilmenyx.Platform.Linux;
 
@@ -33,7 +34,7 @@ internal static partial class ReportTextPrivacy
             if (zone >= 0 || !address.EndsWith(':') || !Valid(address[..^1])) return match.Value;
             candidate = candidate[..^1];
         }
-        return "[IP redigido]" + match.Value[candidate.Length..];
+        return L.T("[IP redigido]") + match.Value[candidate.Length..];
     }
     public static string Redact(string boundedText)
     {
@@ -41,6 +42,6 @@ internal static partial class ReportTextPrivacy
         text = HomePath().Replace(text, "[caminho redigido]");
         text = Ipv6Candidate().Replace(text, RedactIpv6);
         text = Identifier().Replace(text, "[identificador redigido]");
-        return Ipv4().Replace(text, match => System.Net.IPAddress.TryParse(match.Value, out _) ? "[IP redigido]" : match.Value);
+        return Ipv4().Replace(text, match => System.Net.IPAddress.TryParse(match.Value, out _) ? L.T("[IP redigido]") : match.Value);
     }
 }

@@ -14,8 +14,8 @@ public sealed class GameSimValidationRunner(TimeProvider? timeProvider = null) :
     private readonly TimeProvider clock = timeProvider ?? TimeProvider.System;
     public static void Validate(GameSimValidationOptions options)
     {
-        if (options.Threads is not (1 or 2 or 4)) throw new ArgumentException("GameSim reduzido permite somente 1, 2 ou 4 workers.");
-        if (options.Timeout <= TimeSpan.Zero || options.Timeout > TimeSpan.FromSeconds(10)) throw new ArgumentException("Timeout GameSim deve ser positivo e no máximo 10 segundos.");
+        if (options.Threads is not (1 or 2 or 4)) throw new ArgumentException(L.T("GameSim reduzido permite somente 1, 2 ou 4 workers."));
+        if (options.Timeout <= TimeSpan.Zero || options.Timeout > TimeSpan.FromSeconds(10)) throw new ArgumentException(L.T("Timeout GameSim deve ser positivo e no máximo 10 segundos."));
     }
     public Task<GameSimValidationResult> RunAsync(GameSimValidationOptions options, CancellationToken ct = default, IProgress<GameSimValidationProgress>? progress = null)
     { Validate(options); return Task.Run(() => Run(options, ct, progress)); }
@@ -46,20 +46,20 @@ public sealed class GameSimValidationRunner(TimeProvider? timeProvider = null) :
                 new("silex-gamesim-validation-v1", GameSimStateEngine.Entities, MaximumSteps, GameSimStateEngine.World, 64, 1 / 60f, 12345, 0),
                 status, started, options.Threads, options.Threads * 4, options.Timeout.TotalSeconds, completed, hash, state, null, "not-measured",
                 RuntimeInformation.FrameworkDescription, RuntimeInformation.ProcessArchitecture.ToString(),
-                ["Simulação sintética reduzida: 256 entidades e 16 passos, sem warmup por relógio, FPS, low1 ou score.",
-                 "Não representa FPS de um jogo real ou desempenho da GPU; não é comparável ao benchmark Windows completo.",
-                 "Matemática, RNG seed 12345, mundo 1000, grade 64x64 e dt=1/60 preservados; número de entidades e duração alterados explicitamente.",
-                 "Cancelamento/timeout são cooperativos entre passos completos; resultados interrompidos não publicam estado/hash final.",
-                 "Snapshot final copiado após física, lógica e ordenação; buffers internos mutáveis não são expostos."]);
+                [L.T("Simulação sintética reduzida: 256 entidades e 16 passos, sem warmup por relógio, FPS, low1 ou score."),
+                 L.T("Não representa FPS de um jogo real ou desempenho da GPU; não é comparável ao benchmark Windows completo."),
+                 L.T("Matemática, RNG seed 12345, mundo 1000, grade 64x64 e dt=1/60 preservados; número de entidades e duração alterados explicitamente."),
+                 L.T("Cancelamento/timeout são cooperativos entre passos completos; resultados interrompidos não publicam estado/hash final."),
+                 L.T("Snapshot final copiado após física, lógica e ordenação; buffers internos mutáveis não são expostos.")]);
     }
     internal static void ValidateState(GameSimState state)
     {
-        if (state.Entities.Count != 256 || state.DrawOrder.Count != state.DrawDepthKeys.Count) throw new InvalidDataException("Snapshot GameSim incompleto.");
+        if (state.Entities.Count != 256 || state.DrawOrder.Count != state.DrawDepthKeys.Count) throw new InvalidDataException(L.T("Snapshot GameSim incompleto."));
         foreach (var e in state.Entities)
             if (!float.IsFinite(e.X) || !float.IsFinite(e.Y) || !float.IsFinite(e.Vx) || !float.IsFinite(e.Vy) || !float.IsFinite(e.Health) || !float.IsFinite(e.Damage) || e.X < 0 || e.X > 1000 || e.Y < 0 || e.Y > 1000 || e.Health <= 0 || e.Health > 100 || e.Team > 1)
-                throw new InvalidDataException("Estado GameSim fora do domínio.");
+                throw new InvalidDataException(L.T("Estado GameSim fora do domínio."));
         if (state.DrawOrder.Any(i => i < 0 || i >= 256) || state.DrawOrder.Distinct().Count() != state.DrawOrder.Count || state.DrawDepthKeys.Any(k => !float.IsFinite(k)))
-            throw new InvalidDataException("Ordenação GameSim inválida.");
+            throw new InvalidDataException(L.T("Ordenação GameSim inválida."));
     }
     internal static string HashState(GameSimState state, CancellationToken ct = default)
     {

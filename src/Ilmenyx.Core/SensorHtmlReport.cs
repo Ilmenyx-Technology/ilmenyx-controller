@@ -25,12 +25,12 @@ public static class SensorHtmlReport
     {
         ct.ThrowIfCancellationRequested();
         var html = new StringBuilder(8192);
-        html.Append("""
+        html.Append($$$"""
             <!doctype html>
-            <html lang="pt-BR"><head><meta charset="utf-8">
+            <html lang="{{{L.Current}}}"><head><meta charset="utf-8">
             <meta name="viewport" content="width=device-width,initial-scale=1">
             <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
-            <title>Ilmenyx — Relatório de sensores</title>
+            <title>{{{L.T("Ilmenyx — Relatório de sensores")}}}</title>
             <style>
             *{box-sizing:border-box}body{margin:0;font:15px system-ui,sans-serif;line-height:1.5}
             main{max-width:1400px;margin:auto;padding:24px}section{margin:24px 0}p,td,dd{overflow-wrap:anywhere}
@@ -39,27 +39,27 @@ public static class SensorHtmlReport
             dl{display:grid;grid-template-columns:minmax(120px,1fr) 3fr;gap:8px}dd{margin:0}
             footer{white-space:pre-wrap}@media(max-width:600px){main{padding:12px}dl{display:block}dd{margin-bottom:8px}}
             @media print{main{padding:0}.table-wrap{overflow:visible}th,td{padding:4px;min-width:0}}
-            </style></head><body><main><header><h1>Ilmenyx Controller</h1><p>by Ilmenyx Technology</p><p>Relatório de sensores · arquivo offline</p></header>
-            <p>Leituras brutas do kernel, sem inferência de saúde, calibração ou proteção térmica. Exportar não inicia monitoramento, SMART ou benchmarks.</p>
-            <section><h2>Proveniência</h2><dl>
+            </style></head><body><main><header><h1>Ilmenyx Controller</h1><p>by Ilmenyx Technology</p><p>{{{L.T("Relatório de sensores · arquivo offline")}}}</p></header>
+            <p>{{{L.T("Leituras brutas do kernel, sem inferência de saúde, calibração ou proteção térmica. Exportar não inicia monitoramento, SMART ou benchmarks.")}}}</p>
+            <section><h2>{{{L.T("Proveniência")}}}</h2><dl>
             """);
-        Metadata("Formato HTML", FormatVersion); Metadata("Schema de sensores", snapshot.SchemaVersion);
-        Metadata("Coleta UTC", Utc(snapshot.CollectedAt)); Metadata("Estado agregado", snapshot.Status);
-        Metadata("Motivo", snapshot.Reason ?? ""); html.Append("</dl></section>");
-        StartTable("Leituras de sensores", ["Dispositivo", "Chip", "Canal", "Rótulo", "Valor", "Unidade", "Estado", "Coleta UTC", "Qualidade", "Fonte", "Motivo"]);
+        Metadata(L.T("Formato HTML"), FormatVersion); Metadata(L.T("Schema de sensores"), snapshot.SchemaVersion);
+        Metadata(L.T("Coleta UTC"), Utc(snapshot.CollectedAt)); Metadata(L.T("Estado agregado"), snapshot.Status);
+        Metadata(L.T("Motivo"), snapshot.Reason ?? ""); html.Append("</dl></section>");
+        StartTable(L.T("Leituras de sensores"), [L.T("Dispositivo"), "Chip", L.T("Canal"), L.T("Rótulo"), L.T("Valor"), L.T("Unidade"), L.T("Estado"), L.T("Coleta UTC"), L.T("Qualidade"), L.T("Fonte"), L.T("Motivo")]);
         foreach (var sensor in snapshot.Readings)
             Row(sensor.Device, sensor.Chip, sensor.Channel, sensor.Label, Value(sensor.Reading), sensor.Reading.Unit,
                 sensor.Reading.Status, Utc(sensor.CollectedAt), sensor.Quality, sensor.Reading.Source, sensor.Reading.Reason ?? "");
         EndTable();
-        if (snapshot.Readings.Count == 0) html.Append("<p>Indisponível: nenhuma leitura de sensor informada.</p>");
-        StartTable("Bateria e alimentação — metadados brutos", ["Dispositivo", "Campo", "Valor", "Unidade", "Estado", "Fonte", "Motivo"]);
+        if (snapshot.Readings.Count == 0) html.Append(L.T("<p>Indisponível: nenhuma leitura de sensor informada.</p>"));
+        StartTable(L.T("Bateria e alimentação — metadados brutos"), [L.T("Dispositivo"), L.T("Campo"), L.T("Valor"), L.T("Unidade"), L.T("Estado"), L.T("Fonte"), L.T("Motivo")]);
         foreach (var supply in snapshot.PowerSupplies ?? [])
         {
-            Power(supply.Device, "Tipo", supply.Type); Power(supply.Device, "Status", supply.Status); Power(supply.Device, "Presente", supply.Present);
+            Power(supply.Device, L.T("Tipo"), supply.Type); Power(supply.Device, "Status", supply.Status); Power(supply.Device, L.T("Presente"), supply.Present);
         }
         EndTable();
-        if (snapshot.PowerSupplies is not { Count: > 0 }) html.Append("<p>Indisponível: nenhuma fonte de alimentação informada.</p>");
-        html.Append("<section><h2>Limitações</h2><ul>");
+        if (snapshot.PowerSupplies is not { Count: > 0 }) html.Append(L.T("<p>Indisponível: nenhuma fonte de alimentação informada.</p>"));
+        html.Append(L.T("<section><h2>Limitações</h2><ul>"));
         foreach (var limitation in snapshot.Limitations)
         { ct.ThrowIfCancellationRequested(); html.Append("<li>").Append(E(limitation)).Append("</li>"); }
         html.Append("</ul></section><footer><p>").Append(E(ProductIdentity.Attribution)).Append("</p><p>")
@@ -69,7 +69,7 @@ public static class SensorHtmlReport
         void Metadata(string key, string value) => html.Append("<dt>").Append(E(key)).Append("</dt><dd>").Append(E(value)).Append("</dd>");
         void StartTable(string title, string[] headings)
         {
-            html.Append("<section><h2>").Append(E(title)).Append("</h2><div class=\"table-wrap\"><table><thead><tr>");
+            html.Append("<section><h2>").Append(E(title)).Append(L.T("</h2><div class=\"table-wrap\"><table><thead><tr>"));
             foreach (var heading in headings) html.Append("<th scope=\"col\">").Append(E(heading)).Append("</th>");
             html.Append("</tr></thead><tbody>");
         }
@@ -84,7 +84,7 @@ public static class SensorHtmlReport
             Row(device, field, Value(reading), reading.Unit, reading.Status, reading.Source, reading.Reason ?? "");
     }
     private static string Value<T>(Reading<T> reading) => reading.Status == "available" && reading.Value is { } value
-        ? Convert.ToString(value, CultureInfo.InvariantCulture) ?? "" : "Indisponível";
+        ? Convert.ToString(value, CultureInfo.InvariantCulture) ?? "" : L.T("Indisponível");
     private static string Utc(DateTimeOffset date) => date.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture);
     private static string E(string text) => WebUtility.HtmlEncode(text);
 }

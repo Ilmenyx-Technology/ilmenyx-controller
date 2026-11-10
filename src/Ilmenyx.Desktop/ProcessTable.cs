@@ -4,6 +4,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Ilmenyx.Core;
 
 namespace Ilmenyx.Desktop;
 
@@ -13,10 +14,10 @@ public sealed class ProcessTable : Border
     public ProcessTable(UsageViewModel usage)
     {
         var rows = new StackPanel { Name = "ProcessRows" };
-        var cpuHeader = SortButton("SortCpu", "CPU ▼"); var memHeader = SortButton("SortMemory", "Memória");
+        var cpuHeader = SortButton("SortCpu", "CPU ▼"); var memHeader = SortButton("SortMemory", L.T("Memória"));
         void Sort()
         {
-            cpuHeader.Content = usage.SortByMemory ? "CPU" : "CPU ▼"; memHeader.Content = usage.SortByMemory ? "Memória ▼" : "Memória";
+            cpuHeader.Content = usage.SortByMemory ? "CPU" : "CPU ▼"; memHeader.Content = usage.SortByMemory ? L.T("Memória ▼") : L.T("Memória");
             cpuHeader.Foreground = usage.SortByMemory ? Palette.Faint : Palette.AccentText; memHeader.Foreground = usage.SortByMemory ? Palette.AccentText : Palette.Faint;
         }
         cpuHeader.Click += (_, _) => { if (usage.SortByMemory) { usage.ToggleSort(); Sort(); } };
@@ -49,7 +50,7 @@ public sealed class ProcessTable : Border
         tableLayout.Children.Add(table); tableLayout.Children.Add(scroll);
         var surface = UiKit.Card(tableLayout, new Thickness(0)); surface.Padding = new Thickness(16, 10, 8, 8);
         var layout = new Grid { RowDefinitions = new("Auto,Auto,*") };
-        var header = UiKit.PageHeader("Processos", "Os que mais usam CPU e memória agora, do monitor ao vivo. Só nesta tela: os nomes nunca são exportados.");
+        var header = UiKit.PageHeader(L.T("Processos"), L.T("Os que mais usam CPU e memória agora, do monitor ao vivo. Só nesta tela: os nomes nunca são exportados."));
         Grid.SetRow(summary, 1); Grid.SetRow(surface, 2);
         layout.Children.Add(header); layout.Children.Add(summary); layout.Children.Add(surface);
         Name = "ProcessPanel"; Background = Brushes.Transparent; Padding = new Thickness(0, 4, 10, 12); Child = layout;

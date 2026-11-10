@@ -10,6 +10,9 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Locales/*.json" LogicalName="Ilmenyx.Core.Locales.%(Filename).json" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="../Ilmenyx.Contracts/Ilmenyx.Contracts.csproj" />
   </ItemGroup>
 </Project>

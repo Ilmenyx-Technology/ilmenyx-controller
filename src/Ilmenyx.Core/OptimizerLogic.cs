@@ -27,7 +27,7 @@ public static class OptimizerLogic
     /// <summary>Never listed even if they look like applications (session, security, audio, shells, the app itself).</summary>
     public static readonly HashSet<string> Protected = new(StringComparer.Ordinal)
     {
-        "systemd", "dbus-daemon", "dbus-broker", "pipewire", "pipewire-pulse", "wireplumber", "pulseaudio", "Xorg", "Xwayland", "kwin_wayland", "kwin_x11", "plasmashell", "gnome-shell",
+        "systemd", "dbus-daemon", "dbus-broker", "pipewire", "pipewire-pulse", "wireplumber", "pulseaudio", "Xorg", L.T("Xwayland"), "kwin_wayland", "kwin_x11", "plasmashell", "gnome-shell",
         "sddm", "gdm", "lightdm", "login", "bash", "zsh", "fish", "sh", "sudo", "ssh-agent", "gpg-agent", "polkitd", "polkit-kde-authentication-agent-1", "kded6", "kglobalacceld",
         "kactivitymanagerd", "ibus-daemon", "fcitx5", "dotnet", "Ilmenyx.Desktop", "ilmenyx", "konsole", "gnome-terminal-server", "kitty", "alacritty", "wezterm-gui", "code", "claude", "xdg-desktop-portal", "xdg-document-portal"
     };
@@ -35,10 +35,10 @@ public static class OptimizerLogic
     /// <summary>Background helpers that are safe to close while gaming (pre-selected), the Linux counterpart of the original list.</summary>
     public static readonly IReadOnlyDictionary<string, string> Suggested = new Dictionary<string, string>(StringComparer.Ordinal)
     {
-        ["baloo_file"] = "Indexador de arquivos do KDE (usa disco e CPU)", ["baloo_file_extractor"] = "Indexador de arquivos do KDE (extrator)",
-        ["tracker-miner-fs-3"] = "Indexador de arquivos do GNOME", ["tracker-extract-3"] = "Extrator do indexador do GNOME",
-        ["dropbox"] = "Sincronização do Dropbox", ["insync"] = "Google Drive (Insync)", ["megasync"] = "Sincronização do MEGA", ["onedrive"] = "Sincronização do OneDrive",
-        ["teams-for-linux"] = "Microsoft Teams", ["slack"] = "Slack", ["skypeforlinux"] = "Skype", ["zoom"] = "Zoom", ["akonadi_control"] = "Serviço de dados pessoais do KDE (Akonadi)",
+        ["baloo_file"] = L.T("Indexador de arquivos do KDE (usa disco e CPU)"), ["baloo_file_extractor"] = L.T("Indexador de arquivos do KDE (extrator)"),
+        ["tracker-miner-fs-3"] = L.T("Indexador de arquivos do GNOME"), ["tracker-extract-3"] = L.T("Extrator do indexador do GNOME"),
+        ["dropbox"] = L.T("Sincronização do Dropbox"), ["insync"] = L.T("Google Drive (Insync)"), ["megasync"] = L.T("Sincronização do MEGA"), ["onedrive"] = L.T("Sincronização do OneDrive"),
+        ["teams-for-linux"] = "Microsoft Teams", ["slack"] = "Slack", ["skypeforlinux"] = L.T("Skype"), ["zoom"] = "Zoom", ["akonadi_control"] = L.T("Serviço de dados pessoais do KDE (Akonadi)"),
     };
 
     /// <summary>Groups processes by name. Listed: apps matching an installed desktop entry ("Programa aberto") and suggested helpers; everything else stays out.</summary>
@@ -57,8 +57,8 @@ public static class OptimizerLogic
             string? desktop = procs.Select(p => p.DesktopName).FirstOrDefault(d => !string.IsNullOrEmpty(d));
             bool hasWindow = desktop is not null, suggested = Suggested.ContainsKey(name);
             if (!hasWindow && !suggested) continue;
-            string detail = suggested ? Suggested[name] : "Programa aberto";
-            if (procs.Count > 1) detail += $" · {procs.Count} processos";
+            string detail = suggested ? Suggested[name] : L.T("Programa aberto");
+            if (procs.Count > 1) detail += L.T($" · {procs.Count} processos");
             result.Add(new BackgroundApp { ProcessName = name, Title = desktop ?? name, Detail = detail, MemoryBytes = procs.Sum(p => p.ResidentBytes), Count = procs.Count, Pids = procs.Select(p => p.Pid).ToList(), HasWindow = hasWindow, Suggested = suggested, Selected = suggested });
         }
         return result.OrderByDescending(a => a.Suggested).ThenByDescending(a => a.MemoryBytes).ToList();
@@ -85,34 +85,34 @@ public static class GameTweakRules
 
     public static GameTweak MaxMapCount(long? current) => new()
     {
-        Id = "max_map_count", Title = "vm.max_map_count", Badge = "REQUER ROOT",
-        Description = "Limite de mapeamentos de memória por processo. Jogos como CS2, Star Citizen e vários Proton/DXVK travam ou fecham com o valor antigo de 65530.",
-        Effect = "Recomendado: pelo menos 1048576. Comando (você executa): sudo sysctl -w vm.max_map_count=2147483642   (persistente: arquivo em /etc/sysctl.d/).",
-        IsOn = current is >= RecommendedMaxMapCount, Status = current is { } v ? $"Atual: {v}" + (v >= RecommendedMaxMapCount ? " — adequado." : " — baixo para alguns jogos.") : "Não foi possível ler."
+        Id = "max_map_count", Title = "vm.max_map_count", Badge = L.T("REQUER ROOT"),
+        Description = L.T("Limite de mapeamentos de memória por processo. Jogos como CS2, Star Citizen e vários Proton/DXVK travam ou fecham com o valor antigo de 65530."),
+        Effect = L.T("Recomendado: pelo menos 1048576. Comando (você executa): sudo sysctl -w vm.max_map_count=2147483642   (persistente: arquivo em /etc/sysctl.d/)."),
+        IsOn = current is >= RecommendedMaxMapCount, Status = current is { } v ? $"Atual: {v}" + (v >= RecommendedMaxMapCount ? L.T(" — adequado.") : L.T(" — baixo para alguns jogos.")) : L.T("Não foi possível ler.")
     };
 
     public static GameTweak Swappiness(long? current) => new()
     {
-        Id = "swappiness", Title = "vm.swappiness", Badge = "REQUER ROOT",
-        Description = "Quanto o kernel prefere usar swap em vez de descartar cache. Valores altos podem causar engasgos em jogos com pouca RAM livre.",
-        Effect = "Sugestão para jogos: 10 a 30 (o padrão 60 funciona bem com bastante RAM). Comando: sudo sysctl -w vm.swappiness=10",
-        IsOn = current is <= 30, Status = current is { } v ? $"Atual: {v}" : "Não foi possível ler."
+        Id = "swappiness", Title = "vm.swappiness", Badge = L.T("REQUER ROOT"),
+        Description = L.T("Quanto o kernel prefere usar swap em vez de descartar cache. Valores altos podem causar engasgos em jogos com pouca RAM livre."),
+        Effect = L.T("Sugestão para jogos: 10 a 30 (o padrão 60 funciona bem com bastante RAM). Comando: sudo sysctl -w vm.swappiness=10"),
+        IsOn = current is <= 30, Status = current is { } v ? $"Atual: {v}" : L.T("Não foi possível ler.")
     };
 
     public static GameTweak Governor(string? governor) => new()
     {
-        Id = "governor", Title = "Governador da CPU", Badge = "REQUER ROOT / DAEMON",
-        Description = "Política de frequência. Em desktops, 'performance' evita quedas de clock; com power-profiles-daemon o perfil Alto desempenho cuida disso sem root.",
-        Effect = "Use o perfil de energia acima (sem privilégios) ou: sudo cpupower frequency-set -g performance",
-        IsOn = governor == "performance", Status = governor is { Length: > 0 } ? "Atual: " + governor : "Não informado (VM, contêiner ou driver sem cpufreq)."
+        Id = "governor", Title = L.T("Governador da CPU"), Badge = L.T("REQUER ROOT / DAEMON"),
+        Description = L.T("Política de frequência. Em desktops, 'performance' evita quedas de clock; com power-profiles-daemon o perfil Alto desempenho cuida disso sem root."),
+        Effect = L.T("Use o perfil de energia acima (sem privilégios) ou: sudo cpupower frequency-set -g performance"),
+        IsOn = governor == "performance", Status = governor is { Length: > 0 } ? "Atual: " + governor : L.T("Não informado (VM, contêiner ou driver sem cpufreq).")
     };
 
     public static GameTweak OpenFiles(long? soft) => new()
     {
-        Id = "nofile", Title = "Limite de arquivos abertos", Badge = "REQUER ROOT",
-        Description = "Alguns jogos (esync do Proton, Star Citizen) precisam de limite alto de descritores de arquivo.",
-        Effect = "Recomendado: 524288 ou mais. Distribuições com systemd recentes já usam 1048576. Ajuste em /etc/security/limits.d/ ou DefaultLimitNOFILE no systemd.",
-        IsOn = soft is >= 524288, Status = soft is { } v ? $"Atual (limite soft deste processo): {v}" : "Não foi possível ler."
+        Id = "nofile", Title = L.T("Limite de arquivos abertos"), Badge = L.T("REQUER ROOT"),
+        Description = L.T("Alguns jogos (esync do Proton, Star Citizen) precisam de limite alto de descritores de arquivo."),
+        Effect = L.T("Recomendado: 524288 ou mais. Distribuições com systemd recentes já usam 1048576. Ajuste em /etc/security/limits.d/ ou DefaultLimitNOFILE no systemd."),
+        IsOn = soft is >= 524288, Status = soft is { } v ? L.T($"Atual (limite soft deste processo): {v}") : L.T("Não foi possível ler.")
     };
 
     public static long? ParseOpenFiles(string limitsText)

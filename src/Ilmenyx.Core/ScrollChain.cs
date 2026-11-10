@@ -37,7 +37,7 @@ public static class ColorContrast
     public static Rgb Parse(string hex, Rgb? under = null)
     {
         string h = hex.TrimStart('#');
-        if (h.Length is not (6 or 8)) throw new FormatException("Cor inválida: " + hex);
+        if (h.Length is not (6 or 8)) throw new FormatException(L.T("Cor inválida: ") + hex);
         int i = h.Length == 8 ? 2 : 0;
         double a = h.Length == 8 ? Convert.ToInt32(h[..2], 16) / 255.0 : 1;
         double r = Convert.ToInt32(h.Substring(i, 2), 16), g = Convert.ToInt32(h.Substring(i + 2, 2), 16), b = Convert.ToInt32(h.Substring(i + 4, 2), 16);

@@ -12,7 +12,7 @@ public static class LinuxCompatHardware
         var gpus = new LinuxGpuCollector(sysRoot).Collect(PciIds.Load());
         // Dedicated GPU first (the collector orders by VRAM); its names plus the reference-table chip ("Mendocino (iGPU · Radeon 610M)").
         var first = gpus.FirstOrDefault();
-        string chip = first.Card?.Sections.FirstOrDefault(s => s.Header == "IDENTIFICAÇÃO")?.Children.FirstOrDefault(c => c.Header == "Chip")?.Value ?? "";
+        string chip = first.Card?.Sections.FirstOrDefault(s => s.Header == L.T("IDENTIFICAÇÃO"))?.Children.FirstOrDefault(c => c.Header == "Chip")?.Value ?? "";
         string vendor = first.Card?.Vendor ?? "";
         var parts = new[] { vendor, first.Raw?.Name, chip == "—" ? null : chip, vulkanName }.Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s!).ToList();
         // "Mendocino" is already inside "Mendocino (iGPU · Radeon 610M)": keep each name once.

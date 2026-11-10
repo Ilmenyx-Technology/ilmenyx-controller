@@ -33,7 +33,7 @@ public sealed class GameSimBenchmarkRunner
     public static void Validate(GameSimBenchmarkOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
-        if (!options.AllowCpuLoad) throw new ArgumentException("GameSim completo exige --allow-cpu-load; gera carga sustentada de CPU.");
+        if (!options.AllowCpuLoad) throw new ArgumentException(L.T("GameSim completo exige --allow-cpu-load; gera carga sustentada de CPU."));
         GameSimFullPlanner.Validate(new() { Threads = options.Threads, Duration = options.Duration, Timeout = options.Timeout });
     }
     public Task<GameSimBenchmarkResult> RunAsync(GameSimBenchmarkOptions options, CancellationToken ct = default)
@@ -85,12 +85,12 @@ public sealed class GameSimBenchmarkRunner
                 warmupSteps, frames.Count, 2, warmupSeconds, options.Duration.TotalSeconds, options.Timeout.TotalSeconds,
                 MaximumStoredFrameTimes, seconds, avg, low1, mainMs, parallelMs, avg, "not-validated",
                 RuntimeInformation.FrameworkDescription, RuntimeInformation.ProcessArchitecture.ToString(),
-                ["FPS da simulação sintética de CPU, não FPS de jogo real nem desempenho da GPU.",
-                 "Score experimental=FPS médio; low1 é recíproco de p99, não média do pior 1%.",
-                 "Comparação Windows NÃO VALIDADA; JIT/runtime, workers limitados, scheduler e energia afetam medição.",
-                 "Warmup 2 s avança mundo/RNG com câmera em frame zero; estado não é reinicializado após aquecimento.",
-                 "Coleta, serialização e ordenação estatística fora do intervalo medido; overhead de controle do runner incluído.",
-                 "Cancelamento/timeout cooperativos entre passos completos; interrompido/limite/tempo inválido suprime todas as métricas.",
-                 "Sem proteção térmica ou controle de afinidade/energia. Execução completa real ainda NÃO TESTADA neste incremento."]);
+                [L.T("FPS da simulação sintética de CPU, não FPS de jogo real nem desempenho da GPU."),
+                 L.T("Score experimental=FPS médio; low1 é recíproco de p99, não média do pior 1%."),
+                 L.T("Comparação Windows NÃO VALIDADA; JIT/runtime, workers limitados, scheduler e energia afetam medição."),
+                 L.T("Warmup 2 s avança mundo/RNG com câmera em frame zero; estado não é reinicializado após aquecimento."),
+                 L.T("Coleta, serialização e ordenação estatística fora do intervalo medido; overhead de controle do runner incluído."),
+                 L.T("Cancelamento/timeout cooperativos entre passos completos; interrompido/limite/tempo inválido suprime todas as métricas."),
+                 L.T("Sem proteção térmica ou controle de afinidade/energia. Execução completa real ainda NÃO TESTADA neste incremento.")]);
     }
 }

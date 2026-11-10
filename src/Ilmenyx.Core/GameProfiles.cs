@@ -158,7 +158,7 @@ public static class GameLaunchOptions
             else if (char.IsWhiteSpace(c)) { if (any || cur.Length > 0) { result.Add(cur.ToString()); cur.Clear(); any = false; } }
             else { cur.Append(c); any = true; }
         }
-        if (quote != '\0') throw new FormatException("Aspas sem fechamento nos argumentos.");
+        if (quote != '\0') throw new FormatException(L.T("Aspas sem fechamento nos argumentos."));
         if (any || cur.Length > 0) result.Add(cur.ToString());
         return result;
     }
@@ -201,6 +201,8 @@ public sealed class IlmenyxSettings
     public List<string>? OverlayItems { get; set; }
     public string OverlayCorner { get; set; } = "top-left";
     public double OverlayScale { get; set; } = 1.0;
+    /// <summary>Interface language chosen in the header ("pt-BR", "en", "es"); null = follow the system. Applied at startup (see <see cref="L.Resolve"/>).</summary>
+    public string? Language { get; set; }
     /// <summary>Light theme (the default is dark). Applied at startup and when toggled.</summary>
     public bool ThemeLight { get; set; }
     /// <summary>Toast when a removable drive or USB device appears or disappears (local polling only).</summary>
