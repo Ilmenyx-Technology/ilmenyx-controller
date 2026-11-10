@@ -88,6 +88,13 @@ public sealed class LauncherPage : Grid
     private bool heroArt;
     private readonly string? steamRoot;
     private readonly NativeArtFinder nativeArt = new();
+    private readonly FlatpakApps flatpaks = new();
+    private readonly bool hostMango = BoundedProcess.Find("mangohud") is not null;
+    private readonly TextBlock mangoFlatpakStatus = new() { Name = "MangoFlatpakStatus", FontSize = 12, Foreground = Palette.Warn, TextWrapping = TextWrapping.Wrap };
+    private readonly Button mangoFlatpakInstall = new() { Name = "MangoFlatpakInstall", Content = "INSTALAR MANGOHUD PARA FLATPAK", FontSize = 12, Padding = new Thickness(14, 7) };
+    private readonly ProgressBar mangoFlatpakProgress = new() { IsIndeterminate = true, IsVisible = false, Height = 4, MinWidth = 120 };
+    private readonly StackPanel mangoFlatpakBox = new() { Name = "MangoFlatpakBox", Spacing = 6, IsVisible = false, Margin = new Thickness(26, 0, 0, 8) };
+    private string? mangoFlatpakBranch;
     private int columns = 2;
     private Grid? leftPane;
     private bool narrowWindow;
@@ -249,8 +256,11 @@ public sealed class LauncherPage : Grid
         extrasBox.Children.Add(chkWayland); extrasBox.Children.Add(chkLowLat); extrasBox.Children.Add(extrasNote);
         ToolTip.SetTip(chkGpu, multiGpu ? "Define as variáveis de PRIME offload para a GPU dedicada." : "Esta máquina tem uma única GPU: não há o que selecionar.");
         chkGpu.IsEnabled = multiGpu;
-        bool hasGm = BoundedProcess.Find("gamemoderun") is not null, hasMango = BoundedProcess.Find("mangohud") is not null;
+        bool hasGm = BoundedProcess.Find("gamemoderun") is not null, hasMango = hostMango;
         chkGameMode.IsEnabled = hasGm; chkMango.IsEnabled = hasMango;
+        mangoFlatpakBox.Children.Add(mangoFlatpakStatus);
+        mangoFlatpakBox.Children.Add(new WrapPanel { ItemSpacing = 10, LineSpacing = 6, Children = { mangoFlatpakInstall, mangoFlatpakProgress } });
+        mangoFlatpakInstall.Click += async (_, _) => await InstallFlatpakMangoAsync();
         if (!hasGm) ToolTip.SetTip(chkGameMode, "gamemoderun não está instalado."); if (!hasMango) ToolTip.SetTip(chkMango, "mangohud não está instalado.");
         var setExe = new Button { Name = "BtnSetExe", Content = "DEFINIR EXECUTÁVEL", FontSize = 12, Padding = new Thickness(14, 7) }; setExe.Click += (_, _) => SetExe();
         var browseExe = new Button { Name = "BtnSetExeBrowse", Content = "PROCURAR…", FontSize = 12, Padding = new Thickness(14, 7) };
@@ -261,7 +271,7 @@ public sealed class LauncherPage : Grid
         {
             Children =
             {
-                CardTitle(Icons.Oc, "DESEMPENHO"), chkPlan, chkGpu, chkGameMode, chkMango, chkGuard, extrasBox, exeText, new Border { Height = 6 }, exePath, new Border { Height = 8 },
+                CardTitle(Icons.Oc, "DESEMPENHO"), chkPlan, chkGpu, chkGameMode, chkMango, mangoFlatpakBox, chkGuard, extrasBox, exeText, new Border { Height = 6 }, exePath, new Border { Height = 8 },
                 new WrapPanel { ItemSpacing = 8, LineSpacing = 6, Children = { browseExe, setExe, recommended } }, protonBox,
                 new TextBlock { Text = "O perfil de energia vale só durante o jogo e volta ao anterior. Prioridade de processo elevada exige privilégios no Linux; o GameMode cuida disso quando instalado. O executável é descoberto sozinho; se errar, informe o caminho certo.", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0) }
             }
@@ -455,7 +465,7 @@ public sealed class LauncherPage : Grid
         if (art is null && g.IsWindowsManual && p.ProtonGameId is { Length: > 0 } artId) FetchArtLater(g, artId);
         hero.Background = art is null ? UiKit.HeroBrush() : new ImageBrush { Source = art, Stretch = Stretch.UniformToFill };
         heroScrim.IsVisible = heroArt; title.Foreground = heroArt ? Brushes.White : Palette.Fg; sub.Foreground = heroArt ? GameArt.OnImageMuted : Palette.Muted;
-        chkPlan.IsChecked = p.HighPerfPlan; chkGpu.IsChecked = p.GpuHigh && multiGpu; chkGameMode.IsChecked = p.GameMode; chkMango.IsChecked = p.MangoHud; chkGuard.IsChecked = p.FullscreenGuard; chkGuard.IsVisible = multiGpu && gpuVendor == "NVIDIA";
+        chkPlan.IsChecked = p.HighPerfPlan; chkGpu.IsChecked = p.GpuHigh && multiGpu; chkGameMode.IsChecked = p.GameMode; chkMango.IsChecked = p.MangoHud; UpdateFlatpakMango(g); chkGuard.IsChecked = p.FullscreenGuard; chkGuard.IsVisible = multiGpu && gpuVendor == "NVIDIA";
         modeChips!.Select(p.WinMode); resChips!.Select(p.Res); hzChips!.Select(p.Hz); styleChips!.Select(p.Style); gfxPresetChips!.Select(p.GfxPreset ?? ""); gfxUpChips!.Select(p.GfxUpscaling ?? ""); extra.Text = p.Extra; exePath.Text = p.ExePath ?? g.ExePath ?? "";
         protonBox.IsVisible = g.IsWindowsManual; protonId.Text = p.ProtonGameId ?? ""; protonIdStatus.Text = "";
         removeGame.IsVisible = renameGame.IsVisible = g.Store == "Manual";
@@ -606,6 +616,49 @@ public sealed class LauncherPage : Grid
             if (file is null) return;
             Avalonia.Threading.Dispatcher.UIThread.Post(() => { Filter(); if (current?.Key == g.Key) Select(current); });
         });
+    }
+
+    /// <summary>
+    /// A Flatpak game needs MangoHud's Flatpak extension for its runtime (the host mangohud does not reach the sandbox): the option is enabled
+    /// only with it; otherwise the card says so and offers the user-scope install (no password).
+    /// </summary>
+    private void UpdateFlatpakMango(LibGame g)
+    {
+        mangoFlatpakBox.IsVisible = false; mangoFlatpakBranch = null;
+        string? app = g.ExePath is { } exe && Path.GetFileName(exe) == "flatpak" ? GameProcesses.FlatpakApp(g) : null;
+        if (app is null) { chkMango.IsEnabled = hostMango; ToolTip.SetTip(chkMango, hostMango ? null : "mangohud não está instalado."); return; }
+        string? branch = flatpaks.Metadata(app).RuntimeBranch;
+        bool ok = branch is not null && flatpaks.HasMangoHud(branch);
+        chkMango.IsEnabled = ok;
+        ToolTip.SetTip(chkMango, ok ? $"Jogo Flatpak: usa a extensão MangoHud para Flatpak (runtime {branch})." : "Jogo Flatpak: o MangoHud do sistema não entra no Flatpak; precisa da extensão MangoHud para Flatpak.");
+        if (ok) return;
+        mangoFlatpakBox.IsVisible = true; mangoFlatpakProgress.IsVisible = false; mangoFlatpakStatus.Foreground = Palette.Warn;
+        mangoFlatpakBranch = branch;
+        mangoFlatpakInstall.IsVisible = branch is not null;
+        mangoFlatpakStatus.Text = branch is null ? "Não consegui ler o runtime deste Flatpak; o MangoHud fica desligado para ele." : $"MangoHud para Flatpak não instalado (runtime {branch}).";
+        ToolTip.SetTip(mangoFlatpakStatus, "Jogos Flatpak rodam isolados do sistema. O overlay e o FPS medido precisam da extensão oficial " + FlatpakLaunch.MangoHudExtension + " na versão do runtime do jogo.");
+    }
+
+    private async Task InstallFlatpakMangoAsync()
+    {
+        if (mangoFlatpakBranch is not { } branch || current is not { } game) return;
+        if (owner() is { } window && !await ConfirmDialog.AskAsync(window, "MangoHud para Flatpak", $"Instalar a extensão {FlatpakLaunch.MangoHudExtension} ({branch}) do Flathub?\n\nSó para o seu usuário, sem senha. Precisa de internet.", "Instalar", "Cancelar")) return;
+        mangoFlatpakInstall.IsEnabled = false; mangoFlatpakProgress.IsVisible = true;
+        mangoFlatpakStatus.Foreground = Palette.Muted; mangoFlatpakStatus.Text = "Baixando a extensão do Flathub…";
+        (int Code, string Output) r;
+        try { r = await BoundedProcess.RunAsync("flatpak", FlatpakApps.InstallMangoHud(branch), TimeSpan.FromMinutes(10), 64 * 1024, lifetime); }
+        catch (Exception e) when (e is IOException or FileNotFoundException or TimeoutException or System.ComponentModel.Win32Exception) { r = (-1, e.Message); }
+        catch (OperationCanceledException) { return; }
+        mangoFlatpakInstall.IsEnabled = true; mangoFlatpakProgress.IsVisible = false;
+        if (r.Code == 0 && flatpaks.HasMangoHud(branch))
+        {
+            if (current == game) UpdateFlatpakMango(game);
+            status.Text = "MangoHud para Flatpak instalado. Marque MangoHud para usar o overlay neste jogo.";
+            return;
+        }
+        string last = r.Output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).LastOrDefault() ?? "";
+        mangoFlatpakStatus.Foreground = Palette.Warn;
+        mangoFlatpakStatus.Text = "Não consegui instalar" + (last.Length > 0 ? ": " + (last.Length > 160 ? last[..160] + "…" : last) : ".");
     }
 
     /// <summary>Fills the Steam ID of the selected Windows game from its name (automatic: only when empty, quietly when nothing is found).</summary>

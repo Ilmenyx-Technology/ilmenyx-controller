@@ -358,7 +358,8 @@ public static class GameProcesses
                 else
                 {
                     string cmd = ReadRaw(Path.Combine(d, "cmdline"), 16384).Replace('\0', ' ');
-                    hit = (g.InstallDir.Length > 3 && cmd.Contains(g.InstallDir.TrimEnd('/') + "/", StringComparison.Ordinal)) || (exe is { Length: > 3 } && cmd.Contains(exe, StringComparison.Ordinal));
+                    bool flatpak = exe is not null && Path.GetFileName(exe) == "flatpak";
+                    hit = CommandLineHit(g, exe, cmd, flatpak ? ReadRaw(Path.Combine(d, "environ"), 65536).Split('\0') : null);
                 }
                 if (hit) pids.Add(pid);
             }
@@ -381,10 +382,28 @@ public static class GameProcesses
             string cmd = line[(space + 1)..];
             bool hit = g.IsSteam
                 ? cmd.Split(' ').Any(t => t == $"SteamGameId={g.Id}" || t == $"SteamAppId={g.Id}")
-                : (g.InstallDir.Length > 3 && cmd.Contains(g.InstallDir.TrimEnd('/') + "/", StringComparison.Ordinal)) || (exe is { Length: > 3 } && cmd.Contains(exe, StringComparison.Ordinal));
+                : CommandLineHit(g, exe, cmd, cmd.Split(' ')); // "ps e" appends the environment to the command line
             if (hit) pids.Add(pid);
         }
         return pids;
+    }
+
+    /// <summary>
+    /// A non-Steam game's process: its command line runs from the install folder or names the executable. A Flatpak game is matched by
+    /// FLATPAK_ID in the environment: every Flatpak app is started by the same /usr/bin/flatpak, which then gives way to the sandbox (bwrap),
+    /// so no command line keeps the app ID; every process inside the sandbox has FLATPAK_ID (validated with SuperTuxKart, 2026-11-10).
+    /// </summary>
+    public static bool CommandLineHit(LibGame g, string? exe, string cmd, IReadOnlyCollection<string>? environment = null)
+    {
+        if (exe is not null && Path.GetFileName(exe) == "flatpak")
+            return FlatpakApp(g) is { } app && environment is not null && environment.Contains("FLATPAK_ID=" + app);
+        return (g.InstallDir.Length > 3 && cmd.Contains(g.InstallDir.TrimEnd('/') + "/", StringComparison.Ordinal)) || (exe is { Length: > 3 } && cmd.Contains(exe, StringComparison.Ordinal));
+    }
+
+    public static string? FlatpakApp(LibGame g)
+    {
+        try { return FlatpakLaunch.AppId(GameLaunchOptions.SplitArguments(g.Args)); }
+        catch (FormatException) { return null; }
     }
 
     /// <summary>Host processes of the game: /proc natively; in Flatpak the host's ps through <see cref="HostSpawn"/>.</summary>
@@ -412,12 +431,16 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
     /// <remarks>With <paramref name="shaderCache"/> (the Otimiza option is on) the bigger shader cache variables also go to this game, so a launch
     /// never carries a smaller NVIDIA limit than the session's. With <paramref name="extras"/>, the experimental Proton options of the profile
     /// that apply and do not conflict with the rest of the command (<see cref="GameExtras.Resolve"/>) join a Windows game's environment.</remarks>
+    /// <param name="flatpakCommand">Default command of a Flatpak app (its metadata): needed to run a Flatpak game under MangoHud.</param>
+    /// <param name="mangoLogFolder">Ilmenyx's MangoHud log folder, opened to the sandbox of a Flatpak game.</param>
     public static LaunchCommand BuildManual(string exe, GameProfile p, string gameArgs, string gpuVendor, Func<string, string?> find, string? mangoConfig = null, string? prefixRoot = null,
-        ExtrasContext? extras = null, bool shaderCache = false)
+        ExtrasContext? extras = null, bool shaderCache = false, Func<string, string?>? flatpakCommand = null, string? mangoLogFolder = null)
     {
         var args = new List<string>(); string program = exe;
         var wrappers = new List<string>();
-        if (p.MangoHud && find("mangohud") is { } mh) wrappers.Add(mh);
+        // Flatpak game: the host mangohud cannot enter the sandbox; the extension's mangohud wraps the app's command instead (FlatpakLaunch).
+        bool flatpakMango = p.MangoHud && Path.GetFileName(exe) == "flatpak";
+        if (p.MangoHud && !flatpakMango && find("mangohud") is { } mh) wrappers.Add(mh);
         if (p.GameMode && find("gamemoderun") is { } gm) wrappers.Add(gm);
         var proton = new List<KeyValuePair<string, string>>();
         if (exe.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
@@ -429,7 +452,10 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
         }
         if (wrappers.Count > 0) { program = wrappers[0]; args.AddRange(wrappers.Skip(1)); args.Add(exe); }
         string graphics = GameLaunchOptions.BuildArgs(p);
-        args.AddRange(GameLaunchOptions.SplitArguments((gameArgs + " " + graphics).Trim()));
+        var gameList = GameLaunchOptions.SplitArguments((gameArgs + " " + graphics).Trim());
+        if (flatpakMango && FlatpakLaunch.AppId(gameList) is { } app && flatpakCommand?.Invoke(app) is { } command)
+            gameList = FlatpakLaunch.WithMangoHud(gameList, command, mangoConfig, mangoLogFolder ?? MangoHudLogReader.DefaultFolder());
+        args.AddRange(gameList);
         var env = new List<KeyValuePair<string, string>>(p.GpuHigh ? GameLaunchOptions.GpuEnvironment(gpuVendor) : []);
         if (p.MangoHud && mangoConfig is not null && wrappers.Contains(find("mangohud") ?? "") ) env.Add(new("MANGOHUD_CONFIGFILE", mangoConfig));
         env.AddRange(proton);
@@ -523,7 +549,11 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
             else if (g.LaunchUri is not null) await StartAsync("xdg-open", [g.LaunchUri], [], ct);
             else if (exe is not null && (LinuxGameLibrary.IsRunnableFile(exe) || LinuxGameLibrary.IsWindowsExe(exe)))
             {
-                var cmd = BuildManual(exe, p, g.Args, gpuVendor, BoundedProcess.Find, File.Exists(MangoHudLogReader.ConfigPath()) ? MangoHudLogReader.ConfigPath() : null, extras: extras, shaderCache: shaderCache);
+                // With MangoHud on, the config with FPS logging is written the first time (as for Steam games), so the session gets measured.
+                string? mangoConfig = p.MangoHud && OperatingSystem.IsLinux() ? MangoHudLogReader.EnsureConfig(IlmenyxSettings.Load(IlmenyxSettings.DefaultPath())) : File.Exists(MangoHudLogReader.ConfigPath()) ? MangoHudLogReader.ConfigPath() : null;
+                if (p.MangoHud) Directory.CreateDirectory(MangoHudLogReader.DefaultFolder()); // a Flatpak sandbox can only be given an existing folder
+                var cmd = BuildManual(exe, p, g.Args, gpuVendor, BoundedProcess.Find, mangoConfig, extras: extras, shaderCache: shaderCache,
+                    flatpakCommand: id => new FlatpakApps().Metadata(id).Command, mangoLogFolder: MangoHudLogReader.DefaultFolder());
                 if (cmd.Environment.FirstOrDefault(e => e.Key == "WINEPREFIX").Value is { } prefix)
                 {
                     Directory.CreateDirectory(Path.GetDirectoryName(prefix)!);

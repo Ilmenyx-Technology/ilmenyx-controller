@@ -99,6 +99,11 @@ Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes qu
   num PC só Intel, nenhum aviso. VALIDADO pelo dono.
 - [x] **Carga da GPU Intel** (i915/xe não têm gpu_busy_percent): tempo por motor dos programas do usuário (DRM fdinfo), sem senha;
   varredura de /proc a cada 10 s. Não conta processos do sistema (compositor). VALIDADO pelo dono.
+- [x] **Jogo nativo + MangoHud + FPS medido** (SuperTuxKart via Flatpak): VALIDADO pelo dono, "Medido: 60 FPS médio (1% low 58)", salvo.
+  Flatpak: o mangohud do sistema não entra no sandbox; usa a extensão org.freedesktop.Platform.VulkanLayer.MangoHud//<runtime> (botão
+  INSTALAR MANGOHUD PARA FLATPAK, só usuário), o mangohud dela envolve o comando do app, e o jogo é achado por FLATPAK_ID no ambiente.
+  Config do MangoHud com log criada sozinha também para jogos fora da Steam. Ao fechar, o SuperTuxKart dá SIGSEGV com MangoHud (OpenGL);
+  o Ilmenyx não usa o código de saída. 60 FPS = vsync (teto da tela).
 - [ ] **IDEIA FUTURA do dono (2026-11-09): base comunitária de FPS**. Usuários que aceitarem enviam diagnóstico e FPS médio dos jogos
   para a Estimativa de FPS ficar mais real. Análise pronta (infraestrutura, LGPD, abuso, massa crítica): `docs/fps-estimativa-metodos.md`,
   método (e). Antes de começar: decidir servidor e custo, termo de consentimento, PRIVACY.md e o formato da sessão a enviar.

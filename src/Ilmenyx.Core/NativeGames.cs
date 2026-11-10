@@ -26,6 +26,8 @@ public static class NativeGames
     private static readonly string[] ToolCategories = ["Emulator", "PackageManager", "Settings", "System"];
     private static readonly string[] StoreSchemes = ["steam://", "heroic://", "lutris:", "itch://"];
     private static readonly HashSet<string> DroppedCodes = ["%f", "%F", "%u", "%U", "%d", "%D", "%n", "%N", "%v", "%m", "%i", "%c", "%k"];
+    // Flatpak file forwarding: only for opening files from the menu; a game started from the library has none.
+    private static readonly HashSet<string> FileForwarding = ["--file-forwarding", "@@", "@@u"];
 
     /// <param name="id">Desktop file ID (file name without ".desktop").</param>
     /// <param name="flatpakExport">The entry comes from a Flatpak exports folder.</param>
@@ -40,7 +42,7 @@ public static class NativeGames
         if (exec.Length == 0 || StoreSchemes.Any(s => exec.Contains(s, StringComparison.OrdinalIgnoreCase))) return null;
         IReadOnlyList<string> words;
         try { words = GameLaunchOptions.SplitArguments(exec.Replace("%%", "\u0001")); } catch (FormatException) { return null; }
-        var args = words.Where(w => !DroppedCodes.Contains(w)).Select(w => w.Replace('\u0001', '%')).ToList();
+        var args = words.Where(w => !DroppedCodes.Contains(w) && !FileForwarding.Contains(w)).Select(w => w.Replace('\u0001', '%')).ToList();
         if (args.Count == 0) return null;
         string name = e.GetValueOrDefault("Name[pt_BR]") ?? e.GetValueOrDefault("Name[pt]") ?? e.GetValueOrDefault("Name") ?? id;
         bool flatpak = flatpakExport || Path.GetFileName(args[0]) == "flatpak";
