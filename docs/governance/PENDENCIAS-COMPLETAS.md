@@ -1,4 +1,4 @@
-# Ilmenyx — tudo o que está pendente (atualizado em 2026-11-07)
+# Ilmenyx — tudo o que está pendente (atualizado em 2026-11-10)
 
 Lista para continuar em qualquer máquina. Repositório: https://github.com/Ilmenyx-Technology/ilmenyx (privado).
 Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes que faltam por área: `Sem_teste.md` e `docs/CONFIABILIDADE.md`.
@@ -11,12 +11,11 @@ Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes qu
 1. `git clone https://github.com/Ilmenyx-Technology/ilmenyx.git` e `cd ilmenyx`.
 2. SDK local (sem instalar nada no sistema): `bash scripts/get-local-sdk.sh` e `source scripts/env-local-sdk.sh`; depois `dotnet restore Ilmenyx.slnx`.
 3. Build e testes: `dotnet build Ilmenyx.slnx -c Release` e `dotnet test Ilmenyx.slnx -c Release --no-build`.
-4. **Assinatura GPG:** a subchave de assinatura só está no Dell de teste. Numa máquina nova, importe a chave principal do seu
-   pendrive pessoal (`gpg --import chave-privada-PRINCIPAL.asc`) e crie uma subchave nova (`gpg --quick-add-key 3D9716572A398DCDD0CFF0EE733D2EC78436DCE8 ed25519 sign 3y`),
-   depois apague a chave principal dessa máquina de novo (veja `docs/assinatura-gpg.md`). Atualize a chave pública no repositório.
+4. **Assinatura GPG:** numa máquina nova, rode no seu terminal `bash scripts/gpg-nova-maquina.sh /pasta/da/chave` (a pasta do
+   pendrive com `chave-privada-PRINCIPAL.asc`). Ele cria a subchave deste PC, atualiza a chave pública e tira a principal de novo.
 
 ## 1. Código esperando aprovação/merge (você decide)
-- [ ] **PR #9** (`feat/rodada3`): HowManyFPS removido; nova Estimativa de FPS com calibração deste PC (benchmark), modelo pelas
+- [x] **PR #9** (`feat/rodada3`) — merge feito: HowManyFPS removido; nova Estimativa de FPS com calibração deste PC (benchmark), modelo pelas
   especificações e correção pelas suas sessões, com aviso "não calibrado" e botão CALIBRAR AGORA; LoL e jogos leves corrigidos;
   "Instalar jogo de Windows" instalando dentro do C:\Jogos e movendo depois, modo de compatibilidade, GE-Proton opcional e registro;
   página "Jogo não abre?"; ZRAM; cache de shaders maior; mais apps de jogo; opções experimentais por jogo. Testes 1258, interface 68/68.
@@ -39,8 +38,8 @@ Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes qu
 - [ ] **SuperTuxKart** (instalado) pelo Ilmenyx: caminho de jogo nativo + MangoHud + FPS medido.
 - [ ] **Heroic e Lutris** (via Flatpak, sem senha): detectar e abrir um jogo.
 - [ ] Aba **Driver NVIDIA**: instalação/reparo de verdade pelo app (só a detecção e a simulação foram testadas).
-- [ ] **Tela de permissões na 1ª execução** com a senha real (precisa de uma máquina com sensores bloqueados, ou "Desfazer" antes).
-- [ ] **Desfazer** da liberação de sensores; persistência após reiniciar (a regra udev já existe).
+- [x] **Tela de permissões na 1ª execução** com a senha real: VALIDADA (veja a seção de validações do dono).
+- [x] **Desfazer** da liberação de sensores e persistência após reiniciar: VALIDADOS (2026-11-10).
 - [ ] **Outras distros**: Arch, Fedora, Debian, openSUSE (AppImage, Flatpak, Proton/umu com o python3 de cada uma); sistema sem python3.
 - [ ] **Outros hardwares**: GPU AMD dedicada, NVIDIA RTX/desktop, Intel Arc.
 - [ ] Wayland nativo em GNOME/KDE reais (só testado no Muffin aninhado).
@@ -52,7 +51,8 @@ Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes qu
   itch.io...). Sem recursos específicos para repacks.
 - [ ] **Tutorial/Ajuda** (em construção, ver item 1).
 - [x] **Idiomas: inglês e espanhol** — FEITO em 2026-11-10: botão de idioma no topo, 3.356 textos em `Locales/en.json` e `es.json`,
-  Central de ajuda e tour nos três idiomas (`docs/idiomas.md`). Falta revisão de um falante nativo de inglês e de espanhol.
+  Central de ajuda e tour nos três idiomas (`docs/idiomas.md`). CLI também traduzida (PR #18), com estados e unidades.
+  Traduções aprovadas pelo dono, sem revisão de falante nativo (decisão de 2026-11-10).
 - [ ] **Passe de otimização antes do lançamento público**: medir quanto o próprio Ilmenyx usa de CPU/RAM/GPU/disco/energia parado,
   monitorando e em cada página; achar e reduzir gargalos.
 - [ ] Próxima release (v0.31): incluir o umu-launcher e anexar os fontes GPL dele e do python-xlib (`scripts/fetch-gpl-sources.sh`
@@ -136,5 +136,9 @@ Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes qu
 - [ ] **IDEIA FUTURA do dono (2026-11-09): base comunitária de FPS**. Usuários que aceitarem enviam diagnóstico e FPS médio dos jogos
   para a Estimativa de FPS ficar mais real. Análise pronta (infraestrutura, LGPD, abuso, massa crítica): `docs/fps-estimativa-metodos.md`,
   método (e). Antes de começar: decidir servidor e custo, termo de consentimento, PRIVACY.md e o formato da sessão a enviar.
-- [ ] Logotipo ainda mostra só "Ilmenyx" (decisão de identidade do dono). Chave GPG com UID antigo "Bismuth Technology": acrescentar UID novo.
-- [ ] Busca de marca para "Ilmenyx Controller" e "Ilmenyx Technology" (a de 2026-11-07 cobriu Ilmenyx e Bismuth Technology).
+- [x] Logotipo: fica só "Ilmenyx" (decidido em 2026-11-10). O logotipo é a marca; "Ilmenyx Controller" é o nome do produto e já
+  aparece no título da janela, no Sobre e no doctor. Uma marca curta funciona em ícone, favicon e tamanhos pequenos.
+- [ ] Chave GPG com UID antigo "Bismuth Technology": rodar `bash scripts/gpg-nova-maquina.sh /caminho/da/pasta-da-chave` no seu
+  terminal (acrescenta o UID "Ilmenyx Technology", cria a subchave de assinatura deste PC e tira a chave principal daqui).
+- [x] Busca de marca para "Ilmenyx Controller" e "Ilmenyx Technology": coberta pela busca de 2026-11-07 (radical ILMENYX no INPI e
+  ilmen* no USPTO, sem resultado; "Controller" e "Technology" são genéricos). Falta só a busca manual internacional da seção 4.

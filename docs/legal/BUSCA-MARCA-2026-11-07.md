@@ -38,6 +38,7 @@ Todas as consultas foram feitas em 07/11/2026.
 | Base | Termo (tipo de busca) | Resultado | Link |
 |---|---|---|---|
 | INPI (pePI, acesso anônimo) | ILMENYX (exata e radical) | **Nenhum resultado** | https://busca.inpi.gov.br/pePI/ |
+| INPI (nota de 2026-11-10) | ILMENYX CONTROLLER, ILMENYX TECHNOLOGY | Cobertos pela busca por radical ILMENYX acima (nenhum processo com o radical); "controller" e "technology" são termos genéricos | idem |
 | INPI | ILMENIX, ILMENIS, ILMENYS, ILMENY, ILMENEX, ILMENICS, ILMENIC, ILMENIK, ILMENIQ, ILMENYC, ILMANYX, ELMENYX, LMENYX (radical) | **Nenhum resultado** em todas | idem |
 | INPI | ILMENITE, ILMENITA (radical) | **Nenhum resultado** | idem |
 | INPI | ILMEN (radical) | 82 processos, **nenhum relevante**. A busca por radical do INPI acha o trecho "ilmen" no meio de outras palavras ("FacILMENte", "SILMEN", "BrasIL MENino", "VirilMen"). Nada em software (classes 9/42) com nome parecido | idem |

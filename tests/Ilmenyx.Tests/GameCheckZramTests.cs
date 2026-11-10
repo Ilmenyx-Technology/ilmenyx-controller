@@ -502,7 +502,7 @@ public sealed class GameCheckZramTests : IDisposable
         var o = new StringWriter();
         Assert.Equal(0, await SystemCheckCommand.RunAsync(["zram", "plan"], o, CancellationToken.None, zram: new ZramProbe(dir, runner, _ => false)));
         string text = o.ToString();
-        Assert.Contains("Estado: Recommended · tamanho proposto: 3906 MiB", text);
+        Assert.Contains("Estado: recomendado · tamanho proposto: 3906 MiB", text);
         Assert.Contains("dnf install -y zram-generator", text);
         o = new StringWriter();
         Assert.Equal(0, await SystemCheckCommand.RunAsync(["game-check"], o, CancellationToken.None, games: new GameLaunchProbe(dir, runner, p => p == "flatpak", dir)));

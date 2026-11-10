@@ -85,14 +85,14 @@ try
         }
         if (command.Html) Console.Write(SmartImportHtmlReport.Render(report, stop.Token));
         else Console.WriteLine(command.Json ? SnapshotReport.Json(report) :
-            L.T($"SMART importado · {report.Diagnostic.Device} · {report.Diagnostic.Status}\nRelato passed: {SnapshotReport.Describe(report.Diagnostic.ReportedPassed)}\nAnálise offline de relatório histórico; sem nova consulta ou garantia de saúde atual.") + MetricBlock(report.Diagnostic));
+            L.T($"SMART importado · {report.Diagnostic.Device} · {StatusText.Of(report.Diagnostic.Status)}\nRelato passed: {SnapshotReport.Describe(report.Diagnostic.ReportedPassed)}\nAnálise offline de relatório histórico; sem nova consulta ou garantia de saúde atual.") + MetricBlock(report.Diagnostic));
         return 0;
     }
     if (command.Operation == CliOperation.Smart)
     {
         var diagnostic = await new SmartctlDiagnostic(new SmartctlQuery()).CollectAsync(command.Device!, stop.Token);
         if (command.Output is { } smartPath) await SnapshotReport.ExportAsync(diagnostic, smartPath, stop.Token);
-        Console.WriteLine(command.Json ? SnapshotReport.Json(diagnostic) : L.T($"SMART · {diagnostic.Device} · {diagnostic.Status}\nRelato passed: {SnapshotReport.Describe(diagnostic.ReportedPassed)}\nNão representa garantia de saúde.") + MetricBlock(diagnostic));
+        Console.WriteLine(command.Json ? SnapshotReport.Json(diagnostic) : L.T($"SMART · {diagnostic.Device} · {StatusText.Of(diagnostic.Status)}\nRelato passed: {SnapshotReport.Describe(diagnostic.ReportedPassed)}\nNão representa garantia de saúde.") + MetricBlock(diagnostic));
         return 0;
     }
     if (command.Operation == CliOperation.Sensors)
@@ -115,7 +115,7 @@ try
         var report = new GameSimBenchmarkReport("1.0", snapshot, result);
         if (command.Output is { } fullPath) await SnapshotReport.ExportAsync(report, fullPath);
         Console.WriteLine(command.Json ? SnapshotReport.Json(report) :
-            L.T($"GameSim completo experimental · {result.Status}\nFrames: {result.MeasuredFrames} · Tempo: {result.MeasuredSeconds:F3} s\n") +
+            L.T($"GameSim completo experimental · {StatusText.Of(result.Status)}\nFrames: {result.MeasuredFrames} · Tempo: {result.MeasuredSeconds:F3} s\n") +
             L.T($"FPS simulação/score: {result.ExperimentalScore?.ToString("F3") ?? L.T("indisponível")}\nLow1 (recíproco p99): {result.Low1Fps?.ToString("F3") ?? L.T("indisponível")}\nComparação Windows NÃO VALIDADA."));
         return result.Status switch { GameSimBenchmarkStatus.Completed => 0, GameSimBenchmarkStatus.Cancelled => 130,
             GameSimBenchmarkStatus.TimedOut => 124, GameSimBenchmarkStatus.SampleLimitReached => 125, _ => 126 };
@@ -130,7 +130,7 @@ try
             else await SnapshotReport.ExportAsync(report, simPath);
         }
         if (command.Html) Console.Write(ValidationHtmlReport.Render(report));
-        else Console.WriteLine(command.Json ? SnapshotReport.Json(report) : L.T($"GameSim reduzido (simulação sintética) · {result.Status}\nPassos: {result.CompletedSteps}/{result.Workload.Steps}\nSHA256 estado: {result.StateSha256 ?? L.T("indisponível")}\nSem FPS ou score; não mede desempenho de um jogo real."));
+        else Console.WriteLine(command.Json ? SnapshotReport.Json(report) : L.T($"GameSim reduzido (simulação sintética) · {StatusText.Of(result.Status)}\nPassos: {result.CompletedSteps}/{result.Workload.Steps}\nSHA256 estado: {result.StateSha256 ?? L.T("indisponível")}\nSem FPS ou score; não mede desempenho de um jogo real."));
         return result.Status == GameSimValidationStatus.Cancelled ? 130 : result.Status == GameSimValidationStatus.TimedOut ? 124 : 0;
     }
     if (command.Operation == CliOperation.MemoryValidation)
@@ -143,7 +143,7 @@ try
             else await SnapshotReport.ExportAsync(report, memoryPath);
         }
         if (command.Html) Console.Write(ValidationHtmlReport.Render(report));
-        else Console.WriteLine(command.Json ? SnapshotReport.Json(report) : L.T($"Validação de memória reduzida · {result.Status}\nPassos: {result.CompletedTraversalSteps}/{result.RequestedTraversalSteps}\nSoma leitura/cópia: {result.ReadSum?.ToString() ?? L.T("indisponível")}/{result.CopySum?.ToString() ?? L.T("indisponível")}\nSHA256 cópia: {result.CopySha256 ?? L.T("indisponível")}\nNão mede latência, GB/s ou score de RAM."));
+        else Console.WriteLine(command.Json ? SnapshotReport.Json(report) : L.T($"Validação de memória reduzida · {StatusText.Of(result.Status)}\nPassos: {result.CompletedTraversalSteps}/{result.RequestedTraversalSteps}\nSoma leitura/cópia: {result.ReadSum?.ToString() ?? L.T("indisponível")}/{result.CopySum?.ToString() ?? L.T("indisponível")}\nSHA256 cópia: {result.CopySha256 ?? L.T("indisponível")}\nNão mede latência, GB/s ou score de RAM."));
         return result.Status == MemoryValidationStatus.Cancelled ? 130 : result.Status == MemoryValidationStatus.TimedOut ? 124 : 0;
     }
     if (command.Html && command.Operation == CliOperation.Info)
@@ -168,7 +168,7 @@ try
         }
         if (command.Html) Console.Write(ValidationHtmlReport.Render(report));
         else Console.WriteLine(command.Json ? SnapshotReport.Json(report) :
-            L.T($"Ilmenyx CPU · {result.Workload.Id}\nEstado: {result.Status}\nThreads: {result.Threads}\n") +
+            L.T($"Ilmenyx CPU · {result.Workload.Id}\nEstado: {StatusText.Of(result.Status)}\nThreads: {result.Threads}\n") +
             L.T($"Passadas: {result.CompletedPasses}\nAmostras concluídas: {result.CompletedSamples}\n") +
             L.T($"SHA256 BGRA: {result.ImageSha256}\nScore experimental: {result.ExperimentalScore?.ToString("F3") ?? L.T("indisponível")}\n") +
             L.T("Comparação com Windows NÃO VALIDADA; validação reduzida não mede desempenho."));
@@ -177,7 +177,7 @@ try
     if (command.Output is { } output) await SnapshotReport.ExportAsync(snapshot, output, stop.Token);
     Console.WriteLine(command.Operation == CliOperation.Capabilities
         ? command.Json ? JsonSerializer.Serialize(snapshot.Capabilities, SnapshotReport.Options)
-            : string.Join("\n", snapshot.Capabilities.Select(c => $"{c.Name}: {c.Status} — {c.Reason}"))
+            : string.Join("\n", snapshot.Capabilities.Select(c => $"{c.Name}: {StatusText.Of(c.Status)} — {c.Reason}"))
         : command.Json ? SnapshotReport.Json(snapshot) : SnapshotReport.Text(snapshot));
     return 0;
 }
