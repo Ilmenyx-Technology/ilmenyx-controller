@@ -64,7 +64,7 @@ public sealed partial class ShellWindow : Window
             UiKit.SetAction(pause, usage.IsRunning ? Icons.Pause : Icons.Play, usage.IsRunning ? "Pausar monitor" : "Retomar monitor");
             if (IsVisible && !stop.IsCancellationRequested) pause.Focus();
         };
-        var header = new Grid { Name = "ShellHeader", ColumnDefinitions = new("Auto,*,Auto"), Margin = new Thickness(0, 18, 22, 14) };
+        var header = new Grid { Name = "ShellHeader", ColumnDefinitions = new("Auto,*,Auto"), Margin = new Thickness(20, 18, 22, 14) };
         // Context help: "?" next to the page title opens the Help Center at this page's section.
         var pageHelp = UiKit.IconButton("PageHelp", Icons.Help, help[HelpKeys.HelpContext], 28);
         pageHelp.Click += (_, _) => OpenHelp(CurrentPage);
@@ -76,8 +76,8 @@ public sealed partial class ShellWindow : Window
 
         var main = new Grid { RowDefinitions = new("Auto,*") };
         main.Children.Add(header);
-        host.Margin = new Thickness(0, 0, 22, 18); Grid.SetRow(host, 1); main.Children.Add(host);
-        var body = new Grid { ColumnDefinitions = new("214,*") };
+        host.Margin = new Thickness(20, 0, 22, 18); Grid.SetRow(host, 1); main.Children.Add(host);
+        var body = new Grid { ColumnDefinitions = new("230,*") };
         body.Children.Add(Sidebar()); Grid.SetColumn(main, 1); body.Children.Add(main);
         var root = new Grid { Name = "ShellRoot", Background = Palette.Bg };
         foreach (var layer in IlmenyxTheme.AmbientLayers()) root.Children.Add(layer);

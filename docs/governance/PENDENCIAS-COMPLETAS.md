@@ -78,3 +78,14 @@ Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes qu
 - [ ] **Calibração de FPS**: clicar CALIBRAR AGORA nesta máquina (940MX com driver 580) e jogar LoL/CS2 com MangoHud e qualidade informada, para conferir a faixa.
 - [ ] **Ideias do LinuxToys** (só ideias; o código é GPL-3.0, incompatível): diagnóstico "por que o Proton/Flatpak não abre", cache de
   shader maior por usuário, mais apps de jogo no instalador, ZRAM pela via oficial da distro, opções por jogo (Proton Wayland, low-latency).
+
+## 2026-11-09 (noite): máquina pessoal do dono (HP 250 G8, Intel Iris Xe, CachyOS/Arch, KDE Plasma Wayland)
+
+- Renomeação: produto **Ilmenyx Controller**, organização **Ilmenyx Technology** (github.com/Ilmenyx-Technology/ilmenyx), app ID
+  `io.github.ilmenyx_technology.IlmenyxController`. Branch `chore/ilmenyx-controller` (sobre a feat/rodada3). Testes 1287; UiSmoke 68/68
+  no KDE Wayland real (primeira vez fora do compositor aninhado).
+- [x] **Legibilidade no app real, temas claro e escuro: VALIDADA pelo dono.**
+- [x] **Nome novo no app** (menu lateral, título da janela, Sobre, doctor): VALIDADO pelo dono. Ajuste pedido: título da página
+  estava colado na marca; menu lateral 214 -> 230 px e 20 px antes do título e do conteúdo. Dono aprovou; UiSmoke 68/68.
+- [ ] Logotipo ainda mostra só "Ilmenyx" (decisão de identidade do dono). Chave GPG com UID antigo "Bismuth Technology": acrescentar UID novo.
+- [ ] Busca de marca para "Ilmenyx Controller" e "Ilmenyx Technology" (a de 2026-11-07 cobriu Ilmenyx e Bismuth Technology).
