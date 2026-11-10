@@ -248,7 +248,7 @@ public static class NvidiaPlanner
         steps.Add(L.T("Conferir no final (dkms status e arquivo do módulo) e pedir para você reiniciar."));
         string title = kind == NvidiaActionKind.Update ? (fromBranch is null ? L.T($"Atualizar o driver NVIDIA {branch}") : L.T($"Atualizar para o ramo {branch}")) : L.T($"Instalar o driver NVIDIA {branch}");
         string script = NvidiaScripts.Apt(["install", .. pkgs], NvidiaScripts.GuardInstall(d.RunningKernel), d.RunningKernel, true, d.Hybrid && d.PrimeSelectAvailable, L.T("concluído. Reinicie o computador para usar o driver NVIDIA."));
-        return new NvidiaAction(kind, title, kind == NvidiaActionKind.Update ? L.T("Atualizar") : L.T("Instalar"), steps, CommonRisks(d, support), script, ["install", .. pkgs], purge, tested);
+        return new NvidiaAction(kind, title, kind == NvidiaActionKind.Update ? L.T("Atualizar driver") : L.T("Instalar driver"), steps, CommonRisks(d, support), script, ["install", .. pkgs], purge, tested);
     }
 
     private static NvidiaAction UbuntuRepair(NvidiaDiagnosis d, string branch, bool open, bool tested)

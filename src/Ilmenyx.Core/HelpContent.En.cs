@@ -72,7 +72,7 @@ public static partial class HelpContent
                 [
                     "Choose a category in the list (Operating system, Motherboard, Processor, Memory, Graphics card or Storage).",
                     "In Storage, the rings show how full each disk is.",
-                    "Click Update to read again, or export as JSON or an HTML report.",
+                    "Click Refresh to read again, or export as JSON or an HTML report.",
                     "In Memory, Import RAM modules reads a saved dmidecode file to show each stick.",
                 ],
                 Q("ram", "Why don't the details of each RAM stick show?", "Linux only shows these details to the administrator. Run the dmidecode command shown on the page in the terminal, save the output to a file and use Import RAM modules. Ilmenyx doesn't run that command and doesn't show serial numbers.")),
@@ -104,7 +104,7 @@ public static partial class HelpContent
                     "Look at each disk's card and its verdict.",
                     "For more complete data, click Query SMART (read only) on the disk's card.",
                     "If you already have a saved smartctl report, import it in SMART · offline import.",
-                    "Click Update to read again.",
+                    "Click Refresh to read again.",
                 ],
                 Q("verdict", "Is the disk verdict guaranteed?", "No. It's an estimate made from the disk's own data. Back up any disk with a warning, not only the critical ones."),
                 Q("usb", "Why does the USB stick show NO DATA?", "USB sticks and some external HDDs don't report health to the system."),
@@ -114,7 +114,7 @@ public static partial class HelpContent
                 "Battery (charge, health and cycles), connected power source and draw read from the kernel's sensors.",
                 [
                     "Open the page: it reads the battery and power source right away.",
-                    "Click Update to read again.",
+                    "Click Refresh to read again.",
                     "On a desktop PC without a battery, only the power source and draw show up.",
                 ],
                 Q("psu", "Is the draw shown the one at the wall outlet?", "No. It's what the kernel's power sensors report (CPU, GPU…), not the PC's power supply (PSU)."),
@@ -270,7 +270,7 @@ public static partial class HelpContent
                 "Lists the USB serial ports (Arduino, ESP32 and other boards) without opening any.",
                 [
                     "Plug the board into USB.",
-                    "Click Update to see the port (e.g. /dev/ttyUSB0) and the chip.",
+                    "Click Refresh to see the port (e.g. /dev/ttyUSB0) and the chip.",
                     "If your user doesn't have access to the port, the page shows the suggested command for you to run.",
                 ],
                 Q("open", "Why doesn't Ilmenyx open the port?", "Opening the port can reset boards such as Arduino and ESP. Ilmenyx only reads the system's information.")),
@@ -310,7 +310,7 @@ public static partial class HelpContent
             S("startup", "tools", "Startup",
                 "Lists the programs that open with your session, split into \"System (desktop)\" and \"Programs you installed\", with a sentence about what each one does and a recommendation.",
                 [
-                    "Click Update to see the list.",
+                    "Click Refresh to see the list.",
                     "Read each item's recommendation: \"Required — don't turn off\", \"You can turn it off if you don't use…\", \"User\" or \"Unknown: look it up before turning it off\".",
                     "Turn off a program's switch so it no longer opens with the session (you can turn it back on). For system items, Ilmenyx shows a warning first.",
                     "Remove takes one of your programs off the list; Restore removed brings it back.",
