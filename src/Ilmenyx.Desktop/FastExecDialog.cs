@@ -106,9 +106,19 @@ public sealed class FastExecDialog : Window
             string? wine = null;
             if (mode.SelectedIndex == 3 && (wine = PlainWine.Find()) is null)
             {
-                status.Foreground = Palette.Warn;
-                status.Text = "Nenhum Wine comum encontrado. Abra o Bottles uma vez para ele baixar o Soda, ou escolha um Proton.";
-                return;
+                // No Wine of our own and none downloaded by Bottles: fetch the same Soda build that installed the repacks (once).
+                if (!await ConfirmDialog.AskAsync(this, "Wine comum (Soda)", $"Baixar o Wine {PortableWine.Version} (cerca de 170 MB) do GitHub do projeto Bottles?\n\nÉ feito uma vez só e fica em ~/.local/share/ilmenyx/runners. O arquivo é conferido pela soma oficial (SHA-256). Não precisa instalar o Bottles.", "Baixar", "Cancelar")) return;
+                start.IsEnabled = false; status.Foreground = Palette.Muted; Busy(true, 0);
+                try
+                {
+                    using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(30) };
+                    http.DefaultRequestHeaders.UserAgent.ParseAdd("IlmenyxController (+https://github.com/Ilmenyx-Technology/ilmenyx)");
+                    await PortableWine.EnsureAsync(http, new Progress<double>(v => { status.Text = $"Baixando o Wine {PortableWine.Version}… {v:P0}"; Busy(true, v); }), CancellationToken.None);
+                }
+                catch (Exception e) when (e is IOException or HttpRequestException or TaskCanceledException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
+                { status.Foreground = Palette.Warn; status.Text = "Não consegui preparar o Wine comum: " + e.Message; start.IsEnabled = true; return; }
+                finally { start.IsEnabled = true; Busy(false); }
+                if ((wine = PlainWine.Find()) is null) { status.Foreground = Palette.Warn; status.Text = "O Wine comum foi baixado, mas não ficou utilizável. Escolha um Proton."; return; }
             }
             try { plan = FastExec.Plan((installer.Text ?? "").Trim(), (destination.Text ?? "").Trim(), find, tempRoot, geProton: mode.SelectedIndex == 2, protonPath: mode.SelectedIndex == 1 ? ClassicProton.Folder(classicRoot) : null, wineBin: wine); }
             catch (Exception e) when (e is ArgumentException or InvalidOperationException) { status.Foreground = Palette.Warn; status.Text = e.Message; return; }
