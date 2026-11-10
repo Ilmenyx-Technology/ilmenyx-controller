@@ -929,7 +929,7 @@
   "Devolver ao original": "Restore original",
   "Devolver {0} programa(s) à inicialização?\n\n{1}": "Return {0} program(s) to startup?\n\n{1}",
   "Diagnóstico (somente leitura)": "Diagnostics (read only)",
-  "Diagnóstico de hardware · Linux · 0.30.0": "Hardware diagnostics · Linux · 0.30.0",
+  "Diagnóstico de hardware · Linux": "Hardware diagnostics · Linux",
   "Diagnóstico de rede": "Network diagnostics",
   "Dimensões": "Dimensions",
   "Dimensões não conferem com os dados.": "Dimensions don't match the data.",

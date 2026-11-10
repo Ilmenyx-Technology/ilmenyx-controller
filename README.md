@@ -3,7 +3,7 @@
 **Diagnóstico, monitoramento e benchmark de hardware para Linux.**
 Por **Ilmenyx Technology**.
 
-![versão](https://img.shields.io/badge/vers%C3%A3o-0.30.0-blue)
+![versão](https://img.shields.io/badge/vers%C3%A3o-0.31.0-blue)
 ![plataforma](https://img.shields.io/badge/plataforma-Linux%20x64-informational)
 ![.NET](https://img.shields.io/badge/.NET-10-512bd4)
 ![status](https://img.shields.io/badge/status-experimental-orange)
