@@ -23,7 +23,7 @@ public sealed partial class LinuxDiskHealthReader(string sysRoot = "/sys")
     public IReadOnlyList<DiskHealthInput> Read(string mountsText, IReadOnlyDictionary<string, SmartDiagnostic>? smart = null)
     {
         string root = Path.Combine(sysRoot, "block");
-        if (!Directory.Exists(root)) throw new IOException("/sys/block indisponível.");
+        if (!Directory.Exists(root)) throw new IOException(L.T("/sys/block indisponível."));
         var mounts = MountPoints(mountsText);
         var list = new List<DiskHealthInput>();
         foreach (var dir in Directory.EnumerateDirectories(root).OrderBy(p => p, StringComparer.Ordinal).Take(257))

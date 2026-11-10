@@ -56,7 +56,7 @@ public sealed class DriverPage : StackPanel
 
         var summary = UiKit.FeatureCard(new StackPanel { Children =
         {
-            UiKit.Label("RESUMO"), headline, summaryLines,
+            UiKit.Label(L.T("RESUMO")), headline, summaryLines,
             new TextBlock { Text = L.T("Livre = código aberto, já vem com o Linux e se atualiza com o sistema. Proprietário = feito pelo fabricante, código fechado (como o driver oficial da NVIDIA)."), Foreground = Palette.Muted, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0) },
         } }, "DrvSummary");
         summary.Margin = new Thickness(0, 0, 0, 14);
@@ -191,7 +191,7 @@ public sealed class DriverPage : StackPanel
         head.Children.Add(new TextBlock { Text = device, FontWeight = FontWeight.SemiBold, FontSize = 13.5, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 10, 0) });
         var badge = Badge(d.Badge, HealthBrush(d.Health)); Grid.SetColumn(badge, 1); head.Children.Add(badge);
         var panel = new StackPanel { Spacing = 2, Children = { head } };
-        panel.Children.Add(new TextBlock { Text = L.T($"{d.Kind} · Driver em uso: {(DriverOverview.HasDriver(r) ? r.Driver : "nenhum")} · {d.License}"), FontSize = 11.5, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap });
+        panel.Children.Add(new TextBlock { Text = L.T($"{d.Kind} · Driver em uso: {(DriverOverview.HasDriver(r) ? r.Driver : L.T("nenhum"))} · {d.License}"), FontSize = 11.5, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap });
         panel.Children.Add(new TextBlock { Text = d.Plain, FontSize = 12.5, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 0, 0) });
 
         // ONE recommended action, when there is something to do.

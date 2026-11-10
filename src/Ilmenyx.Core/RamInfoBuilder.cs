@@ -41,7 +41,7 @@ public static partial class RamInfoBuilder
         if (installed > 0) n.Add(L.T("Total instalado (SMBIOS)"), Bytes(installed));
         var sum = n.Add(L.T("Resumo"));
         if (usedBytes is { } u && totalBytes is > 0) sum.Add(L.T("Em uso (no momento da leitura)"), L.T($"{Bytes(u)} de {Bytes(totalBytes.Value)} ({((double)u / totalBytes.Value * 100).ToString("0", CultureInfo.InvariantCulture)}%)"));
-        if (swapTotal is > 0 && swapUsed is { } su) sum.Add(L.T("Swap em uso"), $"{Bytes(su)} de {Bytes(swapTotal.Value)}");
+        if (swapTotal is > 0 && swapUsed is { } su) sum.Add(L.T("Swap em uso"), L.T($"{Bytes(su)} de {Bytes(swapTotal.Value)}"));
         if (inventory is null || modules.Count == 0)
         {
             sum.Add(L.T("Módulos, velocidade, canais e perfil EXPO/XMP"),

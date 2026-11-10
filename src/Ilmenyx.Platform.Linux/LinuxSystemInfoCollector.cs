@@ -72,7 +72,7 @@ public sealed class LinuxSystemInfoCollector(string procRoot = "/proc", string s
 
     private void Cpu(InfoNode n)
     {
-        string text = Text(Proc("cpuinfo")) ?? throw new IOException("/proc/cpuinfo indisponível.");
+        string text = Text(Proc("cpuinfo")) ?? throw new IOException(L.T("/proc/cpuinfo indisponível."));
         var blocks = text.Replace("\r", "").Split("\n\n", StringSplitOptions.RemoveEmptyEntries).Where(b => b.Contains("processor", StringComparison.Ordinal)).ToList();
         if (blocks.Count == 0) throw new IOException(L.T("Nenhum processador listado."));
         string Get(string block, string key) => block.Split('\n').Select(l => l.Split(':', 2)).Where(p => p.Length == 2 && p[0].Trim() == key).Select(p => p[1].Trim()).FirstOrDefault() ?? "";
@@ -159,7 +159,7 @@ public sealed class LinuxSystemInfoCollector(string procRoot = "/proc", string s
     {
         n.Children.Clear();
         string root = Sys("block");
-        if (!Directory.Exists(root)) throw new IOException("/sys/block indisponível.");
+        if (!Directory.Exists(root)) throw new IOException(L.T("/sys/block indisponível."));
         foreach (var dir in Directory.EnumerateDirectories(root).OrderBy(p => p, StringComparer.Ordinal).Take(257))
         {
             string name = Path.GetFileName(dir);

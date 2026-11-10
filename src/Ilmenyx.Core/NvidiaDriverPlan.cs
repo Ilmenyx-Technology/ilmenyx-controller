@@ -438,12 +438,12 @@ public static class NvidiaPlanner
     {
         var f = new List<string>();
         foreach (var g in d.Gpus)
-            f.Add(L.T($"GPU NVIDIA: {g.Name} [10de:{g.DeviceId}] · {NvidiaGenerations.Name(g.Generation)}{(g.Chip.Length > 0 ? " " + g.Chip : "")} · driver em uso: {(g.KernelDriver.Length > 0 ? g.KernelDriver : "nenhum")} · ramo indicado: {g.Support.Branch ?? "nenhum"}"));
+            f.Add(L.T($"GPU NVIDIA: {g.Name} [10de:{g.DeviceId}] · {NvidiaGenerations.Name(g.Generation)}{(g.Chip.Length > 0 ? " " + g.Chip : "")} · driver em uso: {(g.KernelDriver.Length > 0 ? g.KernelDriver : L.T("nenhum"))} · ramo indicado: {g.Support.Branch ?? "nenhum"}"));
         if (d.OtherGpus.Count > 0) f.Add(L.T("Outra GPU: ") + string.Join(", ", d.OtherGpus) + (d.Gpus.Count > 0 ? L.T(" (notebook/PC híbrido: PRIME)") : ""));
         f.Add(L.T($"Sistema: {d.Distro.Name} ({FamilyText(d.Distro.Family)}) · kernel em uso {d.RunningKernel} ({d.Architecture})"));
         if (d.RunningHeaders is { } h) f.Add(h.Complete ? L.T($"Cabeçalhos do kernel em uso: completos") : h.Present ? L.T($"Cabeçalhos do kernel em uso: INCOMPLETOS (faltam {string.Join(", ", h.Missing)})") : L.T("Cabeçalhos do kernel em uso: ausentes (serão instalados junto)"));
         foreach (var k in d.Kernels.Where(k => k.Kernel != d.RunningKernel))
-            f.Add(L.T($"Outro kernel instalado: {k.Kernel} · cabeçalhos {(k.Complete ? "completos" : k.Present ? L.T("INCOMPLETOS (faltam ") + string.Join(", ", k.Missing) + ")" : "ausentes")}"));
+            f.Add(L.T($"Outro kernel instalado: {k.Kernel} · cabeçalhos {(k.Complete ? L.T("completos") : k.Present ? L.T("INCOMPLETOS (faltam ") + string.Join(", ", k.Missing) + ")" : L.T("ausentes"))}"));
         foreach (var p in d.BrokenPackages.Take(12)) f.Add(L.T($"Pacote pela metade: {p.Name} {p.Version} · {p.Status.Trim()} ({p.StatusText})"));
         if (d.InstalledDriver is { } i) f.Add(L.T($"Pacote do driver: nvidia-driver-{i.Branch}{(i.Open ? "-open" : "")} {i.Version}") + (d.CandidateVersion is { } c ? c != i.Version ? L.T($" · disponível: {c}") : L.T(" · em dia (é o candidato do gerenciador de pacotes para este ramo)") : ""));
         foreach (var e in d.Dkms.Where(e => e.Module.StartsWith("nvidia", StringComparison.Ordinal))) f.Add($"DKMS: {e.Module}/{e.Version} · {e.Kernel} · {e.State}");

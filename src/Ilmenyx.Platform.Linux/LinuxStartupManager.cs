@@ -218,7 +218,7 @@ public sealed class LinuxStartupManager(string configHome, string dataHome, IRea
         {
             if (!UnitName.IsMatch(e.Id) || systemctl is null) throw new ArgumentException(L.T("Unidade inválida."));
             var (code, _) = await systemctl(["--user", enabled ? "enable" : "disable", "--", e.Id], ct);
-            if (code != 0) throw new IOException($"systemctl retornou código {code}.");
+            if (code != 0) throw new IOException(L.T($"systemctl retornou código {code}."));
             var list = Removed().Where(b => !(b.Kind == "Service" && b.Unit == e.Id)).ToList();
             if (!enabled) list.Add(new("Service", e.Name, null, null, e.Id));
             SaveRemoved(list); return;

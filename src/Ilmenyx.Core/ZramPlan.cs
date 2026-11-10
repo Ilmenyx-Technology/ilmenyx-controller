@@ -208,7 +208,7 @@ public static class ZramPlanner
         findings.Add(f.Swaps.Count == 0 ? L.T("Swap: nenhuma ativa (/proc/swaps vazio).") : L.T("Swap ativa: ") + string.Join("; ", f.Swaps.Select(s => L.T($"{s.Name} ({s.Type}, {GiB(s.SizeKiB * 1024)}, prioridade {s.Priority})"))));
         foreach (var d in f.Devices.Where(d => d.DiskSizeBytes > 0)) findings.Add(L.T($"Dispositivo {d.Name}: {GiB(d.DiskSizeBytes)}, compressão {d.Algorithm}."));
         if (f.EtcGeneratorConf is not null) findings.Add(GeneratorConf + (Ours(f.EtcGeneratorConf) ? L.T(" (criado pelo Ilmenyx)") : L.T(" (de outro programa ou do administrador)")));
-        if (f.VendorGeneratorConf is not null) findings.Add("/usr/lib/systemd/zram-generator.conf (padrão da distribuição)");
+        if (f.VendorGeneratorConf is not null) findings.Add(L.T("/usr/lib/systemd/zram-generator.conf (padrão da distribuição)"));
         foreach (var d in f.GeneratorDropIns) findings.Add("Complemento: " + d);
         if (f.ZramswapDefaults is not null) findings.Add(ZramswapConf + (Ours(f.ZramswapDefaults) ? L.T(" (criado pelo Ilmenyx)") : L.T(" (do pacote zram-tools)")));
         if (f.ZramConfigInstalled) findings.Add(L.T("Pacote zram-config instalado (outro gerenciador de ZRAM do Ubuntu)."));

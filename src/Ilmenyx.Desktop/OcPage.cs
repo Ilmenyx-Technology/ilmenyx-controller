@@ -176,7 +176,7 @@ public sealed class OcPage : StackPanel
         var hero = new Grid { ColumnDefinitions = new("*,Auto") }; Grid.SetColumn(action, 1); hero.Children.Add(state); hero.Children.Add(action);
         Children.Add(BenchPage.Themed(UiKit.Hero(hero, height: double.NaN, name: "OcHero")));
         Children.Add(UiKit.SectionHeader(L.T("Teste e limites")));
-        Children.Add(UiKit.Card(new WrapPanel { Children = { Field("TESTAR", target.Panel), Field(L.T("DURAÇÃO"), dur.Panel), Field(L.T("DESCRIÇÃO"), label), Field(L.T("LIMITE °C"), tempLimit) } }));
+        Children.Add(UiKit.Card(new WrapPanel { Children = { Field(L.T("TESTAR"), target.Panel), Field(L.T("DURAÇÃO"), dur.Panel), Field(L.T("DESCRIÇÃO"), label), Field(L.T("LIMITE °C"), tempLimit) } }));
         Controls = [dur.Panel, target.Panel];
     }
 

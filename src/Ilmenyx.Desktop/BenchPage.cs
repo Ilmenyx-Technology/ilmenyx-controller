@@ -81,7 +81,7 @@ public sealed class BenchPage : StackPanel
         settings = IlmenyxSettings.Load(settingsPath);
         Children.Add(UiKit.PageHeader("Benchmark", L.T("CPU, memória, GameSim, GPU, ray tracing e disco · cada teste só começa após sua confirmação")));
 
-        var kinds = new UiKit.ChipGroup<Kind>("BenchKindPanel", [("CPU", Kind.Cpu), (L.T("MEMÓRIA"), Kind.Memory), ("GAMESIM", Kind.Sim), ("GPU", Kind.Gpu), ("RAY TRACING", Kind.Rt), ("DISCO", Kind.Disk)], Kind.Cpu, k => { kind = k; StyleTiles(); BuildOptions(); });
+        var kinds = new UiKit.ChipGroup<Kind>("BenchKindPanel", [("CPU", Kind.Cpu), (L.T("MEMÓRIA"), Kind.Memory), ("GAMESIM", Kind.Sim), ("GPU", Kind.Gpu), ("RAY TRACING", Kind.Rt), (L.T("DISCO"), Kind.Disk)], Kind.Cpu, k => { kind = k; StyleTiles(); BuildOptions(); });
         string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         diskDirectory.Text = home; AutomationProperties.SetName(diskDirectory, L.T("Pasta autorizada para o arquivo temporário do teste de disco"));
         AutomationProperties.SetName(tempLimit, L.T("Limite de temperatura da CPU em graus Celsius"));
@@ -198,7 +198,7 @@ public sealed class BenchPage : StackPanel
         kindTag.Text = KindLabel(kind);
     }
 
-    private static string KindLabel(Kind k) => k switch { Kind.Cpu => "CPU", Kind.Memory => L.T("MEMÓRIA"), Kind.Sim => "GAMESIM", Kind.Gpu => "GPU", Kind.Rt => "RAY TRACING", _ => "DISCO" };
+    private static string KindLabel(Kind k) => k switch { Kind.Cpu => "CPU", Kind.Memory => L.T("MEMÓRIA"), Kind.Sim => "GAMESIM", Kind.Gpu => "GPU", Kind.Rt => "RAY TRACING", _ => L.T("DISCO") };
 
     /// <summary>Asymmetric widths (first tile ~1.9x the others), recomputed with the page width.</summary>
     private void SizeTiles(double width)
@@ -247,9 +247,9 @@ public sealed class BenchPage : StackPanel
             case Kind.Rt:
                 if (rtInfo is null) { options.Children.Add(Note(L.T("Verificando suporte a ray tracing…"))); break; }
                 if (rtInfo.Reason is { } rwhy) { options.Children.Add(Note(L.T("Ray tracing indisponível: ") + rwhy)); break; }
-                wrap.Children.Add(Field("PRESET", new UiKit.ChipGroup<string>("BenchRtPreset", [("Normal", "normal"), ("ALTA", "alta"), (L.T("EXTREMA"), "extrema")], rtPreset, v => { rtPreset = v; BuildOptions(); }).Panel));
+                wrap.Children.Add(Field(L.T("PRESET"), new UiKit.ChipGroup<string>("BenchRtPreset", [("Normal", "normal"), (L.T("ALTA"), "alta"), (L.T("EXTREMA"), "extrema")], rtPreset, v => { rtPreset = v; BuildOptions(); }).Panel));
                 wrap.Children.Add(Field(L.T("RESOLUÇÃO"), new UiKit.ChipGroup<string>("BenchRtResolution", [("1080P", "1080p"), ("1440P", "1440p"), ("4K", "4k")], rtResolution, v => { rtResolution = v; BuildOptions(); }).Panel));
-                wrap.Children.Add(Field("MODO", new UiKit.ChipGroup<bool>("BenchRtMode", [(L.T("RÁPIDO"), true), (L.T("COMPLETO"), false)], rtQuick, v => { rtQuick = v; BuildOptions(); }).Panel));
+                wrap.Children.Add(Field(L.T("MODO"), new UiKit.ChipGroup<bool>("BenchRtMode", [(L.T("RÁPIDO"), true), (L.T("COMPLETO"), false)], rtQuick, v => { rtQuick = v; BuildOptions(); }).Panel));
                 wrap.Children.Add(Field(L.T("LIMITE °C"), tempLimit));
                 options.Children.Add(wrap);
                 var ro = RtOptions(); var q = GpuRtPresets.Quality(ro.Preset)!.Value;

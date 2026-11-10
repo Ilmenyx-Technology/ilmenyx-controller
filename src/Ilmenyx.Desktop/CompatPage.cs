@@ -51,7 +51,7 @@ public sealed class CompatPage : StackPanel
 
         search.TextChanged += (_, _) => _ = SearchAsync(search.Text ?? "");
         var icon = UiKit.Icon(Icons.Search, 15, Palette.Faint); icon.HorizontalAlignment = HorizontalAlignment.Left; icon.Margin = new Thickness(12, 0, 0, 0); icon.IsHitTestVisible = false;
-        Children.Add(UiKit.Card(new StackPanel { Spacing = 10, Children = { CardTitle(Icons.Games, "JOGO"), new Grid { Children = { search, icon } }, results, library } }));
+        Children.Add(UiKit.Card(new StackPanel { Spacing = 10, Children = { CardTitle(Icons.Games, L.T("JOGO")), new Grid { Children = { search, icon } }, results, library } }));
 
         dbUpdate.Click += async (_, _) => await UpdateDatabaseAsync();
         dbCancel.Click += (_, _) => updating?.Cancel();
@@ -232,7 +232,7 @@ public sealed class CompatPage : StackPanel
             CardTitle(Icons.System, L.T("SUA MÁQUINA")), new TextBlock { Name = "CompatHardware", Text = $"{hw.GpuText} · {hw.Distro ?? L.T("distro desconhecida")}" + (hw.NvidiaProprietary ? L.T(" · driver NVIDIA proprietário") : ""), TextWrapping = TextWrapping.Wrap },
             new TextBlock { Name = "CompatCounts", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, Text = reports.Count == 0
                 ? (services.Db.ReadMeta() is null ? L.T("Baixe a base de relatos (acima) para ver o que funcionou para outras pessoas.") : L.T("Nenhum relato deste jogo na base local."))
-                : L.T($"{Count(reports.Count, L.T("relato recente"), L.T("relatos recentes"))} na base · {reports.Count(r => r.Works)} {(reports.Count(r => r.Works) == 1 ? "conseguiu" : "conseguiram")} jogar · {sameGpu} com a mesma GPU, série ou chip que a sua") } } }));
+                : L.T($"{Count(reports.Count, L.T("relato recente"), L.T("relatos recentes"))} na base · {reports.Count(r => r.Works)} {(reports.Count(r => r.Works) == 1 ? L.T("conseguiu") : L.T("conseguiram"))} jogar · {sameGpu} com a mesma GPU, série ou chip que a sua") } } }));
         if (reports.Count == 0) return;
 
         var (options, protons) = CompatMatcher.Suggest(ranked, 30);

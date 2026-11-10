@@ -82,7 +82,7 @@ public sealed class OverlayPage : StackPanel
         Children.Add(UiKit.SectionHeader(L.T("O que mostrar"), presets));
         Children.Add(UiKit.Card(items));
         Children.Add(UiKit.SectionHeader(L.T("Posição e tamanho"), saved));
-        Children.Add(UiKit.Card(new WrapPanel { Children = { Field("CANTO", corners.Panel), Field(L.T("TAMANHO"), scales.Panel) } }));
+        Children.Add(UiKit.Card(new WrapPanel { Children = { Field(L.T("CANTO"), corners.Panel), Field(L.T("TAMANHO"), scales.Panel) } }));
         Children.Add(UiKit.SectionHeader(L.T("MangoHud · overlay dentro do jogo")));
         launch.Text = MangoHudConfig.LaunchOption(services.ConfigPath); AutomationProperties.SetName(launch, L.T("Opção de inicialização da Steam"));
         var launchLabel = UiKit.Label(L.T("OPÇÃO DE INICIALIZAÇÃO DA STEAM (OPCIONAL)"));

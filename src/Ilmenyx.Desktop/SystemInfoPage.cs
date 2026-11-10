@@ -225,7 +225,7 @@ public sealed class SystemInfoPage : Grid
 
     private void BuildImportBox()
     {
-        var path = new TextBox { Name = "SysDmiPath", PlaceholderText = "/pasta/dmidecode-memoria.txt" };
+        var path = new TextBox { Name = "SysDmiPath", PlaceholderText = L.T("/pasta/dmidecode-memoria.txt") };
         var label = new TextBlock { Text = L.T("Importar `sudo dmidecode -t memory > arquivo.txt` (caminho completo; o Ilmenyx não executa dmidecode)"), TextWrapping = TextWrapping.Wrap, Foreground = Palette.Muted };
         AutomationProperties.SetName(path, L.T("Caminho do arquivo com a saída do dmidecode")); AutomationProperties.SetLabeledBy(path, label);
         var import = new Button { Name = "SysImportDmi", Content = L.T("Importar módulos de RAM") };

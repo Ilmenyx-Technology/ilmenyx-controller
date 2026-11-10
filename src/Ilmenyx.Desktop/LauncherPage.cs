@@ -59,7 +59,7 @@ public sealed class LauncherPage : Grid
     /// <summary>Newest UMU-Proton umu already downloaded (default: the real folder). Settable for fixtures.</summary>
     public Func<string?>? UmuProton { get; init; }
     private readonly TextBlock exeText = new() { Name = "LExeText", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap };
-    private readonly TextBox exePath = new() { Name = "LExePath", PlaceholderText = "/caminho/completo/do/executavel" };
+    private readonly TextBox exePath = new() { Name = "LExePath", PlaceholderText = L.T("/caminho/completo/do/executavel") };
     private readonly TextBox extra = new() { Name = "LExtra", PlaceholderText = L.T("ex.: -novid -high +fps_max 0") };
     private readonly TextBox protonId = new() { Name = "LProtonId", PlaceholderText = L.T("ID Steam do jogo (opcional), ex.: 307780"), MaxLength = 10 };
     private readonly StackPanel protonBox = new() { Name = "LProtonBox", IsVisible = false, Margin = new Thickness(0, 10, 0, 0) };
@@ -78,7 +78,7 @@ public sealed class LauncherPage : Grid
     private readonly StackPanel steamBox = new() { Name = "LSteamBox", IsVisible = false };
     private readonly TextBlock gfxNote = new() { Name = "LGfxNote", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0) };
     private readonly StackPanel helpers = new() { Name = "LHelpers" };
-    private readonly TextBox helperPath = new() { Name = "LHelperPath", PlaceholderText = "/caminho/completo/do/programa" };
+    private readonly TextBox helperPath = new() { Name = "LHelperPath", PlaceholderText = L.T("/caminho/completo/do/programa") };
     private readonly CheckBox helperClose = new() { Name = "LHelperClose", Content = L.T("Fechar junto com o jogo"), IsChecked = true };
     private readonly StackPanel addBox = new() { Name = "LAddBox", IsVisible = false, Spacing = 6, Margin = new Thickness(0, 8, 0, 0) };
     private readonly Border emptyBox = new() { Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), Padding = new Thickness(24), MinHeight = 232, VerticalAlignment = VerticalAlignment.Top };
@@ -151,7 +151,7 @@ public sealed class LauncherPage : Grid
             }, BoundedProcess.Find).ShowDialog(window);
         };
         search.TextChanged += (_, _) => Filter();
-        var addPath = new TextBox { Name = "LAddPath", PlaceholderText = "/caminho/completo/do/jogo" };
+        var addPath = new TextBox { Name = "LAddPath", PlaceholderText = L.T("/caminho/completo/do/jogo") };
         AutomationProperties.SetName(addPath, L.T("Caminho completo do executável do jogo"));
         var addStatus = new TextBlock { Name = "LAddStatus", Foreground = Palette.Muted, FontSize = 11, TextWrapping = TextWrapping.Wrap };
         var confirm = UiKit.Primary("BtnAddExeConfirm", L.T("Adicionar"), 14, 6);
@@ -383,7 +383,7 @@ public sealed class LauncherPage : Grid
         {
             games = await library.ScanAsync(settings.CustomGames.ToList(), lifetime);
             Filter();
-            count.Text = games.Count == 0 ? L.T("Nenhum jogo encontrado. Use + Adicionar executável para incluir um à mão.") : $"{games.Count} {(games.Count == 1 ? "jogo" : "jogos")} · {string.Join(" · ", games.GroupBy(g => g.Kind ?? g.Store).Select(x => $"{x.Key} {x.Count()}"))}";
+            count.Text = games.Count == 0 ? L.T("Nenhum jogo encontrado. Use + Adicionar executável para incluir um à mão.") : $"{games.Count} {(games.Count == 1 ? L.T("jogo") : L.T("jogos"))} · {string.Join(" · ", games.GroupBy(g => g.Kind ?? g.Store).Select(x => $"{x.Key} {x.Count()}"))}";
         }
         catch (OperationCanceledException) { count.Text = L.T("Busca cancelada."); }
     }

@@ -239,7 +239,7 @@ public static partial class GameLaunchChecks
         if (f.AppArmorRestrictUserns is { } restrict)
         {
             bool bwrapProfile = f.UsernsProfiles.Any(p => p.Contains("bwrap", StringComparison.OrdinalIgnoreCase) || p.Contains("flatpak", StringComparison.OrdinalIgnoreCase));
-            string profiles = f.UsernsProfiles.Count > 0 ? string.Join(", ", f.UsernsProfiles) : "nenhum";
+            string profiles = f.UsernsProfiles.Count > 0 ? string.Join(", ", f.UsernsProfiles) : L.T("nenhum");
             var status = restrict == 0 ? CheckStatus.Ok : bwrapProfile ? CheckStatus.Info : CheckStatus.Attention;
             list.Add(new("apparmor", L.T("AppArmor: restrição de namespaces de usuário"), status,
                 restrict == 0 ? L.T("Restrição desligada (kernel.apparmor_restrict_unprivileged_userns = 0).") : L.T($"Restrição LIGADA (kernel.apparmor_restrict_unprivileged_userns = 1). Perfis de AppArmor encontrados para bwrap/Flatpak/Steam: {profiles}."),
@@ -270,7 +270,7 @@ public static partial class GameLaunchChecks
         // 3. SELinux execmod (openSUSE Tumbleweed/Fedora): Wine/Proton need executable memory mappings.
         if (f.SelinuxEnforce is 1 && f.SelinuxExecmod is { } execmod)
             list.Add(new("selinux", L.T("SELinux: permissão execmod (Wine/Proton)"), execmod ? CheckStatus.Ok : CheckStatus.Attention,
-                L.T($"SELinux em modo enforcing · selinuxuser_execmod = {(execmod ? "ligado" : "desligado")}."),
+                L.T($"SELinux em modo enforcing · selinuxuser_execmod = {(execmod ? L.T("ligado") : L.T("desligado"))}."),
                 L.T("Wine e Proton precisam de memória que é escrita e depois executada. Com o SELinux aplicando as regras e a permissão selinuxuser_execmod desligada, alguns jogos fecham ao abrir ou aparecem negações \"execmod\" no log de auditoria."),
                 L.T("Ligar a permissão deixa qualquer programa do usuário fazer esse tipo de mapeamento, o que reduz uma proteção contra exploração de falhas."),
                 execmod ? [] : Cmds((L.T("Ver negações recentes"), "sudo ausearch -m avc -ts recent | grep execmod"), (L.T("Ligar (permanente)"), "sudo setsebool -P selinuxuser_execmod 1"), (L.T("Desfazer"), "sudo setsebool -P selinuxuser_execmod 0")),
@@ -292,7 +292,7 @@ public static partial class GameLaunchChecks
         {
             bool free = f.RpmFusionFree == true, nonFree = f.RpmFusionNonFree == true;
             list.Add(new("rpmfusion", "RPM Fusion (Fedora)", free && nonFree ? CheckStatus.Ok : CheckStatus.Attention,
-                L.T($"RPM Fusion free: {(free ? "ativo" : L.T("ausente ou desativado"))} · nonfree: {(nonFree ? "ativo" : L.T("ausente ou desativado"))}."),
+                L.T($"RPM Fusion free: {(free ? L.T("ativo") : L.T("ausente ou desativado"))} · nonfree: {(nonFree ? L.T("ativo") : L.T("ausente ou desativado"))}."),
                 L.T("O Fedora não traz a Steam nativa, os codecs completos de vídeo nem o driver NVIDIA. Eles vêm do RPM Fusion (free e nonfree). Sem ele, vídeos de abertura de jogos podem ficar pretos e a Steam nativa não instala. Com a Steam Flatpak, a falta é menor."),
                 L.T("Baixo a médio: é um repositório de terceiros muito usado e recomendado pela comunidade do Fedora, mas passa a fornecer pacotes ao seu sistema."),
                 free && nonFree ? [] : Cmds((L.T("Instalar o RPM Fusion free e nonfree (comando oficial)"), "sudo dnf install https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm")), []));

@@ -407,7 +407,7 @@ public sealed class GamesFpsPage : Grid
         cards.Children.Clear();
         int shown = rows.Count(r => q.Length == 0 || r.Name.Contains(q, StringComparison.OrdinalIgnoreCase));
         string resText = res switch { "2560x1440" => "1440p", "3840x2160" => "4K", _ => "1080p" }, upText = upscaling switch { "Quality" => L.T("Qualidade"), "Performance" => L.T("Desempenho"), _ => L.T("Nativo") };
-        catalogCount.Text = (q.Length == 0 ? $"{rows.Count} jogos" : L.T($"{shown} de {rows.Count} jogos")) + $" · {resText} · {preset} · {upText}";
+        catalogCount.Text = (q.Length == 0 ? L.T($"{rows.Count} jogos") : L.T($"{shown} de {rows.Count} jogos")) + $" · {resText} · {PresetLabel(preset)} · {upText}";
         foreach (var row in rows.Where(r => q.Length == 0 || r.Name.Contains(q, StringComparison.OrdinalIgnoreCase)))
         {
             // Before calibration the estimate is greyed out and labelled provisional (the measured value of a session is never greyed).
@@ -443,4 +443,7 @@ public sealed class GamesFpsPage : Grid
             cards.Children.Add(card);
         }
     }
+
+    /// <summary>The preset value is an identifier (saved in sessions and profiles); this is its label.</summary>
+    private static string PresetLabel(string preset) => preset switch { "Baixo" => L.T("Baixo"), "Médio" => L.T("Médio"), "Alto" => L.T("Alto"), _ => preset };
 }

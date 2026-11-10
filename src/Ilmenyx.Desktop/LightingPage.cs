@@ -67,7 +67,7 @@ public sealed class LightingPage : StackPanel
         openSite.Click += async (_, _) => { try { await services.OpenUrl("https://openrgb.org/", lifetime); Log(L.T("Site do OpenRGB aberto no navegador.")); } catch (Exception e) when (e is IOException or TimeoutException or FileNotFoundException or ArgumentException) { Log(L.T("Não foi possível abrir o navegador: ") + e.Message); } };
         Children.Add(UiKit.Card(new StackPanel { Spacing = 8, Children = { UiKit.Label("OPENRGB"),
             new TextBlock { TextWrapping = TextWrapping.Wrap, Text = L.T("O OpenRGB controla as luzes de placas-mãe, memórias, ventoinhas, teclados e mouses de várias marcas (incluindo Corsair e Razer). O OpenRGB acompanha o Ilmenyx: Iniciar servidor sobe o servidor SDK embutido (ou o do sistema, se existir) só em 127.0.0.1 e o fecha ao sair. Se o seu OpenRGB já está com o servidor ativo, basta Conectar.") },
-            new WrapPanel { Children = { Field("PORTA", port), new WrapPanel { ItemSpacing = 8, LineSpacing = 8, VerticalAlignment = VerticalAlignment.Bottom, Children = { startServer, connect, openSite } } } }, status } }));
+            new WrapPanel { Children = { Field(L.T("PORTA"), port), new WrapPanel { ItemSpacing = 8, LineSpacing = 8, VerticalAlignment = VerticalAlignment.Bottom, Children = { startServer, connect, openSite } } } }, status } }));
         Children.Add(UiKit.Card(new StackPanel { Spacing = 6, Children = { UiKit.Label(L.T("DISPOSITIVOS")), list } }));
         var fx = new UiKit.ChipGroup<string>("LightFxPanel", [(L.T("Estático"), "static"), (L.T("Respirar"), "breath"), (L.T("Arco-íris"), "rainbow"), (L.T("Temp. CPU"), "cpu"), (L.T("Temp. GPU"), "gpu"), (L.T("Carga CPU"), "load"), (L.T("Apagar"), "off")], "static", v => { effect = v; smooth = double.NaN; last.Clear(); });
         // Keep buttons as direct children: the UI smoke and keyboard traversal rely on this panel.
@@ -86,8 +86,8 @@ public sealed class LightingPage : StackPanel
         startServer.IsVisible = services.StartServer is not null;
         startServer.Click += async (_, _) => await StartServerAsync();
         run.Click += async (_, _) => { if (running) await StopAsync(true); else await StartAsync(); };
-        Children.Add(UiKit.Card(new StackPanel { Spacing = 8, Children = { UiKit.Label("EFEITO"), fx.Panel,
-            new WrapPanel { Children = { Field(L.T("VERMELHO"), r), Field("VERDE", g), Field("AZUL", b), Field(L.T("BRILHO %"), bright), Field(L.T("VELOCIDADE"), speed), Field("COR", preview) } }, swatches,
+        Children.Add(UiKit.Card(new StackPanel { Spacing = 8, Children = { UiKit.Label(L.T("EFEITO")), fx.Panel,
+            new WrapPanel { Children = { Field(L.T("VERMELHO"), r), Field(L.T("VERDE"), g), Field(L.T("AZUL"), b), Field(L.T("BRILHO %"), bright), Field(L.T("VELOCIDADE"), speed), Field(L.T("COR"), preview) } }, swatches,
             new Grid { RowDefinitions = new("Auto,Auto"), Children = { run, hint } }, live } }));
         Children.Add(UiKit.Card(new StackPanel { Children = { UiKit.Label(L.T("DIAGNÓSTICO")), diag } }));
         timer.Tick += async (_, _) => await TickAsync();

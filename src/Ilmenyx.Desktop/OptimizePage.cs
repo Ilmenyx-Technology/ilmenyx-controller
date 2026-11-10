@@ -110,7 +110,7 @@ public sealed class OptimizePage : StackPanel
             var r = await optimizer.CloseAsync(chosen, lifetime);
             await Task.Delay(300, lifetime);
             long freed = Math.Max(0, AvailableMemory() - before);
-            result.Text = L.T($"Fechados: {(r.Closed.Count > 0 ? string.Join(", ", r.Closed) : "nenhum")}.") + (r.NotClosed.Count > 0 ? L.T($" Não fecharam: {string.Join(", ", r.NotClosed)}.") : "") + $" Memória liberada: {RamInfoBuilder.Bytes(freed)}. O cache de disco do kernel é gerenciado sozinho; liberar à mão exige root (sync; echo 1 | sudo tee /proc/sys/vm/drop_caches).";
+            result.Text = L.T($"Fechados: {(r.Closed.Count > 0 ? string.Join(", ", r.Closed) : L.T("nenhum"))}.") + (r.NotClosed.Count > 0 ? L.T($" Não fecharam: {string.Join(", ", r.NotClosed)}.") : "") + L.T($" Memória liberada: {RamInfoBuilder.Bytes(freed)}. O cache de disco do kernel é gerenciado sozinho; liberar à mão exige root (sync; echo 1 | sudo tee /proc/sys/vm/drop_caches).");
             await RefreshAppsAsync();
         }
         catch (OperationCanceledException) { result.Text = "Cancelado."; }

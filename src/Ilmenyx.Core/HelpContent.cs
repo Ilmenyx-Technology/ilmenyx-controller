@@ -88,6 +88,8 @@ public static partial class HelpContent
     private static readonly Dictionary<string, Func<HelpLanguage>> sets = new(StringComparer.OrdinalIgnoreCase)
     {
         [DefaultLanguage] = PtBr,
+        ["en"] = En,
+        ["es"] = Es,
     };
 
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, HelpLanguage> cache = new(StringComparer.OrdinalIgnoreCase);

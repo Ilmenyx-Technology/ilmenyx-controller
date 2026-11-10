@@ -21,7 +21,7 @@ public sealed class SmartImportPanel : Border
         AutomationProperties.SetName(device, L.T("Disco declarado no relatório SMART"));
         AutomationProperties.SetLabeledBy(device, deviceLabel);
         var pathLabel = new TextBlock { Text = L.T("Caminho completo do relatório JSON do smartctl"), TextWrapping = TextWrapping.Wrap, FontSize = 12, Foreground = Palette.Muted, Margin = new Thickness(0, 4, 0, -4) };
-        var path = new TextBox { Name = "SmartImportPath", PlaceholderText = "/pasta/smartctl.json" };
+        var path = new TextBox { Name = "SmartImportPath", PlaceholderText = L.T("/pasta/smartctl.json") };
         AutomationProperties.SetName(path, L.T("Caminho completo do relatório SMART JSON"));
         AutomationProperties.SetLabeledBy(path, pathLabel);
         var import = UiKit.Primary("ImportSmart", L.T("Importar relatório")); import.Margin = new Thickness(0, 0, 8, 8);

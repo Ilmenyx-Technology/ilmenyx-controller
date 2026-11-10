@@ -62,7 +62,7 @@ public sealed class NvidiaDriverPage : StackPanel
         this.services = services; this.owner = owner; this.lifetime = lifetime; Spacing = 0;
         scan = UiKit.Primary("BtnNvScan", L.T("Verificar"));
         scan.Click += async (_, _) => await RefreshAsync();
-        Children.Add(UiKit.PageHeader("Driver NVIDIA", L.T("Instala, verifica, repara e atualiza o driver NVIDIA certo para esta placa e este sistema. Tudo é simulado antes; nada muda sem o seu clique e a senha do sistema."), scan));
+        Children.Add(UiKit.PageHeader(L.T("Driver NVIDIA"), L.T("Instala, verifica, repara e atualiza o driver NVIDIA certo para esta placa e este sistema. Tudo é simulado antes; nada muda sem o seu clique e a senha do sistema."), scan));
         Children.Add(status);
 
         var heroText = new StackPanel { Spacing = 6, VerticalAlignment = VerticalAlignment.Center, Children = { UiKit.Label(L.T("PLACA NVIDIA")), gpuName, stateText, summary, tags } };

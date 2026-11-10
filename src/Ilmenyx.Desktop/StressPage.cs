@@ -154,7 +154,7 @@ public sealed class StressPage : StackPanel
         catch (InvalidOperationException e) { hint.Text = e.Message; return; }
         if (gpu) gpuEngine!.Start();
         running = true; gpuOn = gpu; limits = parsed; cpuOn = cpu; ramOn = ram; startedAt = DateTime.Now; maxTemp = 0; temps.Clear();
-        Controls(true); SetStatus(L.T("Rodando"), false); Log(L.T($"Iniciado · GPU {(gpu ? "sim" : L.T("não"))} · CPU {(cpu ? L.T($"sim (limite {parsed.CpuTempLimit:0} °C)") : L.T("não"))} · RAM {(ram ? L.T($"sim ({(ramFraction * 100).ToString("0", CultureInfo.InvariantCulture)}% da disponível, {engine.MemoryAllocatedBytes / 1048576} MiB)") : L.T("não"))} · {(parsed.Duration > TimeSpan.Zero ? $"{parsed.Duration.TotalMinutes:0.##} min" : L.T("sem limite de tempo"))}"));
+        Controls(true); SetStatus(L.T("Rodando"), false); Log(L.T($"Iniciado · GPU {(gpu ? L.T("sim") : L.T("não"))} · CPU {(cpu ? L.T($"sim (limite {parsed.CpuTempLimit:0} °C)") : L.T("não"))} · RAM {(ram ? L.T($"sim ({(ramFraction * 100).ToString("0", CultureInfo.InvariantCulture)}% da disponível, {engine.MemoryAllocatedBytes / 1048576} MiB)") : L.T("não"))} · {(parsed.Duration > TimeSpan.Zero ? $"{parsed.Duration.TotalMinutes:0.##} min" : L.T("sem limite de tempo"))}"));
         timer.Start();
     }
 

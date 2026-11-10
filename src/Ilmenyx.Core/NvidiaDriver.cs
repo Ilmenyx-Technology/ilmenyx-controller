@@ -202,7 +202,7 @@ public sealed record AptSimulation(IReadOnlyList<AptAction> Actions, IReadOnlyLi
             else if (line.StartsWith("E:", StringComparison.Ordinal)) errors.Add(line[2..].Trim());
             else if (line.Contains(" upgraded, ", StringComparison.Ordinal) && line.Contains("newly installed", StringComparison.Ordinal)) summary = line.Trim();
         }
-        if (exitCode != 0 && errors.Count == 0) errors.Add("apt-get -s terminou com código " + exitCode + ".");
+        if (exitCode != 0 && errors.Count == 0) errors.Add(L.T("apt-get -s terminou com código ") + exitCode + ".");
         return new AptSimulation(actions, errors, summary, exitCode, output);
     }
 }
@@ -301,7 +301,7 @@ public sealed record NvidiaDiagnosis
     public bool Hybrid => Gpus.Count > 0 && OtherGpus.Count > 0;
     public KernelHeaders? RunningHeaders => Kernels.FirstOrDefault(k => k.Kernel == RunningKernel);
     public NvidiaGpu? Primary => Gpus.OrderByDescending(g => g.Generation).FirstOrDefault();
-    public string KernelDriver => Primary?.KernelDriver is { Length: > 0 } d ? d : "nenhum";
+    public string KernelDriver => Primary?.KernelDriver is { Length: > 0 } d ? d : L.T("nenhum");
     public IEnumerable<DpkgPackage> NvidiaPackages => Packages.Where(p => NvidiaScripts.IsNvidiaPackage(p.Name));
     public IEnumerable<DpkgPackage> BrokenPackages => Packages.Where(p => p.Broken);
 

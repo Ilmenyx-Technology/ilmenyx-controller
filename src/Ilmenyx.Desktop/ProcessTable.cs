@@ -23,7 +23,7 @@ public sealed class ProcessTable : Border
         cpuHeader.Click += (_, _) => { if (usage.SortByMemory) { usage.ToggleSort(); Sort(); } };
         memHeader.Click += (_, _) => { if (!usage.SortByMemory) { usage.ToggleSort(); Sort(); } };
         var table = new Grid { ColumnDefinitions = new("*,90,120"), Margin = new Thickness(0, 0, 0, 4) };
-        var nameHead = UiKit.Label("NOME"); nameHead.VerticalAlignment = VerticalAlignment.Center; nameHead.Margin = new Thickness(4, 0);
+        var nameHead = UiKit.Label(L.T("NOME")); nameHead.VerticalAlignment = VerticalAlignment.Center; nameHead.Margin = new Thickness(4, 0);
         table.Children.Add(nameHead);
         Grid.SetColumn(cpuHeader, 1); Grid.SetColumn(memHeader, 2); table.Children.Add(cpuHeader); table.Children.Add(memHeader);
         void Fill()

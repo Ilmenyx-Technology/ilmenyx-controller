@@ -25,7 +25,7 @@ public sealed class LinuxAppInstaller(ProgramRunner? run = null, Func<string, bo
         if (Any("debian", "ubuntu", "linuxmint", "pop")) return "sudo apt install flatpak";
         if (Any("fedora", "rhel", "centos", "nobara")) return "sudo dnf install flatpak";
         if (Any("opensuse", "suse")) return "sudo zypper install flatpak";
-        return "sudo pacman -S flatpak, sudo apt install flatpak ou sudo dnf install flatpak";
+        return L.T("sudo pacman -S flatpak, sudo apt install flatpak ou sudo dnf install flatpak");
     }
 
     public static bool FlatpakAvailable => BoundedProcess.Find("flatpak") is not null;

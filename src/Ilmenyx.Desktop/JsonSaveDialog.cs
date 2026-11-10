@@ -22,7 +22,7 @@ public sealed class JsonSaveDialog : Window
         CanResize = true; WindowStartupLocation = WindowStartupLocation.CenterOwner;
         string directory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         if (!Directory.Exists(directory)) directory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        var destination = new TextBox { Name = "DestinationPath", Text = Path.Combine(directory, suggestedFileName), PlaceholderText = "/pasta/relatorio" + extension };
+        var destination = new TextBox { Name = "DestinationPath", Text = Path.Combine(directory, suggestedFileName), PlaceholderText = L.T("/pasta/relatorio") + extension };
         var label = new TextBlock { Text = L.T("Caminho completo do arquivo"), TextWrapping = TextWrapping.Wrap, FontWeight = FontWeight.Bold };
         AutomationProperties.SetName(destination, L.T("Caminho completo do arquivo de relatório"));
         AutomationProperties.SetLabeledBy(destination, label);

@@ -110,7 +110,7 @@ public sealed class SmartctlDiagnostic(ISmartctlQuery query)
             const string Prefix = "smartctl:nvme_smart_health_information_log.";
             Add(L.T("Percentual usado (NVMe)"), Num(log, "percentage_used"), "%", Prefix + "percentage_used", 0, 255);
             Add(L.T("Reserva disponível (NVMe)"), Num(log, "available_spare"), "%", Prefix + "available_spare", 0, 100);
-            Add(L.T("Erros de mídia"), Num(log, "media_errors"), "erros", Prefix + "media_errors");
+            Add(L.T("Erros de mídia"), Num(log, "media_errors"), L.T("erros"), Prefix + "media_errors");
             Add(L.T("Entradas no log de erros"), Num(log, "num_err_log_entries"), "entradas", Prefix + "num_err_log_entries");
             Add(L.T("Desligamentos inseguros"), Num(log, "unsafe_shutdowns"), "eventos", Prefix + "unsafe_shutdowns");
             Add(L.T("Aviso crítico (bitmask)"), Num(log, "critical_warning"), "bitmask", Prefix + "critical_warning", 0, 255);

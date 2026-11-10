@@ -183,10 +183,10 @@ public sealed partial class ShellWindow : Window
             items.Children.Add(head); items.Children.Add(list);
         }
         Group(L.T("DIAGNÓSTICO"), ("system", L.T("Sistema")), ("sensors", L.T("Sensores")), ("gpu", "GPU"), ("disks", L.T("Discos")), ("energy", L.T("Energia")), ("net", L.T("Rede")), ("procs", L.T("Processos")));
-        Group("JOGOS", ("launcher", L.T("Jogos")), ("compat", L.T("Compatibilidade")), ("gamecheck", L.T("Jogo não abre?")), ("fps", L.T("Estimativa de FPS")), ("bottleneck", L.T("Detector de gargalo")));
+        Group(L.T("JOGOS"), ("launcher", L.T("Jogos")), ("compat", L.T("Compatibilidade")), ("gamecheck", L.T("Jogo não abre?")), ("fps", L.T("Estimativa de FPS")), ("bottleneck", L.T("Detector de gargalo")));
         Group(L.T("DESEMPENHO"), ("bench", "Benchmark"), ("oc", "OC"), ("overlay", "Overlay"), ("validate", L.T("Validações reduzidas")), ("stress", "Stress test"));
         Group("MAKER", ("makerports", L.T("Portas")), ("makerdrv", L.T("Drivers seriais")));
-        Group(L.T("FERRAMENTAS"), ("optimize", L.T("Otimiza")), ("lighting", L.T("Integração")), ("startup", L.T("Inicialização")), ("apps", L.T("Instalar apps")), ("driver", "Drivers"), ("nvdriver", "Driver NVIDIA"), ("report", L.T("Relatório")), ("blocked", L.T("Bloqueados (!)")), ("tools", L.T("Requisitos e sobre")));
+        Group(L.T("FERRAMENTAS"), ("optimize", L.T("Otimiza")), ("lighting", L.T("Integração")), ("startup", L.T("Inicialização")), ("apps", L.T("Instalar apps")), ("driver", "Drivers"), ("nvdriver", L.T("Driver NVIDIA")), ("report", L.T("Relatório")), ("blocked", L.T("Bloqueados (!)")), ("tools", L.T("Requisitos e sobre")));
         // Help Center at the bottom of the menu (also reachable from the header "?" and the search).
         var helpItem = NavItem("help", help[HelpKeys.HelpNav]); helpItem.Margin = new Thickness(0, 14, 0, 1); items.Children.Add(helpItem);
 

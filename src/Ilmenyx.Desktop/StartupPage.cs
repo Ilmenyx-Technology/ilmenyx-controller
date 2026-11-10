@@ -98,7 +98,7 @@ public sealed class StartupPage : StackPanel
         {
             bool on = toggle.IsChecked == true;
             if (!on && a.ConfirmBeforeDisable && !await ConfirmDisableAsync(e)) { toggle.IsChecked = true; result.Text = L.T($"{e.Name}: nada mudou."); return; }
-            try { await manager.SetEnabledAsync(e, on, lifetime); result.Text = L.T($"{e.Name}: {(on ? "ativado" : "desativado")}. Vale na próxima inicialização da sessão."); }
+            try { await manager.SetEnabledAsync(e, on, lifetime); result.Text = L.T($"{e.Name}: {(on ? L.T("ativado") : L.T("desativado"))}. Vale na próxima inicialização da sessão."); }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or TimeoutException or System.ComponentModel.Win32Exception) { result.Text = L.T($"{e.Name}: falhou ({ex.Message})."); }
             await ScanAsync();
         };

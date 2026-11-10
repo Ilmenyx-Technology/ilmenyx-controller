@@ -31,7 +31,7 @@ public sealed class FastExecDialog : Window
         WindowStartupLocation = WindowStartupLocation.CenterOwner; Background = Palette.Panel; Foreground = Palette.Fg; CanResize = false;
         KeyboardNavigation.SetTabNavigation(this, KeyboardNavigationMode.Cycle);
 
-        var installer = new TextBox { Name = "FxInstaller", PlaceholderText = "/caminho/do/setup.exe" };
+        var installer = new TextBox { Name = "FxInstaller", PlaceholderText = L.T("/caminho/do/setup.exe") };
         var destination = new TextBox { Name = "FxDestination", Text = FastExec.DefaultDestination() };
         AutomationProperties.SetName(installer, L.T("Instalador do Windows")); AutomationProperties.SetName(destination, L.T("Pasta onde o jogo vai ficar"));
         var pickInstaller = new Button { Name = "FxPickInstaller", Content = L.T("Procurar…"), FontSize = 12, Padding = new Thickness(14, 6) };
