@@ -96,6 +96,19 @@ public sealed class DiskHealthTests : IDisposable
     }
 
     [Fact]
+    public void UsbDriveIsNotCalledHddFromTheRotationalFlag()
+    {
+        // A Kingston DataTraveler pen drive reports queue/rotational = 1 through its USB bridge (seen on the owner's PC, 2026-11-10).
+        string sys = Path.Combine(root, "sys-usb"), real = Path.Combine(sys, "devices/pci0000:00/0000:00:14.0/usb2/2-1/2-1:1.0/host0/block/sdb");
+        Directory.CreateDirectory(Path.Combine(real, "device")); Directory.CreateDirectory(Path.Combine(real, "queue")); Directory.CreateDirectory(Path.Combine(sys, "block"));
+        File.WriteAllText(Path.Combine(real, "size"), "1000\n"); File.WriteAllText(Path.Combine(real, "queue/rotational"), "1\n"); File.WriteAllText(Path.Combine(real, "device/model"), "DataTraveler 3.0\n");
+        File.CreateSymbolicLink(Path.Combine(sys, "block/sdb"), real);
+        var d = Assert.Single(new LinuxDiskHealthReader(sys).Read("", new Dictionary<string, SmartDiagnostic>()));
+        Assert.Equal("USB", d.Bus); Assert.Equal("", d.Media);
+        Assert.StartsWith("USB · ", DiskHealthEvaluator.Evaluate(d).Meta);
+    }
+
+    [Fact]
     public void ImplausibleHwmonTemperatureIsIgnoredAndUnavailableSmartIsNotUsed()
     {
         string sys = Path.Combine(root, "sys2"); string d = Path.Combine(sys, "block/sda"); Directory.CreateDirectory(Path.Combine(d, "device/hwmon/hwmon1")); Directory.CreateDirectory(Path.Combine(d, "queue"));

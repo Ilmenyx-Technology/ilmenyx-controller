@@ -28,6 +28,7 @@ public sealed class GpuInfoPage : Grid
     private readonly TextBlock status = new() { Name = "GpuStatus", Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap };
     private IReadOnlyList<(GpuRaw Raw, GpuCard Card)> gpus = [];
     private int selected;
+    private readonly string? gpuNotice;
     private CancellationTokenSource? poll;
     // Responsive widths: at the window minimum (900 px) the content area is ~640 px wide (seen in a 900 px Wayland window, 2026-11-06).
     // Wide: section rows in two columns; narrow: one column with a thinner label, so values keep a readable width.
@@ -42,7 +43,7 @@ public sealed class GpuInfoPage : Grid
     public GpuInfoPage(CancellationToken lifetime)
     {
         this.lifetime = lifetime;
-        string? gpuNotice = ValidationNotices.For(DrmGpuInfoProvider.Vendors());
+        gpuNotice = ValidationNotices.For(DrmGpuInfoProvider.Vendors());
         var notice = new Border
         {
             IsVisible = gpuNotice is not null, HorizontalAlignment = HorizontalAlignment.Left, Background = Palette.WarnBg, CornerRadius = new CornerRadius(IlmenyxTheme.ControlRadius), Padding = new Thickness(10, 5), Margin = new Thickness(0, 6, 0, 8),
@@ -93,7 +94,7 @@ public sealed class GpuInfoPage : Grid
             }
             if (gpus.Count == 0) { name.Text = "Nenhuma GPU PCI encontrada"; subtitle.Text = ""; vendor.Text = ""; status.Text = "O inventário DRM/PCI não listou GPUs."; return; }
             Show(Math.Min(selected, gpus.Count - 1));
-            status.Text = $"{gpus.Count} GPU(s) · lido às {DateTime.Now:HH:mm:ss}. Contadores AMD/NVIDIA: veja o aviso acima.";
+            status.Text = $"{gpus.Count} GPU(s) · lido às {DateTime.Now:HH:mm:ss}." + (gpuNotice is null ? "" : " Contadores AMD/NVIDIA: veja o aviso acima.");
         }
         catch (OperationCanceledException) { status.Text = "Leitura cancelada."; }
     }

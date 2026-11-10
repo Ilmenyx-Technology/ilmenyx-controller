@@ -23,6 +23,7 @@ public sealed class BottleneckPage : StackPanel
     private readonly CancellationToken lifetime;
     private (GpuRaw Raw, GpuCard Card)? gpu;
     private double cpuIdx = 80, gpuIdx = 50;
+    private readonly TextBlock basisNote = new() { Name = "BnBasisNote", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0) };
     private CancellationTokenSource? poll;
     private BottleneckSession? session;
     private TimeSpan chosen = TimeSpan.FromMinutes(1);
@@ -77,7 +78,7 @@ public sealed class BottleneckPage : StackPanel
             {
                 CardTitle(Icons.Cpu, "EQUILÍBRIO DO HARDWARE"), new Grid { ColumnDefinitions = new("*,*"), Children = { cpuName, gpuName } },
                 scale, Legend(), balanceText,
-                new TextBlock { Text = "Estimativa pelo desempenho relativo típico; o detector ao vivo mostra a realidade de cada jogo. Hardware fora da tabela usa valores padrão (CPU 80, GPU 50).", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0) }
+                basisNote
             }
         }, new Thickness(0));
 
@@ -143,12 +144,19 @@ public sealed class BottleneckPage : StackPanel
             gpu = all.Count > 0 ? all[0] : null;
             string cpu = usage.Last?.CpuModel ?? "CPU";
             Grid.SetColumn(gpuName, 1); cpuName.Text = cpu; gpuName.Text = gpu?.Raw.Name ?? "sem GPU";
-            cpuIdx = GameCatalog.CpuPerf(GameCatalog.ShortCpuName(cpu)) ?? GameCatalog.CpuPerf(cpu) ?? 80;
-            gpuIdx = (gpu is { } g ? GameCatalog.GpuPerf(g.Raw.Name) : null) ?? 50;
+            double? cpuKnown = GameCatalog.CpuPerf(GameCatalog.ShortCpuName(cpu)) ?? GameCatalog.CpuPerf(cpu), gpuKnown = gpu is { } g ? GameCatalog.GpuPerf(g.Raw.Name) : null;
+            cpuIdx = cpuKnown ?? 80; gpuIdx = gpuKnown ?? 50;
+            basisNote.Text = BasisNote(cpuKnown, gpuKnown);
             var (r, text) = BottleneckAnalyzer.Balance(gpuIdx, cpuIdx); ratio = r; balanceText.Text = text; PlaceDot();
         }
         catch (OperationCanceledException) { }
     }
+
+    /// <summary>Which indices the balance used: the table's (scale RTX 4070 = 100, Ryzen 7 7700X = 100) or the default for a part that is not in it.</summary>
+    public static string BasisNote(double? cpu, double? gpu) =>
+        "Estimativa pelo desempenho relativo típico; o detector ao vivo mostra a realidade de cada jogo. " +
+        (cpu is not null && gpu is not null ? $"Índices da tabela: CPU {cpu:0.#}, GPU {gpu:0.#} (RTX 4070 = 100)."
+         : $"Fora da tabela, valor padrão: {(cpu is null ? "CPU 80" : "")}{(cpu is null && gpu is null ? " e " : "")}{(gpu is null ? "GPU 50" : "")}.");
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {

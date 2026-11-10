@@ -61,6 +61,20 @@ public sealed class BottleneckTests : IDisposable
     }
 
     [Fact]
+    public void BalanceNoteNamesTheIndicesUsed()
+    {
+        var pt = System.Globalization.CultureInfo.GetCultureInfo("pt-BR"); var old = System.Globalization.CultureInfo.CurrentCulture;
+        try
+        {
+            System.Globalization.CultureInfo.CurrentCulture = pt;
+            Assert.EndsWith("Índices da tabela: CPU 55, GPU 8,1 (RTX 4070 = 100).", Ilmenyx.Desktop.BottleneckPage.BasisNote(55, 8.1));
+            Assert.EndsWith("Fora da tabela, valor padrão: GPU 50.", Ilmenyx.Desktop.BottleneckPage.BasisNote(55, null));
+            Assert.EndsWith("Fora da tabela, valor padrão: CPU 80 e GPU 50.", Ilmenyx.Desktop.BottleneckPage.BasisNote(null, null));
+        }
+        finally { System.Globalization.CultureInfo.CurrentCulture = old; }
+    }
+
+    [Fact]
     public void CatalogEstimatesAndLookupsKeepTheOriginalBehaviour()
     {
         Assert.Equal(100, GameCatalog.GpuPerf("NVIDIA GeForce RTX 4070")); Assert.Equal(116, GameCatalog.GpuPerf("GeForce RTX 4070 SUPER")); Assert.Equal(150, GameCatalog.GpuPerf("AMD Radeon RX 7900 XT"));

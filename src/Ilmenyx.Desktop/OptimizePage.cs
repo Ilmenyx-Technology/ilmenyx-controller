@@ -32,7 +32,6 @@ public sealed class OptimizePage : StackPanel
     private readonly Func<Window?> owner;
     private readonly CancellationToken lifetime;
     private readonly IlmenyxSettings settings;
-    private readonly TextBlock ramText = new() { Name = "OptRamText", FontFamily = new FontFamily("monospace"), HorizontalAlignment = HorizontalAlignment.Right };
     private readonly MeterView ramMeter = new("Em uso", "OptRamBar");
     private readonly TextBlock result = new() { Name = "OptResult", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0) };
     private readonly StackPanel appList = new() { Name = "OptApps" };
@@ -51,7 +50,7 @@ public sealed class OptimizePage : StackPanel
         Children.Add(UiKit.PageHeader("Otimiza", "Fecha o que atrapalha e ajusta o sistema para jogos. O que exige a senha do sistema (ZRAM) só roda depois da sua confirmação."));
         optimize.Click += async (_, _) => await OptimizeAsync();
         var ram = new Grid { ColumnDefinitions = new("*,Auto") };
-        var info = new StackPanel { Children = { new Grid { Children = { UiKit.Label("MEMÓRIA RAM"), ramText } }, new Border { Height = 6 }, ramMeter, result } };
+        var info = new StackPanel { Children = { UiKit.Label("MEMÓRIA RAM"), new Border { Height = 6 }, ramMeter, result } };
         Grid.SetColumn(optimize, 1); optimize.VerticalAlignment = VerticalAlignment.Center; optimize.Margin = new Thickness(24, 0, 0, 0); ram.Children.Add(info); ram.Children.Add(optimize);
         var memoryCard = UiKit.FeatureCard(ram);
         memoryCard.Margin = new Thickness(0, 0, 0, 14); Children.Add(memoryCard);
@@ -77,7 +76,7 @@ public sealed class OptimizePage : StackPanel
 
     private void UpdateRam()
     {
-        if (usage.Last is { MemoryTotal: > 0, MemoryUsed: { } u } l) { ramText.Text = $"{RamInfoBuilder.Bytes(u)} de {RamInfoBuilder.Bytes(l.MemoryTotal!.Value)} · {100.0 * u / l.MemoryTotal.Value:0}%"; ramMeter.Set(ramText.Text, (double)u / l.MemoryTotal.Value); }
+        if (usage.Last is { MemoryTotal: > 0, MemoryUsed: { } u } l) { ramMeter.Set($"{RamInfoBuilder.Bytes(u)} de {RamInfoBuilder.Bytes(l.MemoryTotal!.Value)} · {100.0 * u / l.MemoryTotal.Value:0}%", (double)u / l.MemoryTotal.Value); }
     }
 
     public async Task RefreshAppsAsync()
