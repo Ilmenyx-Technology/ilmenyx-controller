@@ -104,6 +104,9 @@ Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes qu
   INSTALAR MANGOHUD PARA FLATPAK, só usuário), o mangohud dela envolve o comando do app, e o jogo é achado por FLATPAK_ID no ambiente.
   Config do MangoHud com log criada sozinha também para jogos fora da Steam. Ao fechar, o SuperTuxKart dá SIGSEGV com MangoHud (OpenGL);
   o Ilmenyx não usa o código de saída. 60 FPS = vsync (teto da tela).
+- [x] **Sessão limitada por vsync/limite do jogo**: média até 3 % abaixo de um limite usual (30, 60, 75, 120, 144…) e no máximo 5 % das
+  amostras acima dele = "limitado a N FPS". Fica salva como medida, mas não ajusta a estimativa (é só um piso). Conferido com os 3 logs
+  reais do SuperTuxKart a 60 Hz. Falta: o dono ver a mensagem numa sessão nova.
 - [ ] **IDEIA FUTURA do dono (2026-11-09): base comunitária de FPS**. Usuários que aceitarem enviam diagnóstico e FPS médio dos jogos
   para a Estimativa de FPS ficar mais real. Análise pronta (infraestrutura, LGPD, abuso, massa crítica): `docs/fps-estimativa-metodos.md`,
   método (e). Antes de começar: decidir servidor e custo, termo de consentimento, PRIVACY.md e o formato da sessão a enviar.

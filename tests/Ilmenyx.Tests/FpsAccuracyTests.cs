@@ -222,4 +222,20 @@ public sealed class FpsAccuracyTests : IDisposable
         Assert.Null(MangoHudLogReader.ReadSession(Path.Combine(root, "missing"), since));
         Assert.Null(MangoHudLogReader.ReadSession(root, since.AddHours(1)));
     }
+
+    [Fact]
+    public void SessionOnVsyncIsMarkedCappedAndDoesNotAdjustTheEstimate()
+    {
+        // vsync at 60 Hz: almost every sample at 59-60, a few just above (real SuperTuxKart log: 2 % above 61.8).
+        var capped = MangoHudSession.Summarize(Log(60, i => i % 50 == 0 ? (62.5, 16.0) : i % 7 == 0 ? (58.8, 17.0) : (60, 16.7)))!;
+        Assert.Equal(60, capped.CappedAt);
+        // GPU-bound around 60: the scene moves it between 50 and 70, so it is not a cap.
+        var free = MangoHudSession.Summarize(Log(60, i => i % 2 == 0 ? (50, 20) : (70, 14.3)))!;
+        Assert.Null(free.CappedAt);
+        Assert.Null(MangoHudSession.Summarize(Log(60, _ => (52, 19.2)))!.CappedAt); // steady but no usual limit near 52
+        var session = MangoHudSession.ToSession(capped, "SuperTuxKart", DateTimeOffset.UnixEpoch, "1920x1080", "Alto")!;
+        Assert.Equal(60, session.CappedAt);
+        var row = new GameFpsRow(GameCatalog.Games[0]); row.SetMeasured(session);
+        Assert.Contains("limitado a 60 FPS", row.Summary);
+    }
 }

@@ -573,7 +573,8 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
             var session = MangoHudSession.ToSession(MangoHudLogReader.ReadSession(MangoHudLogReader.DefaultFolder(), started), g.Name, DateTimeOffset.UtcNow, p.Res, p.GfxPreset, p.GfxUpscaling);
             status(session is null
                 ? $"{g.Name} encerrado. Ajustes temporários desfeitos. Sessão não registrada: sem log do MangoHud na pasta do Ilmenyx (gere a configuração na página Overlay) ou sessão com menos de {FpsSession.MinSeconds:0} s."
-                : $"{g.Name} encerrado. Ajustes temporários desfeitos. Medido: {session.AvgFps:0} FPS médio (1% low {session.Low1Fps:0}) — salvo na Estimativa de FPS.");
+                : $"{g.Name} encerrado. Ajustes temporários desfeitos. Medido: {session.AvgFps:0} FPS médio (1% low {session.Low1Fps:0}) — salvo na Estimativa de FPS."
+                  + (session.CappedAt is { } cap ? $" Limitado a {cap:0} FPS (vsync ou limite do jogo): o PC pode render mais. Para medir o máximo, desligue o vsync no jogo." : ""));
             return session;
         }
         catch (OperationCanceledException) { status("Acompanhamento cancelado."); }
