@@ -31,8 +31,11 @@ public sealed partial class ShellWindow
             var gpus = new LinuxGpuCollector().Collect(PciIds.Load());
             // PRIME variables depend on the driver, not only the vendor: NVIDIA on nouveau is offloaded with DRI_PRIME like Mesa GPUs.
             string vendor = gpus.Count > 0 ? (gpus[0].Card.Vendor == "NVIDIA" && gpus[0].Raw.Driver != "nvidia" ? "NVIDIA-Mesa" : gpus[0].Card.Vendor) : "";
+            bool multi = gpus.Count(x => !x.Raw.Integrated) + gpus.Count(x => x.Raw.Integrated) > 1;
+            // Manual games: the experimental Proton options (when they apply) and, with the Otimiza option on, the bigger shader cache variables.
             return new LauncherPage(new LinuxGameLibrary(home), new SteamInfo(home), IlmenyxSettings.DefaultPath(),
-                (g, p, v, status, learned, ct) => new LinuxGameLauncher().RunAsync(g, p, v, status, learned, ct), () => this, vendor, gpus.Count(x => !x.Raw.Integrated) + gpus.Count(x => x.Raw.Integrated) > 1, stop.Token) { Margin = new Thickness(0, 4, 8, 12) };
+                (g, p, v, status, learned, ct) => new LinuxGameLauncher().RunAsync(g, p, v, status, learned, ct,
+                    LinuxGameExtras.ManualContext(g, p, v, multi, LinuxGameExtras.UmuProtonName(home)), new LinuxShaderCache(home).IsOn), () => this, vendor, multi, stop.Token) { Margin = new Thickness(0, 4, 8, 12) };
         }, null);
         pages["compat"] = ("Compatibilidade", () =>
         {
@@ -40,15 +43,13 @@ public sealed partial class ShellWindow
             var steam = new SteamInfo(home);
             var services = new CompatServices(new CompatDatabase(CompatPaths.Folder()), new CompatOnline(CompatPaths.Folder()), () => LinuxCompatHardware.Detect(),
                 ct => Task.Run<IReadOnlyList<LibGame>>(() => new LinuxGameLibrary(home).Steam().ToList(), ct), steam.GetLaunchOptions, steam.SetLaunchOptions,
-                (url, ct) => OperatingSystem.IsLinux() ? DriverTools.OpenUrlAsync(url, ct) : Task.CompletedTask);
+                (url, ct) => OperatingSystem.IsLinux() ? DriverTools.OpenUrlAsync(url, ct) : Task.CompletedTask)
+            { Profile = id => IlmenyxSettings.Load(IlmenyxSettings.DefaultPath()).GameProfiles.GetValueOrDefault("Steam:" + id) };
             return Scroll("CompatScroll", new CompatPage(services, () => this, stop.Token) { Margin = new Thickness(0, 4, 8, 12) });
         }, null);
-        pages["fps"] = ("Estimativa de FPS", () =>
-        {
-            string cache = Path.Combine(Path.GetDirectoryName(IlmenyxSettings.DefaultPath())!, "fps-cache.json");
-            return new GamesFpsPage(new HowManyFpsClient(cache), IlmenyxSettings.Load(IlmenyxSettings.DefaultPath()), IlmenyxSettings.DefaultPath(), () => this,
-                () => (usage.Last?.CpuModel ?? "", new LinuxGpuCollector().Collect(PciIds.Load()).FirstOrDefault().Raw?.Name ?? ""), stop.Token, FpsContextNow) { Margin = new Thickness(0, 4, 0, 0) }; // scrolls by itself (sticky catalogue)
-        }, null);
+        pages["fps"] = ("Estimativa de FPS", () => new GamesFpsPage(IlmenyxSettings.Load(IlmenyxSettings.DefaultPath()), IlmenyxSettings.DefaultPath(),
+            () => (usage.Last?.CpuModel ?? "", new LinuxGpuCollector().Collect(PciIds.Load()).FirstOrDefault().Raw?.Name ?? ""), FpsContextNow,
+            OperatingSystem.IsLinux() ? FpsCalibratorReal.Create(FpsContextNow, () => usage.Last?.CpuTempC, GpuTemperatureCache()) : null) { Margin = new Thickness(0, 4, 0, 0) }, null); // scrolls by itself (sticky catalogue)
         pages["bottleneck"] = ("Detector de gargalo", () => Scroll("BottleneckScroll", new BottleneckPage(usage, stop.Token, OperatingSystem.IsLinux() ? () => MangoHudLogReader.Read(MangoHudLogReader.DefaultFolder(), DateTimeOffset.UtcNow) : null) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["stress"] = ("Stress test", () => Scroll("StressScroll", stressPage = new StressPage(new StressTester(), usage, () => this, () => usage.Last is { MemoryTotal: > 0, MemoryUsed: { } u } l ? l.MemoryTotal!.Value - u : 0, stop.Token, OperatingSystem.IsLinux() ? new VulkanGpuStress() : null, OperatingSystem.IsLinux() ? GpuTemperatureCache() : null) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["bench"] = ("Benchmark", () => Scroll("BenchScroll", new BenchPage(OperatingSystem.IsLinux() ? BenchServices.Real() : throw new PlatformNotSupportedException(), usage, () => this, IlmenyxSettings.DefaultPath(), stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
@@ -58,7 +59,9 @@ public sealed partial class ShellWindow
         pages["validate"] = ("Validações reduzidas", ValidatePage, null);
         pages["makerports"] = ("Maker · Portas", () => Scroll("MakerPortsScroll", new MakerPortsPage(stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["makerdrv"] = ("Maker · Drivers seriais", () => Scroll("MakerDrvScroll", new MakerDriversPage(stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
-        pages["optimize"] = ("Otimiza", () => Scroll("OptimizeScroll", new OptimizePage(new LinuxOptimizer(), new OptimizeServices(LinuxGameLauncher.PowerProfileAsync, LinuxGameLauncher.SetPowerProfileAsync), usage, IlmenyxSettings.DefaultPath(), () => this, stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
+        pages["optimize"] = ("Otimiza", () => Scroll("OptimizeScroll", new OptimizePage(new LinuxOptimizer(), new OptimizeServices(LinuxGameLauncher.PowerProfileAsync, LinuxGameLauncher.SetPowerProfileAsync) { SteamRoot = () => new SteamInfo(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)).Root() }, usage, IlmenyxSettings.DefaultPath(), () => this, stop.Token,
+            OperatingSystem.IsLinux() ? new ZramServices(new ZramProbe().CollectAsync, NvidiaDriverRunner.Available ? NvidiaDriverRunner.RunAsync : null) : null) { Margin = new Thickness(0, 4, 8, 12) }), null);
+        pages["gamecheck"] = ("Jogo não abre?", () => Scroll("GameCheckScroll", new GameCheckPage(OperatingSystem.IsLinux() ? new GameCheckServices(new GameLaunchProbe().CollectAsync, GameUserFixRunner.RunAsync, Select) : throw new PlatformNotSupportedException(), () => this, stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["startup"] = ("Inicialização", () => Scroll("StartupScroll", new StartupPage(LinuxStartupManager.CreateDefault(), () => this, stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["apps"] = ("Instalar apps", () => Scroll("AppsScroll", new AppsPage(new LinuxAppInstaller(), LinuxAppInstaller.FlatpakAvailable, () => this, stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["driver"] = ("Drivers", () => Scroll("DriverScroll", new DriverPage(Destination("drivers"), stop.Token, openNvidiaTab: () => Select("nvdriver")) { Margin = new Thickness(0, 4, 8, 12) }), null);
@@ -80,7 +83,7 @@ public sealed partial class ShellWindow
         var profiles = IlmenyxSettings.Load(IlmenyxSettings.DefaultPath()).GameProfiles.Values;
         return new FpsContext(main.Name, main.VendorId, main.DeviceId, main.Driver, main.Integrated, main.VramBytes,
             gpus.Skip(1).Select(g => g.Raw).FirstOrDefault(r => r.Integrated)?.Name, FpsAlerts.OnBattery(power.Batteries, power.MainsOnline),
-            profiles.Count(p => p.GpuHigh), profiles.Count);
+            profiles.Count(p => p.GpuHigh), profiles.Count, main.DriverVersion ?? "", main.MaxCoreMHz);
     }
 
     private Task<ReportData> GatherReportAsync(CancellationToken ct)
@@ -241,7 +244,7 @@ public sealed partial class ShellWindow
         usage.Updated += () => { memoryRow.Text = usage.MemoryLine; procRow.Text = usage.ProcessSummary; cpuName.Text = usage.CpuModel; };
         var score = new TextBlock { Name = "OverviewScore", Text = "—", FontSize = 30, FontWeight = FontWeight.Bold, Margin = new Thickness(0, 2, 0, 0) };
         var scoreDelta = new TextBlock { Name = "OverviewScoreDelta", FontSize = 12.5, Foreground = Palette.Fg, Opacity = 0.85 };
-        var scoreSub = Wrapped("OverviewScoreSub", "rode o Benchmark para ter uma nota", 11, Palette.Fg); scoreSub.Opacity = 0.7;
+        var scoreSub = Wrapped("OverviewScoreSub", "rode o Benchmark para ter uma nota", 11, Palette.Fg); scoreSub.Opacity = 0.9;
         var scoreRows = new StackPanel { Name = "OverviewScores", Margin = new Thickness(0, 8, 0, 0), Spacing = 2 };
         void RefreshScores()
         {

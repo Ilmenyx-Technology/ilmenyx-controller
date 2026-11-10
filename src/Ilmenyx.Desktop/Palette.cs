@@ -27,25 +27,25 @@ public static class Palette
         ("#14FFFFFF", "#0F1A2340"), // Hover
         ("#10FFFFFF", "#0C1A2340"), // Line
         ("#F4F4F6", "#1D1F24"),   // Fg
-        ("#A9A9B1", "#545A64"),   // Muted
-        ("#777984", "#7B808B"),   // Faint
+        ("#B8B8C0", "#4C515A"),   // Muted
+        ("#A0A2AD", "#62676F"),   // Faint (raised 2026-11-09: 3,6:1 failed WCAG AA, used on 113 small texts)
         ("#A4C1FB", "#255EE9"),
         ("#E7B878", "#8C5D0B"),
         ("#181A1C", "#F8F9FD"),
-        ("#A4C1FB", "#255EE9"),
+        ("#A4C1FB", "#1D4FCC"), // AccentText: 4,3:1 on tinted surfaces before
         ("#613F03", "#FEE4C2"),
         ("#052784", "#FFFFFF"),
         ("#1442B5", "#D5E3FE"),
         ("#DEE9FE", "#021F74"),
-        ("#88D5A6", "#107C4A"),
-        ("#FB9F9A", "#C12C36"),
-        ("#85D3F0", "#037997"),
-        ("#86B1FE", "#3D70D1"),
-        ("#BF9BFC", "#8459C3"),
-        ("#2EC9C9", "#1A8585"),
-        ("#E4A339", "#9A6A15"),
-        ("#68CA80", "#118B41"),
-        ("#FD8C7B", "#C04637"),
+        ("#88D5A6", "#096E3F"),
+        ("#FB9F9A", "#B52832"),
+        ("#85D3F0", "#006D85"),
+        ("#86B1FE", "#3560B6"),
+        ("#BF9BFC", "#784DB1"),
+        ("#2EC9C9", "#0F6F6F"),
+        ("#E4A339", "#855C0E"),
+        ("#68CA80", "#067336"),
+        ("#FD8C7B", "#AE3E31"),
         ("#E6191B22", "#E6FFFFFF"), // Glass
         ("#0DFFFFFF", "#E9EBF0")    // Field (search, round header actions)
     ];

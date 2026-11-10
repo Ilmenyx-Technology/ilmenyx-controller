@@ -101,7 +101,7 @@ public sealed partial class ShellWindow
     private void BuildTourCard()
     {
         tourCounter = new TextBlock { Name = "TourCounter", FontSize = 11, Foreground = Palette.Muted, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center };
-        var name = new TextBlock { Text = help[HelpKeys.TourName], FontSize = 10.5, FontWeight = FontWeight.SemiBold, LetterSpacing = 0.8, Foreground = Palette.AccentText, VerticalAlignment = VerticalAlignment.Center };
+        var name = new TextBlock { Text = help[HelpKeys.TourName], FontSize = 11, FontWeight = FontWeight.SemiBold, LetterSpacing = 0.8, Foreground = Palette.AccentText, VerticalAlignment = VerticalAlignment.Center };
         tourTitle = new TextBlock { Name = "TourTitle", FontSize = 17, FontWeight = FontWeight.Bold, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 6) };
         tourBody = new TextBlock { Name = "TourBody", FontSize = 13, TextWrapping = TextWrapping.Wrap, LineHeight = 19, Foreground = Palette.Fg };
         AutomationProperties.SetLiveSetting(tourBody, AutomationLiveSetting.Polite);
@@ -114,7 +114,7 @@ public sealed partial class ShellWindow
         var right = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { tourBack, tourNext } };
         var buttons = new DockPanel { Margin = new Thickness(0, 16, 0, 0), Children = { right, skip } };
         DockPanel.SetDock(right, Dock.Right);
-        var keys = new TextBlock { Text = help[HelpKeys.TourKeys], FontSize = 10.5, Foreground = Palette.Faint, Margin = new Thickness(0, 8, 0, 0) };
+        var keys = new TextBlock { Text = help[HelpKeys.TourKeys], FontSize = 11, Foreground = Palette.Faint, Margin = new Thickness(0, 8, 0, 0) };
         var top = new Grid { Children = { name, tourCounter } };
         tourCard = new Border
         {

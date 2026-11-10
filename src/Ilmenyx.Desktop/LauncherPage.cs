@@ -5,6 +5,8 @@
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Platform.Storage;
 using Avalonia.Media;
@@ -39,17 +41,38 @@ public sealed class LauncherPage : Grid
     private readonly TextBlock title = new() { Name = "LTitle", FontSize = 32, FontWeight = FontWeight.Bold, TextWrapping = TextWrapping.Wrap };
     private readonly TextBlock sub = new() { Name = "LSub", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap };
     private readonly Button play = UiKit.Primary("BtnPlay", "JOGAR", 40, 14);
+    // Visual feedback between JOGAR and the game's window (Proton can take a while): a moving bar until the game process is seen.
+    private readonly ProgressBar playProgress = new() { Name = "LPlayProgress", IsIndeterminate = true, IsVisible = false, Height = 4, MinHeight = 4, Margin = new Thickness(0, 10, 0, 0) };
     private readonly TextBlock status = new() { Name = "LStatus", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 16) };
     private readonly CheckBox chkPlan = new() { Name = "LChkPlan", Content = "Perfil de energia Alto desempenho enquanto joga (volta ao anterior depois)" };
     private readonly CheckBox chkGpu = new() { Name = "LChkGpu", Content = "Forçar a placa de vídeo dedicada (PRIME offload)" };
     private readonly CheckBox chkGameMode = new() { Name = "LChkGameMode", Content = "GameMode (gamemoderun)" };
     private readonly CheckBox chkMango = new() { Name = "LChkMango", Content = "MangoHud (overlay de desempenho)" };
     private readonly CheckBox chkGuard = new() { Name = "LChkGuard", Content = "Proteção contra travamento em tela cheia (vsync)" };
+    private readonly CheckBox chkWayland = new() { Name = "LChkWayland", Content = GameExtras.WaylandLabel };
+    private readonly CheckBox chkLowLat = new() { Name = "LChkLowLat", Content = GameExtras.LowLatencyLabel };
+    private readonly TextBlock extrasNote = new() { Name = "LExtrasNote", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 0, 6) };
+    private readonly StackPanel extrasBox = new() { Name = "LExtrasBox", IsVisible = false, Margin = new Thickness(0, 6, 0, 0) };
+    private string? protonName;
+    /// <summary>Wayland session check (default: the real environment). Settable for fixtures.</summary>
+    public Func<bool>? WaylandSession { get; init; }
+    /// <summary>Newest UMU-Proton umu already downloaded (default: the real folder). Settable for fixtures.</summary>
+    public Func<string?>? UmuProton { get; init; }
     private readonly TextBlock exeText = new() { Name = "LExeText", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap };
     private readonly TextBox exePath = new() { Name = "LExePath", PlaceholderText = "/caminho/completo/do/executavel" };
     private readonly TextBox extra = new() { Name = "LExtra", PlaceholderText = "ex.: -novid -high +fps_max 0" };
     private readonly TextBox protonId = new() { Name = "LProtonId", PlaceholderText = "ID Steam do jogo (opcional), ex.: 307780", MaxLength = 10 };
     private readonly StackPanel protonBox = new() { Name = "LProtonBox", IsVisible = false, Margin = new Thickness(0, 10, 0, 0) };
+    private readonly TextBlock protonIdStatus = new() { Name = "LProtonIdStatus", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) };
+    private readonly Button removeGame = new() { Name = "BtnRemoveGame", Content = "REMOVER", FontSize = 11, Padding = new Thickness(12, 6), IsVisible = false };
+    private readonly Button renameGame = new() { Name = "BtnRenameGame", Content = "RENOMEAR", FontSize = 11, Padding = new Thickness(12, 6), IsVisible = false };
+    private static readonly SteamAppLookup SteamIds = new();
+    /// <summary>Steam ID search by name (default: the Steam store search). Settable for fixtures, so tests never go online.</summary>
+    public Func<string, CancellationToken, Task<(string Id, string Name)?>>? FindSteamId { get; init; }
+    /// <summary>Asks before removing a game (default: a confirmation dialog). Settable for fixtures.</summary>
+    public Func<string, Task<bool>>? ConfirmRemove { get; init; }
+    /// <summary>Asks the new name of a game (default: a text dialog; null = cancelled). Settable for fixtures.</summary>
+    public Func<string, Task<string?>>? AskName { get; init; }
     private readonly TextBlock preview = new() { Name = "LPreview", FontFamily = new FontFamily("monospace"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 10) };
     private readonly TextBlock steamNow = new() { Name = "LSteamNow", Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8) };
     private readonly StackPanel steamBox = new() { Name = "LSteamBox", IsVisible = false };
@@ -65,7 +88,10 @@ public sealed class LauncherPage : Grid
     private bool heroArt;
     private readonly string? steamRoot;
     private int columns = 2;
-    private UiKit.ChipGroup<string>? modeChips, resChips, styleChips; private UiKit.ChipGroup<int>? hzChips;
+    private Grid? leftPane;
+    private bool narrowWindow;
+    private readonly Button backToLibrary = new() { Name = "BtnBackToLibrary", Content = "← BIBLIOTECA", FontSize = 11, Padding = new Thickness(10, 4), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
+    private UiKit.ChipGroup<string>? modeChips, resChips, styleChips, gfxPresetChips, gfxUpChips; private UiKit.ChipGroup<int>? hzChips;
     public IReadOnlyList<LibGame> Games => games;
     public GameProfile? Profile => profile;
 
@@ -79,10 +105,20 @@ public sealed class LauncherPage : Grid
         // Narrow window (minimum 900x560 leaves ~640 px here): a slimmer one-column library so the detail keeps room for its chips.
         SizeChanged += (_, e) =>
         {
-            bool narrow = e.NewSize.Width < 860; int cols = narrow ? 1 : 2;
-            ColumnDefinitions[0].Width = new GridLength(narrow ? 230 : 300);
-            if (cols != columns) { columns = cols; Filter(); }
+            narrowWindow = e.NewSize.Width < 860;
+            ColumnDefinitions[0].Width = new GridLength(narrowWindow ? 230 : 300);
+            ApplyLayout();
         };
+        // Console-style library (owner request 2026-11-08): with no game selected the library fills the page as a grid of covers;
+        // Esc (or ← BIBLIOTECA) leaves the selected game and returns to it. Esc in a search with text clears the search first.
+        AddHandler(KeyDownEvent, (_, e) =>
+        {
+            if (e.Key != Key.Escape || e.Handled) return;
+            if (TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() is TextBox { Name: "LGameSearch" } box && !string.IsNullOrEmpty(box.Text)) { box.Text = ""; e.Handled = true; return; }
+            if (current is not null) { var was = current; Select(null); FocusTile(was); e.Handled = true; }
+        }, RoutingStrategies.Bubble); // bubble: an open drop-down handles its own Esc first
+        backToLibrary.Click += (_, _) => { var was = current; Select(null); if (was is not null) FocusTile(was); };
+        ToolTip.SetTip(backToLibrary, "Volta para a biblioteca inteira (Esc).");
         Loaded += async (_, _) => { if (games.Count == 0) await ScanAsync(); };
     }
 
@@ -102,6 +138,7 @@ public sealed class LauncherPage : Grid
                 void addIt(IlmenyxSettings st) { if (!st.CustomGames.Any(c => c.Exe == exe)) st.CustomGames.Add(new() { Name = GameNameFromFolder(exe), Exe = exe }); }
                 if (Save(addIt) is { } fresh) settings.CustomGames = fresh.CustomGames; else addIt(settings);
                 await ScanAsync(); Select(games.FirstOrDefault(g => g.Store == "Manual" && g.Id == exe));
+                await LookUpSteamIdAsync(automatic: true);
                 return true;
             }, BoundedProcess.Find).ShowDialog(window);
         };
@@ -116,10 +153,11 @@ public sealed class LauncherPage : Grid
             if (!LinuxGameLibrary.IsRunnableFile(path) && !LinuxGameLibrary.IsWindowsExe(path)) { addStatus.Text = "Escolha um jogo: um executável do Linux ou um .exe de Windows (que roda com Proton). Use PROCURAR… para abrir o explorador de arquivos."; return; }
             if (!settings.CustomGames.Any(c => c.Exe == path))
             {
-                void add(IlmenyxSettings s) { if (!s.CustomGames.Any(c => c.Exe == path)) s.CustomGames.Add(new() { Name = Path.GetFileNameWithoutExtension(path), Exe = path }); }
+                void add(IlmenyxSettings s) { if (!s.CustomGames.Any(c => c.Exe == path)) s.CustomGames.Add(new() { Name = LinuxGameLibrary.IsWindowsExe(path) ? GameNameFromFolder(path) : Path.GetFileNameWithoutExtension(path), Exe = path }); }
                 if (Save(add) is { } fresh) settings.CustomGames = fresh.CustomGames; else add(settings);
             }
             addStatus.Text = "Adicionado."; await ScanAsync(); Select(games.FirstOrDefault(g => g.Store == "Manual" && g.Id == path));
+            await LookUpSteamIdAsync(automatic: true);
         };
         var browseAdd = new Button { Name = "BtnAddExeBrowse", Content = "PROCURAR…", FontSize = 12, Padding = new Thickness(14, 6) };
         browseAdd.Click += async (_, _) => { if (await PickExecutableAsync() is { } picked) addPath.Text = picked; };
@@ -138,7 +176,7 @@ public sealed class LauncherPage : Grid
         Grid.SetRow(shelf, 1); Grid.SetRow(tools, 0);
         var scroll = new ScrollViewer { Name = "LGameScroll", Content = list, Padding = new Thickness(0, 0, 8, 0) }; Grid.SetRow(scroll, 2);
         left.Children.Add(tools); left.Children.Add(shelf); left.Children.Add(scroll);
-        Grid.SetRow(left, 1); Children.Add(left);
+        Grid.SetRow(left, 1); Children.Add(left); leftPane = left;
     }
 
     private static Control SearchIcon()
@@ -167,25 +205,47 @@ public sealed class LauncherPage : Grid
         emptyBox.Child = new StackPanel
         {
             Spacing = 10, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
-            Children = { UiKit.Icon(Icons.Games, 40, Palette.Faint), empty, new TextBlock { Text = "Cada jogo guarda o seu próprio perfil: desempenho, argumentos de inicialização e programas auxiliares.", Foreground = Palette.Faint, FontSize = 12, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center, MaxWidth = 340 } },
+            Children = { UiKit.Icon(Icons.Games, 40, Palette.Faint), empty, new TextBlock { Text = "Use + ADICIONAR EXECUTÁVEL ou INSTALAR JOGO DE WINDOWS.", Foreground = Palette.Faint, FontSize = 12, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center, MaxWidth = 340 } },
         };
         empty.HorizontalAlignment = HorizontalAlignment.Center; empty.FontSize = 14;
-        Grid.SetColumn(emptyBox, 2); Grid.SetRow(emptyBox, 1); Children.Add(emptyBox);
+        // Empty state of the full-page library (nothing installed or nothing matches the search), under the search box.
+        Grid.SetColumn(emptyBox, 0); Grid.SetColumnSpan(emptyBox, 3); Grid.SetRow(emptyBox, 1); emptyBox.Margin = new Thickness(0, 84, 0, 0); emptyBox.IsVisible = false; Children.Add(emptyBox);
         play.Click += async (_, _) => await PlayAsync();
 
         // Hero: the selected game (local Steam artwork when there is one, the brand gradient otherwise), its tags and the main action.
         title.FontSize = 26; title.MaxLines = 2; title.TextTrimming = TextTrimming.CharacterEllipsis;
         sub.FontSize = 12.5; sub.MaxLines = 2; sub.TextTrimming = TextTrimming.CharacterEllipsis; sub.Margin = new Thickness(0, 4, 0, 0);
         play.VerticalAlignment = VerticalAlignment.Bottom; play.Margin = new Thickness(16, 0, 0, 0); play.FontSize = 14;
-        var bottom = new Grid { ColumnDefinitions = new("*,Auto"), VerticalAlignment = VerticalAlignment.Bottom, Children = { new StackPanel { VerticalAlignment = VerticalAlignment.Bottom, Children = { title, sub } } } };
-        Grid.SetColumn(play, 1); bottom.Children.Add(play);
-        var heroContent = new Grid { RowDefinitions = new("Auto,*,Auto"), Children = { heroTags } };
+        var bottom = new Grid { ColumnDefinitions = new("*,Auto,Auto,Auto"), VerticalAlignment = VerticalAlignment.Bottom, Children = { new StackPanel { VerticalAlignment = VerticalAlignment.Bottom, Children = { title, sub } } } };
+        // Games the user added by hand can leave the library again (the files on disk are never touched).
+        removeGame.VerticalAlignment = VerticalAlignment.Bottom; removeGame.Margin = new Thickness(16, 0, 0, 0);
+        ToolTip.SetTip(removeGame, "Tira o jogo da biblioteca do Ilmenyx. Os arquivos do jogo não são apagados.");
+        removeGame.Click += async (_, _) => await RemoveCurrentAsync();
+        renameGame.VerticalAlignment = VerticalAlignment.Bottom; renameGame.Margin = new Thickness(16, 0, 0, 0);
+        ToolTip.SetTip(renameGame, "Muda o nome que aparece na biblioteca.");
+        renameGame.Click += async (_, _) => await RenameCurrentAsync();
+        Grid.SetColumn(renameGame, 1); bottom.Children.Add(renameGame);
+        removeGame.Margin = new Thickness(8, 0, 0, 0);
+        Grid.SetColumn(removeGame, 2); bottom.Children.Add(removeGame);
+        Grid.SetColumn(play, 3); bottom.Children.Add(play);
+        var heroTop = new DockPanel { Children = { backToLibrary, heroTags } }; heroTags.Margin = new Thickness(10, 0, 0, 0);
+        var heroContent = new Grid { RowDefinitions = new("Auto,*,Auto"), Children = { heroTop } };
         Grid.SetRow(bottom, 2); heroContent.Children.Add(bottom);
         hero = UiKit.Hero(heroContent, height: 232, name: "LHero");
         if (hero.Child is Grid layers) layers.Children.Insert(0, heroScrim);
 
         ToolTip.SetTip(chkGuard, "Em notebooks com duas GPUs, jogos de Windows em tela cheia sem vsync podem travar a tela inteira (só reiniciando). Com a proteção, o Proton sincroniza os quadros com o monitor; o FPS fica limitado à taxa da tela. Vale quando o jogo usa a GPU dedicada NVIDIA.");
         foreach (var c in new[] { chkPlan, chkGpu, chkGameMode, chkMango, chkGuard }) { c.Margin = new Thickness(0, 0, 0, 6); c.FontSize = 13; c.IsCheckedChanged += (_, _) => SaveFromControls(); }
+        // Experimental Proton options (off by default): each asks before turning on and shows whether it applies to this game and session.
+        ToolTip.SetTip(chkWayland, "Faz o jogo de Windows abrir direto no Wayland, sem passar pelo XWayland (PROTON_ENABLE_WAYLAND=1). Pode melhorar a fluidez e o HDR, mas é experimental: alguns jogos abrem com janela errada, sem cursor ou sem controle. Só vale numa sessão Wayland com GE-Proton ou UMU-Proton 10 ou mais novo.");
+        ToolTip.SetTip(chkLowLat, "Libera o NVIDIA Reflex nos jogos que têm essa opção no menu (PROTON_ENABLE_NVAPI=1, pelo DXVK-NVAPI). Diminui o atraso entre o clique e a imagem; depois ligue o Reflex no menu do jogo. Só para placas NVIDIA com o driver proprietário.");
+        foreach (var c in new[] { chkWayland, chkLowLat }) { c.Margin = new Thickness(0, 0, 0, 6); c.FontSize = 13; }
+        chkWayland.IsCheckedChanged += async (_, _) => await ExtraToggledAsync(chkWayland, "Ligar o Proton nativo no Wayland (experimental)?",
+            "O jogo de Windows passa a abrir direto no Wayland (PROTON_ENABLE_WAYLAND=1), sem o XWayland.\n\n• Só vale numa sessão Wayland e com GE-Proton ou UMU-Proton 10 ou mais novo; fora disso a opção fica guardada e não entra.\n• É experimental: alguns jogos abrem com janela errada, sem cursor ou sem controle. Se der problema, desmarque.\n• Não combina com o Gamescope.\n• Vale só para este jogo.");
+        chkLowLat.IsCheckedChanged += async (_, _) => await ExtraToggledAsync(chkLowLat, "Ligar a baixa latência (experimental)?",
+            "Libera o NVIDIA Reflex para o jogo (PROTON_ENABLE_NVAPI=1, pelo DXVK-NVAPI). Depois, ligue a opção Reflex no menu do próprio jogo.\n\n• Só para placas NVIDIA com o driver proprietário. Em AMD e Intel o Proton não documenta uma opção equivalente, então nada é ligado.\n• Não combina com opções que desligam o NVAPI ou trocam o DXVK pelo OpenGL (PROTON_USE_WINED3D).\n• Vale só para este jogo.");
+        extrasBox.Children.Add(new TextBlock { Text = "EXPERIMENTAL (JOGOS DE WINDOWS)", FontSize = 11, FontWeight = FontWeight.Bold, Foreground = Palette.Muted, Margin = new Thickness(0, 0, 0, 6) });
+        extrasBox.Children.Add(chkWayland); extrasBox.Children.Add(chkLowLat); extrasBox.Children.Add(extrasNote);
         ToolTip.SetTip(chkGpu, multiGpu ? "Define as variáveis de PRIME offload para a GPU dedicada." : "Esta máquina tem uma única GPU: não há o que selecionar.");
         chkGpu.IsEnabled = multiGpu;
         bool hasGm = BoundedProcess.Find("gamemoderun") is not null, hasMango = BoundedProcess.Find("mangohud") is not null;
@@ -200,7 +260,7 @@ public sealed class LauncherPage : Grid
         {
             Children =
             {
-                CardTitle(Icons.Oc, "DESEMPENHO"), chkPlan, chkGpu, chkGameMode, chkMango, chkGuard, exeText, new Border { Height = 6 }, exePath, new Border { Height = 8 },
+                CardTitle(Icons.Oc, "DESEMPENHO"), chkPlan, chkGpu, chkGameMode, chkMango, chkGuard, extrasBox, exeText, new Border { Height = 6 }, exePath, new Border { Height = 8 },
                 new WrapPanel { ItemSpacing = 8, LineSpacing = 6, Children = { browseExe, setExe, recommended } }, protonBox,
                 new TextBlock { Text = "O perfil de energia vale só durante o jogo e volta ao anterior. Prioridade de processo elevada exige privilégios no Linux; o GameMode cuida disso quando instalado. O executável é descoberto sozinho; se errar, informe o caminho certo.", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0) }
             }
@@ -209,19 +269,30 @@ public sealed class LauncherPage : Grid
         void Chosen(Action<GameProfile> set) { if (loading || profile is null) return; set(profile); SaveProfile(current, profile); UpdatePreview(); }
         modeChips = new("LModePanel", [("Padrão do jogo", "default"), ("Tela cheia", "full"), ("Sem bordas", "borderless"), ("Janela", "window")], "default", v => Chosen(p => p.WinMode = v));
         resChips = new("LResPanel", [("Padrão", "default"), ("1280x720", "1280x720"), ("1920x1080", "1920x1080"), ("2560x1440", "2560x1440"), ("3840x2160", "3840x2160")], "default", v => Chosen(p => p.Res = v));
+        // What the user plays with inside the game (not applied): recorded with each MangoHud session so the FPS page compares like with like.
+        gfxPresetChips = new("LGfxPresetPanel", [("Não informado", ""), ("Baixo", "Baixo"), ("Médio", "Médio"), ("Alto", "Alto"), ("Ultra", "Ultra")], "", v => Chosen(p => p.GfxPreset = v));
+        gfxUpChips = new("LGfxUpscalePanel", [("Não informado", ""), ("Nativo", "Native"), ("Qualidade", "Quality"), ("Desempenho", "Performance")], "", v => Chosen(p => p.GfxUpscaling = v));
         hzChips = new("LHzPanel", [("Padrão", 0), ("60", 60), ("120", 120), ("144", 144), ("165", 165), ("240", 240)], 0, v => Chosen(p => p.Hz = v));
         styleChips = new("LStylePanel", [("Source / CS2", "source"), ("Unity", "unity"), ("Unreal", "unreal")], "source", v => Chosen(p => p.Style = v));
         extra.TextChanged += (_, _) => SaveFromControls();
         // Windows games (.exe) run with Proton through the bundled umu-launcher; the Steam ID lets it apply the game's known fixes.
         protonBox.Children.Add(UiKit.Label("PROTON (JOGO DE WINDOWS)"));
-        protonBox.Children.Add(new Border { Height = 6 }); protonBox.Children.Add(protonId);
-        protonBox.Children.Add(new TextBlock { Text = "Este jogo roda com Proton, sem precisar da Steam. Na primeira vez o Proton é baixado (~1 GB) e o \"Windows\" do jogo é preparado; demora alguns minutos. Com o ID Steam do jogo (o número em store.steampowered.com/app/ID, ou na aba Compatibilidade), o Proton aplica as correções conhecidas dele.", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0) });
+        var findId = new Button { Name = "BtnFindSteamId", Content = "BUSCAR", FontSize = 11, Padding = new Thickness(12, 5), Margin = new Thickness(8, 0, 0, 0) };
+        ToolTip.SetTip(findId, "Procura o ID pelo nome do jogo na loja Steam (só o nome é enviado).");
+        findId.Click += async (_, _) => await LookUpSteamIdAsync(automatic: false);
+        var idRow = new DockPanel(); DockPanel.SetDock(findId, Dock.Right); idRow.Children.Add(findId); idRow.Children.Add(protonId);
+        protonBox.Children.Add(new Border { Height = 6 }); protonBox.Children.Add(idRow); protonBox.Children.Add(protonIdStatus);
+        var protonHelp = new TextBlock { Text = "Roda com Proton, sem a Steam. Com o ID Steam, o Proton aplica as correções conhecidas do jogo.", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0) };
+        ToolTip.SetTip(protonHelp, "Na primeira vez o Proton é baixado (~1 GB) e o \"Windows\" do jogo é preparado; demora alguns minutos. O ID é o número em store.steampowered.com/app/ID; o Ilmenyx tenta achá-lo pelo nome quando o jogo é adicionado.");
+        protonBox.Children.Add(protonHelp);
+        protonId.LostFocus += (_, _) => { if (current is { IsWindowsManual: true } cg && profile?.ProtonGameId is { Length: >= 3 } typed) FetchArtLater(cg, typed); };
         protonId.TextChanged += (_, _) =>
         {
             if (loading || profile is null) return;
             string digits = new((protonId.Text ?? "").Where(char.IsAsciiDigit).ToArray());
             if (digits != (protonId.Text ?? "")) { protonId.Text = digits; return; }
             profile.ProtonGameId = digits.Length > 0 ? digits : null; SaveProfile(current, profile); UpdateTags();
+            protonIdStatus.Foreground = Palette.Faint; protonIdStatus.Text = digits.Length > 0 ? "ID salvo. Vale na próxima vez que o jogo abrir." : "";
         };
         var presets = new WrapPanel { Name = "LExtraPresets", Margin = new Thickness(0, 8, 0, 14), ItemSpacing = 6, LineSpacing = 6 };
         foreach (var (label, token, hint) in new (string, string, string?)[] { ("Pular intro (-novid)", "-novid", null), ("Sem limite de FPS (+fps_max 0)", "+fps_max 0", null), ("Sem joystick (-nojoy)", "-nojoy", null), ("Abrir console (-console)", "-console", null),
@@ -244,6 +315,9 @@ public sealed class LauncherPage : Grid
             Children =
             {
                 CardTitle(Icons.Gpu, "GRÁFICOS (ARGUMENTOS DE INICIALIZAÇÃO)"), Row("Modo de janela", Wrap(modeChips.Panel)), Row("Resolução", Wrap(resChips.Panel)), Row("Taxa de atualização (Hz)", Wrap(hzChips.Panel)), Row("Tipo de argumento (depende do jogo)", Wrap(styleChips.Panel)),
+                new TextBlock { Text = "Qualidade usada dentro do jogo (para a Estimativa de FPS)", FontWeight = FontWeight.SemiBold, FontSize = 12.5, Margin = new Thickness(0, 4, 0, 4) },
+                new TextBlock { Text = "O Ilmenyx não muda isto no jogo. Diga a qualidade gráfica e o upscaling que você usa: cada sessão medida com MangoHud guarda esses valores e a resolução acima, e a Estimativa de FPS usa as sessões com a mesma qualidade para ajustar as estimativas dos outros jogos a este PC.", Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8) },
+                Row("Qualidade gráfica", Wrap(gfxPresetChips.Panel)), Row("Upscaling (DLSS / FSR)", Wrap(gfxUpChips.Panel)),
                 new TextBlock { Text = "Extras", Foreground = Palette.Muted, FontSize = 12, Margin = new Thickness(0, 0, 0, 6) }, extra, presets, UiKit.Label("LINHA FINAL"), code, steamBox, gfxNote
             }
         });
@@ -257,7 +331,7 @@ public sealed class LauncherPage : Grid
             }
         });
         status.Margin = new Thickness(4, 12, 0, 4);
-        detail.Content = new StackPanel { Margin = new Thickness(0, 0, 8, 0), Children = { hero, status, UiKit.SectionHeader("Perfil do jogo"), perf, gfx, help } };
+        detail.Content = new StackPanel { Margin = new Thickness(0, 0, 8, 0), Children = { hero, playProgress, status, UiKit.SectionHeader("Perfil do jogo"), perf, gfx, help } };
         Grid.SetColumn(detail, 2); Grid.SetRow(detail, 1); Children.Add(detail);
     }
 
@@ -272,6 +346,7 @@ public sealed class LauncherPage : Grid
         if (p.GameMode && chkGameMode.IsEnabled) tags.Add("GameMode");
         if (p.MangoHud && chkMango.IsEnabled) tags.Add("MangoHud");
         if (g.IsWindowsManual) tags.Add(p.ProtonGameId is { } pid ? "Proton · ID " + pid : "Proton");
+        foreach (var c in ExtraChoices().Where(c => c.Applies)) tags.Add(c.Id == GameExtras.WaylandId ? "Wayland (exp.)" : "Baixa latência (exp.)");
         if (p.Res != "default") tags.Add(p.Res);
         if (p.Hz > 0) tags.Add(p.Hz + " Hz");
         if (tags.Count == 1) tags.Add("Perfil padrão");
@@ -308,7 +383,7 @@ public sealed class LauncherPage : Grid
         list.Children.Clear();
         var shown = games.Where(g => q.Length == 0 || g.Name.Contains(q, StringComparison.CurrentCultureIgnoreCase)).ToList();
         // Asymmetric grid: the selected game (or the first one) is a wide featured tile, the others pair up below it.
-        string? big = shown.Any(g => g.Key == keep) ? keep : shown.FirstOrDefault()?.Key;
+        string? big = current is null ? null : shown.Any(g => g.Key == keep) ? keep : shown.FirstOrDefault()?.Key; // browsing: all covers equal
         Grid? row = null; int col = 0;
         foreach (var g in shown)
         {
@@ -316,20 +391,22 @@ public sealed class LauncherPage : Grid
             AutomationProperties.SetName(item, g.Name + " (" + g.Store + ")");
             var game = g; item.Click += (_, _) => { Select(game); FocusTile(game); };
             if (g.Key == big || columns == 1) { list.Children.Add(item); row = null; continue; }
-            if (row is null || col >= columns) { row = new Grid { ColumnDefinitions = new("*,8,*") }; list.Children.Add(row); col = 0; }
+            if (row is null || col >= columns) { row = new Grid { ColumnDefinitions = new(string.Join(",8,", Enumerable.Repeat("*", columns))), Margin = new Thickness(0, 0, 0, 8) }; list.Children.Add(row); col = 0; }
             Grid.SetColumn(item, col * 2); row.Children.Add(item); col++;
         }
+        emptyBox.IsVisible = current is null && shown.Count == 0;
+        empty.Text = games.Count == 0 ? "Nenhum jogo na biblioteca." : "Nenhum jogo com esse nome.";
     }
 
     private Button Tile(LibGame g, bool large, bool selected)
     {
-        var art = g.IsSteam ? GameArt.Steam(steamRoot, g.Id, hero: false) : null;
+        var art = ArtFor(g, hero: false);
         var body = new StackPanel
         {
             Spacing = 2,
             Children =
             {
-                GameArt.Cover(art, g.Name, large ? (columns == 1 ? 104 : 128) : (columns == 1 ? 0 : 68)),
+                GameArt.Cover(art, g.Name, current is null ? 118 : large ? (columns == 1 ? 104 : 128) : (columns == 1 ? 0 : 68)),
                 new TextBlock { Text = g.Name, FontSize = large ? 13.5 : 12.5, FontWeight = FontWeight.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(2, 6, 2, 0), Foreground = selected ? Palette.AccentText : Palette.Fg },
                 new TextBlock { Text = g.Subtitle, FontSize = 11, Foreground = Palette.Faint, Margin = new Thickness(2, 0, 2, 0) },
             },
@@ -344,6 +421,19 @@ public sealed class LauncherPage : Grid
     }
 
     /// <summary>The library is rebuilt on selection (the featured tile moves): keep keyboard focus on the chosen game.</summary>
+    /// <summary>Browsing (no game selected): the library spans the whole page with as many cover columns as fit. A game selected:
+    /// the classic two-pane layout (library on the left, details on the right).</summary>
+    private void ApplyLayout(bool force = false)
+    {
+        if (leftPane is null) return;
+        bool browse = current is null;
+        Grid.SetColumnSpan(leftPane, browse ? 3 : 1);
+        detail.IsVisible = !browse;
+        double width = Bounds.Width > 0 ? Bounds.Width : 1100;
+        int cols = browse ? Math.Clamp((int)((width - 20) / 230), 2, 8) : narrowWindow ? 1 : 2;
+        if (cols != columns || force) { columns = cols; Filter(); }
+    }
+
     private void FocusTile(LibGame g)
     {
         string name = "LGame_" + SafeName(g.Key);
@@ -355,17 +445,21 @@ public sealed class LauncherPage : Grid
     public void Select(LibGame? g)
     {
         current = g;
-        if (g is null) { detail.IsVisible = false; emptyBox.IsVisible = true; profile = null; Filter(); return; }
-        detail.IsVisible = true; emptyBox.IsVisible = false;
+        if (g is null) { profile = null; ApplyLayout(force: true); return; }
+        ApplyLayout(force: true);
         if (!settings.GameProfiles.TryGetValue(SettingsKey(g), out var p)) { p = new GameProfile(); settings.GameProfiles[SettingsKey(g)] = p; }
         loading = true; profile = p;
         title.Text = g.Name; sub.Text = $"{g.Store} · {g.InstallDir}";
-        var art = g.IsSteam ? GameArt.Steam(steamRoot, g.Id, hero: true) : null; heroArt = art is not null;
+        var art = ArtFor(g, hero: true); heroArt = art is not null;
+        if (art is null && g.IsWindowsManual && p.ProtonGameId is { Length: > 0 } artId) FetchArtLater(g, artId);
         hero.Background = art is null ? UiKit.HeroBrush() : new ImageBrush { Source = art, Stretch = Stretch.UniformToFill };
         heroScrim.IsVisible = heroArt; title.Foreground = heroArt ? Brushes.White : Palette.Fg; sub.Foreground = heroArt ? GameArt.OnImageMuted : Palette.Muted;
         chkPlan.IsChecked = p.HighPerfPlan; chkGpu.IsChecked = p.GpuHigh && multiGpu; chkGameMode.IsChecked = p.GameMode; chkMango.IsChecked = p.MangoHud; chkGuard.IsChecked = p.FullscreenGuard; chkGuard.IsVisible = multiGpu && gpuVendor == "NVIDIA";
-        modeChips!.Select(p.WinMode); resChips!.Select(p.Res); hzChips!.Select(p.Hz); styleChips!.Select(p.Style); extra.Text = p.Extra; exePath.Text = p.ExePath ?? "";
-        protonBox.IsVisible = g.IsWindowsManual; protonId.Text = p.ProtonGameId ?? "";
+        modeChips!.Select(p.WinMode); resChips!.Select(p.Res); hzChips!.Select(p.Hz); styleChips!.Select(p.Style); gfxPresetChips!.Select(p.GfxPreset ?? ""); gfxUpChips!.Select(p.GfxUpscaling ?? ""); extra.Text = p.Extra; exePath.Text = p.ExePath ?? g.ExePath ?? "";
+        protonBox.IsVisible = g.IsWindowsManual; protonId.Text = p.ProtonGameId ?? ""; protonIdStatus.Text = "";
+        removeGame.IsVisible = renameGame.IsVisible = g.Store == "Manual";
+        chkWayland.IsChecked = p.ProtonWayland; chkLowLat.IsChecked = p.LowLatency; extrasBox.IsVisible = g.IsSteam || g.IsWindowsManual;
+        protonName = g.IsSteam ? steam.CompatToolName(g.Id) : g.IsWindowsManual ? (UmuProton ?? (() => LinuxGameExtras.UmuProtonName()))() : null;
         RebuildHelpers();
         steamBox.IsVisible = g.IsSteam; steamNow.Text = g.IsSteam ? "Opções atuais na Steam: " + (steam.GetLaunchOptions(g.Id) is { Length: > 0 } cur ? cur : "(nenhuma)") : "";
         gfxNote.Text = g.IsSteam ? "Os argumentos e variáveis só passam a valer na Steam depois de APLICAR NAS OPÇÕES DA STEAM (a Steam é fechada nessa hora). Depois, o JOGAR abre pela Steam normalmente."
@@ -382,18 +476,52 @@ public sealed class LauncherPage : Grid
         exeText.Text = "Procurando o executável…";
         var game = g;
         _ = Task.Run(() => LinuxGameLibrary.FindMainExe(game.InstallDir, game.Name)).ContinueWith(t => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-        { if (current == game) exeText.Text = t.Result is { } found ? $"Executável (detectado, confirme): {found}" : "Executável não identificado. Informe o caminho abaixo, se necessário."; }));
+        {
+            if (current != game) return;
+            exeText.Text = t.Result is { } found ? $"Executável (detectado, confirme): {found}" : "Executável não identificado. Informe o caminho abaixo, se necessário.";
+            if (t.Result is { } f && string.IsNullOrWhiteSpace(exePath.Text)) exePath.Text = f;
+        }));
     }
 
     private void SaveFromControls()
     {
         if (loading || profile is null) return;
         profile.HighPerfPlan = chkPlan.IsChecked == true; profile.GpuHigh = chkGpu.IsChecked == true; profile.GameMode = chkGameMode.IsChecked == true; profile.MangoHud = chkMango.IsChecked == true; profile.FullscreenGuard = chkGuard.IsChecked == true;
+        profile.ProtonWayland = chkWayland.IsChecked == true; profile.LowLatency = chkLowLat.IsChecked == true;
         profile.Extra = (extra.Text ?? "").Trim();
         SaveProfile(current, profile); UpdatePreview();
     }
 
-    private void UpdatePreview() { if (profile is null) return; string a = GameLaunchOptions.BuildArgs(profile); string o = current?.IsSteam == true ? GameLaunchOptions.BuildSteamOptions(profile, gpuVendor, File.Exists(MangoHudLogReader.ConfigPath()) ? MangoHudLogReader.ConfigPath() : null) : a; preview.Text = o.Length > 0 ? o : "(nenhum argumento)"; UpdateTags(); }
+    private void UpdatePreview()
+    {
+        if (profile is null) return;
+        string a = GameLaunchOptions.BuildArgs(profile);
+        string o = current?.IsSteam == true ? GameLaunchOptions.BuildSteamOptions(profile, gpuVendor, File.Exists(MangoHudLogReader.ConfigPath()) ? MangoHudLogReader.ConfigPath() : null, ExtrasNow()) : a;
+        preview.Text = o.Length > 0 ? o : "(nenhum argumento)";
+        var choices = ExtraChoices();
+        extrasNote.Text = choices.Count == 0 ? "Desligadas. Opções novas do Proton, para testar jogo a jogo; cada uma explica o que faz antes de ligar."
+            : GameExtras.Summary(choices) + (current?.IsWindowsManual == true ? "" : current?.IsSteam == true ? "\nNa Steam, entram depois de APLICAR NAS OPÇÕES DA STEAM." : "");
+        UpdateTags();
+    }
+
+    /// <summary>What the experimental options depend on for the selected game: session, Proton build (Steam mapping or umu), NVIDIA proprietary rendering.</summary>
+    private ExtrasContext? ExtrasNow() => current is { } g && profile is { } p && (g.IsSteam || g.IsWindowsManual)
+        ? new(WaylandSession?.Invoke() ?? LinuxGameExtras.WaylandSession(), GameExtras.ParseProton(protonName), gpuVendor == "NVIDIA" && (!multiGpu || p.GpuHigh), true)
+        : null;
+
+    private IReadOnlyList<ExtraChoice> ExtraChoices() => profile is { } p && ExtrasNow() is { } ctx ? GameExtras.Resolve(p, ctx, GameLaunchOptions.OwnPieces(p, gpuVendor)) : [];
+
+    /// <summary>Turning an experimental option on asks first (explained); declining unticks it. Turning off needs no question.</summary>
+    private async Task ExtraToggledAsync(CheckBox box, string question, string explanation)
+    {
+        if (loading || profile is null) return;
+        if (box.IsChecked == true && (owner() is not { } window || !await ConfirmDialog.AskAsync(window, question, explanation, "Ligar", "Cancelar")))
+        {
+            loading = true; box.IsChecked = false; loading = false;
+            return;
+        }
+        SaveFromControls();
+    }
 
     private void Recommended()
     {
@@ -430,6 +558,83 @@ public sealed class LauncherPage : Grid
             FileTypeFilter = [new("Jogos (Linux e Windows)") { Patterns = ["*.exe", "*.EXE", "*.x86_64", "*.x86", "*.sh", "*.AppImage", "*"] }, new("Todos os arquivos") { Patterns = ["*"] }],
         });
         return files.Count > 0 ? files[0].TryGetLocalPath() : null;
+    }
+
+    /// <summary>Artwork of a library game: Steam's local cache; for a hand-added Windows game with a Steam ID, that ID's local Steam
+    /// cache or the image already downloaded for it (Steam CDN, kept in the Compatibility cache).</summary>
+    private Bitmap? ArtFor(LibGame g, bool hero)
+    {
+        if (g.IsSteam) return GameArt.Steam(steamRoot, g.Id, hero);
+        if (!g.IsWindowsManual || !settings.GameProfiles.TryGetValue(SettingsKey(g), out var gp) || gp.ProtonGameId is not { Length: > 0 } id) return null;
+        return GameArt.Steam(steamRoot, id, hero) ?? GameArt.FromFile(ArtCache.CachedArt(id), hero);
+    }
+
+    private static readonly CompatOnline ArtCache = new(CompatPaths.Folder());
+    private readonly HashSet<string> artTried = new(StringComparer.Ordinal);
+    /// <summary>Downloads the Steam artwork of an ID (default: Steam CDN through the Compatibility cache). Settable for fixtures.</summary>
+    public Func<string, CancellationToken, Task<string?>>? FetchArt { get; init; }
+
+    /// <summary>Once per ID and session: fetches the game's Steam image (only the ID goes in the address), then repaints the library and hero.</summary>
+    private void FetchArtLater(LibGame g, string id)
+    {
+        if (!artTried.Add(id)) return;
+        _ = Task.Run(async () =>
+        {
+            string? file = null;
+            try { file = await (FetchArt ?? ((i, ct) => ArtCache.ArtAsync(i, ct)))(id, lifetime); }
+            catch (Exception e) when (e is HttpRequestException or TaskCanceledException or IOException or UnauthorizedAccessException) { }
+            if (file is null) return;
+            Avalonia.Threading.Dispatcher.UIThread.Post(() => { Filter(); if (current?.Key == g.Key) Select(current); });
+        });
+    }
+
+    /// <summary>Fills the Steam ID of the selected Windows game from its name (automatic: only when empty, quietly when nothing is found).</summary>
+    private async Task LookUpSteamIdAsync(bool automatic)
+    {
+        if (current is not { IsWindowsManual: true } game || profile is not { } p) return;
+        if (automatic && p.ProtonGameId is { Length: > 0 }) return;
+        protonIdStatus.Foreground = Palette.Faint; protonIdStatus.Text = "Buscando o ID Steam…";
+        var find = FindSteamId ?? ((n, ct) => SteamIds.FindAsync(n, ct));
+        var found = await find(game.Name, lifetime);
+        if (found is null && GameNameFromFolder(game.Id) is { } folderName && folderName != game.Name) found = await find(folderName, lifetime); // "MK10" → "Mortal Kombat XL"
+        if (current != game) return;
+        if (found is { } f)
+        {
+            loading = true; protonId.Text = f.Id; loading = false;
+            p.ProtonGameId = f.Id; SaveProfile(game, p); UpdateTags();
+            protonIdStatus.Text = $"ID encontrado na loja Steam: {f.Name}.";
+            FetchArtLater(game, f.Id);
+        }
+        else protonIdStatus.Text = automatic ? "" : p.ProtonGameId is { Length: > 0 } kept ? $"Nenhum jogo com esse nome na loja Steam. O ID {kept} continua salvo." : "Nenhum jogo com esse nome na loja Steam. Digite o ID no campo.";
+    }
+
+    /// <summary>Renames the selected hand-added game in the library (its profile and files stay the same).</summary>
+    private async Task RenameCurrentAsync()
+    {
+        if (current is not { Store: "Manual" } game) return;
+        string? name = AskName is { } ask ? await ask(game.Name)
+            : owner() is { } window ? await TextInputDialog.AskAsync(window, "Renomear jogo", "Nome que aparece na biblioteca", game.Name) : null;
+        name = name?.Trim();
+        if (string.IsNullOrEmpty(name) || name == game.Name) return;
+        if (name.Length > 80) name = name[..80];
+        string exe = game.Id;
+        void rename(IlmenyxSettings s) { foreach (var c in s.CustomGames.Where(c => c.Exe == exe)) c.Name = name; }
+        if (Save(rename) is { } fresh) settings.CustomGames = fresh.CustomGames; else rename(settings);
+        await ScanAsync(); Select(games.FirstOrDefault(g => g.Store == "Manual" && g.Id == exe));
+        status.Text = "Nome alterado.";
+    }
+
+    /// <summary>Removes the selected hand-added game (and its profile) from the library after confirmation. Never deletes files.</summary>
+    private async Task RemoveCurrentAsync()
+    {
+        if (current is not { Store: "Manual" } game) return;
+        bool yes = ConfirmRemove is { } ask ? await ask(game.Name)
+            : owner() is { } window && await ConfirmDialog.AskAsync(window, "Remover jogo", $"Remover \"{game.Name}\" da biblioteca?\n\nOs arquivos do jogo não são apagados.", "Remover", "Cancelar");
+        if (!yes) return;
+        string key = SettingsKey(game), exe = game.Id;
+        void remove(IlmenyxSettings s) { s.CustomGames.RemoveAll(c => c.Exe == exe); s.GameProfiles.Remove(key); }
+        if (Save(remove) is { } fresh) { settings.CustomGames = fresh.CustomGames; settings.GameProfiles = fresh.GameProfiles; } else remove(settings);
+        Select(null); await ScanAsync();
     }
 
     private void SetExe()
@@ -472,7 +677,7 @@ public sealed class LauncherPage : Grid
     private async Task ApplySteamAsync(Button button)
     {
         if (current is not { IsSteam: true } g || profile is null || owner() is not { } window) return;
-        string options = GameLaunchOptions.BuildSteamOptions(profile, gpuVendor, profile.MangoHud && OperatingSystem.IsLinux() ? MangoHudLogReader.EnsureConfig(settings) : File.Exists(MangoHudLogReader.ConfigPath()) ? MangoHudLogReader.ConfigPath() : null);
+        string options = GameLaunchOptions.BuildSteamOptions(profile, gpuVendor, profile.MangoHud && OperatingSystem.IsLinux() ? MangoHudLogReader.EnsureConfig(settings) : File.Exists(MangoHudLogReader.ConfigPath()) ? MangoHudLogReader.ConfigPath() : null, ExtrasNow());
         button.IsEnabled = false;
         try
         {
@@ -495,15 +700,20 @@ public sealed class LauncherPage : Grid
         if (launching is not null) { launching.Cancel(); return; }
         if (current is not { } g || profile is not { } p) return;
         launching = CancellationTokenSource.CreateLinkedTokenSource(lifetime); play.Content = "PARAR ACOMPANHAMENTO";
+        playProgress.IsVisible = true; status.Text = $"Abrindo {g.Name}…";
         if (p.MangoHud && OperatingSystem.IsLinux()) MangoHudLogReader.EnsureConfig(settings); // overlay + FPS log ready without visiting the Overlay page
         try
         {
-            var session = await launch(g, p, gpuVendor, t => Avalonia.Threading.Dispatcher.UIThread.Post(() => status.Text = t),
+            var session = await launch(g, p, gpuVendor, t => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                {
+                    status.Text = t;
+                    if (t.Contains(" em execução", StringComparison.Ordinal) || t.StartsWith("Não detectei", StringComparison.Ordinal)) playProgress.IsVisible = false;
+                }),
                 exe => Avalonia.Threading.Dispatcher.UIThread.Post(() => { if (p.ExePath != exe) { p.ExePath = exe; SaveProfile(g, p); if (current == g) exeText.Text = "Executável: " + exe; } }), launching.Token);
             // Measured on this PC (MangoHud log of this launch): kept locally for the FPS page, at most FpsSession.MaxEntries sessions.
             if (session is { IsValid: true }) { if (Save(s => s.AddFpsSession(session)) is { } fresh) settings.FpsSessions = fresh.FpsSessions; else settings.AddFpsSession(session); }
         }
-        finally { launching.Dispose(); launching = null; play.Content = "JOGAR"; }
+        finally { launching.Dispose(); launching = null; play.Content = "JOGAR"; playProgress.IsVisible = false; }
     }
 }
 
@@ -527,6 +737,16 @@ internal static class GameArt
             : [appId + "_header.jpg", Path.Combine(appId, "header.jpg"), appId + "_library_600x900.jpg", Path.Combine(appId, "library_600x900.jpg")];
         foreach (var n in names) if (Load(Path.Combine(dir, n), hero ? 1280 : 460) is { } b) return b;
         return null;
+    }
+
+    /// <summary>Artwork downloaded for a hand-added game (Steam CDN cache of the Compatibility page); a miss is not remembered, so a later download shows up.</summary>
+    public static Bitmap? FromFile(string? path, bool hero)
+    {
+        if (path is null || !File.Exists(path)) return null;
+        string key = path + "|" + (hero ? "1280" : "460");
+        lock (Cache) if (Cache.TryGetValue(key, out var hit) && hit is not null) return hit;
+        lock (Cache) Cache.Remove(key);
+        return Load(path, hero ? 1280 : 460);
     }
 
     private static Bitmap? Load(string path, int width)

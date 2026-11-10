@@ -42,6 +42,22 @@ Inventário e limites: docs/security/PRIVACY-SECURITY-AUDIT.md. Testes de fixtur
 privacidade em todo hardware. Obrigações relacionadas a dados de terceiros, base/retenção/canal de
 direitos e eventual aplicação de LGPD/ANPD: PENDENTE DE REVISÃO humana conforme operação real.
 
+## Apps ArtCraft (página Instalar apps)
+
+- Só ao clicar em INSTALAR SELECIONADOS e confirmar: consulta `api.github.com/repos/storytold/<app>/releases/latest`, baixa de
+  `github.com/storytold/<app>/releases` o pacote da sua distribuição (.deb, .rpm, Arch ou AppImage) e a lista `SHA256SUMS.txt`, e só
+  instala se a soma SHA-256 conferir. O download fica numa pasta temporária em `~/.cache/ilmenyx/downloads` e é apagado depois.
+  .deb/.rpm/Arch são instalados para todo o sistema pela ferramenta da distribuição (apt, dnf/zypper, pacman) com a senha pedida pelo
+  sistema (pkexec); o Ilmenyx não vê a senha. AppImage vai para `~/Applications`, sem senha.
+
+## ID Steam de jogos de Windows adicionados à mão (página Jogos)
+
+- Ao adicionar um jogo de Windows (ou ao clicar em BUSCAR ao lado do ID), o Ilmenyx envia **apenas o nome do jogo** à busca pública da
+  loja Steam (`store.steampowered.com/api/storesearch`). O ID só é preenchido quando o nome bate exatamente com um único jogo da loja.
+  Nada é guardado além do ID no perfil do jogo. Sem internet, o campo fica vazio e pode ser preenchido à mão.
+- Com o ID preenchido, a imagem do jogo é baixada de `shared.akamai.steamstatic.com` (só o ID vai no endereço; JPEG/PNG/WebP de até
+  3 MB), guardada no mesmo cache da página Compatibilidade (`~/.cache/ilmenyx/compat/art/`). Se a Steam local já tiver a imagem, nada é baixado.
+
 ## Compatibilidade de jogos (página Compatibilidade e `ilmenyx compat`)
 
 - Sem rede por padrão. Só depois de uma confirmação que nomeia os endereços:
@@ -62,9 +78,22 @@ direitos e eventual aplicação de LGPD/ANPD: PENDENTE DE REVISÃO humana confor
 
 ## Outros acessos à internet (sempre por ação sua)
 
-- **Estimativa de FPS com HowManyFPS (opcional):** só se você cadastrar a sua chave. Envia a `howmanyfps.com` o **modelo da CPU, o
-  modelo da GPU, o jogo e a resolução**, junto com a sua chave. Sem chave, a estimativa é 100% local.
+- **Estimativa de FPS:** não usa a internet; tudo é calculado no seu PC. (A consulta opcional à HowManyFPS, com chave do usuário,
+  foi removida em 2026-11-08; uma chave salva por versões antigas é apagada do `settings.json` na próxima gravação.)
 - **Teste de rede (página Rede):** baixa e envia cerca de 100 MB de/para `speed.cloudflare.com` e mede a latência até `1.1.1.1` e
   `8.8.8.8`. Esses serviços veem o seu IP, como em qualquer teste de velocidade.
 - **Driver NVIDIA:** a verificação da versão mais recente consulta `download.nvidia.com` (lista pública de versões); nada sobre o
   seu PC é enviado além da requisição em si.
+- **Jogo não abre? (botões do Flatpak):** ADICIONAR FLATHUB roda `flatpak remote-add --user` e o Flatpak baixa a lista de
+  `flathub.org`/`dl.flathub.org`. Só por clique, com confirmação. A verificação em si não usa a internet.
+- **ZRAM (página Otimiza):** ao confirmar LIGAR ZRAM, o gerenciador de pacotes da distribuição (apt, dnf, pacman ou zypper) baixa o
+  pacote `zram-tools` ou `zram-generator` dos espelhos configurados no seu sistema, se ele ainda não estiver instalado.
+- **Instalar apps:** a instalação é feita pelo programa `flatpak` do seu sistema, que baixa de `flathub.org` (e servidores de
+  download dele) só depois da confirmação. Para a camada do Gamescope, o app só lê localmente qual versão da base (runtime) a sua
+  Steam Flatpak usa (`flatpak info`). Itens que não estão no Flathub (GeForce NOW, input-remapper) só abrem a página oficial
+  (`www.nvidia.com`, `github.com`) no seu navegador quando você clica; o Ilmenyx não baixa nada deles.
+- **Cache de shaders maior (Otimiza) e opções experimentais do Proton (Jogos):** não usam a rede. Só gravam um arquivo seu
+  (`~/.config/environment.d/90-ilmenyx-shader-cache.conf`) ou as opções de inicialização do jogo, depois da confirmação.
+- **Instalar jogo de Windows · modo "Clássico de 32 bits":** só depois da sua confirmação, baixa uma vez o GE-Proton9-27 (~470 MB)
+  de `github.com/GloriousEggroll/proton-ge-custom` (releases), confere a soma SHA-512 oficial e guarda em `~/.local/share/ilmenyx/runners`.
+  Nada sobre o seu PC é enviado além da requisição em si. O modo "GE-Proton mais novo" é baixado pelo umu, do mesmo projeto.

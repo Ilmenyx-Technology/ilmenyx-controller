@@ -28,6 +28,13 @@ if (CompatCommand.Handles(args))
     Console.CancelKeyPress += (_, e) => { e.Cancel = true; compatStop.Cancel(); };
     return await CompatCommand.RunAsync(args, Console.Out, compatStop.Token);
 }
+if (SystemCheckCommand.Handles(args))
+{
+    if (!OperatingSystem.IsLinux()) { Console.Error.WriteLine("Backend disponível apenas no Linux."); return 3; }
+    using var checkStop = new CancellationTokenSource();
+    Console.CancelKeyPress += (_, e) => { e.Cancel = true; checkStop.Cancel(); };
+    return await SystemCheckCommand.RunAsync(args, Console.Out, checkStop.Token);
+}
 if (NvidiaDriverCommand.Handles(args))
 {
     if (!OperatingSystem.IsLinux()) { Console.Error.WriteLine("Backend disponível apenas no Linux."); return 3; }

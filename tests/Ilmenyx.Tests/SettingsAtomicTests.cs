@@ -25,17 +25,17 @@ public sealed class SettingsAtomicTests : IDisposable
         var bench = IlmenyxSettings.Load(path); var fps = IlmenyxSettings.Load(path); var shell = IlmenyxSettings.Load(path); var launcher = IlmenyxSettings.Load(path);
         var run = new BenchRunEntry(DateTimeOffset.UnixEpoch, "CPU", "cpu ok", 1.0);
         bench.BenchRuns = IlmenyxSettings.Update(path, s => s.AddBenchRun(run)).BenchRuns;
-        fps.FpsSessions = IlmenyxSettings.Update(path, s => s.HowManyFpsKey = "k-123").FpsSessions;
+        fps.FpsSessions = IlmenyxSettings.Update(path, s => s.OverlayScale = 1.25).FpsSessions;
         IlmenyxSettings.Update(path, s => s.ThemeLight = true);
         var profile = new GameProfile { MangoHud = true };
         IlmenyxSettings.Update(path, s => s.GameProfiles["Steam:1"] = profile);
         IlmenyxSettings.Update(path, s => s.TweakBackup.TryAdd("power", "balanced"));
-        Assert.Empty(shell.BenchRuns); Assert.Null(launcher.HowManyFpsKey); // the stale copies really are stale
+        Assert.Empty(shell.BenchRuns); Assert.Equal(1.0, launcher.OverlayScale); // the stale copies really are stale
 
         var disk = IlmenyxSettings.Load(path);
         Assert.Equal("top-right", disk.OverlayCorner);
         Assert.Equal("cpu ok", Assert.Single(disk.BenchRuns).Summary);
-        Assert.Equal("k-123", disk.HowManyFpsKey);
+        Assert.Equal(1.25, disk.OverlayScale);
         Assert.True(disk.ThemeLight);
         Assert.True(disk.GameProfiles["Steam:1"].MangoHud);
         Assert.Equal("balanced", disk.TweakBackup["power"]);
@@ -87,7 +87,7 @@ public sealed class SettingsAtomicTests : IDisposable
     public void UnreadableExistingFileIsNotOverwrittenWithDefaults()
     {
         string path = PathIn;
-        IlmenyxSettings.Update(path, s => s.HowManyFpsKey = "keep-me");
+        IlmenyxSettings.Update(path, s => s.OverlayCorner = "keep-me");
         File.SetUnixFileMode(path, UnixFileMode.None);
         try
         {
@@ -95,7 +95,7 @@ public sealed class SettingsAtomicTests : IDisposable
             Assert.Throws<IOException>(() => IlmenyxSettings.Update(path, s => s.ThemeLight = true));
         }
         finally { File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite); }
-        Assert.Equal("keep-me", IlmenyxSettings.Load(path).HowManyFpsKey);
+        Assert.Equal("keep-me", IlmenyxSettings.Load(path).OverlayCorner);
     }
 
     [Fact]
@@ -105,7 +105,7 @@ public sealed class SettingsAtomicTests : IDisposable
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         File.WriteAllText(path + ".lock", "left by a crashed instance"); // a stale lock file is just a file: flock is gone with its process
         var sw = Stopwatch.StartNew();
-        IlmenyxSettings.Update(path, s => s.HowManyFpsKey = "secret");
+        IlmenyxSettings.Update(path, s => s.OverlayCorner = "bottom-right");
         Assert.True(sw.Elapsed < TimeSpan.FromSeconds(1), sw.Elapsed.ToString());
         Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite, File.GetUnixFileMode(path));
         IlmenyxSettings.Update(path, s => s.ThemeLight = true);

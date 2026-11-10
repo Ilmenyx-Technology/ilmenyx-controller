@@ -16,14 +16,20 @@ Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes qu
    depois apague a chave principal dessa máquina de novo (veja `docs/assinatura-gpg.md`). Atualize a chave pública no repositório.
 
 ## 1. Código esperando aprovação/merge (você decide)
-- [ ] **PR #8** (`feat/rodada2`, inclui os PRs #6 e #7): tudo da sessão de 2026-11-07/08 — Proton fora da Steam, proteção contra
-  travamento em tela cheia (validada), "Instalar jogo de Windows", tutorial + Ajuda (tour cobrindo todas as abas), Compatibilidade
-  com banner e combinação sem conflitos, Estimativa de FPS com catálogo fixo e "voltar ao topo", Overlay salvando sozinho,
-  Relatório legível, Inicialização separada (sistema × seus programas), Drivers redesenhada, Bloqueados limpo (PeaZip no lugar do
-  WinRAR). Testes 1162, interface 63/63. Ao aprovar o #8, os PRs #6 e #7 podem ser fechados.
-- [ ] **Validar na tela**: tutorial, Compatibilidade, Estimativa de FPS, Inicialização, Drivers.
+- [ ] **PR #9** (`feat/rodada3`): HowManyFPS removido; nova Estimativa de FPS com calibração deste PC (benchmark), modelo pelas
+  especificações e correção pelas suas sessões, com aviso "não calibrado" e botão CALIBRAR AGORA; LoL e jogos leves corrigidos;
+  "Instalar jogo de Windows" instalando dentro do C:\Jogos e movendo depois, modo de compatibilidade, GE-Proton opcional e registro;
+  página "Jogo não abre?"; ZRAM; cache de shaders maior; mais apps de jogo; opções experimentais por jogo. Testes 1258, interface 68/68.
 
 ## 2. Testes que precisam de você (hardware/jogo real)
+- [ ] **LEMBRETE: CALIBRAR AGORA** na Estimativa de FPS (driver NVIDIA ligado) e depois jogar LoL/CS2 com MangoHud, com a
+  "Qualidade usada dentro do jogo" preenchida no perfil, para comparar a faixa estimada com o FPS real.
+- [ ] **LEMBRETE: testar de novo o "Instalar jogo de Windows"** (branch `feat/fastexec-c`): instalar em C:\Jogos; primeiro sem
+  GE-Proton (modo de máxima compatibilidade), se falhar com o mesmo erro de CRC, de novo marcando "Usar o GE-Proton". O registro
+  da falha fica em `~/.local/share/ilmenyx/fastexec/logs/`.
+- [ ] **LEMBRETE: SuperTuxKart pelo Ilmenyx** (jogo nativo + MangoHud + FPS medido salvo).
+- [ ] **LEMBRETE: ZRAM** no Otimiza (LIGAR ZRAM, com a sua senha) e, se quiser testar em outras distros, instalar o QEMU
+  (`pkexec apt-get install -y qemu-system-x86 qemu-utils cloud-image-utils`) e usar `scripts/vm-distro-check.sh`.
 - [x] **Congelamento com o MKX — RESOLVIDO** (2026-11-07): causa = driver de vídeo da Intel com tela cheia sem vsync via PRIME; corrigido com a "Proteção contra travamento em tela cheia" (validada). Texto antigo:: o sistema travou no 2º carregamento da autoconfiguração do jogo, com MangoHud e janela
   sem bordas. O log não mostra erro da NVIDIA, falta de memória nem temperatura. Próximo passo: repetir com um gravador que salva
   CPU/GPU/RAM/temperaturas a cada segundo no SSD; primeiro sem MangoHud, depois com. Se travar de novo, a última linha mostra a causa.
@@ -66,9 +72,9 @@ Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes qu
 - [ ] **Tornar o repositório e a release públicos** quando eu disser que a validação está suficiente.
 - [ ] Problemas encontrados que o app pode detectar e oferecer correção: `docs/problemas-conhecidos.md` (botão "Forçar fechamento do
   jogo", aviso de temperatura alta no jogo — a CPU chegou a 100 °C, Wi-Fi gerando milhares de erros PCIe no log, Alt+Tab).
-- [ ] **HowManyFPS**: o cliente do app provavelmente usa a API errada (host/campos supostos, nunca testado com chave real). Pedir acesso
-  pelo "Get API Access" do site explicando o Ilmenyx (app gratuito, não comercial), obter a documentação real, corrigir o cliente e só
-  então decidir sobre chave compartilhada via proxy com cache (precisa de autorização escrita deles). Não embutir chave no app.
-  Detalhes: `docs/pesquisa-linuxtoys-howmanyfps-2026-11-07.md`.
+- [x] **HowManyFPS**: removido do app em 2026-11-08 (decisão do mantenedor: burocracia demais para obter acesso à API). Histórico:
+  `docs/pesquisa-linuxtoys-howmanyfps-2026-11-07.md`.
+- [x] **Estimativa de FPS sem API**: C, B e D implementados (2026-11-08), ver `docs/fps-estimativa.md` §0.
+- [ ] **Calibração de FPS**: clicar CALIBRAR AGORA nesta máquina (940MX com driver 580) e jogar LoL/CS2 com MangoHud e qualidade informada, para conferir a faixa.
 - [ ] **Ideias do LinuxToys** (só ideias; o código é GPL-3.0, incompatível): diagnóstico "por que o Proton/Flatpak não abre", cache de
   shader maior por usuário, mais apps de jogo no instalador, ZRAM pela via oficial da distro, opções por jogo (Proton Wayland, low-latency).

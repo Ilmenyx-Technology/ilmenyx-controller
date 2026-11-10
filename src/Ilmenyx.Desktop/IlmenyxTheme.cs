@@ -50,7 +50,15 @@ public static class IlmenyxTheme
         // Translucent fields with an almost invisible border, as in the reference search box.
         theme.Add(new Style(x => x.OfType<TextBox>())
         {
-            Setters = { new Setter(TemplatedControl.BackgroundProperty, Palette.Field), new Setter(TemplatedControl.BorderBrushProperty, Palette.Line) }
+            Setters = { new Setter(TemplatedControl.BackgroundProperty, Palette.Field), new Setter(TemplatedControl.BorderBrushProperty, Palette.Line), new Setter(TextBox.PlaceholderForegroundProperty, Palette.Muted) }
+        });
+        // Readability (contrast audit 2026-11-09): Fluent's placeholder and disabled-button colours measured about 2,1:1 and 2,7:1.
+        // The field template sets the placeholder's opacity to 0.5 as a local value, so a style cannot change it.
+        TemplatedControl.TemplateAppliedEvent.AddClassHandler<TextBox>((box, e) => { if (e.NameScope.Find<TextBlock>("PART_Placeholder") is { } placeholder) placeholder.Opacity = 1; });
+        theme.Add(new Style(x => x.OfType<AutoCompleteBox>()) { Setters = { new Setter(AutoCompleteBox.PlaceholderForegroundProperty, Palette.Muted) } });
+        theme.Add(new Style(x => x.OfType<Button>().Class(":disabled").Template().OfType<Avalonia.Controls.Presenters.ContentPresenter>().Name("PART_ContentPresenter"))
+        {
+            Setters = { new Setter(Avalonia.Controls.Presenters.ContentPresenter.ForegroundProperty, Palette.Faint), new Setter(Avalonia.Controls.Presenters.ContentPresenter.BackgroundProperty, Palette.Hover) }
         });
         return theme;
     }

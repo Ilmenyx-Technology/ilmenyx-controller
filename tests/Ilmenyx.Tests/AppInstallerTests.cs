@@ -13,8 +13,8 @@ public sealed class AppInstallerTests
     public void CatalogHasValidFlatpakIdsAndSensibleDefaults()
     {
         var apps = AppCatalog.Default(); Assert.True(apps.Count >= 8);
-        Assert.All(apps, a => { Assert.True(AppCatalog.ValidId(a.FlatpakId), a.FlatpakId); Assert.NotEmpty(a.Description); });
-        Assert.Equal(apps.Count, apps.Select(a => a.FlatpakId).Distinct().Count()); Assert.Contains(apps, a => a.Name == "Steam" && a.PreSelect); Assert.Contains(apps, a => a.Name == "Lutris" && !a.PreSelect);
+        Assert.All(apps, a => { Assert.True(a.LinkOnly ? a.FlatpakId.Length == 0 && a.LinkUrl.StartsWith("https://", StringComparison.Ordinal) : a.FromGithub ? a.FlatpakId.Length == 0 && GithubPackages.ValidRepo(a.GithubRepo) && GithubPackages.ValidPackage(a.PackageName) : AppCatalog.ValidId(a.FlatpakId), a.Name); Assert.NotEmpty(a.Description); Assert.Contains(a.Category, AppCatalog.Categories); });
+        Assert.Equal(apps.Count, apps.Select(a => a.Key).Distinct().Count()); Assert.Contains(apps, a => a.Name == "Steam" && a.PreSelect); Assert.Contains(apps, a => a.Name == "Lutris" && !a.PreSelect);
         Assert.Contains(apps, a => a.FlatpakId == "io.github.peazip.PeaZip" && a.Description.Contains("RAR")); Assert.DoesNotContain(apps, a => a.Name.Contains("WinRAR"));
     }
 

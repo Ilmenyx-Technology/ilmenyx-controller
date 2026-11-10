@@ -90,7 +90,7 @@ public sealed class DriverPage : StackPanel
     private static Border Badge(string text, IBrush brush, string? name = null) => new()
     {
         Name = name, BorderBrush = brush, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.Pill), Padding = new Thickness(9, 2), VerticalAlignment = VerticalAlignment.Top, HorizontalAlignment = HorizontalAlignment.Right,
-        Child = new TextBlock { Text = text, FontSize = 10, FontWeight = FontWeight.Bold, Foreground = brush },
+        Child = new TextBlock { Text = text, FontSize = 11, FontWeight = FontWeight.Bold, Foreground = brush },
     };
 
     /// <summary>Two independent columns of category cards on wide windows (each card keeps its own height), one column otherwise.</summary>

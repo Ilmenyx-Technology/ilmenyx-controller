@@ -6,11 +6,33 @@ namespace Ilmenyx.Core;
 
 /// <summary>
 /// Jogo do catálogo. Valores de referência APROXIMADOS (compilados de benchmarks públicos) usados só
-/// pela estimativa local, quando a API da HowManyFPS não está configurada:
+/// pela estimativa local (calculada no PC, sem internet):
 /// GpuRef = FPS médio em 1080p/Alto numa RTX 4070 (índice 100); CpuCap = teto de FPS limitado pela CPU
 /// num Ryzen 7 7700X (índice 100); EngineCap = trava de FPS do próprio jogo (0 = sem trava).
+/// GpuExp = sensibilidade do jogo à força da GPU (Ilmenyx, 2026-11-08): FPS da GPU = GpuRef × (índice/100)^GpuExp. 1 = proporcional
+/// (jogos pesados); menor que 1 = jogo leve, que cai bem menos que o índice em GPUs fracas. Fontes e contas: docs/fps-estimativa.md.
 /// </summary>
-public record GameInfo(string Name, string Genre, double GpuRef, double CpuCap, double EngineCap = 0);
+public record GameInfo(string Name, string Genre, double GpuRef, double CpuCap, double EngineCap = 0, double GpuExp = 1.0);
+
+/// <summary>
+/// GPU-limited FPS of one game at 1920×1080 per preset, fitted to measured benchmarks (Notebookcheck's per-game laptop and desktop
+/// tables, 2026-11-08): FPS = A × (índice/100)^b for Baixo/Médio/Alto/Ultra. Fitted only on points below 80 % of each column's top
+/// (the CPU/engine plateau); 720p/768p columns of older pages converted to 1080p with the resolution curve. Over 2 775 measured
+/// points the median error went from 51 % (one reference × preset factor) to 17 %. Method and data: docs/fps-estimativa.md.
+/// </summary>
+public sealed record PresetCurves(double Low, double LowExp, double Med, double MedExp, double High, double HighExp, double Ultra, double UltraExp, string Source)
+{
+    /// <summary>GPU FPS at 1080p for <paramref name="preset"/>; a lower preset is never slower than a higher one.</summary>
+    public double Fps(double gpuIdx, string preset)
+    {
+        double x = Math.Max(gpuIdx, 0.01) / 100;
+        double ultra = Ultra * Math.Pow(x, UltraExp);
+        double high = Math.Max(High * Math.Pow(x, HighExp), ultra);
+        double med = Math.Max(Med * Math.Pow(x, MedExp), high);
+        double low = Math.Max(Low * Math.Pow(x, LowExp), med);
+        return preset switch { "Baixo" => low, "Médio" => med, "Ultra" => ultra, _ => high };
+    }
+}
 
 public enum Bottleneck { None, Gpu, Cpu, Engine }
 
@@ -18,14 +40,19 @@ public record FpsEstimate(double Avg, double Low1, Bottleneck Limiter);
 
 public static class GameCatalog
 {
-    // O nome é enviado à API como está, então segue a grafia usada pela HowManyFPS.
+    // Os nomes seguem a grafia das lojas; sessões medidas casam com eles pelo nome normalizado (FpsAccuracy.LatestSession).
     public static readonly GameInfo[] Games =
     {
         new("Counter-Strike 2", "FPS competitivo", 340, 420),
-        new("Valorant", "FPS competitivo", 600, 650),
+        // GpuExp 0,73: ajuste aos três níveis oficiais da Riot (30 FPS Intel HD 4000, 60 FPS GT 730, 144 FPS GTX 1050 Ti;
+        // support.riotgames.com/en-us/valorant/support-tools/minimum-recommended-pc-specs, lido em 2026-11-08), supondo Alto/1080p.
+        new("Valorant", "FPS competitivo", 600, 650, 0, LightValorant),
         new("Fortnite", "Battle royale", 160, 250),
-        new("League of Legends", "MOBA", 420, 480),
-        new("Dota 2", "MOBA", 260, 280),
+        // GpuExp 0,55: a Riot recomenda Intel UHD 630 para Alto/1920x1080 (support.riotgames.com/en-us/league-of-legends/performance/
+        // minimum-and-recommended-system-requirements-league-of-legends, lido em 2026-11-08); supondo "recomendado" = 60 FPS.
+        // Antes (expoente 1) a 940MX dava 16–44 FPS no Baixo; o mantenedor observa > 100 FPS nesse hardware.
+        new("League of Legends", "MOBA", 420, 480, 0, LightLol),
+        new("Dota 2", "MOBA", 260, 280, 0, LightClass), // expoente da classe "leve" (sem fonte oficial com FPS para o jogo)
         new("Apex Legends", "Battle royale", 220, 300),
         new("PUBG: Battlegrounds", "Battle royale", 180, 220),
         new("Call of Duty: Black Ops 6", "FPS", 140, 220),
@@ -34,9 +61,9 @@ public static class GameCatalog
         new("Rainbow Six Siege", "FPS tático", 350, 430),
         new("Overwatch 2", "FPS heroico", 280, 380),
         new("Marvel Rivals", "FPS heroico", 110, 160),
-        new("Rocket League", "Esporte", 400, 450),
+        new("Rocket League", "Esporte", 400, 450, 0, LightClass), // idem; requisitos da Epic (GTX 760 / GTX 1060) não dizem FPS
         new("EA Sports FC 25", "Esporte", 220, 260),
-        new("Minecraft", "Sandbox", 300, 340),
+        new("Minecraft", "Sandbox", 300, 340, 0, LightClass), // idem
         new("GTA V", "Mundo aberto", 160, 190),
         new("Red Dead Redemption 2", "Mundo aberto", 95, 160),
         new("Cyberpunk 2077", "RPG mundo aberto", 95, 150),
@@ -54,6 +81,9 @@ public static class GameCatalog
         new("Assassin's Creed Shadows", "Ação mundo aberto", 65, 110),
         new("Borderlands 4", "Looter shooter", 55, 110),
     };
+
+    /// <summary>Expoentes de GPU dos jogos leves (ver GameInfo.GpuExp e docs/fps-estimativa.md, seção "Jogos leves").</summary>
+    public const double LightValorant = 0.73, LightLol = 0.55, LightClass = 0.64;
 
     // Desempenho relativo em jogos (raster), RTX 4070 = 100. Aproximado.
     private static readonly (string Key, double Index)[] GpuIndex =
@@ -121,7 +151,8 @@ public static class GameCatalog
 
     public static double ResolutionFactor(string res) => res switch
     {
-        "2560x1440" => 0.72, "3840x2160" => 0.42, _ => 1.0
+        // 720p (Ilmenyx, 2026-11-08): mesma curva do 1440p (0,72 para 0,5625× os pixels → expoente 0,57), 2,25× os pixels → ×1,59.
+        "1280x720" => 1.59, "2560x1440" => 0.72, "3840x2160" => 0.42, _ => 1.0
     };
 
     public static double PresetFactor(string preset) => preset switch
@@ -137,10 +168,48 @@ public static class GameCatalog
         _ => 1.0
     };
 
+    /// <summary>Measured per-preset curves (see <see cref="PresetCurves"/>). Games not listed (League of Legends, Marvel Rivals, Minecraft:
+    /// no usable benchmark table) keep GpuRef × índice^GpuExp × preset factor. Fortnite: the table is from the 2018 build, so only its shape
+    /// is used, anchored at the catalog's High level; Warzone uses the Black Ops 6 curves (same engine) scaled 130/140.</summary>
+    public static readonly IReadOnlyDictionary<string, PresetCurves> Measured = new Dictionary<string, PresetCurves>(StringComparer.Ordinal)
+    {
+        ["Counter-Strike 2"] = new(386, 0.73, 343, 0.79, 284, 0.96, 210, 0.99, "cs2"),
+        ["Valorant"] = new(161, 0.25, 318, 0.43, 315, 0.48, 258, 0.48, "valorant"),
+        ["Fortnite"] = new(142, 0.58, 238, 0.87, 160, 0.94, 124, 0.96, "fortnite"),
+        ["Dota 2"] = new(143, 0.29, 143, 0.35, 240, 0.57, 210, 0.56, "dota2"),
+        ["Apex Legends"] = new(337, 0.81, 294, 0.90, 245, 0.90, 241, 0.92, "apex"),
+        ["PUBG: Battlegrounds"] = new(155, 0.54, 230, 0.81, 226, 0.85, 200, 0.94, "pubg"),
+        ["Call of Duty: Black Ops 6"] = new(159, 0.82, 145, 0.83, 104, 0.87, 97, 0.86, "bo6"),
+        ["Battlefield 6"] = new(170, 1.02, 157, 1.09, 136, 1.19, 87, 1.05, "bf6"),
+        ["Rainbow Six Siege"] = new(378, 0.69, 493, 0.88, 500, 0.96, 430, 0.99, "r6"),
+        ["Overwatch 2"] = new(548, 0.74, 804, 0.96, 547, 0.91, 306, 0.88, "overwatch"),
+        ["Rocket League"] = new(580, 0.70, 572, 0.81, 411, 0.82, 337, 0.82, "rocketleague"),
+        ["EA Sports FC 25"] = new(319, 0.84, 259, 0.84, 268, 1.21, 203, 1.05, "fc25"),
+        ["GTA V"] = new(188, 0.50, 217, 0.54, 296, 0.90, 151, 0.94, "gtav"),
+        ["Red Dead Redemption 2"] = new(166, 0.81, 177, 0.90, 122, 0.92, 83, 0.97, "rdr2"),
+        ["Cyberpunk 2077"] = new(181, 0.96, 149, 1.00, 130, 1.06, 115, 1.08, "cyberpunk"),
+        ["The Witcher 3: Wild Hunt"] = new(360, 0.88, 311, 0.94, 277, 1.00, 142, 0.94, "witcher3"),
+        ["Elden Ring"] = new(374, 1.04, 113, 0.62, 93, 0.57, 93, 0.60, "eldenring"),
+        ["Baldur's Gate 3"] = new(194, 0.97, 156, 0.98, 137, 1.03, 136, 1.04, "bg3"),
+        ["Hogwarts Legacy"] = new(189, 0.95, 154, 1.03, 118, 1.00, 101, 1.15, "hogwarts"),
+        ["Starfield"] = new(100, 0.88, 93, 0.97, 77, 1.02, 72, 1.08, "starfield"),
+        ["Black Myth: Wukong"] = new(111, 0.87, 90, 0.99, 73, 1.11, 36, 0.90, "wukong"),
+        ["Alan Wake 2"] = new(95, 1.02, 86, 1.05, 85, 1.11, 70, 1.11, "alanwake2"),
+        ["God of War Ragnarök"] = new(181, 0.95, 153, 0.95, 156, 1.22, 145, 1.28, "gowr"),
+        ["Forza Horizon 5"] = new(231, 0.70, 205, 0.76, 187, 0.82, 107, 0.88, "fh5"),
+        ["Helldivers 2"] = new(183, 0.95, 164, 1.16, 149, 1.17, 149, 1.21, "hd2"),
+        ["Monster Hunter Wilds"] = new(100, 1.05, 84, 1.10, 65, 1.10, 61, 1.20, "mhwilds"),
+        ["Assassin's Creed Shadows"] = new(75, 0.85, 66, 0.81, 55, 0.85, 41, 1.07, "acshadows"),
+        ["Borderlands 4"] = new(97, 1.16, 84, 1.19, 67, 1.21, 39, 1.16, "borderlands4"),
+        ["Call of Duty: Warzone"] = new(148, 0.82, 135, 0.83, 96, 0.87, 90, 0.86, "bo6 (proxy)"),
+    };
+
     /// <summary>FPS = menor entre o teto da GPU, o teto da CPU e a trava do jogo.</summary>
     public static FpsEstimate Estimate(GameInfo g, double gpuIdx, double cpuIdx, string res, string preset, string upscaling)
     {
-        double gpuFps = g.GpuRef * gpuIdx / 100 * ResolutionFactor(res) * PresetFactor(preset) * UpscalingFactor(upscaling, res);
+        double atPreset = Measured.TryGetValue(g.Name, out var curves) ? curves.Fps(gpuIdx, preset)
+            : g.GpuRef * Math.Pow(Math.Max(gpuIdx, 0.01) / 100, g.GpuExp) * PresetFactor(preset);
+        double gpuFps = atPreset * ResolutionFactor(res) * UpscalingFactor(upscaling, res);
         double cpuFps = g.CpuCap * cpuIdx / 100 * (preset == "Baixo" ? 1.1 : preset == "Ultra" ? 0.95 : 1.0);
 
         double fps = Math.Min(gpuFps, cpuFps);

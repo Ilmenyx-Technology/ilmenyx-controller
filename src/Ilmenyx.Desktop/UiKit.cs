@@ -110,13 +110,13 @@ public static class UiKit
         {
             var a = ((ISolidColorBrush)Palette.Accent).Color;
             var fill = new LinearGradientBrush { StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative), EndPoint = new RelativePoint(1, 1, RelativeUnit.Relative) };
-            foreach (var (c, o) in Palette.IsLight ? new[] { ("#FFF4E9", 0.0), ("#FCE4E2", 0.55), ("#E6ECFD", 1.0) } : new[] { ("#7A6233", 0.0), ("#5E2A2E", 0.45), ("#2B1B3F", 1.0) })
+            foreach (var (c, o) in Palette.IsLight ? new[] { ("#FFF4E9", 0.0), ("#FCE4E2", 0.55), ("#E6ECFD", 1.0) } : new[] { ("#463A1D", 0.0), ("#471F24", 0.45), ("#22162F", 1.0) }) // darker since 2026-11-09: text on the bright areas fell to 2,2:1
                 fill.GradientStops.Add(new GradientStop(Color.Parse(c), o));
             glowLayer.Background = new RadialGradientBrush
             {
                 Center = new RelativePoint(0.92, 0.78, RelativeUnit.Relative), GradientOrigin = new RelativePoint(0.92, 0.78, RelativeUnit.Relative),
                 RadiusX = new RelativeScalar(0.7, RelativeUnit.Relative), RadiusY = new RelativeScalar(0.7, RelativeUnit.Relative),
-                GradientStops = { new GradientStop(Color.FromArgb((byte)(Palette.IsLight ? 0x2C : 0x99), a.R, a.G, a.B), 0), new GradientStop(Color.FromArgb(0, a.R, a.G, a.B), 1) },
+                GradientStops = { new GradientStop(Color.FromArgb((byte)(Palette.IsLight ? 0x2C : 0x40), a.R, a.G, a.B), 0), new GradientStop(Color.FromArgb(0, a.R, a.G, a.B), 1) },
             };
             card.Background = fill; card.BoxShadow = IlmenyxTheme.SoftShadow;
         }

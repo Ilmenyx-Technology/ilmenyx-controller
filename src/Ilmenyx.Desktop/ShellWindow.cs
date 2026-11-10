@@ -117,7 +117,7 @@ public sealed partial class ShellWindow : Window
     private static readonly Dictionary<string, string> NavIcons = new()
     {
         ["dash"] = Icons.Overview, ["system"] = Icons.System, ["sensors"] = Icons.Sensors, ["gpu"] = Icons.Gpu, ["disks"] = Icons.Disks, ["energy"] = Icons.Energy, ["net"] = Icons.Network,
-        ["procs"] = Icons.Processes, ["launcher"] = Icons.Games, ["compat"] = Icons.Compat, ["fps"] = Icons.Fps, ["bottleneck"] = Icons.Bottleneck, ["bench"] = Icons.Bench, ["oc"] = Icons.Oc,
+        ["procs"] = Icons.Processes, ["launcher"] = Icons.Games, ["compat"] = Icons.Compat, ["gamecheck"] = Icons.Validate, ["fps"] = Icons.Fps, ["bottleneck"] = Icons.Bottleneck, ["bench"] = Icons.Bench, ["oc"] = Icons.Oc,
         ["overlay"] = Icons.Overlay, ["validate"] = Icons.Validate, ["stress"] = Icons.Stress, ["makerports"] = Icons.Ports, ["makerdrv"] = Icons.SerialDrivers, ["optimize"] = Icons.Optimize,
         ["lighting"] = Icons.Lighting, ["startup"] = Icons.Startup, ["apps"] = Icons.Apps, ["driver"] = Icons.Drivers, ["nvdriver"] = Icons.Gpu, ["report"] = Icons.Report, ["blocked"] = Icons.Blocked, ["tools"] = Icons.About, ["help"] = Icons.Help,
     };
@@ -161,7 +161,7 @@ public sealed partial class ShellWindow : Window
             brand.Children.Add(new Image { Name = "ProductSymbol", Source = symbol, Height = 26, Margin = new Thickness(0, 0, 10, 0), VerticalAlignment = VerticalAlignment.Center });
         brand.Children.Add(new StackPanel { VerticalAlignment = VerticalAlignment.Center, Children = {
             new TextBlock { Name = "ProductName", Text = ProductIdentity.Name, FontWeight = FontWeight.Bold, FontSize = 16 },
-            new TextBlock { Name = "MaintainerSignature", Text = ProductIdentity.Signature, FontSize = 10, Foreground = Palette.Faint } } });
+            new TextBlock { Name = "MaintainerSignature", Text = ProductIdentity.Signature, FontSize = 11, Foreground = Palette.Faint } } });
 
         var items = new StackPanel { Margin = new Thickness(8, 0, 12, 8) };
         items.Children.Add(NavItem("dash", "Visão geral"));
@@ -172,7 +172,7 @@ public sealed partial class ShellWindow : Window
             var chevron = UiKit.Icon(Icons.ChevronDown, 12, Palette.Faint);
             var head = new Button
             {
-                Content = new Grid { ColumnDefinitions = new("*,Auto"), Children = { new TextBlock { Text = title, FontSize = 10.5, FontWeight = FontWeight.SemiBold, Foreground = Palette.Faint, LetterSpacing = 0.8 }, chevron } },
+                Content = new Grid { ColumnDefinitions = new("*,Auto"), Children = { new TextBlock { Text = title, FontSize = 11, FontWeight = FontWeight.SemiBold, Foreground = Palette.Faint, LetterSpacing = 0.8 }, chevron } },
                 Background = Brushes.Transparent, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch, Margin = new Thickness(0, 14, 0, 2), Padding = new Thickness(14, 4, 10, 4),
             };
             Grid.SetColumn(chevron, 1);
@@ -182,7 +182,7 @@ public sealed partial class ShellWindow : Window
             items.Children.Add(head); items.Children.Add(list);
         }
         Group("DIAGNÓSTICO", ("system", "Sistema"), ("sensors", "Sensores"), ("gpu", "GPU"), ("disks", "Discos"), ("energy", "Energia"), ("net", "Rede"), ("procs", "Processos"));
-        Group("JOGOS", ("launcher", "Jogos"), ("compat", "Compatibilidade"), ("fps", "Estimativa de FPS"), ("bottleneck", "Detector de gargalo"));
+        Group("JOGOS", ("launcher", "Jogos"), ("compat", "Compatibilidade"), ("gamecheck", "Jogo não abre?"), ("fps", "Estimativa de FPS"), ("bottleneck", "Detector de gargalo"));
         Group("DESEMPENHO", ("bench", "Benchmark"), ("oc", "OC"), ("overlay", "Overlay"), ("validate", "Validações reduzidas"), ("stress", "Stress test"));
         Group("MAKER", ("makerports", "Portas"), ("makerdrv", "Drivers seriais"));
         Group("FERRAMENTAS", ("optimize", "Otimiza"), ("lighting", "Integração"), ("startup", "Inicialização"), ("apps", "Instalar apps"), ("driver", "Drivers"), ("nvdriver", "Driver NVIDIA"), ("report", "Relatório"), ("blocked", "Bloqueados (!)"), ("tools", "Requisitos e sobre"));
@@ -212,7 +212,7 @@ public sealed partial class ShellWindow : Window
                 UiKit.Icon(Icons.Blocked, 15, Palette.Warn),
                 new StackPanel { Children = {
                     new TextBlock { Text = "Liberar sensores da CPU", FontSize = 12, FontWeight = FontWeight.SemiBold, Foreground = Palette.Warn },
-                    new TextBlock { Text = "consumo/temperatura bloqueados", FontSize = 10.5, Foreground = Palette.Warn, Opacity = 0.8 } } } } },
+                    new TextBlock { Text = "consumo/temperatura bloqueados", FontSize = 11, Foreground = Palette.Warn, Opacity = 0.8 } } } } },
         };
         AutomationProperties.SetName(fix, "Por que a temperatura ou o consumo da CPU não aparecem");
         fix.Click += async (_, _) => await new SensorHelpDialog(CurrentFixes(), PrivilegedFix.Available ? script => PrivilegedFix.RunAsync(script, stop.Token) : null).ShowDialog(this);
@@ -225,7 +225,7 @@ public sealed partial class ShellWindow : Window
             Children =
             {
                 (sideReadout = new Border { Name = "SideReadout", Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), Padding = new Thickness(14, 11), Child = readout }),
-                new TextBlock { Name = "SideVersion", Text = "v" + (typeof(ShellWindow).Assembly.GetName().Version is { } v ? $"{v.Major}.{v.Minor}.{v.Build}" : "?"), Foreground = Palette.Faint, FontSize = 10.5, Margin = new Thickness(6, 10, 0, 0) }
+                new TextBlock { Name = "SideVersion", Text = "v" + (typeof(ShellWindow).Assembly.GetName().Version is { } v ? $"{v.Major}.{v.Minor}.{v.Build}" : "?"), Foreground = Palette.Faint, FontSize = 11, Margin = new Thickness(6, 10, 0, 0) }
             }
         };
         var dock = new DockPanel { Name = "Sidebar" };

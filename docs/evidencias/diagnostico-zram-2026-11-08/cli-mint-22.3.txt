@@ -1,0 +1,65 @@
+Jogo não abre? · Linux Mint 22.3
+Nenhum problema encontrado nas 7 verificações. Se um jogo ainda não abre, veja a página Compatibilidade.
+
+[INFORMAÇÃO] Mitigação de split-lock
+  Ligada (kernel.split_lock_mitigate = 1), o padrão do kernel.
+  $ sudo journalctl -k -g 'split lock' --since today   # Ver se algum jogo disparou
+  $ sudo sysctl -w kernel.split_lock_mitigate=0   # Desligar até reiniciar
+
+[OK] AppArmor: restrição de namespaces de usuário
+  Restrição desligada (kernel.apparmor_restrict_unprivileged_userns = 0).
+
+[OK] Namespaces de usuário sem privilégio
+  kernel.unprivileged_userns_clone = 1 · user.max_user_namespaces = 62769 — permitidos.
+
+[OK] Flatpak: remoto Flathub
+  Flathub do sistema: ok · do usuário: ok.
+
+[OK] Vulkan para a sua placa de vídeo
+  Drivers de vídeo em uso: i915, nvidia. Driver Vulkan presente para cada uma. vulkaninfo: Intel(R) HD Graphics 620 (KBL GT2) (Intel open-source Mesa driver); NVIDIA GeForce 940MX (NVIDIA); llvmpipe (LLVM 20.1.2, 256 bits) (llvmpipe) [CPU].
+  $ vulkaninfo --summary   # Conferir as placas que o Vulkan enxerga
+
+[OK] Bibliotecas de 32 bits (Steam nativa)
+  Encontradas em /usr/lib/i386-linux-gnu: libvulkan.so.1, libGL.so.1, libvulkan_intel.so, libGLX_nvidia.so.0.
+
+[OK] vm.max_map_count
+  Atual: 1048576.
+  Veja também a página: optimize
+
+ZRAM · Recomendado: ligar ZRAM
+Com 15.5 GiB de RAM, jogo + navegador abertos podem encher a memória e o PC travar. O ZRAM cria uma área de troca comprimida dentro da própria RAM (cerca de 2 a 3 vezes mais espaço útil) e evita esses travamentos. Nada muda sem o seu clique e a senha do sistema.
+Estado: Recommended · tamanho proposto: 7945 MiB
+  · Sistema: Linux Mint 22.3 · caminho oficial: zram-tools
+  · RAM: 15.5 GiB
+  · Swap ativa: /swapfile (file, 2 GiB, prioridade -2)
+
+== LIGAR ZRAM: Ligar ZRAM (memória comprimida)  [NÃO TESTADO]
+  - Instala o pacote oficial zram-tools da sua distribuição (sem perguntas no terminal).
+  - Guarda o /etc/default/zramswap atual e grava um novo: 7945 MiB (metade da RAM, máximo 8 GiB), compressão zstd, prioridade 100.
+  - Liga o ZRAM agora e confere em /proc/swaps. Vale também depois de reiniciar.
+  ! O ZRAM usa um pouco de CPU para comprimir; em PCs muito fracos isso pode pesar em momentos de falta de RAM.
+  ! A swap atual (/swapfile) continua ligada, com prioridade menor.
+  ! Instalar o pacote precisa de internet (espelhos da sua distribuição).
+-- script (root, via pkexec na interface):
+set -eu
+export DEBIAN_FRONTEND=noninteractive
+export LC_ALL=C
+echo '== Ilmenyx: ZRAM via zram-tools'
+echo '== Ilmenyx 1/4: conferência (nada muda se o ZRAM já estiver ativo ou houver outra configuração)'
+if grep -q '^/dev/zram' /proc/swaps; then echo 'ZRAM já está ativo; nada foi alterado.'; exit 3; fi
+if dpkg-query -W -f='${Status}' zram-config 2>/dev/null | grep -q 'install ok installed'; then echo 'ABORTADO: o pacote zram-config (outro gerenciador de ZRAM) está instalado; nada foi alterado.'; exit 3; fi
+mkdir -p /var/lib/ilmenyx
+echo '== Ilmenyx 2/4: pacote zram-tools (oficial da distribuição)'
+if dpkg-query -W -f='${Status}' zram-tools 2>/dev/null | grep -q 'install ok installed'; then echo 'Pacote zram-tools já instalado.'; else apt-get -y install zram-tools || { apt-get update && apt-get -y install zram-tools; }; grep -qx 'package=zram-tools' /var/lib/ilmenyx/zram.state 2>/dev/null || echo 'package=zram-tools' >> /var/lib/ilmenyx/zram.state; fi
+echo '== Ilmenyx 3/4: configuração'
+if [ -e /etc/default/zramswap ] && ! grep -q '^# Ilmenyx-ZRAM' /etc/default/zramswap && [ ! -e /etc/default/zramswap.ilmenyx-bak ]; then cp -p /etc/default/zramswap /etc/default/zramswap.ilmenyx-bak; fi
+cat > /etc/default/zramswap <<'ILMENYX_EOF'
+# Ilmenyx-ZRAM: criado pelo Ilmenyx (página Otimiza > ZRAM). O original está em /etc/default/zramswap.ilmenyx-bak.
+ALGO=zstd
+SIZE=7945
+PRIORITY=100
+ILMENYX_EOF
+systemctl enable zramswap.service
+systemctl restart zramswap.service
+echo '== Ilmenyx 4/4: verificação'
+if grep -q '^/dev/zram' /proc/swaps; then grep '^/dev/zram' /proc/swaps; echo 'OK: ZRAM ativo.'; else echo 'ATENÇÃO: ZRAM configurado, mas não ativo agora (vale depois de reiniciar).'; exit 4; fi

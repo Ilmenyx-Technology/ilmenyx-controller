@@ -428,7 +428,7 @@ public sealed class UiSmokeApp : Application
         else if (Find<Button>(shell, "DashMetricPower").IsEnabled) throw new InvalidOperationException("Unavailable power metric must stay disabled.");
         Click(shell, "GoMemory"); await Until(() => shell.CurrentPage == "system");
         var expected = new (string Key, string Control)[] { ("dash", "OverviewChart"), ("system", "SysRefresh"), ("sensors", "RefreshSensors"), ("gpu", "GpuValidationNotice"), ("disks", "BtnDiskRefresh"),
-            ("energy", "BtnEnergyRefresh"), ("net", "BtnNetTest"), ("procs", "ProcessRows"), ("launcher", "BtnScanGames"), ("fps", "BtnApiKey"), ("stress", "BtnStress"), ("optimize", "BtnOptimize"), ("apps", "BtnAppsInstall"), ("bottleneck", "BtnBnSession"), ("validate", "ValidateCpu"), ("makerports", "BtnMakerPortScan"), ("makerdrv", "BtnMakerDrvScan"), ("startup", "BtnStartupScan"), ("driver", "BtnDrvScan"), ("tools", "About") };
+            ("energy", "BtnEnergyRefresh"), ("net", "BtnNetTest"), ("procs", "ProcessRows"), ("launcher", "BtnScanGames"), ("fps", "GameSourceTitle"), ("stress", "BtnStress"), ("optimize", "BtnOptimize"), ("apps", "BtnAppsInstall"), ("bottleneck", "BtnBnSession"), ("validate", "ValidateCpu"), ("makerports", "BtnMakerPortScan"), ("makerdrv", "BtnMakerDrvScan"), ("startup", "BtnStartupScan"), ("driver", "BtnDrvScan"), ("tools", "About") };
         foreach (var (key, control) in expected)
         {
             var nav = Find<Button>(shell, "Nav" + key);
@@ -573,9 +573,12 @@ public sealed class UiSmokeApp : Application
         if (OperatingSystem.IsLinux()) await OverviewSummaryAsync(shell);
         await TourAndHelpAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await StartupDriversRedesignAsync(shell, desktop);
+        if (OperatingSystem.IsLinux()) await GamingExtrasAsync(shell, desktop);
         await ThemeAsync(shell);
         if (OperatingSystem.IsLinux()) await FpsScrollAndContrastAsync(shell);
         if (OperatingSystem.IsLinux()) await BlockedAndFullTourAsync(shell);
+        await FpsCalibrationGateAsync(shell, desktop);
+        if (OperatingSystem.IsLinux()) await GameCheckAndZramAsync(shell, desktop);
         await ToastAsync(shell);
         Click(shell, "SortMemory"); await Until(() => Find<Button>(shell, "SortMemory").Content!.ToString()!.Contains('▼'));
         Click(shell, "ToggleMonitor");
@@ -653,7 +656,11 @@ public sealed class UiSmokeApp : Application
         string settingsPath = Path.Combine(root, "cfg/ilmenyx/settings.json"); string? launched = null;
         Window? host = null;
         var page = new LauncherPage(new Ilmenyx.Platform.Linux.LinuxGameLibrary(home, (_, _) => Task.FromResult((0, "[]"))), new Ilmenyx.Platform.Linux.SteamInfo(home, Path.Combine(root, "noproc")), settingsPath,
-            (g, p, v, status, learned, ct) => { launched = g.Key + "|" + p.WinMode; status("stub launched"); return Task.FromResult<Ilmenyx.Core.FpsSession?>(new(g.Name, DateTimeOffset.UtcNow, 61.5, 44, 95, "Fixture GPU", null)); }, () => host, "AMD", true, CancellationToken.None);
+            (g, p, v, status, learned, ct) => { launched = g.Key + "|" + p.WinMode; status("stub launched"); return Task.FromResult<Ilmenyx.Core.FpsSession?>(new(g.Name, DateTimeOffset.UtcNow, 61.5, 44, 95, "Fixture GPU", null)); }, () => host, "AMD", true, CancellationToken.None)
+        {
+            FindSteamId = (name, _) => Task.FromResult<(string, string)?>(name == "Hollow Knight - Silksong" ? ("1030300", "Hollow Knight: Silksong") : null),
+            ConfirmRemove = _ => Task.FromResult(true), UmuProton = () => null, AskName = _ => Task.FromResult<string?>("Silksong (teste)"), FetchArt = (_, _) => Task.FromResult<string?>(null),
+        };
         host = new Window { Width = 1100, Height = 800, Content = page }; host.Show();
         await Until(() => page.Games.Count == 1);
         Click(host, "BtnAddExe"); Find<TextBox>(host, "LAddPath").Text = "relative/path"; Click(host, "BtnAddExeConfirm");
@@ -661,8 +668,36 @@ public sealed class UiSmokeApp : Application
         if (!Find<Button>(host, "BtnAddExeBrowse").IsVisible) throw new InvalidOperationException("The add box must offer a file chooser (PROCURAR…).");
         Find<TextBox>(host, "LAddPath").Text = manual; Click(host, "BtnAddExeConfirm");
         await Until(() => page.Games.Count == 2 && page.Profile is not null && host.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "LTitle" && t.Text == "manualgame"));
+        // A Windows game added by hand: named after its folder, Steam ID found by name (fixture search), executable path shown, removable.
+        string winDir = Path.Combine(root, "Hollow Knight - Silksong"); Directory.CreateDirectory(winDir);
+        string winExe = Path.Combine(winDir, "Hollow Knight Silksong.exe"); File.WriteAllBytes(winExe, [0x4d, 0x5a, 0x90, 0, 3, 0, 0, 0]);
+        Find<TextBox>(host, "LAddPath").Text = winExe; Click(host, "BtnAddExeConfirm");
+        await Until(() => page.Games.Count == 3 && Find<TextBlock>(host, "LTitle").Text == "Hollow Knight - Silksong" && Find<TextBox>(host, "LProtonId").Text == "1030300");
+        if (Find<TextBox>(host, "LExePath").Text != winExe) throw new InvalidOperationException("The executable path of a hand-added game must be shown, not left empty.");
+        if (!Find<TextBlock>(host, "LProtonIdStatus").Text!.Contains("Hollow Knight: Silksong")) throw new InvalidOperationException("The found Steam ID must say which store game it matched.");
+        Find<TextBox>(host, "LProtonId").Text = "1234567";
+        await Until(() => Find<TextBlock>(host, "LProtonIdStatus").Text!.StartsWith("ID salvo") && page.Profile!.ProtonGameId == "1234567");
+        Click(host, "BtnRenameGame");
+        await Until(() => Find<TextBlock>(host, "LTitle").Text == "Silksong (teste)" && Ilmenyx.Core.IlmenyxSettings.Load(settingsPath).CustomGames.Any(c => c.Exe == winExe && c.Name == "Silksong (teste)"));
+        if (page.Profile!.ProtonGameId != "1234567") throw new InvalidOperationException("Renaming must keep the game's profile.");
+        if (!Find<Button>(host, "BtnRemoveGame").IsVisible) throw new InvalidOperationException("A hand-added game must offer REMOVER.");
+        Click(host, "BtnRemoveGame");
+        await Until(() => page.Games.Count == 2 && Ilmenyx.Core.IlmenyxSettings.Load(settingsPath).CustomGames.All(c => c.Exe != winExe));
+        if (!File.Exists(winExe)) throw new InvalidOperationException("Removing from the library must never delete the game's files.");
+        if (Ilmenyx.Core.IlmenyxSettings.Load(settingsPath).GameProfiles.Keys.Any(k => k.Contains("Silksong"))) throw new InvalidOperationException("The removed game's profile must go too.");
         Click(host, "LGame_Steam_100");
         await Until(() => host.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "LTitle" && t.Text == "Game One") && Find<StackPanel>(host, "LSteamBox").IsVisible);
+        if (Find<Button>(host, "BtnRemoveGame").IsVisible) throw new InvalidOperationException("Steam games are removed in Steam, not here.");
+        // Console-style library: Esc leaves the selected game and the library fills the page; clicking a cover opens it again.
+        Find<Button>(host, "LGame_Steam_100").Focus();
+        Find<Button>(host, "LGame_Steam_100").RaiseEvent(new Avalonia.Input.KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = Avalonia.Input.Key.Escape });
+        await Until(() => !Find<ScrollViewer>(host, "LDetail").IsVisible && page.Profile is null);
+        Click(host, "LGame_Steam_100");
+        await Until(() => Find<ScrollViewer>(host, "LDetail").IsVisible && Find<TextBlock>(host, "LTitle").Text == "Game One");
+        Click(host, "BtnBackToLibrary");
+        await Until(() => !Find<ScrollViewer>(host, "LDetail").IsVisible);
+        Click(host, "LGame_Steam_100");
+        await Until(() => Find<ScrollViewer>(host, "LDetail").IsVisible && Find<StackPanel>(host, "LSteamBox").IsVisible);
         var plan = Find<CheckBox>(host, "LChkPlan"); plan.IsChecked = true;
         var gpu = Find<CheckBox>(host, "LChkGpu"); if (!gpu.IsEnabled) throw new InvalidOperationException("GPU checkbox should be enabled with multiple GPUs."); gpu.IsChecked = true;
         foreach (var chip in host.GetVisualDescendants().OfType<Button>().Where(b => b.Content?.ToString() is "Tela cheia" or "1920x1080" or "144")) chip.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -681,7 +716,7 @@ public sealed class UiSmokeApp : Application
         Find<Button>(shell, "Navlauncher").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await Until(() => shell.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "LGameCount" && !t.Text!.StartsWith("Procurando")));
         await Task.Delay(200); Capture(shell, "shell-launcher.png");
-        Console.WriteLine("PASS launcher page: library scan, manual executable validation, profile persistence, Steam launch options with backup, helper, stubbed launch; real library read-only");
+        Console.WriteLine("PASS launcher page: library scan, manual executable validation, Windows game named by folder with Steam ID found and path shown, removal keeps files, Esc/← BIBLIOTECA return to the full library, profile persistence, Steam launch options with backup, helper, stubbed launch; real library read-only");
     }
     private sealed class FakeStress : Ilmenyx.Core.IStressEngine
     {
@@ -1233,52 +1268,40 @@ public sealed class UiSmokeApp : Application
         await Task.Delay(300); Capture(shell, "shell-overview.png");
         Console.WriteLine("PASS overview: performance card from the local benchmark history with delta, real read-only health checklist, occupancy rings and recent events");
     }
-    private sealed class FakeHttp : HttpMessageHandler
-    {
-        public int Calls;
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) { Interlocked.Increment(ref Calls); return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new StringContent("{\"avgFps\":111,\"min1Fps\":80}") }); }
-    }
-
     [System.Runtime.Versioning.SupportedOSPlatform("linux")]
     private static async Task FpsAsync(ShellWindow shell, IClassicDesktopStyleApplicationLifetime desktop)
     {
-        // Fake HTTP handler: the real HowManyFPS service is never contacted by the smoke test.
+        // The page is fully local (HowManyFPS was removed on 2026-11-08): no HTTP handler at all.
         string root = Path.Combine(Program.OutputDirectory, "fps-fixture"); Directory.CreateDirectory(root);
-        var http = new FakeHttp(); var client = new Ilmenyx.Core.HowManyFpsClient(Path.Combine(root, "cache.json"), http);
         string settingsPath = Path.Combine(root, "settings.json"); Window? host = null;
         // A session measured on this PC (as the Launcher records it) for Dota 2; nothing is played.
         var fixture = new Ilmenyx.Core.IlmenyxSettings(); fixture.AddFpsSession(new("Dota 2", new DateTimeOffset(2026, 11, 6, 21, 0, 0, TimeSpan.Zero), 87.4, 52, 1800, "NVIDIA GeForce RTX 4070", "1920x1080")); fixture.Save(settingsPath);
         var ctx = new Ilmenyx.Core.FpsContext("NVIDIA GeForce RTX 4070", "10de", "2786", "nvidia", false, 2UL << 30, null, true, 0, 0);
-        var page = new GamesFpsPage(client, new Ilmenyx.Core.IlmenyxSettings(), settingsPath, () => host, () => ("AMD Ryzen 7 7700X 8-Core Processor", "NVIDIA GeForce RTX 4070"), CancellationToken.None, () => ctx);
+        var page = new GamesFpsPage(new Ilmenyx.Core.IlmenyxSettings(), settingsPath, () => ("AMD Ryzen 7 7700X 8-Core Processor", "NVIDIA GeForce RTX 4070"), () => ctx);
         host = new Window { Width = 1100, Height = 900, Content = page }; host.Show(); // the page scrolls by itself (sticky catalogue)
         await Until(() => page.Rows.Count > 20 && page.Rows.Any(r => r.Fps > 0));
         if (page.GpuIndex != 100 || page.CpuIndex != 100) throw new InvalidOperationException("Hardware indices not resolved from the catalog tables.");
         string CardFps(string name) => host.GetVisualDescendants().OfType<Border>().Single(b => b.Name == "Game_" + LauncherPage.SafeName(name)).GetVisualDescendants().OfType<TextBlock>().First(t => t.FontSize == 28).Text!;
-        // The local estimate is shown as a range around the table value (CS2 at 1080p/Alto on RTX 4070 + 7700X = 340), never as a single number.
+        // The local estimate is shown as a range around the table value (CS2 at 1080p/Alto on RTX 4070 + 7700X = 284 since the measured curves of 2026-11-08), never as a single number.
         bool RangeAround(string text, double centre) => text.Split('–') is [var lo, var hi] && double.TryParse(lo, System.Globalization.CultureInfo.InvariantCulture, out double l) && double.TryParse(hi, System.Globalization.CultureInfo.InvariantCulture, out double h) && l < centre && centre < h;
         await Until(() => host.GetVisualDescendants().OfType<Border>().Any(b => b.Name == "Game_" + LauncherPage.SafeName("Counter-Strike 2")));
-        if (page.Rows.Single(r => r.Name == "Counter-Strike 2").Fps != 340 || !RangeAround(CardFps("Counter-Strike 2"), 340)) throw new InvalidOperationException("CS2 estimate at 1080p/Alto should be a range around 340, got " + CardFps("Counter-Strike 2") + ".");
+        if (page.Rows.Single(r => r.Name == "Counter-Strike 2").Fps != 284 || !RangeAround(CardFps("Counter-Strike 2"), 284)) throw new InvalidOperationException("CS2 estimate at 1080p/Alto should be a range around 284, got " + CardFps("Counter-Strike 2") + ".");
         if (page.Assessment.Confidence != Ilmenyx.Core.FpsConfidence.Medium) throw new InvalidOperationException("Desktop GPU + CPU at the reference should give medium confidence.");
         var dota = page.Rows.Single(r => r.Name == "Dota 2");
         if (CardFps("Dota 2") != "87" || dota.Source != "MEDIDO NESTE PC" || !dota.Summary.StartsWith("Medido neste PC: 87 FPS (1% low 52) · última sessão", StringComparison.Ordinal)) throw new InvalidOperationException("Measured session must take priority over the estimate.");
         if (page.Alerts.Select(a => a.Title).ToArray() is not ["2 GB de VRAM", "Notebook na bateria"] || !Find<StackPanel>(host, "FpsAlerts").IsVisible) throw new InvalidOperationException("VRAM and battery alerts expected.");
         await Task.Delay(300); Capture(host, "fps-fixture.png");
         foreach (var chip in host.GetVisualDescendants().OfType<Button>().Where(b => b.Content?.ToString() == "1440p")) chip.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        await Until(() => CardFps("Counter-Strike 2") is var t && !RangeAround(t, 340) && RangeAround(t, page.Rows.Single(r => r.Name == "Counter-Strike 2").Fps) && CardFps("Dota 2") == "87");
-        if (Find<Button>(host, "BtnFpsQuery").IsEnabled) throw new InvalidOperationException("API query must be disabled without a key.");
-        Find<TextBox>(host, "ApiKeyBox").Text = "fixture-key"; Click(host, "BtnApiKey");
-        await Until(() => Find<Button>(host, "BtnFpsQuery").IsEnabled && File.Exists(settingsPath));
-        Click(host, "BtnFpsQuery"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
-        var dlg = desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible); if (!Find<TextBlock>(dlg, "ConfirmText").Text!.Contains("howmanyfps.com")) throw new InvalidOperationException("Confirmation must name the endpoint.");
-        Click(dlg, "ConfirmNo"); await Until(() => !dlg.IsVisible); if (http.Calls != 0) throw new InvalidOperationException("Declined confirmation still used the network.");
-        Click(host, "BtnFpsQuery"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
-        Click(desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible), "ConfirmYes");
-        await Until(() => http.Calls >= 20 && page.Rows.All(r => r.Source == "HOWMANYFPS" || r.Name == "Dota 2" && r.Source == "MEDIDO NESTE PC") && CardFps("Counter-Strike 2") == "111" && CardFps("Dota 2") == "87");
+        await Until(() => CardFps("Counter-Strike 2") is var t && !RangeAround(t, 284) && RangeAround(t, page.Rows.Single(r => r.Name == "Counter-Strike 2").Fps) && CardFps("Dota 2") == "87");
+        // No API key box, no query button, no mention of the removed service; the source card says the estimate is local.
+        if (host.GetVisualDescendants().OfType<Control>().Any(c => c.Name is "ApiKeyBox" or "BtnApiKey" or "BtnFpsQuery")) throw new InvalidOperationException("The removed HowManyFPS controls are still on the page.");
+        if (host.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text?.Contains("HowManyFPS", StringComparison.OrdinalIgnoreCase) == true || t.Text?.Contains("CONSULTAR API", StringComparison.Ordinal) == true)) throw new InvalidOperationException("A text still mentions the removed HowManyFPS API.");
+        if (Find<TextBlock>(host, "GameSourceTitle").Text != "Fonte: provisória (PC ainda não calibrado)" || !Find<TextBlock>(host, "GameSourceText").Text!.Contains("sem usar a internet", StringComparison.Ordinal)) throw new InvalidOperationException("Source card must say the estimate is local.");
         host.Close();
         Find<Button>(shell, "Navfps").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        await Until(() => shell.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnFpsQuery" && !b.IsEnabled || b.Name == "BtnApiKey"));
-        if (Ilmenyx.Core.IlmenyxSettings.Load(settingsPath).FpsSessions.Count != 1) throw new InvalidOperationException("Saving the API key dropped the measured sessions.");
-        Console.WriteLine("PASS fps page: local estimate as range + confidence from catalog tables, measured session has priority, VRAM/battery alerts, option chips recompute, API query only after key + confirmation naming the endpoint, fake handler results shown; real service never contacted");
+        await Until(() => shell.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "GameSourceTitle" && t.IsVisible));
+        if (Ilmenyx.Core.IlmenyxSettings.Load(settingsPath).FpsSessions.Count != 1) throw new InvalidOperationException("Opening the page changed the measured sessions.");
+        Console.WriteLine("PASS fps page: local estimate as range + confidence from catalog tables, measured session has priority, VRAM/battery alerts, option chips recompute, fully local (no HowManyFPS key/query controls or texts), sessions untouched");
     }
     private sealed class CompatFakeHttp(Func<HttpRequestMessage, HttpResponseMessage> respond) : HttpMessageHandler
     {
@@ -1529,10 +1552,11 @@ public sealed class UiSmokeApp : Application
         Window? host = null; var page = new AppsPage(installer, true, () => host, CancellationToken.None);
         host = new Window { Width = 1000, Height = 900, Content = new ScrollViewer { Content = page } }; host.Show();
         await Until(() => host.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnAppsFlathub" && b.IsVisible) && page.Apps.Any(a => a.Installed));
-        if (Find<Button>(host, "BtnAppsInstall").IsEnabled) throw new InvalidOperationException("Install must be disabled until Flathub exists.");
+        if (Find<CheckBox>(host, "App_com_valvesoftware_Steam").IsEnabled) throw new InvalidOperationException("Flathub apps must be unavailable until Flathub exists.");
+        if (!Find<CheckBox>(host, "App_gh_photocraft").IsEnabled) throw new InvalidOperationException("ArtCraft apps (distribution packages) must not need Flathub.");
         Click(host, "BtnAppsFlathub"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
         Click(desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible), "ConfirmYes");
-        await Until(() => flathub && Find<Button>(host, "BtnAppsInstall").IsEnabled);
+        await Until(() => flathub && Find<CheckBox>(host, "App_com_valvesoftware_Steam").IsEnabled);
         if (Find<CheckBox>(host, "App_org_videolan_VLC").IsEnabled) throw new InvalidOperationException("Already installed app must not be selectable.");
         Click(host, "BtnAppsInstall"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
         var no = desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible); Click(no, "ConfirmNo"); await Until(() => !no.IsVisible);
@@ -1545,9 +1569,59 @@ public sealed class UiSmokeApp : Application
         await Until(() => shell.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnAppsInstall"));
         Console.WriteLine("PASS apps page: Flathub added only after confirmation (user scope), installed apps locked, declined install runs nothing, confirmed install uses user-scope noninteractive flatpak calls; real flatpak never installs");
     }
+    /// <summary>Opt-in (ILMENYX_CONTRAST_AUDIT=1): measures the WCAG contrast of every visible text of every shell page in both themes, against the pixels really rendered behind it, and writes contrast.tsv.</summary>
+    private static async Task ContrastAuditAsync()
+    {
+        static double Lum(double r, double g, double b) { static double C(double v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.Pow((v + 0.055) / 1.055, 2.4); } return 0.2126 * C(r) + 0.7152 * C(g) + 0.0722 * C(b); }
+        var rows = new List<string> { "theme\tpage\tratio\tsize\tbold\tfg\tbg\tname\ttext" }; var seen = new HashSet<string>();
+        var shell = new ShellWindow { Width = 1280, Height = 820 }; shell.Show(); await Task.Delay(1500);
+        var keys = shell.GetVisualDescendants().OfType<Button>().Where(b => b.Name is { Length: > 3 } n && n.StartsWith("Nav", StringComparison.Ordinal)).Select(b => b.Name![3..]).ToList();
+        foreach (string theme in new[] { "escuro", "claro" })
+        {
+            if ((theme == "claro") != Palette.IsLight) { Click(shell, "ToggleTheme"); await Task.Delay(500); }
+            foreach (string key in keys)
+            {
+                try { shell.GetVisualDescendants().OfType<Button>().Single(b => b.Name == "Nav" + key).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); } catch (InvalidOperationException) { rows.Add($"{theme}\t{key}\t0\t0\t0\t\t\tNAV-ERROR\t"); continue; }
+                await Task.Delay(1200);
+                var scroller = shell.GetVisualDescendants().OfType<ScrollViewer>().Where(v => v.IsEffectivelyVisible && v.Bounds.Width > 400).OrderByDescending(v => v.Extent.Height - v.Viewport.Height).FirstOrDefault();
+                double maxOffset = scroller is null ? 0 : Math.Min(Math.Max(0, scroller.Extent.Height - scroller.Viewport.Height), 12000), step = Math.Max(200, (scroller?.Viewport.Height ?? 800) * 0.8);
+                for (double y = 0; ; y += step)
+                {
+                    if (scroller is not null) { scroller.Offset = new Vector(0, Math.Min(y, maxOffset)); await Task.Delay(180); }
+                    Capture(shell, $"audit-{theme}-{key}-{(int)(y / step)}.png");
+                    int w = (int)shell.Bounds.Width, h = (int)shell.Bounds.Height;
+                    using var image = new RenderTargetBitmap(new PixelSize(w, h), new Vector(96, 96)); image.Render(shell);
+                    var px = new byte[w * h * 4]; var pin = System.Runtime.InteropServices.GCHandle.Alloc(px, System.Runtime.InteropServices.GCHandleType.Pinned);
+                    try { image.CopyPixels(new PixelRect(0, 0, w, h), pin.AddrOfPinnedObject(), px.Length, w * 4); } finally { pin.Free(); }
+                    foreach (var tb in shell.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible && !string.IsNullOrWhiteSpace(t.Text) && t.Foreground is Avalonia.Media.ISolidColorBrush))
+                    {
+                        if (tb.TranslatePoint(new Point(0, 0), shell) is not { } at) continue;
+                        int x0 = (int)at.X, y0 = (int)at.Y, x1 = (int)(at.X + tb.Bounds.Width), y1 = (int)(at.Y + tb.Bounds.Height);
+                        if (x0 < 0 || y0 < 0 || x1 > w || y1 > h || x1 - x0 < 4 || y1 - y0 < 4) continue;
+                        if (scroller is not null && scroller.GetVisualDescendants().Contains(tb) && scroller.TranslatePoint(new Point(0, 0), shell) is { } so && (y0 < so.Y || y1 > so.Y + scroller.Bounds.Height)) continue;
+                        var hist = new Dictionary<int, int>();
+                        for (int yy = y0; yy < y1; yy++) for (int xx = x0; xx < x1; xx++) { int i = (yy * w + xx) * 4; int q = (px[i] >> 2) | ((px[i + 1] >> 2) << 6) | ((px[i + 2] >> 2) << 12); hist[q] = hist.GetValueOrDefault(q) + 1; }
+                        int mode = hist.MaxBy(kv => kv.Value).Key; double bb = (mode & 63) * 4 + 2, bg = ((mode >> 6) & 63) * 4 + 2, br = ((mode >> 12) & 63) * 4 + 2;
+                        var c = ((Avalonia.Media.ISolidColorBrush)tb.Foreground!).Color; double op = c.A / 255.0 * ((Avalonia.Media.ISolidColorBrush)tb.Foreground!).Opacity;
+                        for (Visual? v = tb; v is not null; v = v.GetVisualParent()) op *= v.Opacity;
+                        double fr = c.R * op + br * (1 - op), fg = c.G * op + bg * (1 - op), fb = c.B * op + bb * (1 - op);
+                        double l1 = Lum(fr, fg, fb), l2 = Lum(br, bg, bb), ratio = (Math.Max(l1, l2) + 0.05) / (Math.Min(l1, l2) + 0.05);
+                        string text = tb.Text!.ReplaceLineEndings(" "); if (text.Length > 70) text = text[..70];
+                        if (!seen.Add(theme + key + (tb.Name ?? "") + text)) continue;
+                        rows.Add(string.Join('\t', theme, key, ratio.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture), tb.FontSize.ToString(System.Globalization.CultureInfo.InvariantCulture), ((int)tb.FontWeight >= 600) ? "1" : "0", $"#{c.R:X2}{c.G:X2}{c.B:X2}", $"#{(int)br:X2}{(int)bg:X2}{(int)bb:X2}", tb.Name ?? "", text));
+                    }
+                    if (y >= maxOffset) break;
+                }
+            }
+        }
+        File.WriteAllLines(Path.Combine(Program.OutputDirectory, "contrast.tsv"), rows);
+        Console.WriteLine("AUDIT " + Path.Combine(Program.OutputDirectory, "contrast.tsv") + " rows " + rows.Count);
+        shell.Close();
+    }
     private static async Task ExerciseAsync(DashboardWindow window, IClassicDesktopStyleApplicationLifetime desktop)
     {
         var output = Program.OutputDirectory;
+        if (Environment.GetEnvironmentVariable("ILMENYX_CONTRAST_AUDIT") == "1") { await ContrastAuditAsync(); desktop.Shutdown(0); return; }
         await MonitorAsync(desktop);
         await KeyboardAsync(window, desktop);
         await RequirementsAsync(window, desktop);
@@ -2059,5 +2133,302 @@ public sealed class UiSmokeApp : Application
         if (Palette.IsLight) { Click(shell, "ToggleTheme"); await Until(() => !Palette.IsLight); }
         shell.Width = 1280; shell.Height = 820; await Task.Delay(300);
         Console.WriteLine("PASS drivers redesign: plain summary, six category cards with every inventory row, NVIDIA action present, no clipped card at 900x560/1280x820, dark and light captures");
+    }
+
+    /// <summary>Fake calibration benchmark: the smoke never runs real GPU/CPU load.</summary>
+    private static Ilmenyx.Desktop.FpsCalibrator FakeCalibrator(Func<double?> temp, int delayMs = 400, int? hangMs = null) => new(async (progress, ct) =>
+    {
+        progress.Report(("Cena de GPU (fixture)", 0.3)); await Task.Delay(delayMs, ct);
+        if (hangMs is int h) await Task.Delay(h, ct);
+        progress.Report(("Simulação de CPU (fixture)", 0.8)); await Task.Delay(delayMs, ct);
+        return new Ilmenyx.Core.FpsCalibrationMeasurement(172, 17.2, "GeForce 940MX (fixture)", 22.06, null);
+    }, temp, () => null);
+
+    private static async Task FpsCalibrationGateAsync(ShellWindow shell, IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        // Dell 7460-like fixture (GeForce 940MX + i7-7500U, driver 580); three GPU-limited sessions at Alto feed the personal factor.
+        string root = Path.Combine(Program.OutputDirectory, "fps-calibration-fixture"); Directory.CreateDirectory(root);
+        string settingsPath = Path.Combine(root, "settings.json");
+        var hw = ("Intel(R) Core(TM) i7-7500U CPU @ 2.70GHz", "NVIDIA Corporation GM108M [GeForce 940MX]");
+        var ctx = new Ilmenyx.Core.FpsContext("NVIDIA Corporation GM108M [GeForce 940MX]", "10de", "134d", "nvidia", false, 2UL << 30, "Intel HD Graphics 620", false, 1, 1, "580.95.05", 1189);
+        var fixture = new Ilmenyx.Core.IlmenyxSettings();
+        foreach (var (game, fps) in new[] { ("Cyberpunk 2077", 3.0), ("Hogwarts Legacy", 3.0), ("Starfield", 2.0) })
+            fixture.AddFpsSession(new(game, DateTimeOffset.UtcNow.AddDays(-1), fps, fps * 0.7, 900, "GeForce 940MX", "1920x1080", "Alto", "Native"));
+        fixture.Save(settingsPath);
+        Window? host = null;
+        async Task<GamesFpsPage> Open(Ilmenyx.Desktop.FpsCalibrator cal, Func<Ilmenyx.Core.FpsContext> c)
+        {
+            host?.Close();
+            var page = new GamesFpsPage(new Ilmenyx.Core.IlmenyxSettings(), settingsPath, () => hw, c, cal);
+            host = new Window { Width = 1100, Height = 900, Content = page }; host.Show();
+            await Until(() => page.Rows.Count > 20 && page.Rows.Any(r => r.Fps > 0) && host.GetVisualDescendants().OfType<Border>().Any(b => b.Name?.StartsWith("Game_", StringComparison.Ordinal) == true));
+            return page;
+        }
+        TextBlock Basis(string name) => host!.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Name == "Basis_" + LauncherPage.SafeName(name));
+        // 1. Not calibrated: warning at the top, primary button, every estimate greyed and labelled provisional.
+        var page = await Open(FakeCalibrator(() => 50), () => ctx);
+        if (page.Gate != Ilmenyx.Core.FpsGate.Uncalibrated || !Find<TextBlock>(host!, "FpsGateTitle").Text!.StartsWith("As estimativas ainda não são confiáveis", StringComparison.Ordinal)) throw new InvalidOperationException("Uncalibrated gate must warn at the top.");
+        if (Find<Button>(host!, "BtnFpsCalibrate").Content?.ToString() != "CALIBRAR AGORA (≈1 min)" || !Find<Button>(host!, "BtnFpsCalibrate").IsEffectivelyVisible) throw new InvalidOperationException("CALIBRAR AGORA button missing.");
+        if (page.Rows.Where(r => !r.IsMeasured).Any(r => !r.IsProvisional) || Basis("League of Legends").Text != "provisório — calibre o PC") throw new InvalidOperationException("Estimates must be provisional before calibration.");
+        await Task.Delay(300); Capture(host!, "fps-gate-uncalibrated.png");
+        // 2. Too hot already: refused before any load. 3. Hot during the run: aborted at 90 °C, nothing saved.
+        page = await Open(FakeCalibrator(() => 95), () => ctx);
+        Click(host!, "BtnFpsCalibrate"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        Click(desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible), "ConfirmYes");
+        await Until(() => page.CalibrationMessage?.Contains("95 °C", StringComparison.Ordinal) == true && page.Gate == Ilmenyx.Core.FpsGate.Uncalibrated);
+        int ticks = 0;
+        page = await Open(FakeCalibrator(() => ++ticks > 2 ? 91 : 60, 200, 20_000), () => ctx);
+        Click(host!, "BtnFpsCalibrate"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        Click(desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible), "ConfirmYes");
+        await Until(() => page.Gate == Ilmenyx.Core.FpsGate.Running); await Task.Delay(200); Capture(host!, "fps-gate-running.png");
+        await Until(() => page.CalibrationMessage?.StartsWith("Calibração interrompida", StringComparison.Ordinal) == true && page.Gate == Ilmenyx.Core.FpsGate.Uncalibrated);
+        if (Ilmenyx.Core.IlmenyxSettings.Load(settingsPath).FpsCalibration is not null) throw new InvalidOperationException("Aborted calibration must not be saved.");
+        // 4. Calibrated with the fake runner: saved with the fingerprint, cards name their basis, personal factor from the 3 sessions.
+        page = await Open(FakeCalibrator(() => 55), () => ctx);
+        Click(host!, "BtnFpsCalibrate"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        Click(desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible), "ConfirmYes");
+        await Until(() => page.Gate == Ilmenyx.Core.FpsGate.Calibrated);
+        var saved = Ilmenyx.Core.IlmenyxSettings.Load(settingsPath);
+        if (saved.FpsCalibration is not { SceneScore: 172, CpuSimFps: 22.06 } cal || !cal.Fingerprint.Contains("580.95.05", StringComparison.Ordinal) || saved.FpsSessions.Count != 3) throw new InvalidOperationException("Calibration must be saved with the driver fingerprint, keeping the sessions.");
+        if (page.Basis != Ilmenyx.Core.FpsBasis.Calibrated || Math.Abs(page.GpuIndex - 3.94) > 0.01 || Math.Abs(page.CpuIndex - 36) > 0.1) throw new InvalidOperationException($"Calibrated indices expected (3,94 / 36), got {page.GpuIndex} / {page.CpuIndex}.");
+        if (page.PersonalGpu is not { Sessions: 3 } || page.Rows.Where(r => !r.IsMeasured).Any(r => r.IsProvisional)) throw new InvalidOperationException("Personal factor from the 3 Alto sessions expected; no provisional card after calibration.");
+        if (!Find<TextBlock>(host!, "FpsGateText").Text!.Contains("nota 172", StringComparison.Ordinal) || Find<TextBlock>(host!, "GameSourceTitle").Text != "Fonte: estimativa calibrada neste PC") throw new InvalidOperationException("Calibrated gate/source texts missing.");
+        if (!page.Rows.Any(r => r.BasisText == "base: benchmark deste PC · suas 3 sessões medidas")) throw new InvalidOperationException("Card basis must name the PC benchmark and the sessions.");
+        await Task.Delay(300); Capture(host!, "fps-gate-calibrated.png");
+        // League of Legends on Low (maintainer's observation: > 100 FPS on this hardware; the old table said 16–44).
+        foreach (var chip in host!.GetVisualDescendants().OfType<Button>().Where(b => b.Content?.ToString() == "Baixo")) chip.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => page.Rows.Single(r => r.Name == "League of Legends").Fps >= 100);
+        if (Basis("League of Legends").Text != "base: benchmark deste PC") throw new InvalidOperationException("No Baixo session: the personal factor must not apply.");
+        Console.WriteLine("LoL Baixo after calibration: " + page.Rows.Single(r => r.Name == "League of Legends").FpsText);
+        // 5. Driver changed: stale gate asks for a new calibration and the estimates are provisional again. Light theme capture.
+        bool light0 = Palette.IsLight; if (!light0) { Click(shell, "ToggleTheme"); await Until(() => Palette.IsLight); }
+        page = await Open(FakeCalibrator(() => 55), () => ctx with { GpuDriverVersion = "580.105.08" });
+        if (page.Gate != Ilmenyx.Core.FpsGate.Stale || !Find<TextBlock>(host!, "FpsGateTitle").Text!.Contains("mudou", StringComparison.Ordinal) || page.Rows.Where(r => !r.IsMeasured).Any(r => !r.IsProvisional)) throw new InvalidOperationException("A driver change must make the calibration stale.");
+        await Task.Delay(300); Capture(host!, "fps-gate-stale-light.png");
+        // 6. Unknown GPU (not in the table) with a GpuSpecDb entry: spec fallback instead of SEM ESTIMATIVA.
+        var rtxCtx = ctx with { GpuName = "NVIDIA AD104 [GeForce RTX 4070 Prototype]", GpuDeviceId = "2786", GpuMaxCoreMHz = null };
+        hw = ("Intel(R) Core(TM) i7-7500U CPU @ 2.70GHz", "NVIDIA AD104 [Unknown board]");
+        page = await Open(FakeCalibrator(() => 55), () => rtxCtx);
+        if (page.Basis != Ilmenyx.Core.FpsBasis.Specs || page.Rows.Any(r => r.Source == "SEM ESTIMATIVA") || Math.Abs(page.GpuIndex - 100) > 10) throw new InvalidOperationException($"Spec fallback expected for an unknown name with a known PCI ID (index {page.GpuIndex}).");
+        await Task.Delay(300); Capture(host!, "fps-gate-specs-light.png");
+        host!.Close();
+        if (Palette.IsLight != light0) { Click(shell, "ToggleTheme"); await Until(() => Palette.IsLight == light0); }
+        Console.WriteLine("PASS fps calibration gate: provisional greyed cards + CALIBRAR AGORA before calibration, hot PC refused, 90 °C abort saves nothing, fake calibration saved with driver fingerprint, basis per card, personal factor from 3 sessions at the same preset, LoL Baixo ≥ 100, stale after driver change, spec fallback for unknown GPU");
+    }
+
+    /// <summary>"Jogo não abre?" checklist and the ZRAM card of Otimiza (2026-11-08). Real pages are only read and captured; every click that would
+    /// change something goes to fake services (no flatpak, pkexec or package manager is run).</summary>
+    [System.Runtime.Versioning.SupportedOSPlatform("linux")]
+    private static async Task GameCheckAndZramAsync(ShellWindow shell, IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        // 1. Real page, read-only.
+        Find<Button>(shell, "Navgamecheck").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => shell.CurrentPage == "gamecheck" && shell.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "GcStatus" && t.IsVisible && t.Text!.StartsWith("Verificado", StringComparison.Ordinal)));
+        var real = shell.GetLogicalDescendants().OfType<GameCheckPage>().Single();
+        if (real.Checks.Count < 4 || !real.Checks.Any(c => c.Id == "vulkan") || !real.Checks.Any(c => c.Id == "flathub")) throw new InvalidOperationException("Real checklist incomplete: " + string.Join(",", real.Checks.Select(c => c.Id)));
+        await Task.Delay(300); Capture(shell, "gamecheck-real-dark.png");
+        double w0 = shell.Width, h0 = shell.Height;
+        await MinimumSize(shell); await Task.Delay(400); Capture(shell, "gamecheck-real-dark-900x560.png");
+        Click(shell, "ToggleTheme"); await Until(() => Palette.IsLight); await Task.Delay(400); Capture(shell, "gamecheck-real-light-900x560.png");
+        Click(shell, "ToggleTheme"); await Until(() => !Palette.IsLight);
+        shell.Width = w0; shell.Height = h0; await Task.Delay(200);
+
+        // 2. Fixture checklist: Ubuntu 24.04 with AppArmor restriction, no Flathub, Steam Flatpak blind to /mnt/jogos, low max_map_count.
+        var facts = new GameCheckFacts
+        {
+            Distro = DistroInfo.Parse("PRETTY_NAME=\"Ubuntu 24.04.1 LTS\"\nID=ubuntu\nID_LIKE=debian\n"), AppArmorRestrictUserns = 1, MaxUserNamespaces = 62769,
+            FlatpakInstalled = true, SystemRemotes = [], UserRemotes = [], SteamFlatpak = true, SteamFilesystems = ["xdg-music:ro"], Home = "/home/ana",
+            Drives = [new GameDrive("/mnt/jogos", true)], SteamNative = true, GpuDrivers = ["amdgpu"], IcdLibraries = ["libvulkan_radeon.so"], Lib32Present = ["libGL.so.1"],
+            MaxMapCount = 65530, SplitLockMitigate = 1,
+        };
+        var fixes = new List<string>(); var opened = new List<string>(); int collects = 0;
+        var services = new GameCheckServices(_ => { collects++; return Task.FromResult(facts); }, (args, _) => { fixes.Add(string.Join(' ', args)); return Task.FromResult((true, "Pronto.")); }, k => opened.Add(k));
+        Window? host = null; var page = new GameCheckPage(services, () => host, CancellationToken.None);
+        host = new Window { Width = 1100, Height = 1400, Background = Palette.Bg, Content = new ScrollViewer { Content = page } }; host.Show();
+        await Until(() => collects == 1 && page.Checks.Count > 0 && host.GetVisualDescendants().OfType<Border>().Any(b => b.Name == "GcCheck_apparmor"));
+        if (!Find<Border>(host, "GcWarning_apparmor").IsVisible) throw new InvalidOperationException("AppArmor warning missing.");
+        if (host.GetVisualDescendants().OfType<Button>().Any(b => b.Name?.StartsWith("GcFix_apparmor", StringComparison.Ordinal) == true || b.Name?.StartsWith("GcFix_lib32", StringComparison.Ordinal) == true || b.Name?.StartsWith("GcFix_splitlock", StringComparison.Ordinal) == true))
+            throw new InvalidOperationException("Root/security fixes must never be one-click.");
+        if (!Find<TextBox>(host, "GcCmd_apparmor_1").Text!.Contains("apparmor_parser -r")) throw new InvalidOperationException("AppArmor command missing.");
+        Click(host, "GcFix_flathub_0"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        var no = desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible);
+        if (!Find<TextBlock>(no, "ConfirmText").Text!.Contains("flatpak remote-add --user --if-not-exists flathub")) throw new InvalidOperationException("Flathub confirmation must show the command.");
+        Click(no, "ConfirmNo"); await Until(() => !no.IsVisible); await Task.Delay(60);
+        if (fixes.Count != 0) throw new InvalidOperationException("Declined fix still ran.");
+        Click(host, "GcFix_flathub_0"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        Click(desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible), "ConfirmYes");
+        await Until(() => fixes.Count == 1);
+        if (fixes[0] != "remote-add --user --if-not-exists flathub " + GameLaunchChecks.FlathubRepoFile) throw new InvalidOperationException("Unexpected flathub fix: " + fixes[0]);
+        Click(host, "GcFix_steamdrives_0"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        Click(desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible), "ConfirmYes");
+        await Until(() => fixes.Count == 2 && Find<Button>(host, "GcUndo_steamdrives_0").IsVisible);
+        Click(host, "GcUndo_steamdrives_0"); await Until(() => fixes.Count == 3);
+        if (fixes[1] != "override --user --filesystem=/mnt/jogos " + GameLaunchChecks.SteamAppId || fixes[2] != "override --user --nofilesystem=/mnt/jogos " + GameLaunchChecks.SteamAppId) throw new InvalidOperationException("Unexpected Steam override fix/undo.");
+        Click(host, "GcLink_maxmap"); await Until(() => opened.SequenceEqual(["optimize"]));
+        await Task.Delay(250); Capture(host, "gamecheck-fixture-dark.png");
+        Click(shell, "ToggleTheme"); await Until(() => Palette.IsLight); await Task.Delay(400); Capture(host, "gamecheck-fixture-light.png");
+        Click(shell, "ToggleTheme"); await Until(() => !Palette.IsLight);
+        host.Close();
+
+        // 3. ZRAM card with a fake probe and a fake privileged runner (Mint, 8 GiB, swapfile, no ZRAM).
+        string swapfile = "Filename Type Size Used Priority\n/swapfile file 2097148 0 -2\n", zram = swapfile + "/dev/zram0 partition 4194300 0 100\n";
+        var mint = DistroInfo.Parse("ID=linuxmint\nID_LIKE=\"ubuntu debian\"\nPRETTY_NAME=\"Linux Mint 22.3\"\n");
+        var zf = new ZramFacts { Distro = mint, MemTotalBytes = 8L << 30, Swaps = ZramPlanner.ParseSwaps(swapfile) };
+        var scripts = new List<string>(); int zcollects = 0;
+        var zservices = new ZramServices(_ => { zcollects++; return Task.FromResult(zf); }, (script, line, _) =>
+        {
+            scripts.Add(script); line("== Ilmenyx (falso): " + script.Split('\n')[3]);
+            zf = script.Contains("apt-get -y install zram-tools")
+                ? zf with { Swaps = ZramPlanner.ParseSwaps(zram), ZramToolsInstalled = true, ZramswapDefaults = ZramPlanner.Marker + ": x\nALGO=zstd\nSIZE=4096\n", State = "package=zram-tools\n" }
+                : zf with { Swaps = ZramPlanner.ParseSwaps(swapfile), ZramToolsInstalled = false, ZramswapDefaults = null, State = null };
+            return Task.FromResult((true, "Pronto."));
+        });
+        Window? zhost = null; var panel = new ZramPanel(zservices, () => zhost, CancellationToken.None);
+        zhost = new Window { Width = 900, Height = 900, Background = Palette.Bg, Content = new ScrollViewer { Content = UiKit.Card(panel) } }; zhost.Show();
+        await Until(() => zcollects == 1 && panel.Plan?.State == ZramState.Recommended && zhost.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnZramApply"));
+        if (!Find<TextBlock>(zhost, "ZramSummary").Text!.Contains("8 GiB")) throw new InvalidOperationException("ZRAM summary must name the RAM.");
+        await Task.Delay(200); Capture(zhost, "zram-recommended-dark.png");
+        Click(zhost, "BtnZramApply"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        var zc = desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible);
+        if (!Find<TextBlock>(zc, "ConfirmText").Text!.Contains("zram-tools") || !Find<TextBlock>(zc, "ConfirmText").Text!.Contains("senha")) throw new InvalidOperationException("ZRAM confirmation must list the steps.");
+        Click(zc, "ConfirmNo"); await Until(() => !zc.IsVisible); await Task.Delay(60);
+        if (scripts.Count != 0) throw new InvalidOperationException("Declined ZRAM still ran.");
+        Click(zhost, "BtnZramApply"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        Click(desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible), "ConfirmYes");
+        await Until(() => scripts.Count == 1 && panel.Plan?.State == ZramState.ActiveOurs && Find<TextBlock>(zhost, "ZramResult").Text!.Contains("conferido"));
+        if (!scripts[0].StartsWith("set -eu\n", StringComparison.Ordinal) || !scripts[0].Contains("SIZE=4096")) throw new InvalidOperationException("Unexpected ZRAM script.");
+        if (!zhost.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnZramUndoAndRemovePackage")) throw new InvalidOperationException("Undo with package removal missing.");
+        await Task.Delay(200); Capture(zhost, "zram-active-ours-dark.png");
+        Click(shell, "ToggleTheme"); await Until(() => Palette.IsLight); await Task.Delay(400); Capture(zhost, "zram-active-ours-light.png");
+        Click(shell, "ToggleTheme"); await Until(() => !Palette.IsLight);
+        Click(zhost, "BtnZramUndoAndRemovePackage"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
+        Click(desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible), "ConfirmYes");
+        await Until(() => scripts.Count == 2 && panel.Plan?.State == ZramState.Recommended && Find<TextBlock>(zhost, "ZramResult").Text!.Contains("Desfeito"));
+        if (!scripts[1].Contains("apt-get -y purge zram-tools")) throw new InvalidOperationException("Undo script must remove the package we installed.");
+        zhost.Close();
+
+        // 4. Real Otimiza page: the ZRAM card reads this machine (never applied here).
+        Find<Button>(shell, "Navoptimize").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => shell.CurrentPage == "optimize" && shell.GetLogicalDescendants().OfType<ZramPanel>().Any(z => z.Plan is not null));
+        var realZram = shell.GetLogicalDescendants().OfType<ZramPanel>().Single();
+        realZram.BringIntoView(); await Task.Delay(400); Capture(shell, "zram-real-dark.png");
+        Console.WriteLine($"PASS game check and ZRAM: real checklist read-only ({real.Checks.Count} items, captured dark/light 900x560); fixture page shows AppArmor warning without one-click, user-level Flathub and Steam override only after confirmation (declined = nothing), undo, link to Otimiza; ZRAM recommended -> confirmed fake polkit run -> active with undo/remove package -> undone; real ZRAM card: {realZram.Plan!.State}");
+    }
+
+    /// <summary>Gaming extras (2026-11-08): bigger shader cache in Otimiza, gaming apps in Instalar apps, experimental Proton options in Jogos. Fixtures only:
+    /// the real ~/.config, flatpak, Steam and games are never touched.</summary>
+    [System.Runtime.Versioning.SupportedOSPlatform("linux")]
+    private static async Task GamingExtrasAsync(ShellWindow shell, IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        string root = Path.Combine(Program.OutputDirectory, "gaming-extras-fixture"), proc = Path.Combine(root, "proc"), home = Path.Combine(root, "home");
+        Directory.CreateDirectory(Path.Combine(proc, "self")); File.WriteAllText(Path.Combine(proc, "self", "status"), "Uid:\t1000\t1\t1\t1\n");
+        Directory.CreateDirectory(Path.Combine(home, ".cache/mesa_shader_cache/ab")); File.WriteAllBytes(Path.Combine(home, ".cache/mesa_shader_cache/ab/1"), new byte[3 << 20]);
+        async Task<ConfirmDialog> Confirm() { await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible)); return desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible); }
+        async Task Answer(string button) { var d = await Confirm(); Click(d, button); await Until(() => !d.IsVisible); }
+        async Task Themes(Window host, string stem, Control focus)
+        {
+            host.Width = 900; host.Height = 560; await Task.Delay(300); focus.BringIntoView(new Rect(0, 0, Math.Max(1, focus.Bounds.Width), 480)); await Task.Delay(300);
+            Capture(host, stem + "-dark-900x560.png");
+            Click(shell, "ToggleTheme"); await Until(() => Palette.IsLight); await Task.Delay(400); focus.BringIntoView(new Rect(0, 0, Math.Max(1, focus.Bounds.Width), 480)); await Task.Delay(200);
+            Capture(host, stem + "-light-900x560.png");
+            Click(shell, "ToggleTheme"); await Until(() => !Palette.IsLight); await Task.Delay(200);
+        }
+
+        // 1) Otimiza: detect → explain → confirm → write ~/.config/environment.d file → undo (toggle off) and RESTAURAR ORIGINAIS.
+        var cache = new LinuxShaderCache(home, Path.Combine(home, ".config"), Path.Combine(home, ".cache"), _ => null);
+        var optimizer = new LinuxOptimizer(proc, Path.Combine(root, "sys"), home, (_, _) => Task.FromResult((1, "")), (_, _) => Task.CompletedTask);
+        var services = new OptimizeServices(_ => Task.FromResult<string?>(null), (_, _) => Task.FromResult(false)) { ShaderCache = cache, SteamRoot = () => null };
+        using var usage = new UsageViewModel(new FakeUsage()); await usage.SampleOnceAsync(CancellationToken.None);
+        Window? host = null; var opt = new OptimizePage(optimizer, services, usage, Path.Combine(root, "cfg/settings.json"), () => host, CancellationToken.None);
+        host = new Window { Width = 1200, Height = 900, Content = new ScrollViewer { Content = opt } }; host.Show();
+        await Until(() => host.GetVisualDescendants().OfType<CheckBox>().Any(c => c.Name == "Tweak_shadercache"));
+        var toggle = Find<CheckBox>(host, "Tweak_shadercache");
+        if (toggle.IsChecked == true || !toggle.IsEnabled || !Find<TextBlock>(host, "TweakStatus_shadercache").Text!.Contains("Mesa 3,0 MB")) throw new InvalidOperationException("Shader cache item must start off, adjustable, with the measured Mesa cache size.");
+        toggle.IsChecked = true; toggle.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        var ask = await Confirm();
+        if (!Find<TextBlock>(ask, "ConfirmText").Text!.Contains("próximo login") || Find<TextBlock>(ask, "ConfirmText").Text!.Contains("AMD_VULKAN_ICD")) throw new InvalidOperationException("Confirmation must explain the next login and never mention a driver switch.");
+        Click(ask, "ConfirmNo"); await Until(() => !ask.IsVisible && toggle.IsChecked == false);
+        if (File.Exists(cache.ConfigPath)) throw new InvalidOperationException("Declined confirmation still wrote the environment.d file.");
+        toggle.IsChecked = true; toggle.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Answer("ConfirmYes");
+        await Until(() => File.Exists(cache.ConfigPath) && Find<TextBlock>(host, "TweakStatus_shadercache").Text!.Contains("próximo login"));
+        if (File.ReadAllText(cache.ConfigPath) != ShaderCacheTweak.FileContent()) throw new InvalidOperationException("Unexpected environment.d content.");
+        await Themes(host, "extras-optimize-shadercache", toggle);
+        toggle.IsChecked = false; toggle.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => !File.Exists(cache.ConfigPath));
+        await Until(() => toggle.IsEnabled); toggle.IsChecked = true; toggle.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); await Answer("ConfirmYes");
+        await Until(() => File.Exists(cache.ConfigPath));
+        Click(host, "BtnTweaksRestore"); await Until(() => !File.Exists(cache.ConfigPath) && Find<TextBlock>(host, "OptResult").Text!.Contains("cache de shaders"));
+        host.Close();
+        Console.WriteLine("PASS shader cache: off by default with measured cache size, explained confirmation (next login, disk, no driver switch), declined = no file, user environment.d file written, toggle off and RESTAURAR ORIGINAIS delete it (fixture home)");
+
+        // 2) Instalar apps: gaming apps with license/caveats; the Gamescope layer follows the Steam Flatpak runtime branch; link-only items open a page.
+        var calls = new List<string>(); var opened = new List<string>();
+        var installer = new LinuxAppInstaller((program, args, timeout, ct) =>
+        {
+            calls.Add(string.Join(" ", args));
+            if (args[0] == "remotes") return Task.FromResult((0, "flathub\n"));
+            if (args[0] == "info") return Task.FromResult((0, "org.freedesktop.Platform/x86_64/25.08\n"));
+            return Task.FromResult((0, ""));
+        }, _ => false);
+        Window? appsHost = null; var apps = new AppsPage(installer, true, () => appsHost, CancellationToken.None, (url, _) => { opened.Add(url); return Task.CompletedTask; });
+        appsHost = new Window { Width = 1000, Height = 900, Content = new ScrollViewer { Content = apps } }; appsHost.Show();
+        await Until(() => apps.Apps.Single(a => a.RuntimeFor.Length > 0).Branch == "25.08" && appsHost.GetVisualDescendants().OfType<CheckBox>().Any(c => c.Name == "App_io_github_ilya_zlobintsev_LACT"));
+        if (apps.Apps.Any(a => a.Category != "Essenciais" && a.Selected)) throw new InvalidOperationException("Gaming apps must not be pre-selected.");
+        if (!Find<TextBlock>(appsHost, "AppCaveat_dev_lizardbyte_app_Sunshine").Text!.Contains("additional-install.sh")) throw new InvalidOperationException("Sunshine caveat missing.");
+        if (appsHost.GetVisualDescendants().OfType<CheckBox>().Single(c => c.Name == "App_link_geforcenow").IsVisible) throw new InvalidOperationException("Link-only item must not offer a checkbox.");
+        Click(appsHost, "AppLink_link_geforcenow"); await Until(() => opened.Count == 1);
+        if (!opened[0].StartsWith("https://www.nvidia.com/", StringComparison.Ordinal)) throw new InvalidOperationException("GeForce NOW must open NVIDIA's own page.");
+        Click(appsHost, "BtnAppsNone");
+        Find<CheckBox>(appsHost, "App_io_github_ilya_zlobintsev_LACT").IsChecked = true; Find<CheckBox>(appsHost, "App_org_freedesktop_Platform_VulkanLayer_gamescope").IsChecked = true;
+        Click(appsHost, "BtnAppsInstall"); var appsAsk = await Confirm();
+        if (!Find<TextBlock>(appsAsk, "ConfirmText").Text!.Contains("lactd") || !Find<TextBlock>(appsAsk, "ConfirmText").Text!.Contains("//25.08")) throw new InvalidOperationException("Install confirmation must list caveats and the layer branch.");
+        Click(appsAsk, "ConfirmYes");
+        await Until(() => calls.Contains("install --user -y --noninteractive flathub org.freedesktop.Platform.VulkanLayer.gamescope//25.08") && calls.Contains("install --user -y --noninteractive flathub io.github.ilya_zlobintsev.LACT"));
+        if (calls.Count(c => c.StartsWith("install", StringComparison.Ordinal)) != 2) throw new InvalidOperationException("Only the two selected items may be installed.");
+        await Themes(appsHost, "extras-apps-gaming", appsHost.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Name == "AppsGroup_Jogos"));
+        appsHost.Close();
+        Console.WriteLine("PASS gaming apps: LACT/ProtonPlus/Gamescope layer/Sunshine/Piper/Solaar with license and caveats, none pre-selected, layer installs the Steam Flatpak runtime branch (//25.08), GeForce NOW and input-remapper link-only (fake flatpak)");
+
+        // 3) Jogos: experimental Proton options, off by default, confirmed, shown only when they apply, written to the Steam launch options.
+        string steam = Path.Combine(home, ".local/share/Steam"), steamapps = Path.Combine(steam, "steamapps");
+        Directory.CreateDirectory(Path.Combine(steamapps, "common/Game Two")); Directory.CreateDirectory(Path.Combine(steam, "userdata/1/config")); Directory.CreateDirectory(Path.Combine(steam, "config"));
+        File.WriteAllText(Path.Combine(steamapps, "libraryfolders.vdf"), "\"libraryfolders\"\n{\n\t\"0\"\n\t{\n\t\t\"path\"\t\t\"" + steam + "\"\n\t}\n}\n");
+        File.WriteAllText(Path.Combine(steamapps, "appmanifest_200.acf"), "\"AppState\"\n{\n\t\"appid\"\t\t\"200\"\n\t\"name\"\t\t\"Game Two\"\n\t\"StateFlags\"\t\t\"4\"\n\t\"installdir\"\t\t\"Game Two\"\n}\n");
+        File.WriteAllText(Path.Combine(steam, "config", "config.vdf"), "\"InstallConfigStore\"\n{\n\t\"Software\"\n\t{\n\t\t\"Valve\"\n\t\t{\n\t\t\t\"Steam\"\n\t\t\t{\n\t\t\t\t\"CompatToolMapping\"\n\t\t\t\t{\n\t\t\t\t\t\"200\"\n\t\t\t\t\t{\n\t\t\t\t\t\t\"name\"\t\t\"GE-Proton10-25\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t}\n}\n");
+        string localConfig = Path.Combine(steam, "userdata/1/config/localconfig.vdf"); File.WriteAllText(localConfig, "\"UserLocalConfigStore\"\n{\n}\n");
+        string settingsPath = Path.Combine(root, "cfg2/settings.json");
+        Window? lhost = null;
+        var launcher = new LauncherPage(new LinuxGameLibrary(home, (_, _) => Task.FromResult((0, "[]"))), new SteamInfo(home, Path.Combine(root, "noproc")), settingsPath,
+            (g, p, v, status, learned, ct) => Task.FromResult<FpsSession?>(null), () => lhost, "NVIDIA", false, CancellationToken.None) { WaylandSession = () => true, UmuProton = () => "UMU-Proton-9.0-3" };
+        lhost = new Window { Width = 1100, Height = 800, Content = launcher }; lhost.Show();
+        await Until(() => launcher.Games.Count == 1);
+        Click(lhost, "LGame_Steam_200");
+        bool ExtrasShown() => lhost.GetVisualDescendants().OfType<StackPanel>().Any(p => p.Name == "LExtrasBox" && p.IsEffectivelyVisible);
+        await Until(ExtrasShown);
+        var wl = Find<CheckBox>(lhost, "LChkWayland"); var ll = Find<CheckBox>(lhost, "LChkLowLat");
+        if (wl.IsChecked == true || ll.IsChecked == true || Find<TextBlock>(lhost, "LPreview").Text!.Contains("PROTON_")) throw new InvalidOperationException("Experimental options must start off.");
+        wl.IsChecked = true; var wlAsk = await Confirm();
+        if (!Find<TextBlock>(wlAsk, "ConfirmText").Text!.Contains("experimental")) throw new InvalidOperationException("Wayland confirmation must explain it is experimental.");
+        Click(wlAsk, "ConfirmNo"); await Until(() => !wlAsk.IsVisible && wl.IsChecked == false);
+        if (IlmenyxSettings.Load(settingsPath).GameProfiles.GetValueOrDefault("Steam:200")?.ProtonWayland == true) throw new InvalidOperationException("Declined option was saved.");
+        wl.IsChecked = true; await Answer("ConfirmYes");
+        ll.IsChecked = true; await Answer("ConfirmYes");
+        await Until(() => Find<TextBlock>(lhost, "LPreview").Text == "PROTON_ENABLE_WAYLAND=1 PROTON_ENABLE_NVAPI=1 %command%");
+        if (IlmenyxSettings.Load(settingsPath).GameProfiles["Steam:200"] is not { ProtonWayland: true, LowLatency: true }) throw new InvalidOperationException("Experimental options not persisted.");
+        Click(lhost, "BtnSteamApply");
+        await Until(() => Find<TextBlock>(lhost, "LStatus").Text!.Contains("Opções gravadas na Steam"));
+        if (!File.ReadAllText(localConfig).Contains("PROTON_ENABLE_WAYLAND=1 PROTON_ENABLE_NVAPI=1 %command%")) throw new InvalidOperationException("Steam launch options without the experimental options.");
+        await Themes(lhost, "extras-launcher-steam", Find<StackPanel>(lhost, "LExtrasBox"));
+        // A Windows game run through umu with an older UMU-Proton: the Wayland option is kept in the profile but explained as out of use.
+        string exe = Path.Combine(root, "Jogo Win/game.exe"); Directory.CreateDirectory(Path.GetDirectoryName(exe)!); File.WriteAllText(exe, "MZ");
+        lhost.Width = 1100; lhost.Height = 800;
+        Click(lhost, "BtnAddExe"); Find<TextBox>(lhost, "LAddPath").Text = exe; Click(lhost, "BtnAddExeConfirm");
+        await Until(() => launcher.Games.Count == 2 && Find<TextBlock>(lhost, "LTitle").Text != "Game Two" && ExtrasShown());
+        Find<CheckBox>(lhost, "LChkWayland").IsChecked = true; await Answer("ConfirmYes");
+        await Until(() => Find<TextBlock>(lhost, "LExtrasNote").Text!.Contains("UMU-Proton-9.0-3"));
+        await Themes(lhost, "extras-launcher-umu", Find<StackPanel>(lhost, "LExtrasBox"));
+        lhost.Close();
+        Console.WriteLine("PASS experimental Proton options: off by default, explained confirmation (declined = not saved), Wayland + low latency in the Steam launch options with GE-Proton 10 + NVIDIA, out-of-use reason shown for UMU-Proton 9 (fixtures)");
     }
 }

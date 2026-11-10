@@ -68,7 +68,7 @@ public sealed class BottleneckTests : IDisposable
         Assert.Equal("RTX 5070", GameCatalog.ShortGpuName("NVIDIA GeForce RTX 5070")); Assert.Equal("Ryzen 7 7700X", GameCatalog.ShortCpuName("AMD Ryzen 7 7700X 8-Core Processor"));
         var cs2 = GameCatalog.Games.Single(g => g.Name == "Counter-Strike 2");
         var e = GameCatalog.Estimate(cs2, 100, 100, "1920x1080", "Alto", "Nenhum");
-        Assert.Equal(340, e.Avg); Assert.Equal(Bottleneck.Gpu, e.Limiter); Assert.Equal(255, e.Low1);
+        Assert.Equal(284, e.Avg); Assert.Equal(Bottleneck.Gpu, e.Limiter); Assert.Equal(213, e.Low1); // measured curve (2026-11-08)
         Assert.Equal(Bottleneck.Cpu, GameCatalog.Estimate(cs2, 300, 50, "1920x1080", "Alto", "Nenhum").Limiter);
         Assert.Equal(60, GameCatalog.Estimate(GameCatalog.Games.Single(g => g.Name == "Elden Ring"), 300, 300, "1920x1080", "Alto", "Nenhum").Avg);
     }
