@@ -530,6 +530,34 @@ public sealed partial class ShellWindow
         });
     }
 
+    /// <summary>
+    /// What Ilmenyx released on this PC (found by its own files under /etc), each with DESFAZER: the first-run screen and the sensor
+    /// dialog offer the undo only right after the change, so the way back has to stay reachable here.
+    /// </summary>
+    private Control? GrantsCard()
+    {
+        var grants = SensorHelp.Granted(File.Exists);
+        if (grants.Count == 0) return null;
+        var list = new StackPanel { Spacing = 8, Children = { UiKit.Label("PERMISSÕES DADAS PELO ILMENYX") } };
+        for (int i = 0; i < grants.Count; i++)
+        {
+            var g = grants[i];
+            var status = new TextBlock { Name = "GrantStatus" + i, FontSize = 12, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center };
+            var undo = new Button { Name = "GrantUndo" + i, Content = "DESFAZER", FontSize = 12, Padding = new Thickness(14, 7), IsEnabled = PrivilegedFix.Available };
+            if (!PrivilegedFix.Available) status.Text = "O pedido de senha do sistema (pkexec/polkit) não está instalado.";
+            undo.Click += async (_, _) =>
+            {
+                if (!await ConfirmDialog.AskAsync(this, g.Title, "Desfazer?\n\nO sistema vai abrir a janela dele pedindo a sua senha de administrador.", "Desfazer", "Cancelar")) return;
+                undo.IsEnabled = false; status.Text = "Aguardando a sua senha na janela do sistema…"; status.Foreground = Palette.Muted;
+                var (ok, message) = await PrivilegedFix.RunAsync(g.Undo, stop.Token);
+                status.Text = ok ? g.Done : message; status.Foreground = ok ? Palette.Success : Palette.Warn;
+                undo.IsEnabled = !ok;
+            };
+            list.Children.Add(new WrapPanel { ItemSpacing = 10, LineSpacing = 6, Children = { new TextBlock { Text = g.Title, FontSize = 13, VerticalAlignment = VerticalAlignment.Center }, undo, status } });
+        }
+        return UiKit.Card(list);
+    }
+
     private Control ToolsPage()
     {
         var requirements = new Button { Name = "ShowRequirements", Content = "Requisitos" };
@@ -545,11 +573,13 @@ public sealed partial class ShellWindow
             bool on = appSettings.DeviceToasts;
             try { IlmenyxSettings.Update(settingsPath, s => s.DeviceToasts = on); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
         };
-        return Scroll("ToolsScroll", new StackPanel
+        var page = new StackPanel
         {
             Spacing = 12,
             Children = { UiKit.PageHeader("Requisitos e sobre"), UiKit.Card(new StackPanel { Spacing = 12, Children = { UiKit.Label("FERRAMENTAS"), new WrapPanel { ItemSpacing = 10, LineSpacing = 8, Children = { requirements, about, classicButton } }, toastToggle,
                 Wrapped("ToolsNote", ProductIdentity.Attribution, 12, Palette.Faint) } }) }
-        });
+        };
+        if (GrantsCard() is { } grants) page.Children.Add(grants);
+        return Scroll("ToolsScroll", page);
     }
 }

@@ -87,5 +87,8 @@ Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes qu
 - [x] **Legibilidade no app real, temas claro e escuro: VALIDADA pelo dono.**
 - [x] **Nome novo no app** (menu lateral, título da janela, Sobre, doctor): VALIDADO pelo dono. Ajuste pedido: título da página
   estava colado na marca; menu lateral 214 -> 230 px e 20 px antes do título e do conteúdo. Dono aprovou; UiSmoke 68/68.
+- [x] **Tela de permissões na 1ª execução com senha real: VALIDADA** (22:49, consumo da CPU liberado; regra udev criada).
+- [x] **Desfazer depois**: antes só existia logo após liberar. Novo card "PERMISSÕES DADAS PELO ILMENYX" em Requisitos e sobre, com
+  DESFAZER; desfazer fecha todas as zonas RAPL. VALIDADO pelo dono: regra removida e leitura negada ao usuário. Testes 1288.
 - [ ] Logotipo ainda mostra só "Ilmenyx" (decisão de identidade do dono). Chave GPG com UID antigo "Bismuth Technology": acrescentar UID novo.
 - [ ] Busca de marca para "Ilmenyx Controller" e "Ilmenyx Technology" (a de 2026-11-07 cobriu Ilmenyx e Bismuth Technology).

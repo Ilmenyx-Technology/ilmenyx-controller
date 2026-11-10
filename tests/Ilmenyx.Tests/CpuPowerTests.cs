@@ -75,6 +75,19 @@ public sealed class CpuPowerTests : IDisposable
     }
 
     [Fact]
+    public void WhatIlmenyxReleasedCanStillBeUndoneLater()
+    {
+        Assert.Empty(SensorHelp.Granted(_ => false));
+        var power = SensorHelp.Granted(p => p == SensorHelp.RaplRule).Single();
+        Assert.Contains("rm -f " + SensorHelp.RaplRule, power.Undo);
+        Assert.Contains("/sys/class/powercap/intel-rapl:*/energy_uj", power.Undo); // the rule opened every zone at boot
+        Assert.Equal(power.Undo, SensorHelp.Build(false, CpuPowerAccess.NoPermission, "x", null, false).Single().Undo); // same script as the dialog
+        var both = SensorHelp.Granted(p => p is "/etc/tmpfiles.d/ilmenyx-rapl.conf" or "/etc/modules-load.d/ilmenyx-k10temp.conf");
+        Assert.Equal(2, both.Count);
+        Assert.Equal("rm -f /etc/modules-load.d/ilmenyx-k10temp.conf", both[1].Undo);
+    }
+
+    [Fact]
     public void MangoHudConfigUsesTheOriginalOverlayShortcut() =>
         Assert.Contains("toggle_hud=Control_L+Shift_L+o", MangoHudConfig.Build(new HashSet<string> { "fps" }, "top-left", 1.0, null).Split('\n'));
 }
