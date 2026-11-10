@@ -12,6 +12,17 @@ namespace Ilmenyx.Desktop;
 
 public static class UiKit
 {
+    /// <summary>
+    /// Wraps a live update (the usage monitor ticks every second on every page): runs it when <paramref name="owner"/> is on screen;
+    /// off screen it only marks it stale and runs it once when the owner is shown again.
+    /// </summary>
+    public static Action OnScreen(Control owner, Action update)
+    {
+        bool stale = false;
+        owner.AttachedToVisualTree += (_, _) => { if (stale) { stale = false; update(); } };
+        return () => { if (TopLevel.GetTopLevel(owner) is null || !owner.IsEffectivelyVisible) { stale = true; return; } update(); };
+    }
+
     // ---- Typography (compact hierarchy: page title 22, section 13, body 13, secondary 12, labels 11) ----
     public static TextBlock Label(string text) => new() { Text = text, FontSize = 11, FontWeight = FontWeight.SemiBold, Foreground = Palette.Faint, TextWrapping = TextWrapping.Wrap, LetterSpacing = 0.6 };
 

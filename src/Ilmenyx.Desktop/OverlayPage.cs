@@ -93,7 +93,8 @@ public sealed class OverlayPage : StackPanel
         savedFade.Tick += (_, _) => { savedFade.Stop(); saved.Opacity = 0; };
         saved.Transitions = [new Avalonia.Animation.DoubleTransition { Property = OpacityProperty, Duration = IlmenyxTheme.Fast }];
         // Leaving the page or closing the window never loses a change still waiting for the delay.
-        DetachedFromVisualTree += (_, _) => FlushSave();
+        // Off screen the preview needs no updates; the timer keeps running only while the overlay window is shown (it feeds it).
+        DetachedFromVisualTree += (_, _) => { FlushSave(); if (window is not { IsVisible: true }) timer.Stop(); };
         PlacePreview();
         timer.Tick += async (_, _) => await TickAsync(); timer.Start();
         AttachedToVisualTree += (_, _) => { if (!timer.IsEnabled) timer.Start(); };

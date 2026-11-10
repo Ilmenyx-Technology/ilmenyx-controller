@@ -217,7 +217,7 @@ public sealed partial class ShellWindow
             hero.Text = temp ? (usage.Last?.CpuTempC is { } t ? t.ToString("0.0", CultureInfo.InvariantCulture) + " °C" : "—")
                 : watts ? (usage.Last?.CpuPowerW is { } w ? w.ToString("0.0", CultureInfo.InvariantCulture) + " W" : "—") : UsageViewModel.Pct(usage.Last?.CpuPercent);
         }
-        usage.Updated += Refresh;
+        usage.Updated += UiKit.OnScreen(chart, Refresh);
         var ranges = Chips("DashRange", [("1 min", 60), ("5 min", 300), ("15 min", 900)], 300, v => { range = v; Refresh(); });
         var metrics = Chips("DashMetric", [(L.T("Temperatura"), "temp"), (L.T("Carga"), "load")], "load", v => { metric = v; Refresh(); });
         // CPU power (RAPL): enabled once a sample arrives; otherwise the tooltip says why (absent counter or root-only file).
@@ -242,7 +242,7 @@ public sealed partial class ShellWindow
         var notice = new Border { IsVisible = gpuNotice is not null, HorizontalAlignment = HorizontalAlignment.Left, Background = Palette.WarnBg, CornerRadius = new CornerRadius(IlmenyxTheme.Pill), Padding = new Thickness(11, 4), Child = new TextBlock { Name = "OverviewGpuNotice", Text = gpuNotice ?? "", Foreground = Palette.Warn, TextWrapping = TextWrapping.Wrap, FontSize = 11, FontWeight = FontWeight.Medium } };
         var memoryRow = Wrapped("OverviewMemory", "—", 12.5, Palette.Fg); var procRow = Wrapped("OverviewProcesses", "—", 12.5, Palette.Fg);
         var cpuName = new TextBlock { Name = "OverviewCpuName", Text = "—", FontSize = 13, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap };
-        usage.Updated += () => { memoryRow.Text = usage.MemoryLine; procRow.Text = usage.ProcessSummary; cpuName.Text = usage.CpuModel; };
+        usage.Updated += UiKit.OnScreen(memoryRow, () => { memoryRow.Text = usage.MemoryLine; procRow.Text = usage.ProcessSummary; cpuName.Text = usage.CpuModel; });
         var score = new TextBlock { Name = "OverviewScore", Text = "—", FontSize = 30, FontWeight = FontWeight.Bold, Margin = new Thickness(0, 2, 0, 0) };
         var scoreDelta = new TextBlock { Name = "OverviewScoreDelta", FontSize = 12.5, Foreground = Palette.Fg, Opacity = 0.85 };
         var scoreSub = Wrapped("OverviewScoreSub", L.T("rode o Benchmark para ter uma nota"), 11, Palette.Fg); scoreSub.Opacity = 0.9;
@@ -288,7 +288,7 @@ public sealed partial class ShellWindow
             heroGpu.Text = (gpuLast?.TempC is { } gt ? gt.ToString("0", CultureInfo.InvariantCulture) + " °C · " : "") + UsageViewModel.Pct(gpuLast?.LoadPercent);
             heroRam.Text = u is { MemoryTotal: > 0, MemoryUsed: { } mu } ? UsageViewModel.Pct(100.0 * mu / u.MemoryTotal.Value) : "—";
         }
-        usage.Updated += HeroReadings;
+        usage.Updated += UiKit.OnScreen(chart, HeroReadings);
         // Hero light: a soft accent glow on the right instead of a picture (this page has no imagery of its own).
         var accentColor = ((ISolidColorBrush)Palette.Accent).Color;
         var heroArt = new Border
@@ -400,7 +400,7 @@ public sealed partial class ShellWindow
             Set(L.T("Rede"), usage.NetSub, L.T("Tráfego"), usage.NetLine, "");
             HeroReadings();
         }
-        usage.Updated += Components; Components();
+        usage.Updated += UiKit.OnScreen(components, Components); Components();
         // Health checklist, recent events and occupancy rings.
         var healthList = new StackPanel { Name = "OverviewHealth", Spacing = 6 };
         var healthStatus = new TextBlock { Name = "OverviewHealthStatus", FontSize = 11, Foreground = Palette.Faint };

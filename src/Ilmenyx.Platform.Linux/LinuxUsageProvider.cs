@@ -38,8 +38,8 @@ public sealed partial class LinuxUsageProvider(string procRoot = "/proc", string
     public async Task<UsageSample> SampleAsync(CancellationToken ct = default)
     {
         double now = clock.Elapsed.TotalSeconds;
-        string stat = await Read("stat", ct), meminfo = await Read("meminfo", ct), cpuinfo = await Read("cpuinfo", ct);
-        string diskstats = await Read("diskstats", ct), netdev = await Read("net/dev", ct);
+        string stat = Read("stat", ct), meminfo = Read("meminfo", ct), cpuinfo = Read("cpuinfo", ct);
+        string diskstats = Read("diskstats", ct), netdev = Read("net/dev", ct);
         var (cpu, logical) = Cpu(stat, now);
         var (maxCore, busiest) = Cores(stat);
         var memory = Memory(meminfo);
@@ -50,9 +50,11 @@ public sealed partial class LinuxUsageProvider(string procRoot = "/proc", string
             memory.total, memory.used, read, write, rx, tx, iface, count, processes, maxCore, busiest, MaxMhz(cpuinfo), rapl.Sample(now));
     }
 
-    private async Task<string> Read(string relative, CancellationToken ct)
+    // The sampler runs off the UI thread (UsageViewModel), so the lean synchronous read is safe here.
+    private string Read(string relative, CancellationToken ct)
     {
-        try { return await new LinuxFiles().ReadAsync(Path.Combine(procRoot, relative), ct); }
+        ct.ThrowIfCancellationRequested();
+        try { return LinuxFiles.ReadSmall(Path.Combine(procRoot, relative)); }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return ""; }
     }
 
@@ -220,7 +222,7 @@ public sealed partial class LinuxUsageProvider(string procRoot = "/proc", string
             ct.ThrowIfCancellationRequested();
             string text;
             if (line is not null) text = line;
-            else try { text = await new LinuxFiles().ReadAsync(Path.Combine(dir!, "stat"), ct); }
+            else try { text = LinuxFiles.ReadSmall(Path.Combine(dir!, "stat")); }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException) { continue; }
             if (ParseStat(text) is not { } s || pid < 0) continue;
             count++;
@@ -238,7 +240,7 @@ public sealed partial class LinuxUsageProvider(string procRoot = "/proc", string
                 if (top[i].Name.Length == CommLength)
                 {
                     string cmdline;
-                    try { cmdline = await new LinuxFiles().ReadAsync(Path.Combine(procRoot, top[i].Pid.ToString(CultureInfo.InvariantCulture), "cmdline"), ct); }
+                    try { cmdline = LinuxFiles.ReadSmall(Path.Combine(procRoot, top[i].Pid.ToString(CultureInfo.InvariantCulture), "cmdline")); }
                     catch (Exception e) when (e is IOException or UnauthorizedAccessException) { continue; }
                     top[i] = top[i] with { Name = FullName(top[i].Name, cmdline) };
                 }
@@ -263,9 +265,26 @@ public sealed partial class LinuxUsageProvider(string procRoot = "/proc", string
     {
         int open = text.IndexOf('('), close = text.LastIndexOf(')');
         if (open < 0 || close < open) return null;
-        var rest = text[(close + 1)..].Split(' ', StringSplitOptions.RemoveEmptyEntries); // rest[0] is field 3 (state)
-        if (rest.Length < 22 || Num(rest[11]) is not { } utime || Num(rest[12]) is not { } stime || Num(rest[19]) is not { } start) return null;
-        long? rss = long.TryParse(rest[21], NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out long r) && r >= 0 ? r : null;
+        // Fields after the name, counted from 0 = field 3 (state); read in place, ~300 times per second, without splitting the line.
+        var rest = text.AsSpan(close + 1);
+        long utime = 0, stime = 0, start = 0; long? rss = null; int field = 0;
+        foreach (var range in rest.Split(' '))
+        {
+            var value = rest[range];
+            if (value.IsEmpty) continue;
+            bool ok = field switch
+            {
+                11 => long.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out utime),
+                12 => long.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out stime),
+                19 => long.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out start),
+                21 => true,
+                _ => true
+            };
+            if (!ok) return null;
+            if (field == 21) { rss = long.TryParse(value, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out long r) && r >= 0 ? r : null; field++; break; }
+            field++;
+        }
+        if (field < 22) return null;
         string name = new(text[(open + 1)..close].Where(c => !char.IsControl(c)).Take(64).ToArray());
         return (name, utime + stime, start, rss);
     }

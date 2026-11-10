@@ -180,23 +180,38 @@ public sealed class GpuInfoPage : Grid
         }, token);
     }
 
+    // Live readings every 2 s: when the same tiles and pairs come back, only their values change (rebuilding them, icons included,
+    // cost more than the reading itself).
+    private string? liveLayout;
+    private readonly List<TextBlock> liveValues = [];
+    private readonly List<Avalonia.Controls.Documents.Run> pairValues = [];
+
     public void ShowLive(GpuTelemetry t)
     {
-        extras.Children.Clear(); live.Children.Clear(); liveTiles.Children.Clear();
         var pairs = GpuLive.Extras(t);
+        var rows = GpuLive.Rows(t);
+        string layout = string.Join('|', pairs.Select(p => p.Key)) + "#" + string.Join('|', rows.Select(r => r.Category + "/" + r.Name)) + "#" + selected;
+        if (layout == liveLayout)
+        {
+            for (int i = 0; i < pairs.Count; i++) pairValues[i].Text = pairs[i].Value;
+            for (int i = 0; i < rows.Count; i++) liveValues[i].Text = rows[i].Value;
+            return;
+        }
+        liveLayout = layout; liveValues.Clear(); pairValues.Clear();
+        extras.Children.Clear(); live.Children.Clear(); liveTiles.Children.Clear();
         if (pairs.Count > 0)
         {
             var wrap = new WrapPanel { Margin = new Thickness(0, 2, 0, 0) };
-            foreach (var (k, v) in pairs) wrap.Children.Add(Pair(k, v));
+            foreach (var (k, v) in pairs) wrap.Children.Add(Pair(k, v, pairValues));
             extras.Children.Add(wrap);
         }
-        var rows = GpuLive.Rows(t);
         if (rows.Count == 0 && pairs.Count == 0)
             live.Children.Add(new TextBlock { Name = "GpuLiveEmpty", Text = gpus.Count > selected && gpus[selected].Raw is { VendorId: "10de", Driver: "nouveau" } ? GpuTelemetrySensors.NouveauReason : L.T("Esta GPU não expõe contadores sem privilégios (típico de iGPU Intel; NVIDIA exige nvidia-smi, AMD usa sysfs)."), Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(2, 0, 0, 10) });
         foreach (var r in rows)
         {
             string category = r.Category.TrimEnd(' ', '·');
             var value = new TextBlock { Text = r.Value, FontSize = 20, FontFamily = IlmenyxTheme.Mono, TextTrimming = TextTrimming.CharacterEllipsis };
+            liveValues.Add(value);
             var tile = UiKit.StatTile(category.ToUpperInvariant(), value, new TextBlock { Text = r.Name }, TileIcon(category), TileTint(category));
             tile.Margin = new Thickness(0, 0, 10, 10); tile.Padding = new Thickness(16, 12);
             liveTiles.Children.Add(tile);
@@ -215,11 +230,12 @@ public sealed class GpuInfoPage : Grid
         : category == L.T("Tensão") || category == L.T("Energia") ? Palette.Energy : category.StartsWith("VRAM", StringComparison.Ordinal) ? Palette.DataMemory : Palette.Faint;
 
     /// <summary>Compact key/value capsule for secondary live readings (PCIe link, perf state, limiter).</summary>
-    private static Border Pair(string key, string value)
+    private static Border Pair(string key, string value, List<Avalonia.Controls.Documents.Run> values)
     {
         var text = new TextBlock { FontSize = 12, TextWrapping = TextWrapping.Wrap };
         text.Inlines!.Add(new Avalonia.Controls.Documents.Run(key + "  ") { Foreground = Palette.Muted });
-        text.Inlines.Add(new Avalonia.Controls.Documents.Run(value) { Foreground = Palette.Fg, FontFamily = IlmenyxTheme.Mono });
+        var run = new Avalonia.Controls.Documents.Run(value) { Foreground = Palette.Fg, FontFamily = IlmenyxTheme.Mono };
+        text.Inlines.Add(run); values.Add(run);
         return new Border { Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.Pill), Padding = new Thickness(12, 5), Margin = new Thickness(0, 0, 8, 8), Child = text };
     }
 }

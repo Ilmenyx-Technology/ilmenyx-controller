@@ -40,7 +40,7 @@ public sealed class NetworkPage : StackPanel
         Children.Add(new TextBlock { Text = L.T("O teste envia ") + NetworkEndpoints.Description + L.T(". Feche downloads, streaming e jogos antes para um resultado fiel. Nada é gravado em disco."), Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(2, 0, 0, 4) });
         Children.Add(UiKit.SectionHeader(L.T("Tráfego ao vivo"), new TextBlock { Text = L.T("últimos 5 min · soma das interfaces ativas"), FontSize = 11.5, Foreground = Palette.Faint, VerticalAlignment = VerticalAlignment.Center }));
         Children.Add(UiKit.Card(new StackPanel { Spacing = 10, Children = { chart, live, liveSub } }));
-        usage.Updated += () => { chart.SetValues(usage.NetSeries, null, 300); live.Text = usage.NetLine; liveSub.Text = usage.NetSub; };
+        usage.Updated += UiKit.OnScreen(chart, () => { chart.SetValues(usage.NetSeries, null, 300); live.Text = usage.NetLine; liveSub.Text = usage.NetSub; });
         live.Text = usage.NetLine; liveSub.Text = usage.NetSub;
     }
 

@@ -26,23 +26,39 @@ public sealed class ProcessTable : Border
         var nameHead = UiKit.Label(L.T("NOME")); nameHead.VerticalAlignment = VerticalAlignment.Center; nameHead.Margin = new Thickness(4, 0);
         table.Children.Add(nameHead);
         Grid.SetColumn(cpuHeader, 1); Grid.SetColumn(memHeader, 2); table.Children.Add(cpuHeader); table.Children.Add(memHeader);
+        // Rows are reused and only their texts change; off screen nothing is rebuilt (the monitor ticks every second on every page).
+        var lines = new List<(TextBlock Name, TextBlock Cpu, TextBlock Mem)>();
+        bool stale = false;
         void Fill()
         {
-            rows.Children.Clear();
-            foreach (var row in usage.Rows)
+            var data = usage.Rows;
+            while (lines.Count < data.Count)
             {
                 var line = new Grid { ColumnDefinitions = new("*,90,120") };
-                var name = new TextBlock { Text = row.Name, FontSize = 13, Margin = new Thickness(4, 8), TextTrimming = TextTrimming.CharacterEllipsis };
-                var cpu = new TextBlock { Text = row.Cpu, FontSize = 12.5, FontFamily = IlmenyxTheme.Mono, Margin = new Thickness(4, 8, 10, 8), HorizontalAlignment = HorizontalAlignment.Right, Foreground = usage.SortByMemory ? Palette.Muted : Palette.Fg };
-                var mem = new TextBlock { Text = row.Memory, FontSize = 12.5, FontFamily = IlmenyxTheme.Mono, Margin = new Thickness(4, 8, 10, 8), HorizontalAlignment = HorizontalAlignment.Right, Foreground = usage.SortByMemory ? Palette.Fg : Palette.Muted };
+                var name = new TextBlock { FontSize = 13, Margin = new Thickness(4, 8), TextTrimming = TextTrimming.CharacterEllipsis };
+                var cpu = new TextBlock { FontSize = 12.5, FontFamily = IlmenyxTheme.Mono, Margin = new Thickness(4, 8, 10, 8), HorizontalAlignment = HorizontalAlignment.Right };
+                var mem = new TextBlock { FontSize = 12.5, FontFamily = IlmenyxTheme.Mono, Margin = new Thickness(4, 8, 10, 8), HorizontalAlignment = HorizontalAlignment.Right };
                 Grid.SetColumn(cpu, 1); Grid.SetColumn(mem, 2);
                 line.Children.Add(name); line.Children.Add(cpu); line.Children.Add(mem);
                 rows.Children.Add(new Border { BorderBrush = Palette.Line, BorderThickness = new Thickness(0, 1, 0, 0), Child = line });
+                lines.Add((name, cpu, mem));
+            }
+            while (lines.Count > data.Count) { rows.Children.RemoveAt(rows.Children.Count - 1); lines.RemoveAt(lines.Count - 1); }
+            for (int i = 0; i < data.Count; i++)
+            {
+                var (name, cpu, mem) = lines[i];
+                name.Text = data[i].Name; cpu.Text = data[i].Cpu; mem.Text = data[i].Memory;
+                cpu.Foreground = usage.SortByMemory ? Palette.Muted : Palette.Fg; mem.Foreground = usage.SortByMemory ? Palette.Fg : Palette.Muted;
             }
         }
-        usage.Updated += Fill; Fill();
         var summary = new TextBlock { Name = "ProcessSummary", FontSize = 12, Foreground = Palette.Faint, Text = usage.ProcessSummary, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(2, 0, 0, 10) };
-        usage.Updated += () => summary.Text = usage.ProcessSummary;
+        void Update()
+        {
+            if (TopLevel.GetTopLevel(this) is null || !IsEffectivelyVisible) { stale = true; return; }
+            Fill(); summary.Text = usage.ProcessSummary;
+        }
+        usage.Updated += Update; Fill();
+        AttachedToVisualTree += (_, _) => { if (stale) { stale = false; Fill(); summary.Text = usage.ProcessSummary; } };
         Sort();
         // Table surface: one subtle card, header in small caps labels, rows separated by hairlines only.
         var tableLayout = new Grid { RowDefinitions = new("Auto,*") };

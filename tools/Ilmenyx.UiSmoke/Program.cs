@@ -1620,10 +1620,57 @@ public sealed class UiSmokeApp : Application
         Console.WriteLine("AUDIT " + Path.Combine(Program.OutputDirectory, "contrast.tsv") + " rows " + rows.Count);
         shell.Close();
     }
+    /// <summary>Opt-in (ILMENYX_PERF_AUDIT=1): what Ilmenyx itself costs. Real shell and providers; idle on the first page, minimized,
+    /// then each page for ILMENYX_PERF_SECONDS (default 10). CPU includes reaped child processes (smartctl, nvidia-smi...). Writes perf.tsv.</summary>
+    private static async Task PerfAuditAsync()
+    {
+        int seconds = int.TryParse(Environment.GetEnvironmentVariable("ILMENYX_PERF_SECONDS"), out int n) && n > 0 ? n : 10;
+        long ticks = 100; // USER_HZ on Linux
+        static (double Cpu, long Rss, int Threads) Sample()
+        {
+            var f = File.ReadAllText("/proc/self/stat"); var parts = f[(f.LastIndexOf(')') + 2)..].Split(' ');
+            double cpu = long.Parse(parts[11]) + long.Parse(parts[12]) + long.Parse(parts[13]) + long.Parse(parts[14]);
+            long rss = long.Parse(parts[21]) * Environment.SystemPageSize;
+            return (cpu, rss, int.Parse(parts[17]));
+        }
+        var rows = new List<string> { "fase	cpu_pct	rss_mb	pico_rss_mb	threads	alocado_mb	gc0	gc1	gc2	filhos_cpu_pct" };
+        async Task Measure(string phase, int secs)
+        {
+            var (c0, _, _) = Sample(); var f0 = File.ReadAllText("/proc/self/stat"); long a0 = GC.GetTotalAllocatedBytes(); int g0 = GC.CollectionCount(0), g1 = GC.CollectionCount(1), g2 = GC.CollectionCount(2);
+            double child0 = ChildTicks(f0); long peak = 0; var sw = System.Diagnostics.Stopwatch.StartNew();
+            while (sw.Elapsed.TotalSeconds < secs) { await Task.Delay(250); peak = Math.Max(peak, Sample().Rss); }
+            var (c1, rss, threads) = Sample(); double child1 = ChildTicks(File.ReadAllText("/proc/self/stat")); double wall = sw.Elapsed.TotalSeconds;
+            var inv = System.Globalization.CultureInfo.InvariantCulture;
+            rows.Add(string.Join('\t', phase, ((c1 - c0) / ticks / wall * 100).ToString("0.0", inv), (rss / 1048576.0).ToString("0", inv), (peak / 1048576.0).ToString("0", inv), threads,
+                ((GC.GetTotalAllocatedBytes() - a0) / 1048576.0).ToString("0.0", inv), GC.CollectionCount(0) - g0, GC.CollectionCount(1) - g1, GC.CollectionCount(2) - g2,
+                ((child1 - child0) / ticks / wall * 100).ToString("0.0", inv)));
+            Console.WriteLine("PERF " + rows[^1]);
+        }
+        static double ChildTicks(string f) { var p = f[(f.LastIndexOf(')') + 2)..].Split(' '); return long.Parse(p[13]) + long.Parse(p[14]); }
+        var shell = new ShellWindow { Width = 1280, Height = 820 }; shell.Show();
+        await Measure("abertura (primeiros 5 s)", 5);
+        await Measure("parado na primeira página", seconds * 2);
+        shell.WindowState = WindowState.Minimized; await Task.Delay(1000);
+        await Measure("minimizado", seconds * 2);
+        shell.WindowState = WindowState.Normal; await Task.Delay(1000);
+        var keys = shell.GetVisualDescendants().OfType<Button>().Where(b => b.Name is { Length: > 3 } k && k.StartsWith("Nav", StringComparison.Ordinal)).Select(b => b.Name![3..]).ToList();
+        foreach (string key in keys)
+        {
+            try { shell.GetVisualDescendants().OfType<Button>().Single(b => b.Name == "Nav" + key).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); }
+            catch (InvalidOperationException) { rows.Add(key + "\tNAV-ERROR"); continue; }
+            await Measure(key + " (abrir, 2 s)", 2);
+            await Measure(key, seconds);
+        }
+        await Measure("depois de todas as páginas, parado", seconds * 2);
+        File.WriteAllLines(Path.Combine(Program.OutputDirectory, "perf.tsv"), rows);
+        Console.WriteLine("PERF-AUDIT " + Path.Combine(Program.OutputDirectory, "perf.tsv"));
+        shell.Close();
+    }
     private static async Task ExerciseAsync(DashboardWindow window, IClassicDesktopStyleApplicationLifetime desktop)
     {
         var output = Program.OutputDirectory;
         if (Environment.GetEnvironmentVariable("ILMENYX_CONTRAST_AUDIT") == "1") { await ContrastAuditAsync(); desktop.Shutdown(0); return; }
+        if (Environment.GetEnvironmentVariable("ILMENYX_PERF_AUDIT") == "1") { await PerfAuditAsync(); desktop.Shutdown(0); return; }
         await MonitorAsync(desktop);
         await KeyboardAsync(window, desktop);
         await RequirementsAsync(window, desktop);
