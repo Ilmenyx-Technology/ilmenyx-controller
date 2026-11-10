@@ -64,11 +64,12 @@ public sealed class BottleneckTests : IDisposable
     public void CatalogEstimatesAndLookupsKeepTheOriginalBehaviour()
     {
         Assert.Equal(100, GameCatalog.GpuPerf("NVIDIA GeForce RTX 4070")); Assert.Equal(116, GameCatalog.GpuPerf("GeForce RTX 4070 SUPER")); Assert.Equal(150, GameCatalog.GpuPerf("AMD Radeon RX 7900 XT"));
-        Assert.Equal(7, GameCatalog.GpuPerf("Intel Iris Xe")); Assert.Null(GameCatalog.GpuPerf("Matrox G200eR2")); // Iris Xe added to the table on 2026-11-07 Assert.Equal(100, GameCatalog.CpuPerf("AMD Ryzen 7 7700X 8-Core Processor"));
+        Assert.Equal(8.1, GameCatalog.GpuPerf("Intel Iris Xe")); Assert.Null(GameCatalog.GpuPerf("Matrox G200eR2")); // Iris Xe added to the table on 2026-11-07, refitted on 2026-11-10
+        Assert.Equal(100, GameCatalog.CpuPerf("AMD Ryzen 7 7700X 8-Core Processor"));
         Assert.Equal("RTX 5070", GameCatalog.ShortGpuName("NVIDIA GeForce RTX 5070")); Assert.Equal("Ryzen 7 7700X", GameCatalog.ShortCpuName("AMD Ryzen 7 7700X 8-Core Processor"));
         var cs2 = GameCatalog.Games.Single(g => g.Name == "Counter-Strike 2");
         var e = GameCatalog.Estimate(cs2, 100, 100, "1920x1080", "Alto", "Nenhum");
-        Assert.Equal(284, e.Avg); Assert.Equal(Bottleneck.Gpu, e.Limiter); Assert.Equal(213, e.Low1); // measured curve (2026-11-08)
+        Assert.Equal(344, e.Avg); Assert.Equal(Bottleneck.Gpu, e.Limiter); Assert.Equal(258, e.Low1); // measured curve (2026-11-08, refit 2026-11-10)
         Assert.Equal(Bottleneck.Cpu, GameCatalog.Estimate(cs2, 300, 50, "1920x1080", "Alto", "Nenhum").Limiter);
         Assert.Equal(60, GameCatalog.Estimate(GameCatalog.Games.Single(g => g.Name == "Elden Ring"), 300, 300, "1920x1080", "Alto", "Nenhum").Avg);
     }

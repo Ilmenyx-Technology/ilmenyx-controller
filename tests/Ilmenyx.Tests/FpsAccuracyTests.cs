@@ -84,7 +84,7 @@ public sealed class FpsAccuracyTests : IDisposable
         Assert.Equal(FpsConfidence.VeryLow, a.Confidence); Assert.InRange(a.Spread, 0.45, FpsAccuracy.MaxSpread);
         var row = new GameFpsRow(GameCatalog.Games.Single(x => x.Name == "Counter-Strike 2"));
         row.SetEstimate(GameCatalog.Estimate(row.Game, g.Index, c, "1920x1080", "Alto", "Native"), a);
-        Assert.Equal("7–21", row.FpsText); Assert.Equal("confiança muito baixa", row.LowText); Assert.Equal("ESTIMATIVA", row.Source); Assert.False(row.IsMeasured);
+        Assert.Equal("7–19", row.FpsText); Assert.Equal("confiança muito baixa", row.LowText); Assert.Equal("ESTIMATIVA", row.Source); Assert.False(row.IsMeasured);
     }
 
     [Fact]

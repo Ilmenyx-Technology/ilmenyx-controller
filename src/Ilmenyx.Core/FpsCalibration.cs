@@ -47,11 +47,11 @@ public static class FpsModels
 
     /// <summary>
     /// GPU index per scene point. Fit index = k × score (slope fixed at 1: the scene is a fixed amount of work, so its FPS is proportional to
-    /// GPU throughput) through the three GPUs measured by the team with their table indices: GeForce 940MX 172 → 4,5; Intel HD 620 109 → 2,5;
-    /// Radeon 610M 150 → 3 (docs/evidencias, 2026-11-06/07). Geometric mean of index/score = 0,0229. Cross-check: an RTX 4070 (index 100)
-    /// would score ≈ 4370, i.e. ≈ 25× the 940MX, in line with their FP32 throughput ratio (29,1 vs 0,95 TFLOPS ≈ 31×).
+    /// GPU throughput) through the three GPUs measured by the team with their table indices: GeForce 940MX 172 → 3,3; Intel HD 620 109 → 1,4;
+    /// Radeon 610M 150 → 3,9 (docs/evidencias, 2026-11-06/07; indices of the 2026-11-10 refit). Geometric mean of index/score = 0,0186.
+    /// Cross-check: the owner's Iris Xe (score 408, a machine outside the fit) gets 7,6 against its table index 8,1 (was 9,3 against 7).
     /// </summary>
-    public const double SceneK = 0.0229;
+    public const double SceneK = 0.0186;
 
     /// <summary>
     /// CPU index per GameSim single-thread FPS. One anchor: Intel Core i7-7500U (table index 36) measured 22,09 / 22,06 / 21,33 FPS in three
@@ -78,13 +78,14 @@ public static class FpsModels
 
     /// <summary>
     /// index = k_arch × TFLOPS^β, TFLOPS = shaders × 2 × clock. β and k fitted (least squares in log space, common β, one k per
-    /// architecture) to the 29 GPUs that are both in <see cref="GpuSpecDb"/> and in the index table: β = 0,703, error ≤ 9 % on those.
-    /// Maxwell and RDNA 2 have one (low-end) point each, so their k comes from that point alone.
+    /// architecture) to the 33 entries that are both in <see cref="GpuSpecDb"/> and in the index table (refitted 2026-11-10 with the new indices):
+    /// β = 0,799, mean error 6,4 %, worst 18 % (RX 7700 XT; RDNA 3 is the least regular family, see docs/fps-estimativa.md 0.5).
+    /// Maxwell has one (low-end) point and RDNA 2 two integrated ones, so their k comes from those alone.
     /// </summary>
-    public const double SpecBeta = 0.703;
+    public const double SpecBeta = 0.799;
     private static readonly Dictionary<string, double> ArchK = new(StringComparer.Ordinal)
     {
-        ["Blackwell"] = 10.385, ["Ada Lovelace"] = 9.63, ["Ampere"] = 10.362, ["RDNA 4"] = 17.611, ["RDNA 3"] = 14.235, ["RDNA 2"] = 4.983, ["Maxwell"] = 4.652,
+        ["Blackwell"] = 6.939, ["Ada Lovelace"] = 6.503, ["Ampere"] = 6.413, ["RDNA 4"] = 10.922, ["RDNA 3"] = 9.689, ["RDNA 2"] = 7.627, ["Maxwell"] = 3.427,
     };
 
     public static double Tflops(int shaders, int mhz) => shaders * 2.0 * mhz / 1e6;

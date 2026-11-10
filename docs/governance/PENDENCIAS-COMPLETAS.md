@@ -123,6 +123,11 @@ Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes qu
   (o mesmo build que instalou o repack nas duas máquinas, LGPL) do GitHub do Bottles, 174 MB, SHA-256 fixado e conferido com o arquivo real,
   para ~/.local/share/ilmenyx/runners/wine-soda-11.0-10 (preferido ao do Bottles). VALIDADO pelo dono pela tela, com o Soda do Bottles
   escondido: pergunta, download com progresso, OpenTTD instalado com o Wine do Ilmenyx, nenhum processo sobrando.
+- [x] **Reajuste dos índices de GPU** (branch feat/indices-gpu): índices e curvas ajustados juntos nos 2 775 pontos; erro médio 16,6 % ->
+  12,5 % no ajuste e 18,7 % -> 14,8 % na validação cruzada (5 partes). SceneK 0,0229 -> 0,0186 (a calibração da Iris Xe passa de 9,3
+  para 7,6, contra 8,1 na tabela); modelo por especificações β 0,799, erro médio 6,4 %. Testes atualizados (1324 aprovados); um assert
+  do CpuPerf que estava escondido dentro de um comentário voltou a rodar. Limites: degrau RX 7900 GRE/XT; CS2 na Iris Xe continua
+  otimista (17–43 contra 14,8). Detalhes: docs/fps-estimativa.md, seção 0.5. Falta: o dono ver a página de FPS e aprovar o merge.
 - [ ] **IDEIA FUTURA do dono (2026-11-09): base comunitária de FPS**. Usuários que aceitarem enviam diagnóstico e FPS médio dos jogos
   para a Estimativa de FPS ficar mais real. Análise pronta (infraestrutura, LGPD, abuso, massa crítica): `docs/fps-estimativa-metodos.md`,
   método (e). Antes de começar: decidir servidor e custo, termo de consentimento, PRIVACY.md e o formato da sessão a enviar.
