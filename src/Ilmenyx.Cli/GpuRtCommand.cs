@@ -22,8 +22,8 @@ public static class GpuRtCommand
     public static (GpuRtRequest? Request, string? Error) Parse(string command, IReadOnlyDictionary<string, string?> flags)
     {
         string[] known = ["--allow-gpu-load", "--adapter", "--preset", "--resolution", "--warmup-seconds", "--pass-seconds", "--passes", "--json", "--temp-limit", "--output", "--t"];
-        if (flags.Keys.FirstOrDefault(k => !known.Contains(k)) is { } unknown) return (null, "Opção desconhecida: " + unknown);
-        if (!flags.ContainsKey("--allow-gpu-load")) return (null, command + " exige --allow-gpu-load (carga máxima na GPU).");
+        if (flags.Keys.FirstOrDefault(k => !known.Contains(k)) is { } unknown) return (null, L.T("Opção desconhecida: ") + unknown);
+        if (!flags.ContainsKey("--allow-gpu-load")) return (null, command + L.T(" exige --allow-gpu-load (carga máxima na GPU)."));
         try
         {
             int? adapter = flags.ContainsKey("--adapter") ? Int(flags, "--adapter", 0, 0, 16) : null;
@@ -42,7 +42,7 @@ public static class GpuRtCommand
             if (command == "gpu-rt-snapshot")
             {
                 if (!flags.TryGetValue("--output", out output) || output is null || !Path.IsPathFullyQualified(output) || !output.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
-                    return (null, "gpu-rt-snapshot exige --output com caminho absoluto de um PNG novo.");
+                    return (null, L.T("gpu-rt-snapshot exige --output com caminho absoluto de um PNG novo."));
                 if (flags.TryGetValue("--t", out var ts) && ts is not null && (!double.TryParse(ts, NumberStyles.Float, CultureInfo.InvariantCulture, out t) || t is < 0 or > 1))
                     return (null, "--t deve estar entre 0 e 1.");
             }
@@ -56,7 +56,7 @@ public static class GpuRtCommand
     {
         if (!flags.TryGetValue(name, out string? text) || text is null) return fallback;
         if (!int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out int value) || value < min || value > max)
-            throw new ArgumentException($"{name} deve estar entre {min} e {max}.");
+            throw new ArgumentException(L.T($"{name} deve estar entre {min} e {max}."));
         return value;
     }
 
@@ -67,11 +67,11 @@ public static class GpuRtCommand
         var lines = new List<string>
         {
             head,
-            string.Create(CultureInfo.InvariantCulture, $"{GpuRtPresets.Label(r.Preset)} · {r.Width}×{r.Height} · nota {r.Score:0} · {r.MedianFps:0.00} FPS (mediana) · 1% low {r.MedianLow1:0.00}"),
-            string.Create(CultureInfo.InvariantCulture, $"Variação entre passadas: {r.VariationPct:0.0}% · {(r.Reliable ? "confiável" : r.Passes.Count < 3 ? "menos de 3 passadas: não confiável" : "acima de 3%: não confiável")}"),
-            string.Create(CultureInfo.InvariantCulture, $"Raios por segundo (estimado): {r.GigaRaysPerSec:0.000} bilhões · tempo de quadro: {(r.GpuTimestamps ? "timestamps da GPU" : "relógio da CPU (fila sem timestamps)")}"),
+            L.T($"{GpuRtPresets.Label(r.Preset)} · {r.Width}×{r.Height} · nota {r.Score:0} · {r.MedianFps:0.00} FPS (mediana) · 1% low {r.MedianLow1:0.00}"),
+            L.T($"Variação entre passadas: {r.VariationPct:0.0}% · {(r.Reliable ? L.T("confiável") : r.Passes.Count < 3 ? L.T("menos de 3 passadas: não confiável") : L.T("acima de 3%: não confiável"))}"),
+            L.T($"Raios por segundo (estimado): {r.GigaRaysPerSec:0.000} bilhões · tempo de quadro: {(r.GpuTimestamps ? L.T("timestamps da GPU") : L.T("relógio da CPU (fila sem timestamps)"))}"),
         };
-        for (int i = 0; i < r.Passes.Count; i++) lines.Add(string.Create(CultureInfo.InvariantCulture, $"Passada {i + 1}: {r.Passes[i].AvgFps:0.00} FPS · 1% low {r.Passes[i].Low1Fps:0.00} · {r.Passes[i].Frames} quadros"));
+        for (int i = 0; i < r.Passes.Count; i++) lines.Add(L.T($"Passada {i + 1}: {r.Passes[i].AvgFps:0.00} FPS · 1% low {r.Passes[i].Low1Fps:0.00} · {r.Passes[i].Frames} quadros"));
         lines.Add(GpuRtResult.Comparability);
         return string.Join("\n", lines);
     }
@@ -83,14 +83,14 @@ public static class GpuRtCommand
         if (request is null) { Console.Error.WriteLine(error); return 2; }
         var devices = VulkanDevices.List();
         var (adapter, why) = GpuRtSupport.Pick(devices, request.Adapter);
-        if (adapter is null) { Console.Error.WriteLine("Ray tracing indisponível: " + why); return 1; }
-        if (adapter.IsSoftware) Console.Error.WriteLine($"AVISO: o adaptador {adapter.Index} ({adapter.Name}) é renderização por CPU, escolhido só porque foi pedido com --adapter.");
+        if (adapter is null) { Console.Error.WriteLine(L.T("Ray tracing indisponível: ") + why); return 1; }
+        if (adapter.IsSoftware) Console.Error.WriteLine(L.T($"AVISO: o adaptador {adapter.Index} ({adapter.Name}) é renderização por CPU, escolhido só porque foi pedido com --adapter."));
         var options = request.Options with { AdapterIndex = adapter.Index };
         bool integrated = adapter.Kind == L.T("GPU integrada") || adapter.IsSoftware;
         Func<double?> temperature = integrated ? () => LinuxThermalProbe.CpuTempC() : () => LinuxThermalProbe.GpuTempC(adapter.VendorId, adapter.DeviceId);
         string sensor = integrated ? "CPU" : "GPU";
-        if (temperature() is null) Console.Error.WriteLine($"ATENÇÃO: nenhum sensor de temperatura da {sensor} está sendo lido; o corte automático NÃO funcionará.");
-        else Console.Error.WriteLine(string.Create(CultureInfo.InvariantCulture, $"Corte por temperatura: {sensor} a {request.TempLimit:0} °C") + (integrated && !adapter.IsSoftware ? " (GPU integrada: vale a temperatura da CPU)." : "."));
+        if (temperature() is null) Console.Error.WriteLine(L.T($"ATENÇÃO: nenhum sensor de temperatura da {sensor} está sendo lido; o corte automático NÃO funcionará."));
+        else Console.Error.WriteLine(L.T($"Corte por temperatura: {sensor} a {request.TempLimit:0} °C") + (integrated && !adapter.IsSoftware ? L.T(" (GPU integrada: vale a temperatura da CPU).") : "."));
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         string? abort = null; double maxTemp = double.NaN;
@@ -101,7 +101,7 @@ public static class GpuRtCommand
                 if (temperature() is double t)
                 {
                     maxTemp = double.IsNaN(maxTemp) ? t : Math.Max(maxTemp, t);
-                    if (t >= request.TempLimit) { abort = string.Create(CultureInfo.InvariantCulture, $"ABORTADO: {sensor} a {t:0.#} °C, limite {request.TempLimit:0} °C"); cts.Cancel(); return; }
+                    if (t >= request.TempLimit) { abort = L.T($"ABORTADO: {sensor} a {t:0.#} °C, limite {request.TempLimit:0} °C"); cts.Cancel(); return; }
                 }
                 try { await Task.Delay(1000, cts.Token); } catch (OperationCanceledException) { return; }
             }
@@ -112,16 +112,16 @@ public static class GpuRtCommand
             if (request.Output is { } png)
             {
                 r = await new GpuRtBench().SnapshotAsync(options, request.T, png, cts.Token);
-                Console.WriteLine(r.Status == GpuRunStatus.Completed ? $"Quadro salvo em {png} ({r.Width}×{r.Height}, {GpuRtPresets.Label(r.Preset)}) · {r.Adapter}" : $"Ray tracing snapshot · {r.Status}\n{abort ?? r.Reason}");
+                Console.WriteLine(r.Status == GpuRunStatus.Completed ? L.T($"Quadro salvo em {png} ({r.Width}×{r.Height}, {GpuRtPresets.Label(r.Preset)}) · {r.Adapter}") : $"Ray tracing snapshot · {r.Status}\n{abort ?? r.Reason}");
                 return r.Status == GpuRunStatus.Completed ? 0 : 1;
             }
             var progress = new Progress<GpuRtProgress>(p => { if (!request.Json) Console.Error.Write(string.Create(CultureInfo.InvariantCulture, $"\r{p.Phase} · {p.Fraction:P0} · {p.Fps:0.0} FPS      ")); });
-            Console.Error.WriteLine(string.Create(CultureInfo.InvariantCulture, $"Ray tracing · {adapter.Name} · {GpuRtPresets.Label(options.Preset)} {options.Width}×{options.Height} · aquecimento {options.EffectiveWarmup.TotalSeconds:0} s + {options.Passes}×{options.EffectivePass.TotalSeconds:0} s"));
+            Console.Error.WriteLine(L.T($"Ray tracing · {adapter.Name} · {GpuRtPresets.Label(options.Preset)} {options.Width}×{options.Height} · aquecimento {options.EffectiveWarmup.TotalSeconds:0} s + {options.Passes}×{options.EffectivePass.TotalSeconds:0} s"));
             r = await new GpuRtBench().RunAsync(options, cts.Token, progress);
             if (!request.Json) Console.Error.WriteLine();
             if (abort is not null && r.Status == GpuRunStatus.Cancelled) r = r with { Status = GpuRunStatus.Failed, Reason = abort };
             Console.WriteLine(request.Json ? JsonSerializer.Serialize(r, new JsonSerializerOptions { WriteIndented = true }) : Text(r));
-            if (!request.Json && !double.IsNaN(maxTemp)) Console.Error.WriteLine(string.Create(CultureInfo.InvariantCulture, $"Temperatura máxima lida ({sensor}): {maxTemp:0.#} °C"));
+            if (!request.Json && !double.IsNaN(maxTemp)) Console.Error.WriteLine(L.T($"Temperatura máxima lida ({sensor}): {maxTemp:0.#} °C"));
             return r.Status == GpuRunStatus.Completed ? 0 : 1;
         }
         finally { cts.Cancel(); await guard; }

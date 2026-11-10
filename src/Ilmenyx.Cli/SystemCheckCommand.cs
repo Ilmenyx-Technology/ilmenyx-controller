@@ -11,7 +11,7 @@ namespace Ilmenyx.Cli;
 public static class SystemCheckCommand
 {
     public static bool Handles(string[] args) => args is ["game-check", ..] or ["zram", ..];
-    private const string Usage = "Uso: ilmenyx game-check | ilmenyx zram status | ilmenyx zram plan | ilmenyx zram script apply|undo|undo-remove   (somente leitura; nada é alterado, o script só é impresso)";
+    private static string Usage => L.T("Uso: ilmenyx game-check | ilmenyx zram status | ilmenyx zram plan | ilmenyx zram script apply|undo|undo-remove   (somente leitura; nada é alterado, o script só é impresso)");
 
     public static async Task<int> RunAsync(string[] args, TextWriter o, CancellationToken ct, GameLaunchProbe? games = null, ZramProbe? zram = null)
     {
@@ -19,7 +19,7 @@ public static class SystemCheckCommand
         {
             var facts = await (games ?? new GameLaunchProbe()).CollectAsync(ct);
             var checks = GameLaunchChecks.Build(facts);
-            await o.WriteLineAsync("Jogo não abre? · " + (facts.Distro.Name.Length > 0 ? facts.Distro.Name : "sistema não identificado"));
+            await o.WriteLineAsync(L.T("Jogo não abre? · ") + (facts.Distro.Name.Length > 0 ? facts.Distro.Name : L.T("sistema não identificado")));
             await o.WriteLineAsync(GameLaunchChecks.Summary(checks));
             foreach (var c in checks.OrderByDescending(c => c.Status))
             {
@@ -28,8 +28,8 @@ public static class SystemCheckCommand
                 await o.WriteLineAsync("  " + c.Found);
                 if (c.Warning is { } w) await o.WriteLineAsync("  ! " + w);
                 foreach (var (label, command) in c.Commands) await o.WriteLineAsync($"  $ {command}   # {label}");
-                foreach (var f in c.Fixes) await o.WriteLineAsync($"  (botão na interface) flatpak {string.Join(' ', f.Arguments)}");
-                if (c.LinkPage is { } p) await o.WriteLineAsync("  Veja também a página: " + p);
+                foreach (var f in c.Fixes) await o.WriteLineAsync(L.T($"  (botão na interface) flatpak {string.Join(' ', f.Arguments)}"));
+                if (c.LinkPage is { } p) await o.WriteLineAsync(L.T("  Veja também a página: ") + p);
             }
             return 0;
         }
@@ -39,7 +39,7 @@ public static class SystemCheckCommand
             ZramActionKind? kind = which switch { "apply" => ZramActionKind.Apply, "undo" => ZramActionKind.Undo, "undo-remove" => ZramActionKind.UndoAndRemovePackage, _ => null };
             if (kind is null) { await o.WriteLineAsync(Usage); return 2; }
             var p = ZramPlanner.Plan(await (zram ?? new ZramProbe()).CollectAsync(ct));
-            if (p.Actions.FirstOrDefault(a => a.Kind == kind) is not { } action) { await Console.Error.WriteLineAsync($"Sem a ação '{which}' no plano atual ({p.State}: {p.Headline})."); return 1; }
+            if (p.Actions.FirstOrDefault(a => a.Kind == kind) is not { } action) { await Console.Error.WriteLineAsync(L.T($"Sem a ação '{which}' no plano atual ({p.State}: {p.Headline}).")); return 1; }
             await o.WriteAsync(action.Script);
             return 0;
         }
@@ -47,17 +47,17 @@ public static class SystemCheckCommand
         var plan = ZramPlanner.Plan(await (zram ?? new ZramProbe()).CollectAsync(ct));
         await o.WriteLineAsync("ZRAM · " + plan.Headline);
         await o.WriteLineAsync(plan.Summary);
-        await o.WriteLineAsync("Estado: " + plan.State + (plan.SizeMiB is { } s ? $" · tamanho proposto: {s} MiB" : ""));
+        await o.WriteLineAsync(L.T("Estado: ") + plan.State + (plan.SizeMiB is { } s ? L.T($" · tamanho proposto: {s} MiB") : ""));
         foreach (var f in plan.Findings) await o.WriteLineAsync("  · " + f);
         if (args[1] == "status")
         {
-            await o.WriteLineAsync("Ações possíveis: " + (plan.Actions.Count == 0 ? "nenhuma" : string.Join(", ", plan.Actions.Select(a => a.Button))) + "  (scripts: ilmenyx zram plan)");
+            await o.WriteLineAsync(L.T("Ações possíveis: ") + (plan.Actions.Count == 0 ? L.T("nenhuma") : string.Join(", ", plan.Actions.Select(a => a.Button))) + L.T("  (scripts: ilmenyx zram plan)"));
             return 0;
         }
         foreach (var a in plan.Actions)
         {
             await o.WriteLineAsync();
-            await o.WriteLineAsync($"== {a.Button}: {a.Title}{(a.Tested ? "" : "  [NÃO TESTADO]")}");
+            await o.WriteLineAsync($"== {a.Button}: {a.Title}{(a.Tested ? "" : L.T("  [NÃO TESTADO]"))}");
             foreach (var st in a.Steps) await o.WriteLineAsync("  - " + st);
             foreach (var r in a.Risks) await o.WriteLineAsync("  ! " + r);
             await o.WriteLineAsync("-- script (root, via pkexec na interface):");

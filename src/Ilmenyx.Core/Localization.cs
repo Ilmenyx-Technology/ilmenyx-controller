@@ -64,7 +64,10 @@ public static class L
         var language = Find(code) ?? Languages[0];
         catalog = language.Code == Reference ? new Dictionary<string, string>() : Load(language.Code);
         Current = language.Code;
-        var culture = CultureInfo.GetCultureInfo(language.Culture);
+        CultureInfo culture;
+        // Invariant globalization (no ICU) has no named cultures: texts still switch, formats stay invariant.
+        try { culture = CultureInfo.GetCultureInfo(language.Culture); }
+        catch (CultureNotFoundException) { return; }
         CultureInfo.DefaultThreadCurrentCulture = CultureInfo.DefaultThreadCurrentUICulture = culture;
         CultureInfo.CurrentCulture = CultureInfo.CurrentUICulture = culture;
     }

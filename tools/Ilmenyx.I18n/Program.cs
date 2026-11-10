@@ -18,7 +18,7 @@ namespace Ilmenyx.I18n;
 
 internal static partial class Program
 {
-    private static readonly string[] Sources = ["src/Ilmenyx.Core", "src/Ilmenyx.Platform.Linux", "src/Ilmenyx.Gpu.Vulkan", "src/Ilmenyx.Desktop"];
+    private static readonly string[] Sources = ["src/Ilmenyx.Core", "src/Ilmenyx.Platform.Linux", "src/Ilmenyx.Gpu.Vulkan", "src/Ilmenyx.Desktop", "src/Ilmenyx.Cli"];
     private const string LocaleDir = "src/Ilmenyx.Core/Locales";
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 
