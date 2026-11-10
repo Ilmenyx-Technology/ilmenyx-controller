@@ -88,6 +88,8 @@ Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes qu
 - [x] **Nome novo no app** (menu lateral, título da janela, Sobre, doctor): VALIDADO pelo dono. Ajuste pedido: título da página
   estava colado na marca; menu lateral 214 -> 230 px e 20 px antes do título e do conteúdo. Dono aprovou; UiSmoke 68/68.
 - [x] **Tela de permissões na 1ª execução com senha real: VALIDADA** (22:49, consumo da CPU liberado; regra udev criada).
+- [x] **Persistência após reiniciar** (2026-11-10 01:55): regra udev mantida e as três zonas RAPL (intel-rapl:0, :0:0, :0:1) legíveis pelo
+  usuário sem pedir senha de novo. VALIDADO.
 - [x] **Desfazer depois**: antes só existia logo após liberar. Novo card "PERMISSÕES DADAS PELO ILMENYX" em Requisitos e sobre, com
   DESFAZER; desfazer fecha todas as zonas RAPL. VALIDADO pelo dono: regra removida e leitura negada ao usuário. Testes 1288.
 - [x] **ZRAM já ligada pela distribuição** (CachyOS, zram-generator padrão): "ZRAM já está ativo", sem LIGAR/DESFAZER. VALIDADO pelo dono.
