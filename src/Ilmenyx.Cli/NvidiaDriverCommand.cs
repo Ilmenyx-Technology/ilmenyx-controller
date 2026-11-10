@@ -21,7 +21,7 @@ public static class NvidiaDriverCommand
         var plan = NvidiaPlanner.Plan(d);
         await o.WriteLineAsync(L.T("Driver NVIDIA") + " · " + plan.Headline);
         await o.WriteLineAsync(plan.Summary);
-        await o.WriteLineAsync(L.T("Estado: ") + plan.State);
+        await o.WriteLineAsync(L.T("Estado: ") + StatusText.Of(plan.State));
         foreach (var f in plan.Findings) await o.WriteLineAsync("  · " + f);
         if (plan.Guidance is { } g) await o.WriteLineAsync(L.T("Orientação: ") + g);
         if (args[1] == "status")

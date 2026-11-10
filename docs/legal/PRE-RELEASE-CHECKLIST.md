@@ -6,7 +6,7 @@ não equivalem a conformidade legal. Publicação permanece sem autorização ne
 
 | Item | Evidência/data | Estado | Bloqueio/ação humana |
 |---|---|---|---|
-| [~] Busca INPI Ilmenyx e Bismuth Technology (nome antigo da organização; refazer para "Ilmenyx Controller" e "Ilmenyx Technology"), radicais/fonética/classes (avaliar 9/42 conforme atividade) | `docs/legal/BUSCA-MARCA-2026-11-07.md` (INPI, USPTO, web, domínios); WIPO/TMview/EUIPO exigem consulta manual | PARCIAL: Ilmenyx risco baixo; Bismuth risco médio | Titular/especialista definir abrangência/decisão; sem afirmar marca livre/registrada |
+| [~] Busca INPI Ilmenyx e Bismuth Technology (nome antigo da organização); "Ilmenyx Controller" e "Ilmenyx Technology" cobertos pelo radical ILMENYX (nota de 2026-11-10), radicais/fonética/classes (avaliar 9/42 conforme atividade) | `docs/legal/BUSCA-MARCA-2026-11-07.md` (INPI, USPTO, web, domínios); WIPO/TMview/EUIPO exigem consulta manual | PARCIAL: Ilmenyx risco baixo; Bismuth risco médio | Titular/especialista definir abrangência/decisão; sem afirmar marca livre/registrada |
 | [ ] Busca internacional, uso comercial, handles/domínios | Não realizada | PENDENTE DE REVISÃO | Domínio/handle livre não comprova direito |
 | [ ] Eventual depósito/titular/custeio | Nenhuma ação/registro | PENDENTE DE REVISÃO | Aprovação formal; sem símbolo de registro |
 | [~] Autoria/cessões/contribuições/identidade | OWNERSHIP-AND-CONTRIBUTIONS.md, COPYRIGHT-AND-CONTRIBUTIONS.md, CONTRIBUTING.md (sem código externo), 2026-11-07 | Titular: mantenedor pessoa física; Silex = mantenedor | Falta o nome civil completo nos avisos (PENDENCIAS #3); cessão à empresa só por contrato |

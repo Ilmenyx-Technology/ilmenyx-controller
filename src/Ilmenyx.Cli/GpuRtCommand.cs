@@ -62,7 +62,7 @@ public static class GpuRtCommand
 
     public static string Text(GpuRtResult r)
     {
-        string head = $"Ray tracing · {r.Status} · {r.Adapter}";
+        string head = $"Ray tracing · {StatusText.Of(r.Status)} · {r.Adapter}";
         if (r.Status != GpuRunStatus.Completed) return head + "\n" + r.Reason;
         var lines = new List<string>
         {
@@ -112,7 +112,7 @@ public static class GpuRtCommand
             if (request.Output is { } png)
             {
                 r = await new GpuRtBench().SnapshotAsync(options, request.T, png, cts.Token);
-                Console.WriteLine(r.Status == GpuRunStatus.Completed ? L.T($"Quadro salvo em {png} ({r.Width}×{r.Height}, {GpuRtPresets.Label(r.Preset)}) · {r.Adapter}") : $"Ray tracing snapshot · {r.Status}\n{abort ?? r.Reason}");
+                Console.WriteLine(r.Status == GpuRunStatus.Completed ? L.T($"Quadro salvo em {png} ({r.Width}×{r.Height}, {GpuRtPresets.Label(r.Preset)}) · {r.Adapter}") : $"Ray tracing snapshot · {StatusText.Of(r.Status)}\n{abort ?? r.Reason}");
                 return r.Status == GpuRunStatus.Completed ? 0 : 1;
             }
             var progress = new Progress<GpuRtProgress>(p => { if (!request.Json) Console.Error.Write(string.Create(CultureInfo.InvariantCulture, $"\r{p.Phase} · {p.Fraction:P0} · {p.Fps:0.0} FPS      ")); });

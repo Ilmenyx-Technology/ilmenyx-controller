@@ -9,7 +9,8 @@ key=3D9716572A398DCDD0CFF0EE733D2EC78436DCE8
 pass=${ILMENYX_SIGNING_PASSFILE:-$HOME/.config/ilmenyx-release/subchave-senha}
 for file in "$@"; do
   [[ -f $file && $file != *.asc ]] || continue
-  gpg --batch --yes --pinentry-mode loopback --passphrase-file "$pass" --local-user "$key" --armor --detach-sign --output "$file.asc" "$file"
+  if [[ -f $pass ]]; then gpg --batch --yes --pinentry-mode loopback --passphrase-file "$pass" --local-user "$key" --armor --detach-sign --output "$file.asc" "$file"
+  else gpg --yes --local-user "$key" --armor --detach-sign --output "$file.asc" "$file"; fi  # no password file: gpg asks once
   gpg --batch --verify "$file.asc" "$file" 2>/dev/null || { echo "Assinatura inválida: $file" >&2; exit 1; }
   echo "assinado: $file.asc"
 done

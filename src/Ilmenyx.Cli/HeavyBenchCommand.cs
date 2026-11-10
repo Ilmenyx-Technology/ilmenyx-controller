@@ -59,7 +59,7 @@ public static class HeavyBenchCommand
                 var burn = await new Ilmenyx.Gpu.Vulkan.GpuBurn().RunAsync(o, ct, progress);
                 if (!json) Console.Error.WriteLine();
                 Console.WriteLine(json ? JsonSerializer.Serialize(burn, new JsonSerializerOptions { WriteIndented = true }) :
-                    $"GPU burn · {burn.Status} · {burn.Adapter}" + (burn.Status == Ilmenyx.Gpu.Vulkan.GpuRunStatus.Completed ? L.T($"\n{burn.Frames} quadros em {burn.Seconds:0.0} s · {burn.AverageFps:0.0} FPS médio") : "\n" + burn.Reason));
+                    $"GPU burn · {StatusText.Of(burn.Status)} · {burn.Adapter}" + (burn.Status == Ilmenyx.Gpu.Vulkan.GpuRunStatus.Completed ? L.T($"\n{burn.Frames} quadros em {burn.Seconds:0.0} s · {burn.AverageFps:0.0} FPS médio") : "\n" + burn.Reason));
                 return burn.Status == Ilmenyx.Gpu.Vulkan.GpuRunStatus.Completed ? 0 : 1;
             }
             if (args[1] is "gpu-scene" or "gpu-snapshot")
@@ -72,14 +72,14 @@ public static class HeavyBenchCommand
                     if (!flags.TryGetValue("--output", out string? png) || png is null || !Path.IsPathFullyQualified(png)) { Console.Error.WriteLine(L.T("gpu-snapshot exige --output com caminho absoluto de um PNG novo.")); return 2; }
                     double t = flags.TryGetValue("--t", out string? ts) && double.TryParse(ts, NumberStyles.Float, CultureInfo.InvariantCulture, out double tv) ? tv : 0.1;
                     var snap = await new Ilmenyx.Gpu.Vulkan.GpuScene().SnapshotAsync(so, t, png, ct);
-                    Console.WriteLine(snap.Status == Ilmenyx.Gpu.Vulkan.GpuRunStatus.Completed ? L.T($"Quadro salvo em {png} ({snap.Width}×{snap.Height}) · {snap.Adapter}") : $"GPU snapshot · {snap.Status}\n{snap.Reason}");
+                    Console.WriteLine(snap.Status == Ilmenyx.Gpu.Vulkan.GpuRunStatus.Completed ? L.T($"Quadro salvo em {png} ({snap.Width}×{snap.Height}) · {snap.Adapter}") : $"GPU snapshot · {StatusText.Of(snap.Status)}\n{snap.Reason}");
                     return snap.Status == Ilmenyx.Gpu.Vulkan.GpuRunStatus.Completed ? 0 : 1;
                 }
                 var sprogress = new Progress<Ilmenyx.Gpu.Vulkan.GpuSceneProgress>(p => { if (!json) Console.Error.Write(L.T($"\r{p.Seconds:0.0} s · {p.Frames} quadros · {p.Fps:0.0} FPS   ")); });
                 var scene = await new Ilmenyx.Gpu.Vulkan.GpuScene().RunAsync(so, ct, sprogress);
                 if (!json) Console.Error.WriteLine();
                 Console.WriteLine(json ? JsonSerializer.Serialize(scene, new JsonSerializerOptions { WriteIndented = true }) :
-                    L.T($"Cena de GPU · {scene.Status} · {scene.Adapter}") + (scene.Status == Ilmenyx.Gpu.Vulkan.GpuRunStatus.Completed
+                    L.T($"Cena de GPU · {StatusText.Of(scene.Status)} · {scene.Adapter}") + (scene.Status == Ilmenyx.Gpu.Vulkan.GpuRunStatus.Completed
                         ? L.T($"\n{scene.Width}×{scene.Height} · {scene.Frames} quadros em {scene.Seconds:0.0} s · {scene.AverageFps:0.0} FPS médio · 1% low {scene.Low1Fps:0.0} · nota {scene.Score:0}\n{Ilmenyx.Gpu.Vulkan.GpuSceneResult.Comparability}")
                         : "\n" + scene.Reason));
                 return scene.Status == Ilmenyx.Gpu.Vulkan.GpuRunStatus.Completed ? 0 : 1;
@@ -91,7 +91,7 @@ public static class HeavyBenchCommand
                 long available = LinuxMemoryInfo.AvailableBytes();
                 var r = await MemoryBench.RunAsync(available, TimeSpan.FromSeconds(timeout), ct);
                 Console.WriteLine(json ? JsonSerializer.Serialize(r, new JsonSerializerOptions { WriteIndented = true }) :
-                    L.T($"Memória · {r.Status}") + (r.Status == BenchRunStatus.Completed
+                    L.T($"Memória · {StatusText.Of(r.Status)}") + (r.Status == BenchRunStatus.Completed
                         ? L.T($"\nLatência: {r.LatencyNs:0.0} ns · Leitura: {r.ReadGBs:0.0} GB/s · Cópia: {r.CopyGBs:0.0} GB/s · Threads: {r.Threads}")
                         : "\n" + r.Reason));
                 return r.Status == BenchRunStatus.Completed ? 0 : 1;
@@ -102,7 +102,7 @@ public static class HeavyBenchCommand
                 TimeSpan.FromSeconds(Int(flags, "--timeout-seconds", 180, 10, 600)));
             var d = await LinuxDiskBench.RunAsync(options, ct);
             Console.WriteLine(json ? JsonSerializer.Serialize(d, new JsonSerializerOptions { WriteIndented = true }) :
-                L.T($"Disco · {d.Status} · {d.Directory}") + (d.Status == BenchRunStatus.Completed
+                L.T($"Disco · {StatusText.Of(d.Status)} · {d.Directory}") + (d.Status == BenchRunStatus.Completed
                     ? L.T($"\nSeq. leitura: {d.SeqReadMBs:0} MB/s · Seq. escrita: {d.SeqWriteMBs:0} MB/s\n4K Q1 leitura: {d.ReadIopsQ1:0} IOPS ({d.ReadLatencyUs:0.0} µs) · 4K Q1 escrita: {d.WriteIopsQ1:0} IOPS ({d.WriteLatencyUs:0.0} µs) · 4K Q8 leitura: {d.ReadIopsQ8:0} IOPS\nNota do histórico: {d.Score:0}")
                     : "\n" + d.Reason));
             return d.Status == BenchRunStatus.Completed ? 0 : 1;

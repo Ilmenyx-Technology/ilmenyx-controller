@@ -29,8 +29,11 @@ public static class SnapshotReport
     public static Task ExportAsync(CpuBenchmarkReport report, string path, CancellationToken ct = default) => ExportDocumentAsync(report, path, ct);
     private static Task ExportDocumentAsync<T>(T snapshot, string path, CancellationToken ct) =>
         ReportFile.WriteAsync(path, (output, token) => JsonSerializer.SerializeAsync(output, snapshot, Options, token), ct);
-    public static string Describe<T>(Reading<T> reading) => reading.Status == "available"
-        ? $"{reading.Value} {reading.Unit}".TrimEnd() : L.T($"Indisponível: {reading.Reason}");
+    public static string Describe<T>(Reading<T> reading) => reading.Status != "available" ? L.T($"Indisponível: {reading.Reason}")
+        : reading.Value is bool yes ? (yes ? L.T("sim") : L.T("não"))
+        : $"{reading.Value} {Unit(reading.Unit)}".TrimEnd();
+    // Units are contract values. "logical processors" is already in each label ("Processadores lógicos visíveis: 8").
+    private static string Unit(string unit) => unit == "logical processors" ? "" : unit;
     public static string DiskExtra(DiskInfo d) => (d.Kind is { Status: "available" } k ? " · " + k.Value : "") + (d.Bus is { Status: "available" } b ? " · " + b.Value : "");
     public static string Text(HardwareSnapshot s) => $"Ilmenyx Controller · by Ilmenyx Technology · {s.ApplicationVersion} · {s.CollectedAt:O}\n" +
         L.T("SO: ") + Describe(s.OperatingSystem) + $"\nKernel: {Describe(s.Kernel)}\nCPU: {Describe(s.Cpu.Name)}\n" +
@@ -41,7 +44,7 @@ public static class SnapshotReport
 
 public static class SensorPresentation
 {
-    public static string Text(SensorSnapshot s) => L.T($"Sensores Linux · {s.Status} · {s.CollectedAt:O}\n") +
+    public static string Text(SensorSnapshot s) => L.T($"Sensores Linux · {StatusText.Of(s.Status)} · {s.CollectedAt:O}\n") +
         (s.Readings.Count == 0 ? s.Reason : string.Join("\n", s.Readings.Select(r => $"{r.Device} · {r.Chip} · {r.Label}: {SnapshotReport.Describe(r.Reading)}"))) +
         (s.PowerSupplies is { Count: > 0 } supplies ? "\n" + string.Join("\n", supplies.Select(p => L.T($"{p.Device} · tipo: {SnapshotReport.Describe(p.Type)} · status: {SnapshotReport.Describe(p.Status)} · presente: {SnapshotReport.Describe(p.Present)}"))) : "");
 }
@@ -49,6 +52,6 @@ public static class SensorPresentation
 
 public static class GpuPresentation
 {
-    public static string Text(GpuSnapshot s) => $"DRM/PCI · {s.Status}\n" + (s.Devices.Count == 0 ? s.Reason :
+    public static string Text(GpuSnapshot s) => $"DRM/PCI · {StatusText.Of(s.Status)}\n" + (s.Devices.Count == 0 ? s.Reason :
         string.Join("\n", s.Devices.Select(g => L.T($"{g.Device}: vendor {SnapshotReport.Describe(g.VendorId)} · device {SnapshotReport.Describe(g.DeviceId)}\nCarga: {SnapshotReport.Describe(g.BusyPercent)} · VRAM total: {SnapshotReport.Describe(g.VramTotal)} · usada: {SnapshotReport.Describe(g.VramUsed)}"))));
 }

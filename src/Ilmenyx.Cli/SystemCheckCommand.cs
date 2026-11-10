@@ -39,7 +39,7 @@ public static class SystemCheckCommand
             ZramActionKind? kind = which switch { "apply" => ZramActionKind.Apply, "undo" => ZramActionKind.Undo, "undo-remove" => ZramActionKind.UndoAndRemovePackage, _ => null };
             if (kind is null) { await o.WriteLineAsync(Usage); return 2; }
             var p = ZramPlanner.Plan(await (zram ?? new ZramProbe()).CollectAsync(ct));
-            if (p.Actions.FirstOrDefault(a => a.Kind == kind) is not { } action) { await Console.Error.WriteLineAsync(L.T($"Sem a ação '{which}' no plano atual ({p.State}: {p.Headline}).")); return 1; }
+            if (p.Actions.FirstOrDefault(a => a.Kind == kind) is not { } action) { await Console.Error.WriteLineAsync(L.T($"Sem a ação '{which}' no plano atual ({StatusText.Of(p.State)}: {p.Headline}).")); return 1; }
             await o.WriteAsync(action.Script);
             return 0;
         }
@@ -47,7 +47,7 @@ public static class SystemCheckCommand
         var plan = ZramPlanner.Plan(await (zram ?? new ZramProbe()).CollectAsync(ct));
         await o.WriteLineAsync("ZRAM · " + plan.Headline);
         await o.WriteLineAsync(plan.Summary);
-        await o.WriteLineAsync(L.T("Estado: ") + plan.State + (plan.SizeMiB is { } s ? L.T($" · tamanho proposto: {s} MiB") : ""));
+        await o.WriteLineAsync(L.T("Estado: ") + StatusText.Of(plan.State) + (plan.SizeMiB is { } s ? L.T($" · tamanho proposto: {s} MiB") : ""));
         foreach (var f in plan.Findings) await o.WriteLineAsync("  · " + f);
         if (args[1] == "status")
         {
