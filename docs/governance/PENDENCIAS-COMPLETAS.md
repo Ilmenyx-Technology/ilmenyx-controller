@@ -117,6 +117,8 @@ Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes qu
   WINEPREFIX são encerrados no cancelar e no fim; (2) a lista ADICIONAR ficava vazia porque o NSIS mantém a data original dos arquivos:
   agora procura nas pastas movidas; (3) nome da pasta sem versão/plataforma ("openttd-15.3-windows-win64" -> "openttd").
 - [x] **Botão Cancelar do instalador** (modo Soda, com o instalador aberto): nenhum processo do Wine sobrou. VALIDADO.
+- [x] **Instalador grande (repack do Silksong) no Arch**, modo Soda: instalou do começo ao fim em ~5 min (sem CRC, sem travar em 0,9%),
+  C:\Jogos\Hollow Knight - Silksong -> ~/Jogos (7,6 GB), adicionado à biblioteca, nenhum processo do Wine sobrando. VALIDADO pelo dono.
 - [ ] **IDEIA FUTURA do dono (2026-11-09): base comunitária de FPS**. Usuários que aceitarem enviam diagnóstico e FPS médio dos jogos
   para a Estimativa de FPS ficar mais real. Análise pronta (infraestrutura, LGPD, abuso, massa crítica): `docs/fps-estimativa-metodos.md`,
   método (e). Antes de começar: decidir servidor e custo, termo de consentimento, PRIVACY.md e o formato da sessão a enviar.
