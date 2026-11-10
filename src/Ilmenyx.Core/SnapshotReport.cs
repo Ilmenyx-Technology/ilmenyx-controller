@@ -33,7 +33,7 @@ public static class SnapshotReport
         ? $"{reading.Value} {reading.Unit}".TrimEnd() : L.T($"Indisponível: {reading.Reason}");
     public static string DiskExtra(DiskInfo d) => (d.Kind is { Status: "available" } k ? " · " + k.Value : "") + (d.Bus is { Status: "available" } b ? " · " + b.Value : "");
     public static string Text(HardwareSnapshot s) => $"Ilmenyx Controller · by Ilmenyx Technology · {s.ApplicationVersion} · {s.CollectedAt:O}\n" +
-        $"SO: {Describe(s.OperatingSystem)}\nKernel: {Describe(s.Kernel)}\nCPU: {Describe(s.Cpu.Name)}\n" +
+        L.T("SO: ") + Describe(s.OperatingSystem) + $"\nKernel: {Describe(s.Kernel)}\nCPU: {Describe(s.Cpu.Name)}\n" +
         L.T($"Processadores lógicos visíveis: {Describe(s.Cpu.LogicalProcessors)}\nRAM total: {Describe(s.Memory.Total)}\nRAM disponível: {Describe(s.Memory.Available)}\n") +
         L.T("Discos: ") + (s.Disks.Status == "available" ? string.Join("\n", s.Disks.Value!.Select(d => $"{d.Device}: {Describe(d.Capacity)}{DiskExtra(d)}")) : Describe(s.Disks)) + "\n" + (s.Sensors is { } sensors ? SensorPresentation.Text(sensors) : L.T("Sensores: leitor não configurado.")) + "\n" + (s.Gpus is { } gpus ? GpuPresentation.Text(gpus) : L.T("GPU: leitor não configurado."));
 }

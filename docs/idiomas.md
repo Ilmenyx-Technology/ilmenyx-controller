@@ -9,6 +9,9 @@
 - Sem escolha gravada, o app segue o idioma do sistema (`LC_ALL`, `LC_MESSAGES`, `LANG`): `pt*` dá pt-BR, `es*` dá espanhol e
   qualquer outro dá inglês. `ILMENYX_LANG=en|es|pt-BR` força um idioma (útil para prints e testes).
 - Números e datas seguem o idioma: pt-BR, en-US ou es-419 (espanhol latino-americano neutro).
+- A CLI (`ilmenyx`) segue a mesma escolha: `ILMENYX_LANG`, depois o idioma salvo pelo app, depois o do sistema. Comandos e
+  opções (`--output`, `zram status`) ficam iguais em todos os idiomas; só mudam as mensagens e os nomes em maiúsculas da
+  ajuda (`ARQUIVO` vira `FILE`). Sem ICU (modo invariant), as mensagens mudam e números e datas ficam no formato invariant.
 
 ## Como funciona
 

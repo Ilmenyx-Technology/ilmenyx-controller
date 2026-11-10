@@ -201,7 +201,7 @@ public static class ZramPlanner
         var findings = new List<string>();
         var tool = ToolFor(f.Distro.Family);
         string distro = f.Distro.Name.Length > 0 ? f.Distro.Name : L.T("distribuição desconhecida");
-        findings.Add("Sistema: " + distro + (tool is { } t ? L.T($" · caminho oficial: {PackageFor(t)}") : L.T(" · sem caminho oficial conhecido")));
+        findings.Add(L.T("Sistema: ") + distro + (tool is { } t ? L.T($" · caminho oficial: {PackageFor(t)}") : L.T(" · sem caminho oficial conhecido")));
         if (f.MemTotalBytes is { } ram) findings.Add("RAM: " + GiB(ram));
         var zramSwaps = f.Swaps.Where(s => s.Name.StartsWith("/dev/zram", StringComparison.Ordinal)).ToList();
         var otherSwaps = f.Swaps.Except(zramSwaps).ToList();
