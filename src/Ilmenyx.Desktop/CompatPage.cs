@@ -94,7 +94,7 @@ public sealed class CompatPage : StackPanel
         return steamRoot;
     }
 
-    private static string Count(int n, string one, string many) => n.ToString("N0", CultureInfo.GetCultureInfo(L.T("pt-BR"))) + " " + (n == 1 ? one : many);
+    private static string Count(int n, string one, string many) => n.ToString("N0", CultureInfo.CurrentCulture) + " " + (n == 1 ? one : many);
 
     private void RefreshDbStatus()
     {
