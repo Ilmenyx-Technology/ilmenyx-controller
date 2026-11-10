@@ -120,7 +120,7 @@ CLI/UI continuam documentadas em docs/gamesim-completo.md.
 
 ## Identidade 0.10.0
 
-IMPLEMENTADO e testado no CachyOS: nomes/metadados Ilmenyx, assinatura Bismuth Technology,
+IMPLEMENTADO e testado no CachyOS: nomes/metadados Ilmenyx, assinatura Ilmenyx Technology,
 créditos/Sobre/MIT/dependências, aviso de compartilhamento e redação de padrões óbvios em fixtures.
 272 testes aprovados; regressões CLI/Wayland/X11. Nomes Silex nas etapas anteriores são históricos.
 

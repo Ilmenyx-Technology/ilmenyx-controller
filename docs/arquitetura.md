@@ -193,7 +193,7 @@ comparabilidade Windows. [Metodologia, comandos e evidências](gamesim-completo.
 
 ## Identidade 0.10.0
 
-Solução/namespaces Ilmenyx.*; CLI assembly/apphost ilmenyx. Company=Bismuth Technology é apenas
+Solução/namespaces Ilmenyx.*; CLI assembly/apphost ilmenyx. Company=Ilmenyx Technology é apenas
 crédito mantenedor, sem presunção jurídica. ProductIdentity fornece textos neutros de produto,
 origem e compartilhamento; Sobre lê LICENSE/NOTICE/THIRD-PARTY-NOTICES locais copiados pelo props
 em src (não herdado pelo WPF). ILMENYX_DISPLAY_BACKEND tem precedência, com alias legado.

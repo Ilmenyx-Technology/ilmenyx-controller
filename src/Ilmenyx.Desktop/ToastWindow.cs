@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // New Ilmenyx additions (the original toast sits at the bottom-right and never takes focus): see LICENSING.md.
 using Avalonia;
 using Avalonia.Controls;
@@ -20,7 +20,7 @@ public sealed class ToastWindow : Window
 
     public ToastWindow()
     {
-        Icon = AppIcon.Window; Title = "Ilmenyx · Aviso"; WindowDecorations = WindowDecorations.None; Topmost = true; ShowInTaskbar = false; ShowActivated = false; CanResize = false; Focusable = false;
+        Icon = AppIcon.Window; Title = "Ilmenyx Controller · Aviso"; WindowDecorations = WindowDecorations.None; Topmost = true; ShowInTaskbar = false; ShowActivated = false; CanResize = false; Focusable = false;
         Background = Brushes.Transparent; TransparencyLevelHint = [WindowTransparencyLevel.Transparent]; SizeToContent = SizeToContent.WidthAndHeight;
         Content = new Border { Background = Palette.Panel, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), Padding = new Thickness(16, 12), Child = new StackPanel { Spacing = 2, Children = { title, text } } };
         SizeChanged += (_, _) => Place();

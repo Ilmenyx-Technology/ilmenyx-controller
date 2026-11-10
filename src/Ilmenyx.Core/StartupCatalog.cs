@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // Plain-language explanation of each startup entry: does it belong to the desktop/system or to an app the user installed?
 // Data-driven: known file names / commands first, then the standard keys of the .desktop file, then the owning package (optional).
 
@@ -239,7 +239,7 @@ public static class StartupCatalog
         new(["teamviewer*", "anydesk", "rustdesk", "com.rustdesk.rustdesk"], StartupRole.App, "Acesso remoto", "Permite acesso remoto a este PC."),
         new(["jetbrains-toolbox"], StartupRole.App, "JetBrains", "Gerencia as IDEs da JetBrains."),
         new(["variety"], StartupRole.App, "Variety", "Troca o papel de parede automaticamente."),
-        new(["ilmenyx*", "io.github.bismuthtechnology.ilmenyx*"], StartupRole.App, "Ilmenyx", "O próprio Ilmenyx (monitor ou avisos de dispositivos)."),
+        new(["ilmenyx*", "io.github.ilmenyx_technology.ilmenyx*", "io.github.bismuth_technology.ilmenyx*", "io.github.bismuthtechnology.ilmenyx*"], StartupRole.App, "Ilmenyx Controller", "O próprio Ilmenyx Controller (monitor ou avisos de dispositivos)."),
     ];
 
     private static readonly (string Token, string Name)[] Desktops =

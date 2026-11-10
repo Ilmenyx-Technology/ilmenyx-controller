@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-# SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+# SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 # Minimal stand-in for `reuse lint` (the reuse tool is not always installed): every tracked file outside
 # upstream/ and LICENSES/ must have an SPDX header or a REUSE.toml annotation, every identifier used must
 # have a text in LICENSES/, and every text in LICENSES/ must be used. Read-only; exit 1 on any problem.

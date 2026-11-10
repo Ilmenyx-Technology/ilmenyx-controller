@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // "Jogo não abre?" (JOGOS): read-only checklist of why Proton/Flatpak/a game does not start (GameLaunchChecks). Each card: status, what
 // was found, plain explanation, risk, the exact commands to copy and, only for user-level Flatpak changes, a one-click fix with confirmation
 // and undo. Root or security-reducing changes are never run by the app.

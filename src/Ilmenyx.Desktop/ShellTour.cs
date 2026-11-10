@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // Welcome tour (coach marks over the shell) and the way into the Help Center. Texts: Ilmenyx.Core.HelpContent.
 using Avalonia;
 using Avalonia.Automation;

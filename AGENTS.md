@@ -119,19 +119,19 @@ Portar incrementalmente o RESET EXPLODE de WPF/.NET Windows para Linux com Avalo
 - Limites: 30.000 entidades, warmup 2 s, medição 1–10 s, timeout até 15 s, 200.000 amostras.
 - Status interrompido/limite/tempo inválido não publica FPS/low1/médias/score. Registrar carga real NÃO TESTADA em Sem_teste.md até autorização/validação.
 
-## Adendo permanente — Ilmenyx / Bismuth Technology (2026-10-21)
+## Adendo permanente — Ilmenyx / Ilmenyx Technology (2026-10-21)
 
 As decisões de nome deste adendo prevalecem sobre as referências históricas a Silex acima;
 as regras de arquitetura Linux, benchmarks, testes, licenças e segurança anteriores permanecem.
 
-- Produto Linux: Ilmenyx; marca mantenedora: Bismuth Technology (grafia exata), sem sufixo Audit no nome principal.
+- Produto Linux: Ilmenyx; marca mantenedora: Ilmenyx Technology (grafia exata), sem sufixo Audit no nome principal.
 - Origem: RESET EXPLODE de Gustavo (GustavoReset), adaptação independente e não oficial, sem afiliação, endosso ou patrocínio.
 - Preservar a MIT integral do RESET EXPLODE em LICENSES/MIT.txt (Copyright (c) 2026 Gustavo (GustavoReset)), referência upstream e direitos de dependências/assets verificados individualmente. (Atualizado 2026-11-07: o LICENSE da raiz agora é a PolyForm Noncommercial; ver "Licença 2026-11-07".)
 - Ilmenyx não implica marca registrada/disponível: não usar símbolo de registro, exclusividade ou alegação de liberação no INPI.
 - Organização GitHub não prova pessoa jurídica; não atribuir direitos à empresa sem definição formal.
 - Renomear somente identificadores ativos seguros do port; não substituir cegamente nomes WPF, benchmarks, histórico, créditos ou formatos.
 - Manual de Marca ainda será criado. Não inventar logo final, paleta, tipografia, CMYK, Pantone, monograma ou ícones oficiais; registrar integrações pendentes.
-- UI/metadados: Ilmenyx e quando apropriado by Bismuth Technology. Créditos RESET/licenças em README/NOTICE/Sobre, nunca omitidos.
+- UI/metadados: Ilmenyx e quando apropriado by Ilmenyx Technology. Créditos RESET/licenças em README/NOTICE/Sobre, nunca omitidos.
 - Sem divulgação remota, release, publicação ou registro de marca sem aprovação; sem root, drivers, BIOS, overclock, escrita direta em discos, telemetria ou stress automático.
 - Registrar IMPLEMENTADO, NÃO TESTADO, PENDENTE DE REVISÃO e BLOQUEADO com evidências reais.
 - Solução atual Ilmenyx.slnx, src/Ilmenyx.*, tests/Ilmenyx.Tests e tools/Ilmenyx.UiSmoke. Formatos silex-* e evidências anteriores permanecem históricos/compatíveis.
@@ -139,14 +139,19 @@ as regras de arquitetura Linux, benchmarks, testes, licenças e segurança anter
 - Atualização 2026-10-29: o mantenedor aprovou a identidade visual do Ilmenyx (docs/branding/MANUAL-ILMENYX.md). A regra de não inventar
   logo/paleta/ícones passa a significar: usar os ativos e tokens aprovados (Palette.cs, IlmenyxTheme.cs, AppIcon.cs/Assets, packaging/linux);
   mudanças de identidade exigem nova aprovação. Continua sem presunção de registro de marca.
+- Atualização 2026-11-09: o produto passa a se chamar **Ilmenyx Controller** e a organização **Ilmenyx Technology** (GitHub
+  `Ilmenyx-Technology`, antes `Bismuth-Technology`). App ID `io.github.ilmenyx_technology.IlmenyxController`. O nome completo vai em
+  títulos de janela, menu do sistema, Sobre, relatórios, metadados e pacotes; em frases corridas, "o Ilmenyx" é a forma curta aceita.
+  Projetos, namespaces, binários (`ilmenyx`, `Ilmenyx.Desktop`), variáveis `ILMENYX_*` e pastas de dados (`~/.local/share/ilmenyx`)
+  continuam como estão. Registros históricos (evidências, busca de marca, relatório de licença) mantêm o nome Bismuth.
 
 
 ## Licença 2026-11-07 (prevalece sobre as regras de licença anteriores deste arquivo)
 - Todo o código e a documentação do mantenedor, desde o primeiro commit (inclusive a fase Silex), estão sob PolyForm Noncommercial 1.0.0 + permissão adicional (LICENSES/LicenseRef-Ilmenyx-Permissao-Adicional.txt, PT prevalece). Explicação: LICENSING.md. LICENSE-ILMENYX.md não existe mais.
 - Permitido: uso como ferramenta em trabalho pago, instalar no PC do cliente sem cobrar pelo app, vídeos monetizados, redistribuição gratuita sem cadastro/anúncio, modificação para uso interno. Proibido: vender, cobrar acesso, serviço pago, derivado comercial. Doações ao mantenedor são aceitas e não mudam os termos.
-- Titular: "Flávio Henrique Meira Roque (mantido como Bismuth Technology)" até o nome civil completo ser informado (docs/governance/PENDENCIAS.md). Bismuth Technology não é pessoa jurídica.
+- Titular: "Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)" até o nome civil completo ser informado (docs/governance/PENDENCIAS.md). Ilmenyx Technology não é pessoa jurídica.
 - **Todo arquivo novo** em src/, tests/, tools/, scripts/, packaging/ leva no topo (após `#!`/`#version`/`<?xml`):
-  `SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0` e `SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)`.
+  `SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0` e `SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)`.
 - Arquivo que adapta código, dados, estrutura ou layout do RESET EXPLODE: `SPDX-License-Identifier: MIT AND PolyForm-Noncommercial-1.0.0`, com `SPDX-FileCopyrightText: 2026 Gustavo (GustavoReset)` e a linha do mantenedor; acrescentar o arquivo à lista de NOTICE.md.
 - Arquivo sem comentário possível (imagem, JSON, binário): cobrir em REUSE.toml. Terceiros mantêm seu identificador (ex.: Icons.cs `PolyForm-Noncommercial-1.0.0 AND Apache-2.0`); registrar em THIRD-PARTY-NOTICES.md.
 - Pacotes levam LICENSE, LICENSES/, NOTICE.md, LICENSING.md e THIRD-PARTY-NOTICES.md. Metainfo: `MIT AND PolyForm-Noncommercial-1.0.0`.

@@ -18,7 +18,7 @@ glibc, par ICU, fontconfig, X11 e EGL. NativeLibrary.TryLoad/Free e busca ICU da
 etapa anterior são reutilizados. O DTO específico fica no adaptador Linux;
 Core/Contracts não recebem dependências da UI ou APIs nativas. DoctorCommand
 formata strings fixas/ASCII sem APIs culturais, JSON, datas ou formatação numérica,
-para funcionar também sem ICU. Nome/assinatura: Ilmenyx, by Bismuth Technology.
+para funcionar também sem ICU. Nome/assinatura: Ilmenyx, by Ilmenyx Technology.
 
 DISPLAY/WAYLAND_DISPLAY são informadas apenas como valor não vazio/ausente; seus
 conteúdos não são exibidos, evitando registrar nomes/caminhos arbitrários. Presença

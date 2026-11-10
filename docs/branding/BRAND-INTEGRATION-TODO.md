@@ -9,7 +9,7 @@ Atualizado em 29/10/2026: o mantenedor aprovou o Manual de Identidade e Interfac
 - [x] Capturas reais com a nova identidade: UiSmoke em X11 e Wayland, 51 verificações cada (29/10/2026).
 - [x] `packaging/linux/` integrado ao pacote (`scripts/package-linux-x64.sh` copia para `linux/`): `.desktop` e AppStream validados
       (`desktop-file-validate`, `appstreamcli validate`), ícones hicolor e instalador opcional só do usuário (`install-user.sh`/`uninstall-user.sh`).
-- [x] App ID `io.github.bismuth_technology.Ilmenyx` (decisão do mantenedor, 30/10/2026; org GitHub Bismuth-Technology): WM_CLASS no X11
+- [x] App ID `io.github.ilmenyx_technology.IlmenyxController` (decisão do mantenedor, 30/10/2026; org GitHub Ilmenyx-Technology): WM_CLASS no X11
       (verificado com xprop) e app_id no Wayland (`DesktopBackend.AppId`).
 - [ ] Flatpak/Flathub e capturas públicas no AppStream — PENDENTE: repositório público na organização.
 - [x] Estética do manual: botões em pílula com preenchimento tonal, cartões 20, contêineres 28, campos 10, títulos de página 32,

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 using System.Globalization;
 using System.Net;
 using System.Text;
@@ -45,7 +45,7 @@ public static class HardwareHtmlReport
             li{margin:8px 0}dl{display:grid;grid-template-columns:minmax(140px,1fr) 3fr;gap:8px}dt{color:#c4c4cf}dd{margin:0;overflow-wrap:anywhere}
             @media(max-width:600px){main{padding:12px}section{padding:12px}dl{display:block}dd{margin-bottom:10px}}
             @media print{:root{color-scheme:light}body,section{background:white;color:black}.muted,th,dt{color:#333}.notice{background:#eee;color:black}main{padding:0}.table-wrap{overflow:visible}th,td{min-width:0;padding:5px}}
-            </style></head><body><main><header><h1>Ilmenyx</h1><p>by Bismuth Technology</p><p class="muted">Relatório de hardware · arquivo offline</p></header>
+            </style></head><body><main><header><h1>Ilmenyx Controller</h1><p>by Ilmenyx Technology</p><p class="muted">Relatório de hardware · arquivo offline</p></header>
             <p class="notice">Snapshot de diagnóstico. Dados não indicam saúde ou desempenho. Nenhum benchmark é executado para gerar este relatório.</p>
             """);
         html.Append("<section><h2>Proveniência</h2><dl>");
@@ -103,7 +103,7 @@ public static class HardwareHtmlReport
         html.Append("<section><h2>Capacidades</h2><div class=\"table-wrap\"><table><thead><tr><th>Recurso</th><th>Estado</th><th>Motivo</th></tr></thead><tbody>");
         foreach (var capability in snapshot.Capabilities) Row(capability.Name, capability.Status, capability.Reason);
         EndTable(); Limitations("Limitações do snapshot", snapshot.Limitations);
-        html.Append("<footer><p>Ilmenyx é uma adaptação independente e não oficial de RESET EXPLODE, de Gustavo (GustavoReset), MIT. by Bismuth Technology. Sem afiliação, patrocínio ou endosso da equipe RESET.</p><p>Revise antes de compartilhar: fontes, rótulos livres e configuração podem identificar a máquina. Não é anonimização garantida.</p><p>SMART não é consultado na exportação: diagnóstico separado na CLI por opt-in. Scores Linux/Windows não têm comparabilidade validada.</p></footer></main></body></html>\n");
+        html.Append("<footer><p>Ilmenyx é uma adaptação independente e não oficial de RESET EXPLODE, de Gustavo (GustavoReset), MIT. by Ilmenyx Technology. Sem afiliação, patrocínio ou endosso da equipe RESET.</p><p>Revise antes de compartilhar: fontes, rótulos livres e configuração podem identificar a máquina. Não é anonimização garantida.</p><p>SMART não é consultado na exportação: diagnóstico separado na CLI por opt-in. Scores Linux/Windows não têm comparabilidade validada.</p></footer></main></body></html>\n");
         return html.ToString();
 
         void Metadata(string key, string value) => html.Append("<dt>").Append(E(key)).Append("</dt><dd>").Append(E(value)).Append("</dd>");

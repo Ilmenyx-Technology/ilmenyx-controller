@@ -1,7 +1,7 @@
 Ilmenyx — nome e identidade visual / name and visual identity
 SPDX: LicenseRef-Ilmenyx-Marca
 
-Copyright (c) 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology) — https://github.com/Bismuth-Technology/ilmenyx
+Copyright (c) 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology) — https://github.com/Ilmenyx-Technology/ilmenyx
 
 PORTUGUÊS (esta versão prevalece)
 

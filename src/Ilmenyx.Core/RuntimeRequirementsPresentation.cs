@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 using Ilmenyx.Contracts;
 namespace Ilmenyx.Core;
 
@@ -8,7 +8,7 @@ public static class RuntimeRequirementsPresentation
 {
     public static int Write(RuntimeRequirements requirements, TextWriter output)
     {
-        output.WriteLine("Ilmenyx doctor - by Bismuth Technology");
+        output.WriteLine("Ilmenyx Controller doctor - by Ilmenyx Technology");
         output.WriteLine("Processo .NET Linux ativo. Sem inventario, SMART, sensores ou benchmarks.");
         WriteLibrary(output, "glibc (libc.so.6)", requirements.Glibc);
         WriteLibrary(output, "ICU (uc/i18n)", requirements.Icu);

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-# SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+# SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 # Third-party components retain their terms.
-# Builds Ilmenyx-<version>-x86_64.AppImage from the self-contained bundle of package-linux-x64.sh.
+# Builds Ilmenyx-Controller-<version>-x86_64.AppImage from the self-contained bundle of package-linux-x64.sh.
 # AppImage = the official type2 runtime (pinned release, SHA-256 checked against the value GitHub publishes) followed by
 # a squashfs image of the AppDir. Never installs, elevates or publishes anything.
 set -euo pipefail
@@ -30,7 +30,7 @@ for p in Cli Desktop; do dotnet restore "$repo/src/Ilmenyx.$p" -r linux-x64 -p:I
 bash "$repo/scripts/package-linux-x64.sh" "$destination/bundle"
 bundle="$destination/bundle/Ilmenyx-linux-x64"
 version=$(jq -r .version "$bundle/package.json")
-id=io.github.bismuth_technology.Ilmenyx
+id=io.github.ilmenyx_technology.IlmenyxController
 appdir="$destination/Ilmenyx.AppDir"
 mkdir -p -- "$appdir/usr/lib" "$appdir/usr/share/applications" "$appdir/usr/share/metainfo" "$appdir/usr/share/icons"
 cp -a -- "$bundle" "$appdir/usr/lib/ilmenyx"
@@ -44,7 +44,7 @@ cp -- "$repo/packaging/linux/$id.metainfo.xml" "$appdir/usr/share/metainfo/$id.m
 cp -r -- "$repo/packaging/linux/hicolor" "$appdir/usr/share/icons/hicolor"
 cp -- "$repo/packaging/linux/hicolor/256x256/apps/$id.png" "$appdir/$id.png"
 ln -s -- "$id.png" "$appdir/.DirIcon"
-image="$destination/Ilmenyx-$version-x86_64.AppImage"
+image="$destination/Ilmenyx-Controller-$version-x86_64.AppImage"
 mksquashfs "$appdir" "$destination/image.squashfs" -root-owned -noappend -comp zstd -Xcompression-level 19 -quiet
 cat -- "$runtime" "$destination/image.squashfs" > "$image"
 rm -f -- "$destination/image.squashfs"

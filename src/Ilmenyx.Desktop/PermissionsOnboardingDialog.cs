@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
@@ -22,7 +22,7 @@ public sealed class PermissionsOnboardingDialog : Window
 
     public PermissionsOnboardingDialog(IReadOnlyList<SensorFix> fixes, Func<string, Task<(bool Ok, string Message)>> run)
     {
-        Icon = AppIcon.Window; Title = "Ilmenyx — Permissões"; Width = 620; MinWidth = 460; SizeToContent = SizeToContent.Height; MaxHeight = 720;
+        Icon = AppIcon.Window; Title = "Ilmenyx Controller — Permissões"; Width = 620; MinWidth = 460; SizeToContent = SizeToContent.Height; MaxHeight = 720;
         WindowStartupLocation = WindowStartupLocation.CenterOwner; Background = Palette.Panel; Foreground = Palette.Fg; CanResize = false;
         KeyboardNavigation.SetTabNavigation(this, KeyboardNavigationMode.Cycle);
         var applicable = fixes.Where(f => f.Apply is { Length: > 0 }).ToList();

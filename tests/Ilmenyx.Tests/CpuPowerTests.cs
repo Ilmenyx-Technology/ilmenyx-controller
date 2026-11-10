@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // RAPL layout copied from a real ASUS E1504FA (AMD Mendocino, kernel 6.14): package-0 + core.
 using Ilmenyx.Core;
 using Ilmenyx.Platform.Linux;

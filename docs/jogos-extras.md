@@ -1,5 +1,5 @@
 <!-- SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 -->
-<!-- SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology) -->
+<!-- SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology) -->
 # Extras para jogos (2026-11-08)
 
 Três recursos novos, inspirados na lista de ideias da pesquisa sobre o LinuxToys

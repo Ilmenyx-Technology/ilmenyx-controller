@@ -3,7 +3,8 @@
 Cada arquivo de release tem um `.asc` ao lado: a assinatura feita com a chave da Bismuth Technology. O `.sha256` só detecta
 arquivo corrompido; a assinatura prova que o arquivo saiu do mantenedor e não foi trocado depois.
 
-- Chave: `Bismuth Technology (Ilmenyx releases) <meirafhenrique@gmail.com>`
+- Chave: `Bismuth Technology (Ilmenyx releases) <meirafhenrique@gmail.com>`. É o nome antigo da organização (hoje Ilmenyx Technology):
+  para mudar, acrescente um UID novo com a chave principal (`gpg --quick-add-uid`) e publique a chave pública de novo.
 - Impressão digital (confira por um segundo canal, como o README ou o perfil da organização):
   **`3D97 1657 2A39 8DCD D0CF  F0EE 733D 2EC7 8436 DCE8`**
 - Chave pública: `packaging/ilmenyx-release-key.asc` e o arquivo `ilmenyx-release-key.asc` de cada release.

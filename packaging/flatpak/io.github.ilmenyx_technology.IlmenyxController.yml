@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-# SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+# SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 # Flatpak of the PREBUILT self-contained linux-x64 bundle (scripts/package-linux-x64.sh output): .NET 10 and ICU ship inside, so the
 # runtime only provides the graphics stack (X11/Wayland, fontconfig, Vulkan loader). Built by scripts/package-flatpak.sh, which places
 # the bundle next to this file as ./bundle. Permissions and what degrades in the sandbox: docs/flatpak.md.
-app-id: io.github.bismuth_technology.Ilmenyx
+app-id: io.github.ilmenyx_technology.IlmenyxController
 runtime: org.freedesktop.Platform
 runtime-version: '25.08'
 sdk: org.freedesktop.Sdk
@@ -33,9 +33,9 @@ modules:
       - cp -r LICENSE LICENSES NOTICE.md LICENSING.md THIRD-PARTY-NOTICES.md package.json /app/lib/ilmenyx/
       - install -Dm755 ilmenyx-desktop.sh /app/bin/ilmenyx-desktop
       - install -Dm755 ilmenyx-cli.sh /app/bin/ilmenyx
-      - install -Dm644 linux/io.github.bismuth_technology.Ilmenyx.desktop /app/share/applications/io.github.bismuth_technology.Ilmenyx.desktop
-      - sed -i 's|^Exec=.*|Exec=ilmenyx-desktop|' /app/share/applications/io.github.bismuth_technology.Ilmenyx.desktop
-      - install -Dm644 linux/io.github.bismuth_technology.Ilmenyx.metainfo.xml /app/share/metainfo/io.github.bismuth_technology.Ilmenyx.metainfo.xml
+      - install -Dm644 linux/io.github.ilmenyx_technology.IlmenyxController.desktop /app/share/applications/io.github.ilmenyx_technology.IlmenyxController.desktop
+      - sed -i 's|^Exec=.*|Exec=ilmenyx-desktop|' /app/share/applications/io.github.ilmenyx_technology.IlmenyxController.desktop
+      - install -Dm644 linux/io.github.ilmenyx_technology.IlmenyxController.metainfo.xml /app/share/metainfo/io.github.ilmenyx_technology.IlmenyxController.metainfo.xml
       - cp -r linux/hicolor /app/share/icons/
     sources:
       - type: dir

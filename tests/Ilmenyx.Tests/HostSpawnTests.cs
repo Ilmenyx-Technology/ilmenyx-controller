@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 using Ilmenyx.Core;
 using Ilmenyx.Platform.Linux;
 using Xunit;
@@ -55,9 +55,9 @@ public sealed class HostSpawnTests
     [Fact]
     public void AppPathIsReadFromTheInstanceSection()
     {
-        const string info = "[Application]\nname=io.github.bismuth_technology.Ilmenyx\n\n[Instance]\ninstance-id=1\napp-path=/home/u/.local/share/flatpak/app/io.github.bismuth_technology.Ilmenyx/x86_64/master/abc/files\n";
+        const string info = "[Application]\nname=io.github.ilmenyx_technology.IlmenyxController\n\n[Instance]\ninstance-id=1\napp-path=/home/u/.local/share/flatpak/app/io.github.ilmenyx_technology.IlmenyxController/x86_64/master/abc/files\n";
         string? host = HostSpawn.AppPathFromInfo(info);
-        Assert.Equal("/home/u/.local/share/flatpak/app/io.github.bismuth_technology.Ilmenyx/x86_64/master/abc/files", host);
+        Assert.Equal("/home/u/.local/share/flatpak/app/io.github.ilmenyx_technology.IlmenyxController/x86_64/master/abc/files", host);
         Assert.Equal(host + "/lib/ilmenyx/components/mangohud/lib64", HostSpawn.ForHost("/app/lib/ilmenyx/components/mangohud/lib64", host));
         Assert.Equal("/usr/lib/x", HostSpawn.ForHost("/usr/lib/x", host));
         Assert.Equal("/app/x", HostSpawn.ForHost("/app/x", null));

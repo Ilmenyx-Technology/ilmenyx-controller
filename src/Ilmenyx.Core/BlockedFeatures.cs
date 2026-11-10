@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 namespace Ilmenyx.Core;
 
 /// <summary>What this machine offers for the features that could not be ported or validated yet. Read-only facts; nothing here starts a test.</summary>

@@ -2,7 +2,7 @@
 
 Estado: IMPLEMENTADO como documentação do código local 0.10.0; PENDENTE DE REVISÃO humana
 antes de publicação. Não é certificação de conformidade ou anonimização. Identidade mantenedora:
-Bismuth Technology; responsável legal, contato, domínio e retenção de anexos recebidos:
+Ilmenyx Technology; responsável legal, contato, domínio e retenção de anexos recebidos:
 [PENDENTE: definir pelo mantenedor].
 
 O diagnóstico padrão lê fontes locais do kernel e do sistema: CPU, RAM, SO/kernel, capacidades de

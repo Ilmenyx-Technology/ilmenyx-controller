@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-# SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+# SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 # Disposable-VM check of "Jogo não abre?" and ZRAM on another distribution (docs/diagnostico-e-zram.md). Runs on the HOST as a normal
 # user: downloads the distro's official cloud image into a NEW work directory, boots it with QEMU/KVM (overlay disk, nothing on the host
 # changes), copies the Ilmenyx CLI bundle, prints `ilmenyx game-check` and `ilmenyx zram plan`, and with --apply runs the ZRAM apply and

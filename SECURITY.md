@@ -11,4 +11,4 @@ Inclua: versão do Ilmenyx (menu lateral ou `--cli --version`), distro, como rep
 ## Versões cobertas
 Somente a release mais recente.
 
-> Pendente: trocar este contato por um e-mail da Bismuth Technology quando ele existir (ver `docs/governance/PENDENCIAS.md`).
+> Pendente: trocar este contato por um e-mail da Ilmenyx Technology quando ele existir (ver `docs/governance/PENDENCIAS.md`).

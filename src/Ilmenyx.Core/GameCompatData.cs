@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // Network use only on an explicit user action: four fixed HTTPS hosts, nothing about the user is sent besides the Steam app id asked for.
 // The ProtonDB export (ODbL) is downloaded once by the user, checked against the git blob SHA-1 GitHub publishes for it,
 // reduced to a local index and deleted. The index stays on this machine (it is not redistributed).
@@ -199,7 +199,7 @@ public sealed class CompatOnline
         this.cacheFolder = cacheFolder; this.utcNow = utcNow ?? (() => DateTime.UtcNow);
         http = handler is null ? new() : new(handler);
         http.Timeout = Timeout.InfiniteTimeSpan; // per call below; the dump download may take minutes
-        http.DefaultRequestHeaders.UserAgent.ParseAdd("Ilmenyx/0.30 (+https://github.com/Bismuth-Technology/ilmenyx)");
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("IlmenyxController/0.30 (+https://github.com/Ilmenyx-Technology/ilmenyx)");
     }
 
     private async Task<(HttpStatusCode Code, string Body)> GetCachedAsync(string key, string url, int maxChars, CancellationToken ct)

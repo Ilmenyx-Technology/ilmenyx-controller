@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // ZRAM card of the Otimiza page: read-only detection (ZramPlanner), a plan in plain words and, only after a click and a confirmation
 // that lists every step, the FIXED root script through polkit (pkexec). Undo removes only what the Ilmenyx created.
 using Avalonia;

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // Proposal from Claude Code, reviewed locally.
 using System.Text.Json;
 using Ilmenyx.Contracts;
@@ -194,7 +194,7 @@ public sealed class SmartImportTests
         Assert.Contains("Content-Security-Policy", html);
         Assert.Contains("default-src 'none'", html);
         Assert.Contains("Ilmenyx", html);
-        Assert.Contains("Bismuth Technology", html);
+        Assert.Contains("Ilmenyx Technology", html);
         Assert.Contains(ProductIdentity.Attribution, System.Net.WebUtility.HtmlDecode(html));
         Assert.Contains(ProductIdentity.SharingNotice, System.Net.WebUtility.HtmlDecode(html));
         Assert.Contains("histórico", System.Net.WebUtility.HtmlDecode(html));

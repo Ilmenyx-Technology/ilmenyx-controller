@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 using System.Reflection;
 using System.Text.Json;
 using Ilmenyx.Cli;
@@ -16,8 +16,8 @@ public class IdentityPrivacyTests
     {
         foreach(var assembly in new[]{typeof(ProductIdentity).Assembly,typeof(CliArguments).Assembly,typeof(DesktopBackend).Assembly})
         {
-            Assert.Equal("Ilmenyx",assembly.GetCustomAttribute<AssemblyProductAttribute>()!.Product);
-            Assert.Equal("Bismuth Technology",assembly.GetCustomAttribute<AssemblyCompanyAttribute>()!.Company);
+            Assert.Equal("Ilmenyx Controller",assembly.GetCustomAttribute<AssemblyProductAttribute>()!.Product);
+            Assert.Equal("Ilmenyx Technology",assembly.GetCustomAttribute<AssemblyCompanyAttribute>()!.Company);
         }
         Assert.Equal("ilmenyx",typeof(CliArguments).Assembly.GetName().Name);
         Assert.Contains("RESET EXPLODE",CliArguments.Help);Assert.Contains("GustavoReset",ProductIdentity.Attribution);
@@ -25,13 +25,13 @@ public class IdentityPrivacyTests
         var mit=File.ReadAllText(Path.Combine(AppContext.BaseDirectory,"LICENSES","MIT.txt"));
         Assert.Contains("Copyright (c) 2026 Gustavo (GustavoReset)",mit);
         Assert.Contains("Permission is hereby granted, free of charge",mit);
-        Assert.DoesNotContain("Bismuth",mit);
+        Assert.DoesNotContain("Ilmenyx Technology",mit);
         var license=File.ReadAllText(Path.Combine(AppContext.BaseDirectory,"LICENSE"));
         Assert.Contains("# PolyForm Noncommercial License 1.0.0",license);
-        Assert.Contains("Required Notice: Copyright (c) 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)",license);
+        Assert.Contains("Required Notice: Copyright (c) 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)",license);
         Assert.Contains("LICENSES/LicenseRef-Ilmenyx-Permissao-Adicional.txt",license);
         Assert.Contains("LICENSES/MIT.txt",license);
-        Assert.DoesNotContain("Copyright (c) 2026 Bismuth",license);
+        Assert.DoesNotContain("Copyright (c) 2026 Ilmenyx Technology",license);
         Assert.EndsWith(File.ReadAllText(Path.Combine(AppContext.BaseDirectory,"LICENSES","PolyForm-Noncommercial-1.0.0.txt")),license);
         var permission=File.ReadAllText(Path.Combine(AppContext.BaseDirectory,"LICENSES","LicenseRef-Ilmenyx-Permissao-Adicional.txt"));
         Assert.Contains("prevalece o",permission);Assert.Contains("only ADDS rights",permission);

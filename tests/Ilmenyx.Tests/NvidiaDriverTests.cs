@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // Fixtures only: pkexec, apt (real install/remove) and nvidia-smi are never run by these tests.
 // The "incident" fixtures reconstruct the real case of 2026-11-07 on a Dell Inspiron 7460 (GeForce 940MX 10de:134d, Linux Mint 22.3,
 // kernel 6.14.0-37-generic): `ubuntu-drivers install nvidia:580` pulled kernel 7.0.0-42 with incomplete headers, the prebuilt module

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // Triage of launch options suggested by similar-hardware ProtonDB reports: the recommended set never holds options that fight each other.
 // Rules come from the Proton README (runtime config options, proton_10.0) and the DXVK/VKD3D-Proton/Mesa docs:
 // - PROTON_USE_WINED3D=1 replaces DXVK (Vulkan) with wined3d (OpenGL) for D3D9-11; DXVK_*/VKD3D_*/NVAPI options then do nothing (and D3D12 is VKD3D only);

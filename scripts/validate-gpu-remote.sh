@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-# SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+# SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 # Validates the GPU paths on ANY machine you own or were lent (AMD/NVIDIA desktop, friend's PC): no install, no root, no network.
 # Phase 1 (default) is read-only. Phase 2 runs short, bounded GPU loads and needs --allow-gpu-load AND the machine's owner agreeing.
 set -euo pipefail

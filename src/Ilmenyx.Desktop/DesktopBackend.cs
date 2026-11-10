@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 using Avalonia;
 
 namespace Ilmenyx.Desktop;
@@ -12,7 +12,7 @@ public static class DesktopBackend
     public const string EnvironmentVariable = "ILMENYX_DISPLAY_BACKEND";
     public const string LegacyEnvironmentVariable = "SILEX_DISPLAY_BACKEND";
     /// <summary>Reverse-DNS app ID (packaging/linux): X11 WM_CLASS and Wayland app_id, so the desktop matches windows to the .desktop entry and icon.</summary>
-    public const string AppId = "io.github.bismuth_technology.Ilmenyx";
+    public const string AppId = "io.github.ilmenyx_technology.IlmenyxController";
     public static string? ReadSelection() => Resolve(Environment.GetEnvironmentVariable(EnvironmentVariable), Environment.GetEnvironmentVariable(LegacyEnvironmentVariable));
     public static string? Resolve(string? current, string? legacy) => current ?? legacy;
     public static DisplayBackend Parse(string? value) => value switch

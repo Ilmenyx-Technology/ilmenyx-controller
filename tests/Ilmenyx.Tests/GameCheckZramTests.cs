@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // "Jogo não abre?" checklist and ZRAM plan over fixtures for each distro family (Ubuntu/Mint, Debian, Fedora, Arch/CachyOS/Manjaro,
 // openSUSE). Nothing here runs flatpak, pkexec or a package manager: the probes get fixture trees and fake runners; the generated
 // root scripts are only checked with `sh -n` (syntax, no execution).

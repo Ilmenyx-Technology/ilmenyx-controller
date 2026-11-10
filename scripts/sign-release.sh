@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-# SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+# SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 # Detached ASCII signatures (<file>.asc) for release files, made with the Ilmenyx release signing subkey (docs/assinatura-gpg.md).
 # The primary key stays offline with the maintainer; this machine only holds the signing subkey. Signs; publishes nothing.
 set -euo pipefail

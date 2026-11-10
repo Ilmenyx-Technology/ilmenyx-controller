@@ -4,12 +4,12 @@
 
 ## Contexto rápido (30/10/2026)
 
-- **Produto:** Ilmenyx, by Bismuth Technology. Diagnóstico, monitoramento e benchmark de hardware para Linux.
+- **Produto:** Ilmenyx Controller, by Ilmenyx Technology (até 2026-11-09: Ilmenyx, by Bismuth Technology; ver o adendo no AGENTS.md). Diagnóstico, monitoramento e benchmark de hardware para Linux.
   .NET 10 + Avalonia 12, com UI montada em C# (sem XAML).
 - **Identidade visual aprovada e aplicada** (branch `feat/identidade-visual`):
   - manual: `docs/branding/MANUAL-ILMENYX.md`;
   - código: `Palette.cs`, `IlmenyxTheme.cs`, `AppIcon.cs` + `Assets/`;
-  - app ID: `io.github.bismuth_technology.Ilmenyx`;
+  - app ID: `io.github.ilmenyx_technology.IlmenyxController`;
   - integração com o desktop: `packaging/linux/`.
   Mudar a identidade exige nova aprovação do mantenedor.
 - **A máquina original de desenvolvimento só tem GPU Intel.** A pendência principal é validar AMD/NVIDIA em hardware real.

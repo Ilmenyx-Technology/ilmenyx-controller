@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // Plain-language view of the driver inventory: one card per device category, a status per device and at most one recommended action.
 // Organisation inspired by Windows Device Manager (categories), Ubuntu "Drivers adicionais" / Mint Driver Manager (free vs proprietary,
 // one recommended choice) and GPU vendor apps (status first, details later). Only facts read from sysfs; nothing is installed here.

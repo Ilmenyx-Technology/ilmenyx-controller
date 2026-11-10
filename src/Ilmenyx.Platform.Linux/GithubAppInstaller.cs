@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
@@ -25,7 +25,7 @@ public sealed class GithubAppInstaller(ProgramRunner run, HttpMessageHandler? ha
     {
         var c = handler is null ? new HttpClient() : new HttpClient(handler);
         c.Timeout = TimeSpan.FromMinutes(30);
-        c.DefaultRequestHeaders.UserAgent.ParseAdd("Ilmenyx/0.30 (+https://github.com/Bismuth-Technology/ilmenyx)");
+        c.DefaultRequestHeaders.UserAgent.ParseAdd("IlmenyxController/0.30 (+https://github.com/Ilmenyx-Technology/ilmenyx)");
         return c;
     }
 

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
@@ -26,7 +26,7 @@ public sealed class FastExecDialog : Window
     public FastExecDialog(Func<string, Task<bool>> addToLibrary, Func<string, string?> find, Func<FastExecPlan, CancellationToken, Task<int>>? run = null, string? tempRoot = null, string? classicRoot = null)
     {
         this.run = run ?? FastExec.RunAsync;
-        Icon = AppIcon.Window; Title = "Ilmenyx — Executar instalador do Windows"; Width = 660; MinWidth = 480; SizeToContent = SizeToContent.Height; MaxHeight = 760;
+        Icon = AppIcon.Window; Title = "Ilmenyx Controller — Executar instalador do Windows"; Width = 660; MinWidth = 480; SizeToContent = SizeToContent.Height; MaxHeight = 760;
         WindowStartupLocation = WindowStartupLocation.CenterOwner; Background = Palette.Panel; Foreground = Palette.Fg; CanResize = false;
         KeyboardNavigation.SetTabNavigation(this, KeyboardNavigationMode.Cycle);
 
@@ -96,7 +96,7 @@ public sealed class FastExecDialog : Window
                 try
                 {
                     using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(30) };
-                    http.DefaultRequestHeaders.UserAgent.ParseAdd("Ilmenyx (+https://github.com/Bismuth-Technology/ilmenyx)");
+                    http.DefaultRequestHeaders.UserAgent.ParseAdd("IlmenyxController (+https://github.com/Ilmenyx-Technology/ilmenyx)");
                     await ClassicProton.EnsureAsync(http, new Progress<double>(v => { status.Text = $"Baixando o {ClassicProton.Version}… {v:P0}"; Busy(true, v); }), CancellationToken.None, classicRoot);
                 }
                 catch (Exception e) when (e is IOException or HttpRequestException or TaskCanceledException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)

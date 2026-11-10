@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 using System.Diagnostics;
 using System.Text.Json;
 using Avalonia;
@@ -296,7 +296,7 @@ public sealed class UiSmokeApp : Application
         if (!report.IsReadOnly || !report.Text!.Contains("Nenhuma verificação")) throw new InvalidOperationException("Requirements must start idle and read-only.");
         if (active) { FocusIs(dialog, Find<Button>(dialog, "VerifyRequirements")); Key(dialog, Avalonia.Input.Key.Space); }
         else Click(dialog, "VerifyRequirements");
-        await Until(() => report.Text!.Contains("Ilmenyx doctor") && Find<Button>(dialog, "VerifyRequirements").IsEnabled);
+        await Until(() => report.Text!.Contains("Ilmenyx Controller doctor") && Find<Button>(dialog, "VerifyRequirements").IsEnabled);
         using var expected = new StringWriter(System.Globalization.CultureInfo.InvariantCulture);
         RuntimeRequirementsPresentation.Write(new Ilmenyx.Platform.Linux.LinuxRuntimeDependencies().InspectReport(
             Ilmenyx.Platform.Linux.LinuxRuntimeDependencies.IsInvariantModeRequested(),
@@ -375,7 +375,7 @@ public sealed class UiSmokeApp : Application
                 try { await Reachable(about, text); await Reachable(about, Find<Button>(about, "CloseAbout")); }
                 catch (InvalidOperationException e) { errors.Add(e.Message); }
             }
-            var heading = about.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Text == "Ilmenyx · by Bismuth Technology");
+            var heading = about.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Text == "Ilmenyx Controller · by Ilmenyx Technology");
             try { await Reachable(about, heading); } catch (InvalidOperationException e) { errors.Add(e.Message); }
             Console.WriteLine($"LAYOUT About heading origin={heading.TranslatePoint(default, about)} bounds={heading.Bounds.Size} text={heading.TextLayout.Width}x{heading.TextLayout.Height}");
             TextFits(about, errors);
@@ -386,7 +386,7 @@ public sealed class UiSmokeApp : Application
             var requirements = desktop.Windows.OfType<RequirementsDialog>().Single(w => w.IsVisible);
             await MinimumSize(requirements); ScaleText(requirements, factor); await Task.Delay(100);
             Click(requirements, "VerifyRequirements");
-            await Until(() => Find<TextBox>(requirements, "RequirementsReport").Text!.Contains("Ilmenyx doctor"));
+            await Until(() => Find<TextBox>(requirements, "RequirementsReport").Text!.Contains("Ilmenyx Controller doctor"));
             foreach (var name in new[] { "VerifyRequirements", "CloseRequirements", "RequirementsReport" })
                 try { await Reachable(requirements, Find<Control>(requirements, name)); } catch (InvalidOperationException e) { errors.Add(e.Message); }
             if (Find<TextBox>(requirements, "RequirementsReport").Bounds.Height < 120) errors.Add("Requirements reader below 120 DIP.");
@@ -404,7 +404,7 @@ public sealed class UiSmokeApp : Application
         var shell = new ShellWindow { Width = 1280, Height = 820 };
         shell.Show();
         await Until(() => shell.IsVisible && shell.GetVisualDescendants().OfType<UsageChart>().Any(c => c.Name == "OverviewChart" && c.Count >= 3));
-        if (Find<TextBlock>(shell, "ProductName").Text != "Ilmenyx" || Find<TextBlock>(shell, "MaintainerSignature").Text != "by Bismuth Technology")
+        if (Find<TextBlock>(shell, "ProductName").Text != "Ilmenyx Controller" || Find<TextBlock>(shell, "MaintainerSignature").Text != "by Ilmenyx Technology")
             throw new InvalidOperationException("Identity missing from shell window.");
         if (Find<TextBlock>(shell, "OverviewGpuNotice").Text != ValidationNotices.AmdNvidia) throw new InvalidOperationException("AMD/NVIDIA notice missing from overview.");
         if (!Find<TextBlock>(shell, "OverviewValue").Text!.Contains('%')) throw new InvalidOperationException("Overview CPU load not shown.");
@@ -1625,8 +1625,8 @@ public sealed class UiSmokeApp : Application
         await MonitorAsync(desktop);
         await KeyboardAsync(window, desktop);
         await RequirementsAsync(window, desktop);
-        if (window.Title != ProductIdentity.Name || Find<TextBlock>(window, "ProductName").Text != "Ilmenyx" ||
-            Find<TextBlock>(window, "MaintainerSignature").Text != "by Bismuth Technology")
+        if (window.Title != ProductIdentity.Name || Find<TextBlock>(window, "ProductName").Text != "Ilmenyx Controller" ||
+            Find<TextBlock>(window, "MaintainerSignature").Text != "by Ilmenyx Technology")
             throw new InvalidOperationException("Ilmenyx identity missing from live window.");
         Click(window, "About");
         await Until(() => desktop.Windows.OfType<AboutDialog>().Any(w => w.IsVisible));
@@ -1647,7 +1647,7 @@ public sealed class UiSmokeApp : Application
             throw new InvalidOperationException("Own usage and commercialization terms missing from About.");
         selector.SelectedIndex = 0; await Task.Delay(60); Capture(about, "about.png");
         Click(about, "CloseAbout"); await Until(() => !about.IsVisible);
-        Console.WriteLine("PASS Ilmenyx identity, by Bismuth Technology, live About/attribution/MIT/dependency documents and close");
+        Console.WriteLine("PASS Ilmenyx identity, by Ilmenyx Technology, live About/attribution/MIT/dependency documents and close");
         var implementation = window.PlatformImpl?.GetType().FullName ?? "unavailable";
         var requested = DesktopBackend.Parse(DesktopBackend.ReadSelection());
         if (requested == DisplayBackend.Wayland && !implementation.StartsWith("Avalonia.Wayland.", StringComparison.Ordinal))

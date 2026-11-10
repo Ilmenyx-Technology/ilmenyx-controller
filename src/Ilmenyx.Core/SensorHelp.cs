@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // Linux counterpart of the original's "CORRIGIR" (which installed the PawnIO driver): explain why a CPU reading is missing and show
 // fix it with one click: a fixed root script built only from whitelisted values runs through polkit (pkexec), which asks for the
 // password in the system's own dialog (maintainer decision 2026-11-06: users must not have to type commands). The command stays visible.

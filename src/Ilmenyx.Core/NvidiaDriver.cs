@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // "Driver NVIDIA" tab, pure part: GPU generation table (which driver branch supports each generation), parsers of os-release,
 // dpkg-query, apt-get -s, dkms status, mokutil and apt-cache policy, and the diagnosis record filled by the Linux probe.
 // Nothing here runs a process or touches the system.

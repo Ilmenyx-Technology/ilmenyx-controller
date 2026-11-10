@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // ZRAM (compressed swap in RAM) through the distribution's official way: zram-generator (/etc/systemd/zram-generator.conf) on Fedora,
 // Arch and openSUSE, zram-tools (/etc/default/zramswap) on Debian/Ubuntu/Mint. Read-only detection, then a plan in plain language and
 // FIXED root scripts run through polkit only after the user's click and confirmation (AGENTS.md, "Correções de sensores com um clique").
