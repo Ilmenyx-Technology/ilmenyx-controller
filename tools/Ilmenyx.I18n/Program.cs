@@ -5,6 +5,7 @@
 //   check                       compara os textos marcados no código com src/Ilmenyx.Core/Locales/*.json (sai com 1 se houver erro)
 //   pending <idioma> <saída>    grava os textos que ainda faltam traduzir em <idioma>, um por linha (JSON)
 //   merge <idioma> <arquivo>    junta traduções ({"texto pt": "tradução"}) ao catálogo do idioma
+//   prune                       tira dos catálogos os textos que o código não usa mais
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -28,10 +29,11 @@ internal static partial class Program
         {
             case "wrap": return Wrap(args.Length > 1 ? args[1..] : Sources);
             case "check": return Check();
+            case "prune": return Prune();
             case "missed": Vocabulary.Build(); Wrapper.Missed = []; Wrap(Sources, dry: true); File.WriteAllLines("i18n-missed.txt", Wrapper.Missed.Distinct().Order()); return 0;
             case "pending" when args.Length == 3: return Pending(args[1], args[2]);
             case "merge" when args.Length == 3: return Merge(args[1], args[2]);
-            default: Console.Error.WriteLine("Uso: wrap [caminhos] | check | pending <idioma> <saída> | merge <idioma> <arquivo>"); return 2;
+            default: Console.Error.WriteLine("Uso: wrap [caminhos] | check | prune | pending <idioma> <saída> | merge <idioma> <arquivo>"); return 2;
         }
     }
 
@@ -157,6 +159,21 @@ internal static partial class Program
             errors += stale.Count + holes.Count;
         }
         return errors == 0 ? 0 : 1;
+    }
+
+    /// <summary>Removes from every catalog the texts the code no longer marks.</summary>
+    private static int Prune()
+    {
+        var keys = Extract();
+        foreach (var lang in Directory.EnumerateFiles(LocaleDir, "*.json").Select(Path.GetFileNameWithoutExtension).Order(StringComparer.Ordinal))
+        {
+            var map = ReadLocale(lang!);
+            int before = map.Count;
+            foreach (var k in map.Keys.Where(k => !keys.ContainsKey(k)).ToList()) map.Remove(k);
+            WriteLocale(lang!, map);
+            Console.WriteLine($"{lang}: {before - map.Count} textos sem uso removidos.");
+        }
+        return 0;
     }
 
     private static int Pending(string lang, string output)

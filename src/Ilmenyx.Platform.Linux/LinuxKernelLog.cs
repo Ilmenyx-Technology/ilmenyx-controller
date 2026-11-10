@@ -24,7 +24,7 @@ public sealed class LinuxKernelLog(Func<IReadOnlyList<string>, CancellationToken
                 readable = probeCode == 0 && probe.Trim().Length > 0;
             }
             if (readable != true) return KernelHardwareErrors.Unavailable(NoAccess);
-            string from = since.UtcDateTime.ToString(L.T("yyyy-MM-dd HH:mm:ss"), CultureInfo.InvariantCulture) + " UTC";
+            string from = since.UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture) + " UTC";
             var (code, output) = await run(["-k", "--since", from, "--no-pager", "-q", "-o", "short-iso"], ct);
             return code == 0 ? KernelLogParser.Parse(output) : KernelHardwareErrors.Unavailable(L.T($"journalctl terminou com código {code}"));
         }

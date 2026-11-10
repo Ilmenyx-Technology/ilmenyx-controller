@@ -103,7 +103,7 @@ public static class GeneralReport
             .node{font-size:13px;overflow-wrap:anywhere}.num{text-align:right}footer{margin-top:28px;font-size:12px;opacity:.7}
             @media(max-width:600px){.wrap{padding:12px}}@media print{.wrap{padding:0}}</style></head><body><div class="wrap">
             """);
-        sb.Append(L.T($"<header><h1>Ilmenyx Controller</h1><p class=\"sub\">by Ilmenyx Technology · Relatório de hardware · {E(d.Date.ToString(L.T("yyyy-MM-dd HH:mm"), CultureInfo.InvariantCulture))}"));
+        sb.Append(L.T($"<header><h1>Ilmenyx Controller</h1><p class=\"sub\">by Ilmenyx Technology · Relatório de hardware · {E(d.Date.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture))}"));
         if (d.AppVersion.Length > 0) sb.Append($" · v{E(d.AppVersion)}");
         sb.Append(L.T("</p></header><p class=\"muted\">Números de série e o nome do computador foram omitidos. Arquivo offline: sem scripts nem recursos remotos.</p>"));
         foreach (var note in d.Notes) sb.Append($"<p class=\"muted\">{E(note)}</p>");
@@ -135,7 +135,7 @@ public static class GeneralReport
         if (d.Benchmarks.Count > 0)
         {
             sb.Append(L.T("<section><h2>Benchmarks e testes recentes</h2><div class=\"card\"><table><tr><th>Data</th><th>Teste</th><th>Resultado</th></tr>"));
-            foreach (var b in d.Benchmarks) sb.Append($"<tr><td class=\"muted\">{E(b.At.LocalDateTime.ToString(L.T("yyyy-MM-dd HH:mm"), CultureInfo.InvariantCulture))}</td><td>{E(b.Kind)}</td><td>{E(b.Summary)}</td></tr>");
+            foreach (var b in d.Benchmarks) sb.Append($"<tr><td class=\"muted\">{E(b.At.LocalDateTime.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture))}</td><td>{E(b.Kind)}</td><td>{E(b.Summary)}</td></tr>");
             sb.Append(L.T("</table><p class=\"muted\">Pontuações experimentais do port Linux; não comparáveis a scores do Windows.</p></div></section>"));
         }
         sb.Append(L.T("<footer>Gerado pelo Ilmenyx (adaptação independente e não oficial do RESET EXPLODE, de Gustavo/GustavoReset, MIT). Dados lidos de /proc, /sys, /etc e das ferramentas locais; podem variar conforme o hardware. Revise antes de compartilhar.</footer></div></body></html>"));

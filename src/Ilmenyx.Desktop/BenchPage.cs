@@ -491,14 +491,14 @@ public sealed class BenchPage : StackPanel
     {
         historyRows.Children.Clear();
         var latest = settings.BenchRuns.FirstOrDefault(r => r.Kind != "OC");
-        lastRun.Text = latest is null ? L.T("Nenhum teste concluído ainda. Escolha um teste abaixo e clique em Iniciar.") : $"{latest.Kind} · {latest.At.LocalDateTime.ToString(L.T("yyyy-MM-dd HH:mm"), CultureInfo.InvariantCulture)} · {latest.Summary}";
+        lastRun.Text = latest is null ? L.T("Nenhum teste concluído ainda. Escolha um teste abaixo e clique em Iniciar.") : $"{latest.Kind} · {latest.At.LocalDateTime.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture)} · {latest.Summary}";
         if (latest is not null && cts is null && headline.Text == "—") headline.Text = latest.Kind == "CPU" && latest.Score is double sc ? N(sc, "N0") + " pts" : latest.Summary.Split(" · ")[0];
         if (settings.BenchRuns.Count == 0) { historyRows.Children.Add(new TextBlock { Text = L.T("Nenhum teste concluído ainda."), Foreground = Palette.Muted, FontSize = 12 }); return; }
         bool first = true;
         foreach (var run in settings.BenchRuns.Take(20))
         {
             var row = new Grid { ColumnDefinitions = new("118,84,*") };
-            var date = new TextBlock { Text = run.At.LocalDateTime.ToString(L.T("yyyy-MM-dd HH:mm"), CultureInfo.InvariantCulture), FontSize = 12, Foreground = Palette.Faint, VerticalAlignment = VerticalAlignment.Center };
+            var date = new TextBlock { Text = run.At.LocalDateTime.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture), FontSize = 12, Foreground = Palette.Faint, VerticalAlignment = VerticalAlignment.Center };
             var kindText = new TextBlock { Text = run.Kind, FontSize = 12, FontWeight = FontWeight.SemiBold, Foreground = Palette.Muted, VerticalAlignment = VerticalAlignment.Center };
             var summary = new TextBlock { Text = run.Summary, FontSize = 12.5, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center };
             Grid.SetColumn(kindText, 1); Grid.SetColumn(summary, 2);

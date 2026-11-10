@@ -131,7 +131,7 @@ public sealed class SmartctlDiagnostic(ISmartctlQuery query)
         }
         return list;
     }
-    private static string Source(string device) => L.T("smartctl --health --json /dev/") + device;
+    private static string Source(string device) => "smartctl --health --json /dev/" + device;
     private static SmartDiagnostic Missing(string device, int? exit, string reason) => new("1.0", DateTimeOffset.UtcNow, device, "unavailable", reason, exit,
         Reading<bool?>.Missing("boolean", Source(device), reason), Limitations);
 }

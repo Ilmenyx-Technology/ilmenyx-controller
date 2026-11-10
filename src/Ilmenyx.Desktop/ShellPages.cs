@@ -30,7 +30,7 @@ public sealed partial class ShellWindow
             string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             var gpus = new LinuxGpuCollector().Collect(PciIds.Load());
             // PRIME variables depend on the driver, not only the vendor: NVIDIA on nouveau is offloaded with DRI_PRIME like Mesa GPUs.
-            string vendor = gpus.Count > 0 ? (gpus[0].Card.Vendor == "NVIDIA" && gpus[0].Raw.Driver != "nvidia" ? L.T("NVIDIA-Mesa") : gpus[0].Card.Vendor) : "";
+            string vendor = gpus.Count > 0 ? (gpus[0].Card.Vendor == "NVIDIA" && gpus[0].Raw.Driver != "nvidia" ? "NVIDIA-Mesa" : gpus[0].Card.Vendor) : "";
             bool multi = gpus.Count(x => !x.Raw.Integrated) + gpus.Count(x => x.Raw.Integrated) > 1;
             // Manual games: the experimental Proton options (when they apply) and, with the Otimiza option on, the bigger shader cache variables.
             return new LauncherPage(new LinuxGameLibrary(home), new SteamInfo(home), IlmenyxSettings.DefaultPath(),

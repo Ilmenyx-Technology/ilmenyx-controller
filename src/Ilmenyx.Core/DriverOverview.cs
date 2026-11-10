@@ -86,8 +86,8 @@ public static class DriverOverview
     public static string LicenseOf(DriverRow r)
     {
         if (!HasDriver(r)) return "—";
-        if (r.Flags.Contains("proprietário", StringComparison.Ordinal) || Is(r.Driver, ProprietaryDrivers)) return L.T("Proprietário (do fabricante)");
-        if (r.Flags.Contains("fora da árvore", StringComparison.Ordinal)) return L.T("Livre, instalado à parte do kernel");
+        if (r.Flags.Contains(L.T("proprietário"), StringComparison.Ordinal) || Is(r.Driver, ProprietaryDrivers)) return L.T("Proprietário (do fabricante)");
+        if (r.Flags.Contains(L.T("fora da árvore do kernel"), StringComparison.Ordinal)) return L.T("Livre, instalado à parte do kernel");
         return L.T("Livre (vem com o Linux)");
     }
 

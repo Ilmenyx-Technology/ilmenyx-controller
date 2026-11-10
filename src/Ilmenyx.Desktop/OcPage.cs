@@ -216,7 +216,7 @@ public sealed class OcPage : StackPanel
         foreach (var r in runs)
         {
             history.Children.Add(new Border { BorderBrush = Palette.Line, BorderThickness = new Thickness(0, first ? 0 : 1, 0, 0), Padding = new Thickness(0, 6), Child = new StackPanel { Spacing = 1, Children = {
-                new TextBlock { Text = r.At.LocalDateTime.ToString(L.T("yyyy-MM-dd HH:mm"), CultureInfo.InvariantCulture), FontSize = 11, Foreground = Palette.Faint },
+                new TextBlock { Text = r.At.LocalDateTime.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture), FontSize = 11, Foreground = Palette.Faint },
                 new TextBlock { Text = r.Summary, FontSize = 12.5, TextWrapping = TextWrapping.Wrap, Foreground = r.Summary.StartsWith(L.T("INSTÁVEL"), StringComparison.Ordinal) ? Palette.Error : Palette.Fg } } } });
             first = false;
         }

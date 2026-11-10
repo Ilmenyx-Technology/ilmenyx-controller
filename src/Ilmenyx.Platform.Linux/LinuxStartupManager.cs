@@ -136,7 +136,7 @@ public sealed class LinuxStartupManager(string configHome, string dataHome, IRea
         string name = d.GetValueOrDefault("Name") is { Length: > 0 } n ? n : Path.GetFileNameWithoutExtension(file);
         string exec = DesktopEntry.CleanExec(d.GetValueOrDefault("Exec") ?? "");
         string? exe = DesktopEntry.ExeOf(exec);
-        bool enabled = !string.Equals(d.GetValueOrDefault("Hidden"), "true", StringComparison.OrdinalIgnoreCase) && !string.Equals(d.GetValueOrDefault(L.T("X-GNOME-Autostart-enabled")), "false", StringComparison.OrdinalIgnoreCase);
+        bool enabled = !string.Equals(d.GetValueOrDefault("Hidden"), "true", StringComparison.OrdinalIgnoreCase) && !string.Equals(d.GetValueOrDefault("X-GNOME-Autostart-enabled"), "false", StringComparison.OrdinalIgnoreCase);
         string detail = string.Join(" · ", new[] { d.GetValueOrDefault("Comment"), d.GetValueOrDefault("GenericName") }.Where(s => !string.IsNullOrWhiteSpace(s)).Distinct());
         return new(Path.GetFileName(file), name, exec, overrideNote is null ? source : source + " · " + overrideNote, system, enabled, detail, exe is not null && exe is not ("env" or "sh" or "bash") && !DesktopEntry.ExistsOnPathOrAbsolute(exe), "Desktop", file)
         { Keys = d, OverridesSystem = overrideNote is not null };
@@ -226,9 +226,9 @@ public sealed class LinuxStartupManager(string configHome, string dataHome, IRea
         if (e.FilePath is null) throw new ArgumentException(L.T("Entrada sem arquivo."));
         string target = Path.Combine(UserDir, e.Id);
         string text = File.ReadAllText(e.FilePath);
-        if (e.System && !File.Exists(target)) text = DesktopEntry.WithKey(text, L.T("X-Ilmenyx-Override"), "true");
+        if (e.System && !File.Exists(target)) text = DesktopEntry.WithKey(text, "X-Ilmenyx-Override", "true");
         text = DesktopEntry.WithKey(text, "Hidden", enabled ? null : "true");
-        text = DesktopEntry.WithKey(text, L.T("X-GNOME-Autostart-enabled"), enabled ? null : "false");
+        text = DesktopEntry.WithKey(text, "X-GNOME-Autostart-enabled", enabled ? null : "false");
         if (enabled && DesktopEntry.Parse(text).ContainsKey("X-Ilmenyx-Override")) { if (File.Exists(target)) File.Delete(target); return; } // drop our override: the system entry applies again
         WriteAtomic(target, text);
     }

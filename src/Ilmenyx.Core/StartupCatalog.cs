@@ -250,7 +250,7 @@ public static class StartupCatalog
 
     private static readonly (string Token, string Name)[] Desktops =
     [
-        (L.T("X-Cinnamon"), Cin), ("Cinnamon", Cin), ("GNOME", Gn), ("KDE", Kde), ("XFCE", Xf), ("MATE", Ma), ("LXQt", Lq), ("LXDE", "LXDE"),
+        ("X-Cinnamon", Cin), ("Cinnamon", Cin), ("GNOME", Gn), ("KDE", Kde), ("XFCE", Xf), ("MATE", Ma), ("LXQt", Lq), ("LXDE", "LXDE"),
         ("Budgie", Bg), ("Unity", "Unity"), ("Pantheon", "Pantheon"), ("Deepin", "Deepin"), ("COSMIC", "COSMIC"),
     ];
 
@@ -345,7 +345,7 @@ public static class StartupCatalog
 
         // Standard keys: session phases and auto-restart are only used by pieces of the desktop session.
         string? desktop = DesktopOf(f.Keys.GetValueOrDefault("OnlyShowIn", ""));
-        string phase = f.Keys.GetValueOrDefault(L.T("X-GNOME-Autostart-Phase"), "");
+        string phase = f.Keys.GetValueOrDefault("X-GNOME-Autostart-Phase", "");
         if (SessionPhases.Contains(phase, StringComparer.OrdinalIgnoreCase) || f.Keys.ContainsKey("X-KDE-autostart-phase"))
             return Make(StartupRole.Required, desktop ?? (f.Keys.ContainsKey("X-KDE-autostart-phase") ? Kde : L.T("Área de trabalho")), described.Length > 0 ? described : L.T("Parte da sessão da área de trabalho (abre numa fase inicial do login)."));
         bool autoRestart = f.Keys.Any(k => k.Key is "X-GNOME-AutoRestart" or "X-MATE-AutoRestart" or "X-Cinnamon-AutoRestart" && k.Value.Equals("true", StringComparison.OrdinalIgnoreCase));

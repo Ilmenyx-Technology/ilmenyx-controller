@@ -45,14 +45,14 @@ public static class FastExec
         if (wineBin is { Length: > 0 }) return PlainWinePlan(wineBin, staged, extra, prefix, dest, installer, Path.Combine(LogFolder(tempRoot), "wine-" + runId + ".log"));
         string umu = find("umu-run") ?? throw new InvalidOperationException(L.T("O umu-launcher (Proton fora da Steam) não foi encontrado."));
         return new(umu, [staged, .. extra], [
-            new(L.T("WINEPREFIX"), prefix), new("GAMEID", "umu-default"), new("STORE", "none"),
-            new(L.T("WINEDLLOVERRIDES"), "winemenubuilder.exe=d"), // no menu entries, icons or file associations from the installer
+            new("WINEPREFIX", prefix), new("GAMEID", "umu-default"), new("STORE", "none"),
+            new("WINEDLLOVERRIDES", "winemenubuilder.exe=d"), // no menu entries, icons or file associations from the installer
             // Xalia (gamepad UI helper) only burns CPU here. fsync/esync stay ON: turning them off made a multi-threaded installer about
             // ten times slower and did not prevent its CRC failure (owner's tests 2026-11-08); Bottles keeps them on and installs fine.
             new("PROTON_USE_XALIA", "0"),
             new("PROTON_LOG", "1"), new("PROTON_LOG_DIR", LogFolder(tempRoot)),
-            .. (protonPath is { Length: > 0 } pp ? new KeyValuePair<string, string>[] { new(L.T("PROTONPATH"), pp) } // e.g. the classic Proton 9 folder
-                : geProton ? [new(L.T("PROTONPATH"), L.T("GE-Proton"))] : []), // umu downloads the latest GE-Proton
+            .. (protonPath is { Length: > 0 } pp ? new KeyValuePair<string, string>[] { new("PROTONPATH", pp) } // e.g. the classic Proton 9 folder
+                : geProton ? [new("PROTONPATH", "GE-Proton")] : []), // umu downloads the latest GE-Proton
         ], prefix, dest, installer, staged);
     }
 
@@ -75,8 +75,8 @@ public static class FastExec
         foreach (var key in SessionEssentials)
             if (System.Environment.GetEnvironmentVariable(key) is { Length: > 0 } v) env.Add(new(key, v));
         env.AddRange([
-            new(L.T("WINEPREFIX"), prefix), new(L.T("WINEARCH"), "win64"), new(L.T("WINEDEBUG"), "fixme-all"),
-            new(L.T("WINEDLLOVERRIDES"), overrides), // no menu entries or file associations from the installer
+            new("WINEPREFIX", prefix), new("WINEARCH", "win64"), new("WINEDEBUG", "fixme-all"),
+            new("WINEDLLOVERRIDES", overrides), // no menu entries or file associations from the installer
             new("WINE_LARGE_ADDRESS_AWARE", "1"), new("STAGING_SHARED_MEMORY", "1"), // as Bottles runs it
             .. (libs.Length > 0 ? new KeyValuePair<string, string>[] { new("LD_LIBRARY_PATH", libs) } : []),
         ]);
@@ -86,8 +86,8 @@ public static class FastExec
     }
 
     /// <summary>The only session variables a plain-Wine installer run inherits (display, audio, locale, user).</summary>
-    private static readonly string[] SessionEssentials = ["HOME", "USER", L.T("LOGNAME"), "PATH", "LANG", "LANGUAGE", "LC_ALL", "TZ", "DISPLAY", "WAYLAND_DISPLAY",
-        L.T("XAUTHORITY"), "XDG_RUNTIME_DIR", "XDG_SESSION_TYPE", "DBUS_SESSION_BUS_ADDRESS", "PULSE_SERVER"];
+    private static readonly string[] SessionEssentials = ["HOME", "USER", "LOGNAME", "PATH", "LANG", "LANGUAGE", "LC_ALL", "TZ", "DISPLAY", "WAYLAND_DISPLAY",
+        "XAUTHORITY", "XDG_RUNTIME_DIR", "XDG_SESSION_TYPE", "DBUS_SESSION_BUS_ADDRESS", "PULSE_SERVER"];
 
     /// <summary>Where the Proton log of each installer run is kept (outside the throwaway prefix, so it survives the cleanup).</summary>
     public static string LogFolder(string? tempRoot = null) => Path.Combine(tempRoot ?? TempRoot(), "logs");
@@ -115,7 +115,7 @@ public static class FastExec
         File.CreateSymbolicLink(d, plan.Destination);
     }
 
-    private static readonly string[] BroadFolders = ["Downloads", L.T("Transferências"), "Desktop", L.T("Área de trabalho"), L.T("Área de Trabalho"), "Documents", L.T("Documentos")];
+    private static readonly string[] BroadFolders = ["Downloads", "Transferências", "Desktop", "Área de trabalho", "Área de Trabalho", "Documents", "Documentos"];
 
     /// <summary>
     /// Puts the installer's folder inside the temporary Windows (C:\Instalador) before it runs. Installers read their data files from
@@ -276,7 +276,7 @@ public static class FastExec
 
     /// <summary>Folders Wine itself creates in Program Files; anything else there came from the installer.</summary>
     private static readonly string[] DriveRootDefaults = ["windows", "users", "programdata", "program files", "program files (x86)", "instalador", "jogos", "games", "$recycle.bin", "temp", "tmp"];
-    private static readonly string[] WineDefaults = ["common files", L.T("internet explorer"), "windows media player", "windows nt", "windowspowershell", "microsoft.net", "msbuild", "reference assemblies", L.T("uninstall information"), "windows defender", "windows mail", "windows photo viewer", "windows portable devices", L.T("windows sidebar"), "steam", "microsoft"]; // Proton creates Program Files (x86)\\Steam itself
+    private static readonly string[] WineDefaults = ["common files", "internet explorer", "windows media player", "windows nt", "windowspowershell", "microsoft.net", "msbuild", "reference assemblies", "uninstall information", "windows defender", "windows mail", "windows photo viewer", "windows portable devices", "windows sidebar", "steam", "microsoft"]; // Proton creates Program Files (x86)\\Steam itself
 
     /// <summary>
     /// What the installer put inside the temporary Windows: every folder in C:\Jogos and C:\Games, plus folders in Program Files that

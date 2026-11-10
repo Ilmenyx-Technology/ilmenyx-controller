@@ -12,7 +12,7 @@ namespace Ilmenyx.Platform.Linux;
 public sealed class LinuxGameLibrary(string? home = null, Func<IReadOnlyList<string>, CancellationToken, Task<(int Code, string Output)>>? lutris = null)
 {
     private readonly string home = home ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-    private static readonly string[] IgnoredPrefixes = ["Proton", "Steam Linux Runtime", L.T("Steamworks Common"), "SteamVR"];
+    private static readonly string[] IgnoredPrefixes = ["Proton", "Steam Linux Runtime", "Steamworks Common", "SteamVR"];
 
     public IReadOnlyList<string> SteamRoots() => new[] { ".local/share/Steam", ".steam/steam", ".steam/root", ".var/app/com.valvesoftware.Steam/.local/share/Steam" }
         .Select(p => Path.Combine(home, p)).Where(Directory.Exists).Select(p => { try { return new DirectoryInfo(p).ResolveLinkTarget(true)?.FullName ?? p; } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return p; } }).Distinct().ToList();
@@ -497,7 +497,7 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
         if (clean.Length == 0) clean = "jogo";
         if (clean.Length > 60) clean = clean[..60].TrimEnd('-');
         string id = steamAppId is { Length: > 0 and <= 10 } a && a.All(char.IsAsciiDigit) ? "umu-" + a : "umu-default";
-        return [new(L.T("WINEPREFIX"), Path.Combine(prefixRoot, clean)), new("GAMEID", id), new("STORE", "none")];
+        return [new("WINEPREFIX", Path.Combine(prefixRoot, clean)), new("GAMEID", id), new("STORE", "none")];
     }
 
     public static async Task<string?> PowerProfileAsync(CancellationToken ct)

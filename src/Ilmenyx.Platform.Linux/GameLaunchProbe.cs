@@ -277,7 +277,7 @@ public sealed class ZramProbe
         {
             try
             {
-                var (code, output) = await run("zramctl", ["--raw", "--noheadings", "--bytes", "--output", L.T("NAME,DISKSIZE,ALGORITHM")], TimeSpan.FromSeconds(10), ct);
+                var (code, output) = await run("zramctl", ["--raw", "--noheadings", "--bytes", "--output", "NAME,DISKSIZE,ALGORITHM"], TimeSpan.FromSeconds(10), ct);
                 if (code == 0)
                     foreach (var line in output.Split('\n'))
                         if (line.Split(' ', StringSplitOptions.RemoveEmptyEntries) is [var n, var sz, var alg] && long.TryParse(sz, NumberStyles.None, CultureInfo.InvariantCulture, out long b))
