@@ -31,7 +31,7 @@ public sealed class CompatPage : StackPanel
     private readonly Func<Window?> owner;
     private readonly CancellationToken lifetime;
     private readonly TextBlock dbStatus = new() { Name = "CompatDbStatus", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap };
-    private readonly Button dbUpdate = UiKit.Primary("CompatDbUpdate", "BAIXAR BASE DE RELATOS");
+    private readonly Button dbUpdate = UiKit.Primary("CompatDbUpdate", "Baixar base de relatos");
     private readonly Button dbCancel = new() { Name = "CompatDbCancel", Content = "Cancelar", IsVisible = false };
     private readonly TextBox search = new() { Name = "CompatSearch", PlaceholderText = "Buscar jogo pelo nome ou pelo ID da Steam (ex.: Elden Ring, 1245620)", MinWidth = 260, Padding = new Thickness(34, 7, 10, 7) };
     private readonly WrapPanel results = new() { Name = "CompatResults", ItemSpacing = 6, LineSpacing = 6 };
@@ -102,7 +102,7 @@ public sealed class CompatPage : StackPanel
         dbStatus.Text = m is null
             ? "Ainda não baixada. Sem ela, a página mostra só as consultas online (nota do ProtonDB, Steam Deck e anti-cheat)."
             : $"{Count(m.Apps, "jogo", "jogos")} · {Count(m.Reports, "relato", "relatos")} de {m.Oldest:MM/yyyy} a {m.Newest:dd/MM/yyyy} · arquivo {m.Source} · montada em {m.BuiltAt.ToLocalTime():dd/MM/yyyy}";
-        dbUpdate.Content = m is null ? "BAIXAR BASE DE RELATOS" : "ATUALIZAR BASE";
+        dbUpdate.Content = m is null ? "Baixar base de relatos" : "Atualizar base";
     }
 
     private async Task UpdateDatabaseAsync()
@@ -196,7 +196,7 @@ public sealed class CompatPage : StackPanel
         }
         Tile(0, "PROTONDB", Icons.Compat, "CompatTier", out var tierValue, out var tierNote); Tile(2, "STEAM DECK", Icons.Games, "CompatDeck", out var deckValue, out var deckNote); Tile(4, "ANTI-CHEAT", Icons.Blocked, "CompatAntiCheat", out var acValue, out var acNote);
         detail.Children.Add(tiles);
-        var query = UiKit.Primary("CompatOnlineQuery", "CONSULTAR ONLINE"); var queryStatus = new TextBlock { Name = "CompatOnlineStatus", Foreground = Palette.Faint, FontSize = 12, VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap };
+        var query = UiKit.Primary("CompatOnlineQuery", "Consultar online"); var queryStatus = new TextBlock { Name = "CompatOnlineStatus", Foreground = Palette.Faint, FontSize = 12, VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap };
         query.Click += async (_, _) =>
         {
             if (!onlineAllowed)
@@ -280,7 +280,7 @@ public sealed class CompatPage : StackPanel
                 layers.Children.Insert(1, mark);
             }
         }
-        ToolTip.SetTip(hero, onImage ? "Imagem do jogo: Steam (Valve) e o estúdio do jogo." : "Sem imagem: ela aparece se o jogo estiver na sua Steam ou depois de CONSULTAR ONLINE.");
+        ToolTip.SetTip(hero, onImage ? "Imagem do jogo: Steam (Valve) e o estúdio do jogo." : "Sem imagem: ela aparece se o jogo estiver na sua Steam ou depois de Consultar online.");
         return hero;
     }
 

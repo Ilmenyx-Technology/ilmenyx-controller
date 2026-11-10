@@ -40,7 +40,7 @@ public sealed class BenchPage : StackPanel
     private readonly string settingsPath;
     private readonly CancellationToken lifetime;
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromMilliseconds(250) };
-    private readonly Button start = UiKit.Primary("BtnBench", "INICIAR", 24, 12);
+    private readonly Button start = UiKit.Primary("BtnBench", "Iniciar", 24, 12);
     private readonly TextBlock hint = new() { Name = "BenchHint", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, FontSize = 12 };
     private readonly TextBlock phase = new() { Name = "BenchPhase", Text = "Parado", FontSize = 13, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap };
     private readonly ProgressBar bar = new() { Name = "BenchProgress", Minimum = 0, Maximum = 1, Height = 6, MinHeight = 6, Margin = new Thickness(0, 8, 0, 0) };
@@ -219,8 +219,8 @@ public sealed class BenchPage : StackPanel
         switch (kind)
         {
             case Kind.Cpu:
-                wrap.Children.Add(Field("NÚCLEOS", new UiKit.ChipGroup<CpuMode>("BenchModePanel", [("MULTI + SINGLE", CpuMode.Both), ("MULTI", CpuMode.Multi), ("SINGLE", CpuMode.Single)], cpuMode, m => cpuMode = m).Panel));
-                wrap.Children.Add(Field("DURAÇÃO", new UiKit.ChipGroup<bool>("BenchDurationPanel", [("NORMAL", false), ("SUSTENTADO 10 MIN", true)], sustained, v => sustained = v).Panel));
+                wrap.Children.Add(Field("NÚCLEOS", new UiKit.ChipGroup<CpuMode>("BenchModePanel", [("Multi + single", CpuMode.Both), ("Multi", CpuMode.Multi), ("Single", CpuMode.Single)], cpuMode, m => cpuMode = m).Panel));
+                wrap.Children.Add(Field("DURAÇÃO", new UiKit.ChipGroup<bool>("BenchDurationPanel", [("Normal", false), ("Sustentado 10 min", true)], sustained, v => sustained = v).Panel));
                 wrap.Children.Add(Field("LIMITE °C", tempLimit));
                 options.Children.Add(wrap);
                 options.Children.Add(Note("Renderiza uma cena com path tracing 960×540 a 1024 amostras por pixel (algoritmo do RESET BENCH). Carga de 100% em todas as threads."));
@@ -247,7 +247,7 @@ public sealed class BenchPage : StackPanel
             case Kind.Rt:
                 if (rtInfo is null) { options.Children.Add(Note("Verificando suporte a ray tracing…")); break; }
                 if (rtInfo.Reason is { } rwhy) { options.Children.Add(Note("Ray tracing indisponível: " + rwhy)); break; }
-                wrap.Children.Add(Field("PRESET", new UiKit.ChipGroup<string>("BenchRtPreset", [("NORMAL", "normal"), ("ALTA", "alta"), ("EXTREMA", "extrema")], rtPreset, v => { rtPreset = v; BuildOptions(); }).Panel));
+                wrap.Children.Add(Field("PRESET", new UiKit.ChipGroup<string>("BenchRtPreset", [("Normal", "normal"), ("ALTA", "alta"), ("EXTREMA", "extrema")], rtPreset, v => { rtPreset = v; BuildOptions(); }).Panel));
                 wrap.Children.Add(Field("RESOLUÇÃO", new UiKit.ChipGroup<string>("BenchRtResolution", [("1080P", "1080p"), ("1440P", "1440p"), ("4K", "4k")], rtResolution, v => { rtResolution = v; BuildOptions(); }).Panel));
                 wrap.Children.Add(Field("MODO", new UiKit.ChipGroup<bool>("BenchRtMode", [("RÁPIDO", true), ("COMPLETO", false)], rtQuick, v => { rtQuick = v; BuildOptions(); }).Panel));
                 wrap.Children.Add(Field("LIMITE °C", tempLimit));
@@ -301,7 +301,7 @@ public sealed class BenchPage : StackPanel
 
     private void Busy(bool on)
     {
-        start.Content = on ? "PARAR" : "INICIAR";
+        start.Content = on ? "Parar" : "Iniciar";
         tempLimit.IsEnabled = diskDirectory.IsEnabled = !on;
         foreach (var name in new[] { "BenchKindPanel", "BenchModePanel", "BenchDurationPanel", "BenchSimThreads", "BenchSimSeconds", "BenchGpuSeconds", "BenchRtPreset", "BenchRtResolution", "BenchRtMode", "BenchDiskSize" })
             if (this.GetLogicalDescendants().OfType<StackPanel>().FirstOrDefault(p => p.Name == name) is { } panel) panel.IsEnabled = !on;
@@ -491,7 +491,7 @@ public sealed class BenchPage : StackPanel
     {
         historyRows.Children.Clear();
         var latest = settings.BenchRuns.FirstOrDefault(r => r.Kind != "OC");
-        lastRun.Text = latest is null ? "Nenhum teste concluído ainda. Escolha um teste abaixo e clique em INICIAR." : $"{latest.Kind} · {latest.At.LocalDateTime.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture)} · {latest.Summary}";
+        lastRun.Text = latest is null ? "Nenhum teste concluído ainda. Escolha um teste abaixo e clique em Iniciar." : $"{latest.Kind} · {latest.At.LocalDateTime.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture)} · {latest.Summary}";
         if (latest is not null && cts is null && headline.Text == "—") headline.Text = latest.Kind == "CPU" && latest.Score is double sc ? N(sc, "N0") + " pts" : latest.Summary.Split(" · ")[0];
         if (settings.BenchRuns.Count == 0) { historyRows.Children.Add(new TextBlock { Text = "Nenhum teste concluído ainda.", Foreground = Palette.Muted, FontSize = 12 }); return; }
         bool first = true;

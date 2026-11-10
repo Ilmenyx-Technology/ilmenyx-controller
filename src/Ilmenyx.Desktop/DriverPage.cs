@@ -21,15 +21,15 @@ public sealed class DriverPage : StackPanel
     private readonly Func<string, Task<string?>> destination;
     private readonly CancellationToken lifetime;
     private readonly Action? openNvidiaTab;
-    private readonly TextBlock status = new() { Name = "DrvStatus", Text = "Clique em VERIFICAR TUDO.", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12) };
+    private readonly TextBlock status = new() { Name = "DrvStatus", Text = "Clique em Verificar tudo.", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12) };
     private readonly TextBlock headline = new() { Name = "DrvHeadline", Text = "Ainda não verificado.", FontSize = 17, FontWeight = FontWeight.Bold, TextWrapping = TextWrapping.Wrap };
     private readonly StackPanel summaryLines = new() { Name = "DrvSummaryLines", Spacing = 3, Margin = new Thickness(0, 8, 0, 0) };
     private readonly Grid categories = new() { Name = "DrvCategories", ColumnDefinitions = new("*,14,*") };
     private readonly StackPanel colA = new() { Name = "DrvColumnA" }, colB = new() { Name = "DrvColumnB" };
     private readonly TextBlock board = new() { Name = "DrvBoard", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0) };
-    private readonly Button boardPage = new() { Name = "BtnDrvBoardPage", Content = "ABRIR SUPORTE DO FABRICANTE", IsEnabled = false, Margin = new Thickness(0, 14, 0, 8) };
+    private readonly Button boardPage = new() { Name = "BtnDrvBoardPage", Content = "Abrir suporte do fabricante", IsEnabled = false, Margin = new Thickness(0, 14, 0, 8) };
     private readonly StackPanel fwList = new() { Name = "DrvFirmware", Spacing = 4, Margin = new Thickness(0, 8, 0, 0) };
-    private readonly Button fwCopy = new() { Name = "BtnDrvFwCopy", Content = "COPIAR COMANDO DE ATUALIZAÇÃO", IsVisible = false, Margin = new Thickness(0, 8, 0, 0) };
+    private readonly Button fwCopy = new() { Name = "BtnDrvFwCopy", Content = "Copiar comando de atualização", IsVisible = false, Margin = new Thickness(0, 8, 0, 0) };
     private readonly StackPanel list = new() { Name = "DrvList", Margin = new Thickness(0, 10, 0, 0) };
     private IReadOnlyList<GpuDriverStatus> gpus = [];
     private IReadOnlyList<DriverRow> rows = [];
@@ -46,7 +46,7 @@ public sealed class DriverPage : StackPanel
         this.launchManager = launchManager ?? DriverTools.LaunchDriverManager;
         this.findManager = findManager ?? BoundedProcess.FindSystem;
         this.destination = destination; this.lifetime = lifetime; Spacing = 4;
-        var scan = new Button { Name = "BtnDrvScan", Content = "VERIFICAR TUDO", Background = Palette.Accent, Foreground = Palette.OnAccent, FontWeight = FontWeight.Bold, Padding = new Thickness(20, 9), HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top };
+        var scan = new Button { Name = "BtnDrvScan", Content = "Verificar tudo", Background = Palette.Accent, Foreground = Palette.OnAccent, FontWeight = FontWeight.Bold, Padding = new Thickness(20, 9), HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top };
         scan.Click += async (_, _) => await ScanAsync();
         var header = UiKit.PageHeader("Drivers", "Driver é o programa que faz o Linux conversar com cada peça. Aqui você vê, por tipo de peça, se está tudo funcionando e o que fazer quando não está. Nada é instalado sem você pedir.");
         header.RowDefinitions = new("Auto,Auto");
@@ -65,13 +65,13 @@ public sealed class DriverPage : StackPanel
         categories.SizeChanged += (_, e) => { if (e.WidthChanged && (e.NewSize.Width >= 860) != colB.IsVisible) Arrange2(e.NewSize.Width); };
         Children.Add(categories);
 
-        var fw = new Button { Name = "BtnDrvFwupd", Content = "PROCURAR ATUALIZAÇÕES DE FIRMWARE", Margin = new Thickness(0, 12, 0, 8) };
+        var fw = new Button { Name = "BtnDrvFwupd", Content = "Procurar atualizações de firmware", Margin = new Thickness(0, 12, 0, 8) };
         fw.Click += async (_, _) => await FirmwareAsync(fw);
         fwCopy.Click += async (_, _) => { if (TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard) { await clipboard.SetTextAsync("fwupdmgr update"); status.Text = "Comando copiado: cole no terminal e confirme por conta própria."; } };
         Children.Add(Card("FIRMWARE DAS PEÇAS E DA BIOS", new StackPanel { Children = { Note("Firmware é o programa que fica gravado dentro da peça (SSD, BIOS, touchpad…). O serviço fwupd do Linux sabe quais peças têm atualização oficial (LVFS)."), fwList, new WrapPanel { ItemSpacing = 10, Children = { fw, fwCopy } }, Note("Somente leitura. Para atualizar, rode `fwupdmgr update` no terminal; o Ilmenyx não instala firmware nem pede senha.") } }));
         boardPage.Click += async (_, _) => await OpenAsync(boardInfo.SupportUrl);
         Children.Add(Card("PLACA-MÃE E FABRICANTE", new StackPanel { Children = { board, boardPage, Note("Fabricantes não têm um serviço público de versões. Abrimos o suporte oficial do fabricante detectado (chipset, áudio, rede, BIOS); se a página não abrir no seu modelo, busque o modelo mostrado acima no site.") } }));
-        var backup = new Button { Name = "BtnDrvBackup", Content = "EXPORTAR INVENTÁRIO (JSON)", Margin = new Thickness(0, 14, 0, 0), HorizontalAlignment = HorizontalAlignment.Left };
+        var backup = new Button { Name = "BtnDrvBackup", Content = "Exportar inventário (JSON)", Margin = new Thickness(0, 14, 0, 0), HorizontalAlignment = HorizontalAlignment.Left };
         backup.Click += async (_, _) => await ExportAsync(backup);
         Children.Add(Card("BACKUP DO INVENTÁRIO", new StackPanel { Children = { new TextBlock { Text = "Salva a lista de peças e drivers em um arquivo novo (útil para mandar a um técnico). No Linux os drivers fazem parte do kernel e dos pacotes da distribuição; não há instaladores para exportar.", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0) }, backup } }));
         var full = new Expander { Name = "DrvListExpander", HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch, Header = new TextBlock { Text = "Lista técnica completa (todos os dispositivos e módulos do kernel)", FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap }, Content = list };
@@ -214,7 +214,7 @@ public sealed class DriverPage : StackPanel
 
     private Button ManagerButton(string name, DriverTools.DriverManager? manager, bool primary)
     {
-        var open = primary ? UiKit.Primary(name, "ABRIR GERENCIADOR DE DRIVERS") : new Button { Name = name, Content = "ABRIR GERENCIADOR DE DRIVERS DA DISTRIBUIÇÃO" };
+        var open = primary ? UiKit.Primary(name, "Abrir gerenciador de drivers") : new Button { Name = name, Content = "Abrir gerenciador de drivers da distribuição" };
         open.IsEnabled = manager is not null; open.HorizontalAlignment = HorizontalAlignment.Left;
         open.Click += (_, _) =>
         {
@@ -237,7 +237,7 @@ public sealed class DriverPage : StackPanel
         var buttons = new WrapPanel { ItemSpacing = 10, LineSpacing = 8, Margin = new Thickness(0, 10, 0, 0) };
         if (g.Vendor == "NVIDIA")
         {
-            var latest = new Button { Name = "BtnDrvNvidiaLatest", Content = "VERIFICAR VERSÃO MAIS RECENTE (internet)", IsEnabled = g.SupportedBranch is not null };
+            var latest = new Button { Name = "BtnDrvNvidiaLatest", Content = "Verificar versão mais recente (internet)", IsEnabled = g.SupportedBranch is not null };
             ToolTip.SetTip(latest, "Consulta " + DriverTools.NvidiaReleasesUrl + " (somente ao clicar) e compara só com o ramo que suporta esta placa.");
             latest.Click += async (_, _) =>
             {
@@ -259,9 +259,9 @@ public sealed class DriverPage : StackPanel
             buttons.Children.Add(latest);
             if (g.Driver == "nouveau") buttons.Children.Add(ManagerButton("BtnDrvManager", manager, primary: false));
         }
-        var page = new Button { Name = "BtnDrvGpuPage", Content = "ABRIR PÁGINA OFICIAL", IsEnabled = g.OfficialPage.Length > 0 };
+        var page = new Button { Name = "BtnDrvGpuPage", Content = "Abrir página oficial", IsEnabled = g.OfficialPage.Length > 0 };
         page.Click += async (_, _) => await OpenAsync(g.OfficialPage);
-        var copy = new Button { Name = "BtnDrvCopyHint", Content = "COPIAR COMANDO SUGERIDO" };
+        var copy = new Button { Name = "BtnDrvCopyHint", Content = "Copiar comando sugerido" };
         copy.Click += async (_, _) => { if (TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard) { await clipboard.SetTextAsync(hint.Text ?? ""); status.Text = "Comando copiado; execute-o no terminal por conta própria."; } };
         buttons.Children.Add(page); buttons.Children.Add(copy);
         var tools = new StackPanel { Children = { info, message, hint, buttons } };
@@ -272,7 +272,7 @@ public sealed class DriverPage : StackPanel
 
     private Button NvidiaTabButton(string name, bool primary = true)
     {
-        var b = primary ? UiKit.Primary(name, "ABRIR A ABA DRIVER NVIDIA") : new Button { Name = name, Content = "ABRIR A ABA DRIVER NVIDIA" };
+        var b = primary ? UiKit.Primary(name, "Abrir a aba Driver NVIDIA") : new Button { Name = name, Content = "Abrir a aba Driver NVIDIA" };
         b.HorizontalAlignment = HorizontalAlignment.Left; b.IsEnabled = openNvidiaTab is not null;
         b.Click += (_, _) => openNvidiaTab?.Invoke();
         return b;

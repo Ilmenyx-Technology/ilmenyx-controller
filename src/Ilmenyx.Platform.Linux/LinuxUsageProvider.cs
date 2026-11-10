@@ -231,7 +231,31 @@ public sealed partial class LinuxUsageProvider(string procRoot = "/proc", string
             rows.Add(new(pid, s.name, percent, s.rssPages is { } pages ? pages * Environment.SystemPageSize : null));
         }
         processBefore = (now, current); hasProcessBefore = true;
-        return (rows.OrderByDescending(r => r.CpuPercent ?? -1).ThenByDescending(r => r.ResidentBytes ?? -1).Take(MaxRows).ToArray(), count);
+        var top = rows.OrderByDescending(r => r.CpuPercent ?? -1).ThenByDescending(r => r.ResidentBytes ?? -1).Take(MaxRows).ToArray();
+        if (!HostProcesses.Active(procRoot)) // the sandbox cannot read the host's cmdline; there the short name stays
+            for (int i = 0; i < top.Length; i++)
+                if (top[i].Name.Length == CommLength)
+                {
+                    string cmdline;
+                    try { cmdline = await new LinuxFiles().ReadAsync(Path.Combine(procRoot, top[i].Pid.ToString(CultureInfo.InvariantCulture), "cmdline"), ct); }
+                    catch (Exception e) when (e is IOException or UnauthorizedAccessException) { continue; }
+                    top[i] = top[i] with { Name = FullName(top[i].Name, cmdline) };
+                }
+        return (top, count);
+    }
+
+    /// <summary>The kernel keeps only the first 15 bytes of a program name (comm).</summary>
+    internal const int CommLength = 15;
+
+    /// <summary>
+    /// Full program name for a cut comm: the file name of the first command-line argument, used only when it starts with the comm
+    /// (so a renamed process title or an interpreter running a script keeps what the kernel reported).
+    /// </summary>
+    internal static string FullName(string comm, string cmdline)
+    {
+        string first = cmdline.Split('\0', 2)[0];
+        string name = new(Path.GetFileName(first).Where(c => !char.IsControl(c)).Take(64).ToArray());
+        return name.Length > comm.Length && name.StartsWith(comm, StringComparison.Ordinal) ? name : comm;
     }
 
     internal static (string name, long ticks, long start, long? rssPages)? ParseStat(string text)

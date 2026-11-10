@@ -29,6 +29,18 @@ public class OcSupportTests
     }
 
     [Fact]
+    public void NotebookGetsAGuideWithoutMemoryProfilesOrMultipliers()
+    {
+        // HP 250 G8 (chassis_type 10, i5-1135G7): its BIOS has no XMP/EXPO or CPU tuning.
+        var nb = OcGuideBuilder.Build("HP", "881D", "11th Gen Intel(R) Core(TM) i5-1135G7 @ 2.40GHz", notebook: true);
+        Assert.StartsWith("GUIA: BIOS DE NOTEBOOK · HP 881D", nb.Title); Assert.Contains("quase nunca", nb.Intro); Assert.Contains("não altera a BIOS", nb.Intro);
+        Assert.DoesNotContain(nb.Steps, s => s.Where.Contains("EXPO") || s.Title.Contains("EXPO"));
+        Assert.Equal(3, nb.Steps.Count);
+        foreach (var (type, laptop) in new[] { ("10", true), ("9\n", true), ("31", true), ("3", false), ("35", false), ("", false) })
+            Assert.Equal(laptop, OcGuideBuilder.IsNotebookChassis(type));
+    }
+
+    [Fact]
     public void KernelLogParserCountsHardwareErrorsByKind()
     {
         const string log = """

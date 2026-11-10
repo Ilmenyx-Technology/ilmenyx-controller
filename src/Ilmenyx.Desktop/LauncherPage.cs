@@ -40,7 +40,7 @@ public sealed class LauncherPage : Grid
     private readonly ScrollViewer detail = new() { Name = "LDetail", IsVisible = false };
     private readonly TextBlock title = new() { Name = "LTitle", FontSize = 32, FontWeight = FontWeight.Bold, TextWrapping = TextWrapping.Wrap };
     private readonly TextBlock sub = new() { Name = "LSub", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap };
-    private readonly Button play = UiKit.Primary("BtnPlay", "JOGAR", 40, 14);
+    private readonly Button play = UiKit.Primary("BtnPlay", "Jogar", 40, 14);
     // Visual feedback between JOGAR and the game's window (Proton can take a while): a moving bar until the game process is seen.
     private readonly ProgressBar playProgress = new() { Name = "LPlayProgress", IsIndeterminate = true, IsVisible = false, Height = 4, MinHeight = 4, Margin = new Thickness(0, 10, 0, 0) };
     private readonly TextBlock status = new() { Name = "LStatus", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 16) };
@@ -64,8 +64,8 @@ public sealed class LauncherPage : Grid
     private readonly TextBox protonId = new() { Name = "LProtonId", PlaceholderText = "ID Steam do jogo (opcional), ex.: 307780", MaxLength = 10 };
     private readonly StackPanel protonBox = new() { Name = "LProtonBox", IsVisible = false, Margin = new Thickness(0, 10, 0, 0) };
     private readonly TextBlock protonIdStatus = new() { Name = "LProtonIdStatus", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) };
-    private readonly Button removeGame = new() { Name = "BtnRemoveGame", Content = "REMOVER", FontSize = 11, Padding = new Thickness(12, 6), IsVisible = false };
-    private readonly Button renameGame = new() { Name = "BtnRenameGame", Content = "RENOMEAR", FontSize = 11, Padding = new Thickness(12, 6), IsVisible = false };
+    private readonly Button removeGame = new() { Name = "BtnRemoveGame", Content = "Remover", FontSize = 11, Padding = new Thickness(12, 6), IsVisible = false };
+    private readonly Button renameGame = new() { Name = "BtnRenameGame", Content = "Renomear", FontSize = 11, Padding = new Thickness(12, 6), IsVisible = false };
     private static readonly SteamAppLookup SteamIds = new();
     /// <summary>Steam ID search by name (default: the Steam store search). Settable for fixtures, so tests never go online.</summary>
     public Func<string, CancellationToken, Task<(string Id, string Name)?>>? FindSteamId { get; init; }
@@ -91,14 +91,14 @@ public sealed class LauncherPage : Grid
     private readonly FlatpakApps flatpaks = new();
     private readonly bool hostMango = BoundedProcess.Find("mangohud") is not null;
     private readonly TextBlock mangoFlatpakStatus = new() { Name = "MangoFlatpakStatus", FontSize = 12, Foreground = Palette.Warn, TextWrapping = TextWrapping.Wrap };
-    private readonly Button mangoFlatpakInstall = new() { Name = "MangoFlatpakInstall", Content = "INSTALAR MANGOHUD PARA FLATPAK", FontSize = 12, Padding = new Thickness(14, 7) };
+    private readonly Button mangoFlatpakInstall = new() { Name = "MangoFlatpakInstall", Content = "Instalar MangoHud para Flatpak", FontSize = 12, Padding = new Thickness(14, 7) };
     private readonly ProgressBar mangoFlatpakProgress = new() { IsIndeterminate = true, IsVisible = false, Height = 4, MinWidth = 120 };
     private readonly StackPanel mangoFlatpakBox = new() { Name = "MangoFlatpakBox", Spacing = 6, IsVisible = false, Margin = new Thickness(26, 0, 0, 8) };
     private string? mangoFlatpakBranch;
     private int columns = 2;
     private Grid? leftPane;
     private bool narrowWindow;
-    private readonly Button backToLibrary = new() { Name = "BtnBackToLibrary", Content = "← BIBLIOTECA", FontSize = 11, Padding = new Thickness(10, 4), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
+    private readonly Button backToLibrary = new() { Name = "BtnBackToLibrary", Content = "← Biblioteca", FontSize = 11, Padding = new Thickness(10, 4), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
     private UiKit.ChipGroup<string>? modeChips, resChips, styleChips, gfxPresetChips, gfxUpChips; private UiKit.ChipGroup<int>? hzChips;
     public IReadOnlyList<LibGame> Games => games;
     public GameProfile? Profile => profile;
@@ -132,11 +132,11 @@ public sealed class LauncherPage : Grid
 
     private void BuildLeft()
     {
-        var scan = new Button { Name = "BtnScanGames", Content = "ATUALIZAR LISTA", Padding = new Thickness(14, 8), FontSize = 12 };
-        var add = new Button { Name = "BtnAddExe", Content = "+ ADICIONAR EXECUTÁVEL", Padding = new Thickness(14, 8), FontSize = 12 };
+        var scan = new Button { Name = "BtnScanGames", Content = "Atualizar lista", Padding = new Thickness(14, 8), FontSize = 12 };
+        var add = new Button { Name = "BtnAddExe", Content = "+ Adicionar executável", Padding = new Thickness(14, 8), FontSize = 12 };
         scan.Click += async (_, _) => await ScanAsync(); add.Click += (_, _) => addBox.IsVisible = !addBox.IsVisible;
         // Fast exec: one disposable run of a Windows installer with Proton; the installed game can then be added here.
-        var installWin = new Button { Name = "BtnFastExec", Content = "INSTALAR JOGO DE WINDOWS", Padding = new Thickness(14, 8), FontSize = 12 };
+        var installWin = new Button { Name = "BtnFastExec", Content = "Instalar jogo de Windows", Padding = new Thickness(14, 8), FontSize = 12 };
         installWin.Click += async (_, _) =>
         {
             if (owner() is not { } window) return;
@@ -154,11 +154,11 @@ public sealed class LauncherPage : Grid
         var addPath = new TextBox { Name = "LAddPath", PlaceholderText = "/caminho/completo/do/jogo" };
         AutomationProperties.SetName(addPath, "Caminho completo do executável do jogo");
         var addStatus = new TextBlock { Name = "LAddStatus", Foreground = Palette.Muted, FontSize = 11, TextWrapping = TextWrapping.Wrap };
-        var confirm = UiKit.Primary("BtnAddExeConfirm", "ADICIONAR", 14, 6);
+        var confirm = UiKit.Primary("BtnAddExeConfirm", "Adicionar", 14, 6);
         confirm.Click += async (_, _) =>
         {
             string path = addPath.Text?.Trim() ?? "";
-            if (!LinuxGameLibrary.IsRunnableFile(path) && !LinuxGameLibrary.IsWindowsExe(path)) { addStatus.Text = "Escolha um jogo: um executável do Linux ou um .exe de Windows (que roda com Proton). Use PROCURAR… para abrir o explorador de arquivos."; return; }
+            if (!LinuxGameLibrary.IsRunnableFile(path) && !LinuxGameLibrary.IsWindowsExe(path)) { addStatus.Text = "Escolha um jogo: um executável do Linux ou um .exe de Windows (que roda com Proton). Use Procurar… para abrir o explorador de arquivos."; return; }
             if (!settings.CustomGames.Any(c => c.Exe == path))
             {
                 void add(IlmenyxSettings s) { if (!s.CustomGames.Any(c => c.Exe == path)) s.CustomGames.Add(new() { Name = LinuxGameLibrary.IsWindowsExe(path) ? GameNameFromFolder(path) : Path.GetFileNameWithoutExtension(path), Exe = path }); }
@@ -167,7 +167,7 @@ public sealed class LauncherPage : Grid
             addStatus.Text = "Adicionado."; await ScanAsync(); Select(games.FirstOrDefault(g => g.Store == "Manual" && g.Id == path));
             await LookUpSteamIdAsync(automatic: true);
         };
-        var browseAdd = new Button { Name = "BtnAddExeBrowse", Content = "PROCURAR…", FontSize = 12, Padding = new Thickness(14, 6) };
+        var browseAdd = new Button { Name = "BtnAddExeBrowse", Content = "Procurar…", FontSize = 12, Padding = new Thickness(14, 6) };
         browseAdd.Click += async (_, _) => { if (await PickExecutableAsync() is { } picked) addPath.Text = picked; };
         addBox.Children.Add(addPath); addBox.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { browseAdd, confirm } }); addBox.Children.Add(addStatus);
 
@@ -213,7 +213,7 @@ public sealed class LauncherPage : Grid
         emptyBox.Child = new StackPanel
         {
             Spacing = 10, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
-            Children = { UiKit.Icon(Icons.Games, 40, Palette.Faint), empty, new TextBlock { Text = "Use + ADICIONAR EXECUTÁVEL ou INSTALAR JOGO DE WINDOWS.", Foreground = Palette.Faint, FontSize = 12, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center, MaxWidth = 340 } },
+            Children = { UiKit.Icon(Icons.Games, 40, Palette.Faint), empty, new TextBlock { Text = "Use + Adicionar executável ou Instalar jogo de Windows.", Foreground = Palette.Faint, FontSize = 12, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center, MaxWidth = 340 } },
         };
         empty.HorizontalAlignment = HorizontalAlignment.Center; empty.FontSize = 14;
         // Empty state of the full-page library (nothing installed or nothing matches the search), under the search box.
@@ -262,10 +262,10 @@ public sealed class LauncherPage : Grid
         mangoFlatpakBox.Children.Add(new WrapPanel { ItemSpacing = 10, LineSpacing = 6, Children = { mangoFlatpakInstall, mangoFlatpakProgress } });
         mangoFlatpakInstall.Click += async (_, _) => await InstallFlatpakMangoAsync();
         if (!hasGm) ToolTip.SetTip(chkGameMode, "gamemoderun não está instalado."); if (!hasMango) ToolTip.SetTip(chkMango, "mangohud não está instalado.");
-        var setExe = new Button { Name = "BtnSetExe", Content = "DEFINIR EXECUTÁVEL", FontSize = 12, Padding = new Thickness(14, 7) }; setExe.Click += (_, _) => SetExe();
-        var browseExe = new Button { Name = "BtnSetExeBrowse", Content = "PROCURAR…", FontSize = 12, Padding = new Thickness(14, 7) };
+        var setExe = new Button { Name = "BtnSetExe", Content = "Definir executável", FontSize = 12, Padding = new Thickness(14, 7) }; setExe.Click += (_, _) => SetExe();
+        var browseExe = new Button { Name = "BtnSetExeBrowse", Content = "Procurar…", FontSize = 12, Padding = new Thickness(14, 7) };
         browseExe.Click += async (_, _) => { if (await PickExecutableAsync(current?.InstallDir) is { } picked) { exePath.Text = picked; SetExe(); } };
-        var recommended = new Button { Name = "BtnRecommended", Content = "PERFIL PARA MAIS FPS", FontSize = 12, Padding = new Thickness(14, 7) }; recommended.Click += (_, _) => Recommended();
+        var recommended = new Button { Name = "BtnRecommended", Content = "Perfil para mais FPS", FontSize = 12, Padding = new Thickness(14, 7) }; recommended.Click += (_, _) => Recommended();
         exeText.Margin = new Thickness(0, 6, 0, 0);
         var perf = UiKit.Card(new StackPanel
         {
@@ -288,7 +288,7 @@ public sealed class LauncherPage : Grid
         extra.TextChanged += (_, _) => SaveFromControls();
         // Windows games (.exe) run with Proton through the bundled umu-launcher; the Steam ID lets it apply the game's known fixes.
         protonBox.Children.Add(UiKit.Label("PROTON (JOGO DE WINDOWS)"));
-        var findId = new Button { Name = "BtnFindSteamId", Content = "BUSCAR", FontSize = 11, Padding = new Thickness(12, 5), Margin = new Thickness(8, 0, 0, 0) };
+        var findId = new Button { Name = "BtnFindSteamId", Content = "Buscar", FontSize = 11, Padding = new Thickness(12, 5), Margin = new Thickness(8, 0, 0, 0) };
         ToolTip.SetTip(findId, "Procura o ID pelo nome do jogo na loja Steam (só o nome é enviado).");
         findId.Click += async (_, _) => await LookUpSteamIdAsync(automatic: false);
         var idRow = new DockPanel(); DockPanel.SetDock(findId, Dock.Right); idRow.Children.Add(findId); idRow.Children.Add(protonId);
@@ -315,7 +315,7 @@ public sealed class LauncherPage : Grid
             b.Click += (_, _) => { if (!(extra.Text ?? "").Contains(token, StringComparison.OrdinalIgnoreCase)) extra.Text = ((extra.Text ?? "").Trim() + " " + token).Trim(); };
             presets.Children.Add(b);
         }
-        var steamApply = UiKit.Primary("BtnSteamApply", "APLICAR NAS OPÇÕES DA STEAM"); steamApply.HorizontalAlignment = HorizontalAlignment.Left;
+        var steamApply = UiKit.Primary("BtnSteamApply", "Aplicar nas opções da Steam"); steamApply.HorizontalAlignment = HorizontalAlignment.Left;
         steamApply.Click += async (_, _) => await ApplySteamAsync(steamApply);
         steamBox.Children.Add(steamNow); steamBox.Children.Add(steamApply);
         preview.FontSize = 12; preview.Margin = new Thickness(0);
@@ -332,7 +332,7 @@ public sealed class LauncherPage : Grid
                 new TextBlock { Text = "Extras", Foreground = Palette.Muted, FontSize = 12, Margin = new Thickness(0, 0, 0, 6) }, extra, presets, UiKit.Label("LINHA FINAL"), code, steamBox, gfxNote
             }
         });
-        var addHelper = new Button { Name = "BtnAddHelper", Content = "ADICIONAR", FontSize = 12, Padding = new Thickness(14, 7) }; addHelper.Click += (_, _) => AddHelper();
+        var addHelper = new Button { Name = "BtnAddHelper", Content = "Adicionar", FontSize = 12, Padding = new Thickness(14, 7) }; addHelper.Click += (_, _) => AddHelper();
         var help = UiKit.Card(new StackPanel
         {
             Children =
@@ -383,7 +383,7 @@ public sealed class LauncherPage : Grid
         {
             games = await library.ScanAsync(settings.CustomGames.ToList(), lifetime);
             Filter();
-            count.Text = games.Count == 0 ? "Nenhum jogo encontrado. Use + ADICIONAR EXECUTÁVEL para incluir um à mão." : $"{games.Count} {(games.Count == 1 ? "jogo" : "jogos")} · {string.Join(" · ", games.GroupBy(g => g.Kind ?? g.Store).Select(x => $"{x.Key} {x.Count()}"))}";
+            count.Text = games.Count == 0 ? "Nenhum jogo encontrado. Use + Adicionar executável para incluir um à mão." : $"{games.Count} {(games.Count == 1 ? "jogo" : "jogos")} · {string.Join(" · ", games.GroupBy(g => g.Kind ?? g.Store).Select(x => $"{x.Key} {x.Count()}"))}";
         }
         catch (OperationCanceledException) { count.Text = "Busca cancelada."; }
     }
@@ -473,9 +473,9 @@ public sealed class LauncherPage : Grid
         protonName = g.IsSteam ? steam.CompatToolName(g.Id) : g.IsWindowsManual ? (UmuProton ?? (() => LinuxGameExtras.UmuProtonName()))() : null;
         RebuildHelpers();
         steamBox.IsVisible = g.IsSteam; steamNow.Text = g.IsSteam ? "Opções atuais na Steam: " + (steam.GetLaunchOptions(g.Id) is { Length: > 0 } cur ? cur : "(nenhuma)") : "";
-        gfxNote.Text = g.IsSteam ? "Os argumentos e variáveis só passam a valer na Steam depois de APLICAR NAS OPÇÕES DA STEAM (a Steam é fechada nessa hora). Depois, o JOGAR abre pela Steam normalmente."
+        gfxNote.Text = g.IsSteam ? "Os argumentos e variáveis só passam a valer na Steam depois de Aplicar nas opções da Steam (a Steam é fechada nessa hora). Depois, o Jogar abre pela Steam normalmente."
             : g.LaunchUri is not null ? "Esta loja abre o jogo por um atalho que não aceita argumentos: use as opções de inicialização da própria loja. Desempenho e programas auxiliares funcionam normalmente."
-            : "Os argumentos são enviados direto ao executável quando você clica em JOGAR.";
+            : "Os argumentos são enviados direto ao executável quando você clica em Jogar.";
         status.Text = ""; loading = false; UpdatePreview(); ShowExe(g, p);
         Filter();
     }
@@ -511,7 +511,7 @@ public sealed class LauncherPage : Grid
         preview.Text = o.Length > 0 ? o : "(nenhum argumento)";
         var choices = ExtraChoices();
         extrasNote.Text = choices.Count == 0 ? "Desligadas. Opções novas do Proton, para testar jogo a jogo; cada uma explica o que faz antes de ligar."
-            : GameExtras.Summary(choices) + (current?.IsWindowsManual == true ? "" : current?.IsSteam == true ? "\nNa Steam, entram depois de APLICAR NAS OPÇÕES DA STEAM." : "");
+            : GameExtras.Summary(choices) + (current?.IsWindowsManual == true ? "" : current?.IsSteam == true ? "\nNa Steam, entram depois de Aplicar nas opções da Steam." : "");
         UpdateTags();
     }
 
@@ -714,7 +714,7 @@ public sealed class LauncherPage : Grid
     {
         if (current is null || profile is null) return;
         string path = (exePath.Text ?? "").Trim();
-        if (!LinuxGameLibrary.IsRunnableFile(path) && !LinuxGameLibrary.IsWindowsExe(path)) { status.Text = "Caminho inválido: escolha um executável do Linux ou um .exe de Windows (PROCURAR… abre o explorador de arquivos)."; return; }
+        if (!LinuxGameLibrary.IsRunnableFile(path) && !LinuxGameLibrary.IsWindowsExe(path)) { status.Text = "Caminho inválido: escolha um executável do Linux ou um .exe de Windows (Procurar… abre o explorador de arquivos)."; return; }
         profile.ExePath = path; SaveProfile(current, profile); ShowExe(current, profile); status.Text = "Executável definido.";
     }
 
@@ -724,7 +724,7 @@ public sealed class LauncherPage : Grid
         if (profile is null) return;
         foreach (var h in profile.Helpers.ToList())
         {
-            var remove = new Button { Content = "REMOVER", FontSize = 11, Padding = new Thickness(10, 4) };
+            var remove = new Button { Content = "Remover", FontSize = 11, Padding = new Thickness(10, 4) };
             var grid = new Grid { ColumnDefinitions = new("*,Auto"), Margin = new Thickness(0, 0, 0, 6) };
             var text = new TextBlock { Text = h.Display + (h.CloseWithGame ? "  ·  fecha com o jogo" : ""), TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center };
             Grid.SetColumn(remove, 1); grid.Children.Add(text); grid.Children.Add(remove);
@@ -761,7 +761,7 @@ public sealed class LauncherPage : Grid
                 if (!await steam.ShutdownAsync(lifetime)) { status.Text = "A Steam não fechou. Feche-a manualmente e tente de novo."; return; }
             }
             string? error = await Task.Run(() => steam.SetLaunchOptions(g.Id, options));
-            status.Text = error ?? (options.Length > 0 ? $"Opções gravadas na Steam: {options}. Clique em JOGAR (a Steam abre sozinha)." : "Opções da Steam limpas para este jogo.");
+            status.Text = error ?? (options.Length > 0 ? $"Opções gravadas na Steam: {options}. Clique em Jogar (a Steam abre sozinha)." : "Opções da Steam limpas para este jogo.");
             steamNow.Text = "Opções atuais na Steam: " + (steam.GetLaunchOptions(g.Id) is { Length: > 0 } cur ? cur : "(nenhuma)");
         }
         catch (OperationCanceledException) { status.Text = "Cancelado."; }
@@ -772,7 +772,7 @@ public sealed class LauncherPage : Grid
     {
         if (launching is not null) { launching.Cancel(); return; }
         if (current is not { } g || profile is not { } p) return;
-        launching = CancellationTokenSource.CreateLinkedTokenSource(lifetime); play.Content = "PARAR ACOMPANHAMENTO";
+        launching = CancellationTokenSource.CreateLinkedTokenSource(lifetime); play.Content = "Parar acompanhamento";
         playProgress.IsVisible = true; status.Text = $"Abrindo {g.Name}…";
         if (p.MangoHud && OperatingSystem.IsLinux()) MangoHudLogReader.EnsureConfig(settings); // overlay + FPS log ready without visiting the Overlay page
         try
@@ -786,7 +786,7 @@ public sealed class LauncherPage : Grid
             // Measured on this PC (MangoHud log of this launch): kept locally for the FPS page, at most FpsSession.MaxEntries sessions.
             if (session is { IsValid: true }) { if (Save(s => s.AddFpsSession(session)) is { } fresh) settings.FpsSessions = fresh.FpsSessions; else settings.AddFpsSession(session); }
         }
-        finally { launching.Dispose(); launching = null; play.Content = "JOGAR"; playProgress.IsVisible = false; }
+        finally { launching.Dispose(); launching = null; play.Content = "Jogar"; playProgress.IsVisible = false; }
     }
 }
 

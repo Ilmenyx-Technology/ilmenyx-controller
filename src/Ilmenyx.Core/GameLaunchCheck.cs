@@ -312,13 +312,13 @@ public static partial class GameLaunchChecks
             var cmds = new List<(string, string)>();
             if (!any && user == FlathubState.Missing)
             {
-                fixes.Add(new("flathub-add", "ADICIONAR FLATHUB (SÓ PARA MIM)", "Adicionar o Flathub para o seu usuário?\n\nRoda: flatpak remote-add --user --if-not-exists flathub " + FlathubRepoFile + "\n\nNão precisa de senha e baixa a lista do Flathub (flathub.org).",
+                fixes.Add(new("flathub-add", "Adicionar Flathub (só para mim)", "Adicionar o Flathub para o seu usuário?\n\nRoda: flatpak remote-add --user --if-not-exists flathub " + FlathubRepoFile + "\n\nNão precisa de senha e baixa a lista do Flathub (flathub.org).",
                     ["remote-add", "--user", "--if-not-exists", "flathub", FlathubRepoFile]));
                 cmds.Add(("Adicionar o Flathub para o seu usuário", "flatpak remote-add --user --if-not-exists flathub " + FlathubRepoFile));
             }
             if (user == FlathubState.Disabled)
             {
-                fixes.Add(new("flathub-enable", "REATIVAR FLATHUB (SÓ PARA MIM)", "Reativar o Flathub do seu usuário?\n\nRoda: flatpak remote-modify --user --enable flathub\n\nNão precisa de senha.", ["remote-modify", "--user", "--enable", "flathub"]));
+                fixes.Add(new("flathub-enable", "Reativar Flathub (só para mim)", "Reativar o Flathub do seu usuário?\n\nRoda: flatpak remote-modify --user --enable flathub\n\nNão precisa de senha.", ["remote-modify", "--user", "--enable", "flathub"]));
                 cmds.Add(("Reativar o Flathub do usuário", "flatpak remote-modify --user --enable flathub"));
             }
             if (sys == FlathubState.Disabled) cmds.Add(("Reativar o Flathub do sistema (pede senha)", "sudo flatpak remote-modify --enable flathub"));
@@ -337,9 +337,9 @@ public static partial class GameLaunchChecks
         {
             var blocked = f.Drives.Where(d => SafeOverridePath(d.MountPoint) && !Covers(f.SteamFilesystems, d.MountPoint, f.Home)).ToList();
             var allowed = f.Drives.Where(d => Covers(f.SteamFilesystems, d.MountPoint, f.Home)).ToList();
-            var fixes = blocked.Take(8).Select(d => new UserFix("steam-fs:" + d.MountPoint, "LIBERAR " + Short(d.MountPoint) + " PARA A STEAM",
+            var fixes = blocked.Take(8).Select(d => new UserFix("steam-fs:" + d.MountPoint, "Liberar " + Short(d.MountPoint) + " para a Steam",
                 $"Deixar a Steam Flatpak usar {d.MountPoint}?\n\nRoda: flatpak override --user --filesystem={d.MountPoint} {SteamAppId}\n\nNão precisa de senha. Feche e abra a Steam depois. Dá para desfazer aqui.",
-                ["override", "--user", "--filesystem=" + d.MountPoint, SteamAppId], ["override", "--user", "--nofilesystem=" + d.MountPoint, SteamAppId], "DESFAZER")).ToList();
+                ["override", "--user", "--filesystem=" + d.MountPoint, SteamAppId], ["override", "--user", "--nofilesystem=" + d.MountPoint, SteamAppId], "Desfazer")).ToList();
             bool library = blocked.Any(d => d.HasSteamLibrary);
             string found = f.Drives.Count == 0 ? "Nenhum disco extra montado em /mnt, /media ou /run/media."
                 : (blocked.Count > 0 ? "Sem acesso: " + string.Join(", ", blocked.Select(d => d.MountPoint + (d.HasSteamLibrary ? " (tem biblioteca Steam)" : ""))) + "." : "")
@@ -373,7 +373,7 @@ public static partial class GameLaunchChecks
                 ("Ferramenta para conferir (vulkaninfo)", f.VulkaninfoInstalled ? "" : Sudo(fam, "sudo apt install vulkan-tools", "sudo dnf install vulkan-tools", "sudo pacman -S --needed vulkan-tools", "sudo zypper install vulkan-tools")),
                 ("Conferir as placas que o Vulkan enxerga", f.VulkaninfoInstalled ? "vulkaninfo --summary" : ""));
             list.Add(new("vulkan", "Vulkan para a sua placa de vídeo", status, found.Trim(), explain,
-                "Baixo: são pacotes oficiais da distribuição.", cmds, [], LinkPage: needNvidia ? "nvdriver" : null, LinkLabel: needNvidia ? "ABRIR DRIVER NVIDIA" : null));
+                "Baixo: são pacotes oficiais da distribuição.", cmds, [], LinkPage: needNvidia ? "nvdriver" : null, LinkLabel: needNvidia ? "Abrir Driver NVIDIA" : null));
         }
 
         // 9. 32-bit Vulkan/GL libraries for the native Steam.
@@ -398,7 +398,7 @@ public static partial class GameLaunchChecks
         if (f.MaxMapCount is { } mmc)
             list.Add(new("maxmap", "vm.max_map_count", mmc >= GameTweakRules.RecommendedMaxMapCount ? CheckStatus.Ok : CheckStatus.Attention, $"Atual: {mmc.ToString(CultureInfo.InvariantCulture)}.",
                 "Limite de mapeamentos de memória por processo. Com o valor antigo (65530), jogos como CS2 e vários títulos com Proton fecham sozinhos ou travam no carregamento. A página Otimiza explica e mostra o comando.",
-                "Baixo.", [], [], LinkPage: "optimize", LinkLabel: "ABRIR OTIMIZA"));
+                "Baixo.", [], [], LinkPage: "optimize", LinkLabel: "Abrir Otimiza"));
 
         // 11. Split-lock mitigation (information only).
         if (f.SplitLockMitigate is { } sl)

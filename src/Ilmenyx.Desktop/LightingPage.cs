@@ -32,10 +32,10 @@ public sealed class LightingPage : StackPanel
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromMilliseconds(33) };
     private readonly Stopwatch clock = Stopwatch.StartNew();
     private readonly TextBox port = new() { Name = "LightPort", Text = OpenRgbClient.DefaultPort.ToString(CultureInfo.InvariantCulture), Width = 90 };
-    private readonly Button connect = new() { Name = "BtnLightConnect", Content = "CONECTAR AO OPENRGB" };
-    private readonly Button startServer = new() { Name = "BtnLightServer", Content = "INICIAR SERVIDOR OPENRGB" };
-    private readonly Button openSite = new() { Name = "BtnOrgbOpen", Content = "SITE DO OPENRGB" };
-    private readonly Button run = UiKit.Primary("BtnLightRun", "ATIVAR CONTROLE", 22, 11);
+    private readonly Button connect = new() { Name = "BtnLightConnect", Content = "Conectar ao OpenRGB" };
+    private readonly Button startServer = new() { Name = "BtnLightServer", Content = "Iniciar servidor OpenRGB" };
+    private readonly Button openSite = new() { Name = "BtnOrgbOpen", Content = "Site do OpenRGB" };
+    private readonly Button run = UiKit.Primary("BtnLightRun", "Ativar controle", 22, 11);
     private readonly TextBlock status = new() { Name = "LightStatus", TextWrapping = TextWrapping.Wrap, Foreground = Palette.Muted };
     private readonly TextBlock hint = new() { Name = "LightRunHint", TextWrapping = TextWrapping.Wrap, FontSize = 12, Foreground = Palette.Muted };
     private readonly TextBlock live = new() { Name = "LightLive", FontSize = 12, Foreground = Palette.Muted };
@@ -66,10 +66,10 @@ public sealed class LightingPage : StackPanel
         connect.Click += async (_, _) => await ConnectAsync();
         openSite.Click += async (_, _) => { try { await services.OpenUrl("https://openrgb.org/", lifetime); Log("Site do OpenRGB aberto no navegador."); } catch (Exception e) when (e is IOException or TimeoutException or FileNotFoundException or ArgumentException) { Log("Não foi possível abrir o navegador: " + e.Message); } };
         Children.Add(UiKit.Card(new StackPanel { Spacing = 8, Children = { UiKit.Label("OPENRGB"),
-            new TextBlock { TextWrapping = TextWrapping.Wrap, Text = "O OpenRGB controla as luzes de placas-mãe, memórias, ventoinhas, teclados e mouses de várias marcas (incluindo Corsair e Razer). O OpenRGB acompanha o Ilmenyx: INICIAR SERVIDOR sobe o servidor SDK embutido (ou o do sistema, se existir) só em 127.0.0.1 e o fecha ao sair. Se o seu OpenRGB já está com o servidor ativo, basta CONECTAR." },
+            new TextBlock { TextWrapping = TextWrapping.Wrap, Text = "O OpenRGB controla as luzes de placas-mãe, memórias, ventoinhas, teclados e mouses de várias marcas (incluindo Corsair e Razer). O OpenRGB acompanha o Ilmenyx: Iniciar servidor sobe o servidor SDK embutido (ou o do sistema, se existir) só em 127.0.0.1 e o fecha ao sair. Se o seu OpenRGB já está com o servidor ativo, basta Conectar." },
             new WrapPanel { Children = { Field("PORTA", port), new WrapPanel { ItemSpacing = 8, LineSpacing = 8, VerticalAlignment = VerticalAlignment.Bottom, Children = { startServer, connect, openSite } } } }, status } }));
         Children.Add(UiKit.Card(new StackPanel { Spacing = 6, Children = { UiKit.Label("DISPOSITIVOS"), list } }));
-        var fx = new UiKit.ChipGroup<string>("LightFxPanel", [("ESTÁTICO", "static"), ("RESPIRAR", "breath"), ("ARCO-ÍRIS", "rainbow"), ("TEMP. CPU", "cpu"), ("TEMP. GPU", "gpu"), ("CARGA CPU", "load"), ("APAGAR", "off")], "static", v => { effect = v; smooth = double.NaN; last.Clear(); });
+        var fx = new UiKit.ChipGroup<string>("LightFxPanel", [("Estático", "static"), ("Respirar", "breath"), ("Arco-íris", "rainbow"), ("Temp. CPU", "cpu"), ("Temp. GPU", "gpu"), ("Carga CPU", "load"), ("Apagar", "off")], "static", v => { effect = v; smooth = double.NaN; last.Clear(); });
         // Keep buttons as direct children: the UI smoke and keyboard traversal rely on this panel.
         fx.Panel.Orientation = Orientation.Vertical;
         foreach (var button in fx.Panel.Children) button.HorizontalAlignment = HorizontalAlignment.Left;
@@ -93,7 +93,7 @@ public sealed class LightingPage : StackPanel
         timer.Tick += async (_, _) => await TickAsync();
         lifetime.Register(() => Dispatcher.UIThread.Post(async () => await ShutdownAsync()));
         RefreshPreview();
-        status.Text = services.OpenRgbInstalled() ? "OpenRGB encontrado neste computador. Inicie o servidor SDK e clique em CONECTAR." : "OpenRGB não encontrado no PATH. Instale pela sua distribuição (ou use o site) e inicie o servidor SDK.";
+        status.Text = services.OpenRgbInstalled() ? "OpenRGB encontrado neste computador. Inicie o servidor SDK e clique em Conectar." : "OpenRGB não encontrado no PATH. Instale pela sua distribuição (ou use o site) e inicie o servidor SDK.";
     }
 
     private static Control Field(string name, Control c) => new StackPanel { Margin = new Thickness(0, 0, 24, 6), Children = { UiKit.Label(name), new Border { Height = 4 }, c } };
@@ -117,7 +117,7 @@ public sealed class LightingPage : StackPanel
         {
             status.Text = "Iniciando o servidor OpenRGB (a primeira vez extrai o pacote embutido; pode levar alguns segundos)…";
             server = await services.StartServer(p, lifetime);
-            startServer.Content = "PARAR SERVIDOR OPENRGB";
+            startServer.Content = "Parar servidor OpenRGB";
             Log($"Servidor OpenRGB iniciado em 127.0.0.1:{p}.");
         }
         catch (Exception e) when (e is IOException or TimeoutException or FileNotFoundException or ArgumentException or System.ComponentModel.Win32Exception) { status.Text = e.Message; Log(e.Message); return; }
@@ -131,7 +131,7 @@ public sealed class LightingPage : StackPanel
         if (running) await StopAsync(true);
         if (client is not null) { await client.DisposeAsync(); client = null; rows = []; BuildList(); }
         if (server is { } s) { server = null; await s.DisposeAsync(); }
-        startServer.Content = "INICIAR SERVIDOR OPENRGB"; status.Text = "Servidor OpenRGB encerrado."; Log(status.Text);
+        startServer.Content = "Iniciar servidor OpenRGB"; status.Text = "Servidor OpenRGB encerrado."; Log(status.Text);
     }
 
     public async Task ConnectAsync()
@@ -172,7 +172,7 @@ public sealed class LightingPage : StackPanel
         var chosen = rows.Where(x => x.Selected).ToList();
         if (chosen.Count == 0) { hint.Text = "Marque pelo menos um dispositivo."; return; }
         hint.Text = "";
-        if (!await ConfirmDialog.AskAsync(window, "Ativar controle das luzes", $"O Ilmenyx vai assumir {chosen.Count} dispositivo(s) via OpenRGB e enviar o efeito escolhido. Ao clicar em DEVOLVER AO ORIGINAL (ou fechar o aplicativo), cada dispositivo volta ao modo que estava ativo na conexão.\n\nAtivar agora?", "Ativar", "Cancelar")) return;
+        if (!await ConfirmDialog.AskAsync(window, "Ativar controle das luzes", $"O Ilmenyx vai assumir {chosen.Count} dispositivo(s) via OpenRGB e enviar o efeito escolhido. Ao clicar em Devolver ao original (ou fechar o aplicativo), cada dispositivo volta ao modo que estava ativo na conexão.\n\nAtivar agora?", "Ativar", "Cancelar")) return;
         cts = CancellationTokenSource.CreateLinkedTokenSource(lifetime);
         var problems = new List<string>();
         foreach (var row in chosen)
@@ -180,14 +180,14 @@ public sealed class LightingPage : StackPanel
             try { await client.AcquireAsync(row.Device, cts.Token); Log($"Controle de \"{row.Device.Name}\": ok"); }
             catch (IOException e) { problems.Add($"{row.Device.Name}: {e.Message}"); Log($"Controle de \"{row.Device.Name}\": {e.Message}"); }
         }
-        controlled = chosen; last.Clear(); smooth = double.NaN; running = true; run.Content = "DEVOLVER AO ORIGINAL";
+        controlled = chosen; last.Clear(); smooth = double.NaN; running = true; run.Content = "Devolver ao original";
         hint.Text = problems.Count == 0 ? $"Controlando {chosen.Count} dispositivo(s)." : "Controle ativo, com avisos: " + string.Join("; ", problems);
         timer.Start();
     }
 
     public async Task StopAsync(bool release)
     {
-        timer.Stop(); running = false; run.Content = "ATIVAR CONTROLE"; live.Text = "";
+        timer.Stop(); running = false; run.Content = "Ativar controle"; live.Text = "";
         while (sending) await Task.Delay(10);
         if (release && client is not null)
         {
@@ -237,7 +237,7 @@ public sealed class LightingPage : StackPanel
                 catch (Exception e) when (e is IOException or ObjectDisposedException)
                 {
                     Log($"Perda de comunicação com o OpenRGB: {e.Message}"); hint.Text = "Conexão com o OpenRGB perdida. Reconecte.";
-                    timer.Stop(); running = false; run.Content = "ATIVAR CONTROLE"; return;
+                    timer.Stop(); running = false; run.Content = "Ativar controle"; return;
                 }
             }
         }

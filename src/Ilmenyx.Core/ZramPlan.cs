@@ -134,7 +134,7 @@ public static class ZramPlanner
         if (tool == ZramTool.Generator)
         {
             s.Add($"cat > {GeneratorConf} <<'ILMENYX_EOF'");
-            s.Add($"{Marker}: criado pelo Ilmenyx (página Otimiza > ZRAM). Para desfazer use DESFAZER ou apague este arquivo.");
+            s.Add($"{Marker}: criado pelo Ilmenyx (página Otimiza > ZRAM). Para desfazer use Desfazer ou apague este arquivo.");
             s.Add("[zram0]");
             s.Add($"zram-size = min(ram / 2, {MaxSizeMiB})");
             s.Add("compression-algorithm = zstd");
@@ -219,23 +219,23 @@ public static class ZramPlanner
         if (oursConfig && tool is { } ut)
         {
             string pkg = PackageFor(ut);
-            undo.Add(new(ZramActionKind.Undo, "Desfazer o ZRAM do Ilmenyx", "DESFAZER",
+            undo.Add(new(ZramActionKind.Undo, "Desfazer o ZRAM do Ilmenyx", "Desfazer",
                 ["Desliga o ZRAM criado pelo Ilmenyx (os dados nele voltam para a RAM).", ut == ZramTool.Generator ? $"Apaga {GeneratorConf} e recarrega o systemd." : $"Para e desativa o serviço zramswap e devolve o {ZramswapConf} original.", $"Mantém o pacote {pkg} instalado."],
                 ["Se a RAM estiver quase cheia, desligar pode falhar; o script para sem mudar nada."], UndoScript(f.Distro.Family, false)));
             if (InstalledByUs(f, ut))
-                undo.Add(new(ZramActionKind.UndoAndRemovePackage, $"Desfazer e remover o pacote {pkg}", "DESFAZER E REMOVER PACOTE",
-                    ["Faz o mesmo que DESFAZER.", $"Remove também o pacote {pkg}, que foi instalado pelo Ilmenyx."], ["Se a RAM estiver quase cheia, desligar pode falhar; o script para sem mudar nada."], UndoScript(f.Distro.Family, true)));
+                undo.Add(new(ZramActionKind.UndoAndRemovePackage, $"Desfazer e remover o pacote {pkg}", "Desfazer e remover pacote",
+                    ["Faz o mesmo que Desfazer.", $"Remove também o pacote {pkg}, que foi instalado pelo Ilmenyx."], ["Se a RAM estiver quase cheia, desligar pode falhar; o script para sem mudar nada."], UndoScript(f.Distro.Family, true)));
         }
 
         if (zramSwaps.Count > 0)
         {
             string what = string.Join(", ", zramSwaps.Select(s => $"{s.Name} ({GiB(s.SizeKiB * 1024)})"));
             return oursConfig
-                ? new(ZramState.ActiveOurs, "ZRAM ativo (configurado pelo Ilmenyx)", $"{what}. Para voltar como era, use DESFAZER.", findings, undo, tool, size)
+                ? new(ZramState.ActiveOurs, "ZRAM ativo (configurado pelo Ilmenyx)", $"{what}. Para voltar como era, use Desfazer.", findings, undo, tool, size)
                 : new(ZramState.Active, "ZRAM já está ativo", $"{what}. O sistema já usa memória comprimida; nada a fazer.", findings, [], tool, size);
         }
         if (tool is null) return new(ZramState.Unsupported, "Sem caminho oficial de ZRAM conhecido", $"O Ilmenyx só configura ZRAM pelo caminho oficial de Ubuntu/Mint, Debian, Fedora, Arch e openSUSE. Esta distribuição ({distro}) não foi reconhecida.", findings, [], null, size);
-        if (oursConfig) return new(ZramState.ConfiguredInactive, "ZRAM configurado, mas não ativo", "A configuração do Ilmenyx existe, mas o ZRAM não está ligado agora. Reinicie o PC ou use DESFAZER.", findings, undo, tool, size);
+        if (oursConfig) return new(ZramState.ConfiguredInactive, "ZRAM configurado, mas não ativo", "A configuração do Ilmenyx existe, mas o ZRAM não está ligado agora. Reinicie o PC ou use Desfazer.", findings, undo, tool, size);
         bool foreign = f.ZramConfigInstalled || f.EtcGeneratorConf is not null || f.GeneratorDropIns.Count > 0;
         if (foreign) return new(ZramState.ForeignConfig, "Existe outra configuração de ZRAM", "Há uma configuração de ZRAM feita por outro programa ou pelo administrador, mas o ZRAM não está ativo. O Ilmenyx não mexe nela; confira-a ou peça ajuda a quem a criou.", findings, [], tool, size);
         if (f.MemTotalBytes is not { } mem) return new(ZramState.Unknown, "Não foi possível ler a RAM", "Sem o tamanho da RAM (/proc/meminfo) o Ilmenyx não recomenda nada.", findings, [], tool, null);

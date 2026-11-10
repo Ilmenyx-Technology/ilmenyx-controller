@@ -12,7 +12,11 @@ public sealed record OcGuideStep(string Number, string Title, string Where, stri
 /// <summary>BIOS overclock guide. Menu paths are starting points that vary with the BIOS version; nothing here changes the system.</summary>
 public static class OcGuideBuilder
 {
-    public static (string Title, string Intro, IReadOnlyList<OcGuideStep> Steps) Build(string boardVendor, string boardName, string cpuName)
+    /// <summary>SMBIOS chassis types of portable machines (/sys/class/dmi/id/chassis_type): portable, laptop, notebook, sub notebook, convertible, detachable.</summary>
+    public static bool IsNotebookChassis(string chassisType) => chassisType.Trim() is "8" or "9" or "10" or "14" or "31" or "32";
+
+    /// <param name="notebook">Laptop BIOSes from the manufacturer rarely have memory profiles, multipliers or voltages: a different, honest guide.</param>
+    public static (string Title, string Intro, IReadOnlyList<OcGuideStep> Steps) Build(string boardVendor, string boardName, string cpuName, bool notebook = false)
     {
         bool gigabyte = boardVendor.Contains("Gigabyte", StringComparison.OrdinalIgnoreCase);
         bool asus = boardVendor.Contains("ASUS", StringComparison.OrdinalIgnoreCase);
@@ -28,6 +32,7 @@ public static class OcGuideBuilder
             : asus ? "AI Tweaker → Ai Overclock Tuner → EXPO I"
             : msi ? "OC → A-XMP/EXPO → Profile 1"
             : "procure EXPO / XMP no menu de memória";
+        if (notebook) return Notebook(board, shortCpu);
         var steps = new List<OcGuideStep>
         {
             new("0", "Antes de começar", gigabyte ? "Save & Exit → Save Profiles" : "Save & Exit → Save Profile", "Salve o perfil atual da BIOS. Se o PC não ligar depois de um ajuste, espere 3 tentativas (muitas placas voltam sozinhas) ou limpe a CMOS (jumper CLR_CMOS na placa ou tirando a bateria por 1 minuto)."),
@@ -45,6 +50,15 @@ public static class OcGuideBuilder
         return ("GUIA: OVERCLOCK NA BIOS · " + board.ToUpperInvariant() + " · " + shortCpu.ToUpperInvariant(),
             "Faça uma mudança por vez e rode o verificador depois de cada uma. Os menus podem mudar um pouco com a versão da BIOS. Valores são pontos de partida seguros, não garantia: cada chip é diferente. O Ilmenyx não altera a BIOS.", steps);
     }
+
+    private static (string, string, IReadOnlyList<OcGuideStep>) Notebook(string board, string shortCpu) =>
+        ("GUIA: BIOS DE NOTEBOOK · " + board.ToUpperInvariant() + " · " + shortCpu.ToUpperInvariant(),
+         "Em notebooks a BIOS do fabricante quase nunca tem perfil de memória (XMP/EXPO), multiplicador ou tensão: memória e processador já saem no limite do projeto de refrigeração. O Ilmenyx não altera a BIOS.",
+         [
+             new("0", "Veja se a sua BIOS tem menu de desempenho", "Tecla ao ligar: F10 (HP), F2 (Dell, Lenovo, ASUS, Acer)", "Procure algo como Performance, Advanced ou Overclocking. Se não houver, não há o que ajustar na BIOS; isso é normal em notebook e não é defeito."),
+             new("1", "O que funciona em notebook", "Ilmenyx → Otimiza e Energia", "Perfil de energia Alto desempenho na tomada e saídas de ar livres (base elevada, ventoinhas limpas). Depois rode o verificador \"CPU + RAM\" por 15 min para ver se o notebook segura a temperatura. Notebooks gamer (ROG, TUF, Legion, Predator…) costumam ter um modo de desempenho no app ou na BIOS do fabricante."),
+             new("2", "Undervolt e limites de energia", "—", "Em notebooks costumam vir travados pelo fabricante (nos Intel desde a 10ª geração, por segurança; nos AMD só alguns modelos liberam). Se a BIOS não mostrar a opção, não force com ferramentas de terceiros."),
+         ]);
 }
 
 public sealed record KernelHardwareErrors(int Cpu, int Memory, int Pcie, int Gpu, string? Last, string? Error)

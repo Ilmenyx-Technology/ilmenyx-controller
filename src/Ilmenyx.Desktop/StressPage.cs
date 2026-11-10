@@ -30,7 +30,7 @@ public sealed class StressPage : StackPanel
     private readonly TextBox cpuLimit = new() { Name = "TempLimit", Text = "90", Width = 80 };
     private readonly TextBox gpuLimit = new() { Name = "GpuTempLimit", Text = "85", Width = 80, IsEnabled = false };
     private readonly TextBox duration = new() { Name = "TxtDuration", Text = "10", Width = 80 };
-    private readonly Button start = UiKit.Primary("BtnStress", "INICIAR", 20, 12);
+    private readonly Button start = UiKit.Primary("BtnStress", "Iniciar", 20, 12);
     private readonly TextBlock hint = new() { Name = "StressHint", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, FontSize = 12, MaxWidth = 220, Margin = new Thickness(0, 8, 0, 0), TextAlignment = TextAlignment.Right, HorizontalAlignment = HorizontalAlignment.Right };
     private readonly Border statusCard;
     private readonly Ellipse statusDot = new() { Width = 9, Height = 9, Fill = Palette.Faint, VerticalAlignment = VerticalAlignment.Center };
@@ -127,7 +127,7 @@ public sealed class StressPage : StackPanel
 
     private void Controls(bool running)
     {
-        start.Content = running ? "PARAR" : "INICIAR";
+        start.Content = running ? "Parar" : "Iniciar";
         chkCpu.IsEnabled = chkRam.IsEnabled = !running; chkGpu.IsEnabled = !running && gpuEngine is { UnavailableReason: null }; gpuLimit.IsEnabled = !running && chkGpu.IsChecked == true; cpuLimit.IsEnabled = duration.IsEnabled = !running; ramChips!.Panel.IsEnabled = !running && chkRam.IsChecked == true;
     }
 
@@ -148,7 +148,7 @@ public sealed class StressPage : StackPanel
         long available = availableMemory();
         string what = string.Join(" e ", new[] { gpu ? $"GPU ({gpuEngine!.AdapterName}, carga máxima de renderização)" : null, cpu ? $"CPU ({Environment.ProcessorCount} threads a 100%)" : null, ram ? $"RAM ({(ramFraction * 100).ToString("0", CultureInfo.InvariantCulture)}% da memória disponível, sempre deixando 1 GiB livre)" : null }.Where(x => x != null));
         string gpuText = gpu ? $" e da GPU: {parsed!.GpuTempLimit:0} °C" + (gpuEngine!.SharesCpuThermals ? " (esta GPU divide o chip com a CPU: vale a temperatura da CPU)" : "") : "";
-        string time = parsed!.Duration > TimeSpan.Zero ? $"por {parsed.Duration.TotalMinutes:0.##} min" : "SEM LIMITE DE TEMPO (só para quando você clicar em PARAR, ou ao atingir o limite de temperatura ou erro)";
+        string time = parsed!.Duration > TimeSpan.Zero ? $"por {parsed.Duration.TotalMinutes:0.##} min" : "SEM LIMITE DE TEMPO (só para quando você clicar em Parar, ou ao atingir o limite de temperatura ou erro)";
         if (!await ConfirmDialog.AskAsync(window, "Iniciar stress test", $"Isto vai gerar carga máxima em {what} {time}.\n\nLimite de temperatura da CPU: {parsed.CpuTempLimit:0} °C{gpuText} (o teste é interrompido automaticamente). Salve seu trabalho antes: o sistema pode ficar lento e, com pouca RAM livre, instável.\n\nIniciar agora?", "Iniciar", "Cancelar")) return;
         try { if (cpu || ram) engine.Start(cpu, ram, ramFraction, available); }
         catch (InvalidOperationException e) { hint.Text = e.Message; return; }

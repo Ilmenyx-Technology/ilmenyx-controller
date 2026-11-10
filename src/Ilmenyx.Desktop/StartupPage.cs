@@ -20,13 +20,13 @@ public sealed class StartupPage : StackPanel
     private readonly StackPanel list = new() { Name = "StartupList" };
     private readonly TextBlock summary = new() { Name = "StartupSummary", Text = "PROGRAMAS DE INICIALIZAÇÃO", FontSize = 11, FontWeight = FontWeight.Bold, Foreground = Palette.Faint };
     private readonly TextBlock result = new() { Name = "StartupResult", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0) };
-    private readonly Button restore = new() { Name = "BtnStartupRestore", Content = "RESTAURAR REMOVIDOS", Padding = new Thickness(10, 4), FontSize = 11, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top };
+    private readonly Button restore = new() { Name = "BtnStartupRestore", Content = "Restaurar removidos", Padding = new Thickness(10, 4), FontSize = 11, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top };
     public IReadOnlyList<StartupEntry> Entries { get; private set; } = [];
 
     public StartupPage(LinuxStartupManager manager, Func<Window?> owner, CancellationToken lifetime)
     {
         this.manager = manager; this.owner = owner; this.lifetime = lifetime; Spacing = 4;
-        var scan = new Button { Name = "BtnStartupScan", Content = "ATUALIZAR", Background = Palette.Accent, Foreground = Palette.OnAccent, FontWeight = FontWeight.Bold, Padding = new Thickness(20, 9), HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top };
+        var scan = new Button { Name = "BtnStartupScan", Content = "Atualizar", Background = Palette.Accent, Foreground = Palette.OnAccent, FontWeight = FontWeight.Bold, Padding = new Thickness(20, 9), HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top };
         scan.Click += async (_, _) => { result.Text = ""; await ScanAsync(); };
         var header = UiKit.PageHeader("Inicialização", "Programas que abrem junto com a sua sessão, separados entre os do sistema e os seus, com o que cada um faz");
         header.RowDefinitions = new("Auto,Auto");
@@ -43,7 +43,7 @@ public sealed class StartupPage : StackPanel
                 Children =
                 {
                     top,
-                    new TextBlock { Text = "O interruptor ativa ou desativa na hora (a entrada continua lá e pode ser religada). Entradas do sistema (/etc/xdg/autostart) são desativadas por um arquivo seu em ~/.config/autostart, sem privilégios, e o arquivo do sistema não é alterado. REMOVER vale só para entradas suas: o arquivo vai para um backup e dá para desfazer em \"Restaurar removidos\". Vale na próxima vez que a sessão iniciar.", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 10) },
+                    new TextBlock { Text = "O interruptor ativa ou desativa na hora (a entrada continua lá e pode ser religada). Entradas do sistema (/etc/xdg/autostart) são desativadas por um arquivo seu em ~/.config/autostart, sem privilégios, e o arquivo do sistema não é alterado. Remover vale só para entradas suas: o arquivo vai para um backup e dá para desfazer em \"Restaurar removidos\". Vale na próxima vez que a sessão iniciar.", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 10) },
                     list, result
                 }
             }
@@ -58,7 +58,7 @@ public sealed class StartupPage : StackPanel
             Entries = await manager.ListAsync(lifetime);
             int on = Entries.Count(e => e.Enabled), sys = Entries.Count(e => e.Advice.Group == StartupGroup.System);
             summary.Text = Entries.Count == 0 ? "NENHUM PROGRAMA NA INICIALIZAÇÃO" : $"{Entries.Count} PROGRAMAS · {on} ATIVADOS · {Entries.Count - on} DESATIVADOS · {sys} DO SISTEMA · {Entries.Count - sys} SEUS";
-            int removed = manager.Removed().Count; restore.IsEnabled = removed > 0; restore.Content = removed > 0 ? $"RESTAURAR REMOVIDOS ({removed})" : "RESTAURAR REMOVIDOS";
+            int removed = manager.Removed().Count; restore.IsEnabled = removed > 0; restore.Content = removed > 0 ? $"Restaurar removidos ({removed})" : "Restaurar removidos";
             list.Children.Clear();
             AddGroup(StartupGroup.System, "StartupGroupSystem", StartupCatalog.GroupSystemTitle,
                 "Peças da área de trabalho e da distribuição (teclas, som, rede, senhas, aparência). Desativar uma delas pode deixar algo sem funcionar; o Ilmenyx avisa antes.");
@@ -122,7 +122,7 @@ public sealed class StartupPage : StackPanel
         grid.Children.Add(toggle); grid.Children.Add(info);
         if (e is { Kind: "Desktop", System: false } && a.Group == StartupGroup.User)
         {
-            var remove = new Button { Name = "StartupRemove_" + e.Id, Content = "REMOVER", Padding = new Thickness(12, 5), FontSize = 11, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(14, 0, 0, 0) };
+            var remove = new Button { Name = "StartupRemove_" + e.Id, Content = "Remover", Padding = new Thickness(12, 5), FontSize = 11, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(14, 0, 0, 0) };
             remove.Click += async (_, _) => await RemoveAsync(e);
             Grid.SetColumn(remove, 2); grid.Children.Add(remove);
         }

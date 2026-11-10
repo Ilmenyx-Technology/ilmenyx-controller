@@ -41,6 +41,13 @@ public sealed class LinuxKernelLog(Func<IReadOnlyList<string>, CancellationToken
         return (Read("board_vendor"), Read("board_name"));
     }
 
+    /// <summary>True on laptops, notebooks, convertibles and detachables (SMBIOS chassis type, world-readable).</summary>
+    public static bool IsNotebook(string root = "/sys/class/dmi/id")
+    {
+        try { return OcGuideBuilder.IsNotebookChassis(SysfsText.Read(Path.Combine(root, "chassis_type"), 16) ?? ""); }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return false; }
+    }
+
     public static async Task<IReadOnlyList<NvidiaTuningState>> NvidiaStateAsync(CancellationToken ct = default)
     {
         try

@@ -25,7 +25,7 @@ public sealed class EnergyPage : StackPanel
     public EnergyPage(SensorMonitorViewModel sensors, CancellationToken lifetime)
     {
         this.sensors = sensors; this.lifetime = lifetime;
-        var refresh = UiKit.Primary("BtnEnergyRefresh", "ATUALIZAR");
+        var refresh = UiKit.Primary("BtnEnergyRefresh", "Atualizar");
         refresh.Click += async (_, _) => await RefreshAsync();
         Children.Add(UiKit.PageHeader("Energia", "Bateria, fonte de energia e consumo", refresh));
         Children.Add(status); Children.Add(cards);

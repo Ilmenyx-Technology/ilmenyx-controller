@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
-// Linux counterpart of the original's "CORRIGIR" (which installed the PawnIO driver): explain why a CPU reading is missing and show
+// Linux counterpart of the original's "Corrigir" (which installed the PawnIO driver): explain why a CPU reading is missing and show
 // fix it with one click: a fixed root script built only from whitelisted values runs through polkit (pkexec), which asks for the
 // password in the system's own dialog (maintainer decision 2026-11-06: users must not have to type commands). The command stays visible.
 namespace Ilmenyx.Core;
@@ -65,7 +65,7 @@ public static class SensorHelp
                     [("Carregar agora (até reiniciar)", $"sudo modprobe {module}"),
                      ("Carregar sempre ao ligar o PC", $"echo {module} | sudo tee /etc/modules-load.d/ilmenyx-{module}.conf")],
                     Apply: $"modprobe {module} && printf '%s\\n' {module} > /etc/modules-load.d/ilmenyx-{module}.conf",
-                    Undo: TemperatureUndo(module), ApplyLabel: "ATIVAR SENSOR"));
+                    Undo: TemperatureUndo(module), ApplyLabel: "Ativar sensor"));
             }
         }
         string zone = raplZone is { Length: > 0 } z ? z.Replace("/sys/devices/virtual/powercap/intel-rapl/", "/sys/class/powercap/") : "/sys/class/powercap/intel-rapl:0";
@@ -84,7 +84,7 @@ public static class SensorHelp
                     // Immediate chmod plus a udev rule, so it also holds after a reboot (the zones are created by udev at boot).
                     Apply: $"chmod o+r {zone}/energy_uj && printf '%s\\n' 'ACTION==\"add\", SUBSYSTEM==\"powercap\", KERNEL==\"intel-rapl:*\", RUN+=\"/bin/chmod o+r /sys%p/energy_uj\"' > /etc/udev/rules.d/90-ilmenyx-rapl.rules",
                     Undo: PowerUndo,
-                    ApplyLabel: "LIBERAR CONSUMO DA CPU"));
+                    ApplyLabel: "Liberar consumo da CPU"));
                 break;
             case CpuPowerAccess.NotPresent:
                 fixes.Add(new("Consumo da CPU (W)", virtualMachine
