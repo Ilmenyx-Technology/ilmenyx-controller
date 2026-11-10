@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // New Ilmenyx additions (the original exports one HTML/JSON report of everything the app shows): see LICENSING.md.
 using Avalonia;
 using Avalonia.Automation;

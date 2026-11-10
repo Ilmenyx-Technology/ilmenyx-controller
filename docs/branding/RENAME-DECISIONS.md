@@ -1,5 +1,20 @@
 # Decisões de identidade — IMPLEMENTADO / pendências
 
+## 2026-11-09: Ilmenyx Controller, by Ilmenyx Technology
+
+| Item | Antes | Agora |
+|---|---|---|
+| Nome do produto (títulos, menu, Sobre, relatórios, metadados, pacotes) | Ilmenyx | Ilmenyx Controller |
+| Organização / assinatura | Bismuth Technology · github.com/Bismuth-Technology | Ilmenyx Technology · github.com/Ilmenyx-Technology |
+| App ID | io.github.bismuth_technology.Ilmenyx | io.github.ilmenyx_technology.IlmenyxController (`install-user.sh` remove o atalho antigo) |
+| Arquivos de release | Ilmenyx-<versão>-x86_64.AppImage/.flatpak | Ilmenyx-Controller-<versão>-x86_64.AppImage/.flatpak |
+| Código, binários, `ILMENYX_*`, pastas de dados | Ilmenyx.* / ilmenyx | sem mudança |
+| Chave GPG de release | UID "Bismuth Technology (Ilmenyx releases)" | sem mudança até o mantenedor acrescentar um UID novo com a chave principal |
+
+Registros históricos (docs/evidencias, busca de marca e relatório de licença de 2026-11-07) mantêm o nome antigo.
+
+## Decisões anteriores (2026-10)
+
 Ilmenyx é o nome de produto, assinatura by Bismuth Technology. Não é sufixado por Audit.
 Identidade textual provisória, sem logo/paleta/fonte oficial. Versão local 0.10.0, sem lançamento.
 

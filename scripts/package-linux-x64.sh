@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-# SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+# SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 # Third-party components retain their terms.
 # Local review bundle only. Never installs, restores, elevates or publishes remotely.
 set -euo pipefail
@@ -43,7 +43,7 @@ mkdir -p -- "$bundle/licenses/dotnet-runtime"
 cp -- "$runtime_pack/LICENSE.TXT" "$runtime_pack/THIRD-PARTY-NOTICES.TXT" "$bundle/licenses/dotnet-runtime/"
 cp -- "$repo/packaging/licenses/Inter-OFL-1.1.txt" "$bundle/licenses/Inter-font-OFL-1.1.txt"
 cp -- "$repo/packaging/licenses/Apache-2.0.txt" "$bundle/licenses/MaterialDesignIcons-Apache-2.0.txt"
-# Desktop integration (app ID io.github.bismuth_technology.Ilmenyx): .desktop, hicolor icons, AppStream and the
+# Desktop integration (app ID io.github.ilmenyx_technology.IlmenyxController): .desktop, hicolor icons, AppStream and the
 # opt-in per-user installer. Copied only; nothing is installed by this script.
 cp -r -- "$repo/packaging/linux" "$bundle/linux"
 for file in LICENSE NOTICE.md LICENSING.md THIRD-PARTY-NOTICES.md; do
@@ -74,9 +74,9 @@ if [[ -n $(git -C "$repo" status --porcelain) ]]; then state=dirty; fi
 version=$(jq -r '.libraries | keys[] | select(startswith("ilmenyx/")) | split("/")[1]' "$bundle/cli/ilmenyx.deps.json")
 [[ -n $version ]] || { echo 'Versao ausente no deps.json' >&2; exit 1; }
 jq -n --arg version "$version" --arg revision "$revision" --arg state "$state" \
-  '{product:"Ilmenyx",version:$version,maintainer:"Bismuth Technology",rid:"linux-x64",selfContained:true,runtime:"Microsoft.NETCore.App 10.0 (embutido)",icu:"Microsoft.ICU.ICU4C.Runtime 72.1.0.3 (embutido, app-local)",sourceRevision:$revision,sourceWorkingTree:$state,distribution:"local-review-only",legalReview:"pending"}' > "$bundle/package.json"
+  '{product:"Ilmenyx",version:$version,maintainer:"Ilmenyx Technology",rid:"linux-x64",selfContained:true,runtime:"Microsoft.NETCore.App 10.0 (embutido)",icu:"Microsoft.ICU.ICU4C.Runtime 72.1.0.3 (embutido, app-local)",sourceRevision:$revision,sourceWorkingTree:$state,distribution:"local-review-only",legalReview:"pending"}' > "$bundle/package.json"
 cat > "$bundle/LEIA-ME.txt" <<'TEXT'
-Ilmenyx — by Bismuth Technology. Pacote local experimental, sem publicacao.
+Ilmenyx — by Ilmenyx Technology. Pacote local experimental, sem publicacao.
 Adaptacao independente e nao oficial do RESET EXPLODE, Gustavo (GustavoReset).
 Autocontido: runtime .NET 10 e ICU 72 acompanham o pacote; nao ha o que instalar para o .NET.
 Requer glibc e as bibliotecas graficas do SO (nao embutiveis).

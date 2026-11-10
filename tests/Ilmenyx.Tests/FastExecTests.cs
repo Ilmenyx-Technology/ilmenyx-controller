@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 using Ilmenyx.Platform.Linux;
 using Xunit;
 
@@ -286,5 +286,40 @@ public sealed class FastExecTests : IDisposable
         var found = FastExec.InstalledFolders(plan);
         Assert.Equal([Path.Combine(c, "GOG Games")], found);
         FastExec.Cleanup(plan);
+    }
+
+    [Theory]
+    [InlineData("openttd-15.3-windows-win64.exe", "openttd")]
+    [InlineData("MeuJogo_Setup_v2.1_x64.exe", "MeuJogo")]
+    [InlineData("setup.exe", null)]
+    public void GameNameFromAFileInAGenericFolderDropsVersionAndPlatform(string file, string? expected)
+    {
+        string dir = Path.Combine(root, "Downloads"); Directory.CreateDirectory(dir);
+        string exe = Path.Combine(dir, file); File.WriteAllBytes(exe, [0x4d, 0x5a]);
+        Assert.Equal(expected, InstallerDefaults.GameName(exe));
+    }
+
+    [Fact]
+    public void MovedGameIsFoundEvenWithTheInstallersOldFileDates()
+    {
+        string game = Path.Combine(root, "dest", "openttd"); Directory.CreateDirectory(game);
+        string exe = Path.Combine(game, "openttd.exe"); File.WriteAllBytes(exe, new byte[4096]);
+        File.WriteAllBytes(Path.Combine(game, "Uninstall.exe"), new byte[100]);
+        File.SetLastWriteTimeUtc(exe, new DateTime(2026, 4, 4)); File.SetCreationTimeUtc(exe, new DateTime(2026, 4, 4)); // NSIS keeps the build date
+        Assert.Empty(FastExec.NewExecutables(Path.Combine(root, "dest"), DateTime.UtcNow.AddMinutes(-1)));
+        Assert.Equal([exe], FastExec.ExecutablesIn([game]));
+    }
+
+    [Fact]
+    public void ProcessesOfTheTemporaryWindowsAreFoundByWinePrefix()
+    {
+        string proc = Path.Combine(root, "proc"), prefix = Path.Combine(root, "fx-abc");
+        void Pid(int pid, string env) { Directory.CreateDirectory(Path.Combine(proc, pid.ToString())); File.WriteAllText(Path.Combine(proc, pid.ToString(), "environ"), env); }
+        Pid(100, $"HOME=/h\0WINEPREFIX={prefix}\0WINEDEBUG=-all\0"); // wineserver, detached from the installer
+        Pid(101, $"WINEPREFIX={prefix}/\0");                            // trailing slash
+        Pid(102, $"WINEPREFIX={prefix}-other\0");                       // another run
+        Pid(103, "HOME=/h\0");
+        Directory.CreateDirectory(Path.Combine(proc, "self"));
+        Assert.Equal([100, 101], FastExec.PrefixProcesses(prefix, proc).Order());
     }
 }

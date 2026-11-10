@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // Texts of the welcome tour and of the Help Center in Brazilian Portuguese (reference set). Describe only what the app really does.
 namespace Ilmenyx.Core;
 
@@ -12,7 +12,7 @@ public static partial class HelpContent
     private static HelpLanguage PtBr() => new(DefaultLanguage,
         new Dictionary<string, string>
         {
-            [HelpKeys.WelcomeWindow] = "Ilmenyx — Boas-vindas",
+            [HelpKeys.WelcomeWindow] = "Ilmenyx Controller — Boas-vindas",
             [HelpKeys.WelcomeTitle] = "Bem-vindo ao Ilmenyx",
             [HelpKeys.WelcomeBody] = "O Ilmenyx mostra o que tem dentro do seu PC, como ele está agora e ajuda a jogar melhor no Linux. Quer um passeio rápido pelas principais telas?",
             [HelpKeys.WelcomeNote] = "O tour é opcional. Dá para fazer depois em Ajuda, no fim do menu lateral.",

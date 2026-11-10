@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 using System.Globalization;
 using Ilmenyx.Contracts;
 using Ilmenyx.Platform.Linux;
@@ -10,7 +10,7 @@ public enum CliOperation { Help, Info, Capabilities, CpuBenchmark, Sensors, Smar
 public sealed record CliArguments(CliOperation Operation, bool Json, string? Output, CpuBenchmarkOptions? Benchmark, string? Device = null, bool Html = false, MemoryValidationOptions? Memory = null, GameSimValidationOptions? Simulation = null, GameSimFullPlanOptions? SimulationPlan = null, GameSimBenchmarkOptions? SimulationBenchmark = null)
 {
     public const string Help = """
-        Ilmenyx · by Bismuth Technology
+        Ilmenyx · by Ilmenyx Technology
         Adaptação independente e não oficial de RESET EXPLODE, de Gustavo (GustavoReset), MIT.
         Sem afiliação, patrocínio ou endosso da equipe RESET.
           doctor

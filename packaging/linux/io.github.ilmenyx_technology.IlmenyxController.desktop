@@ -1,13 +1,15 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 [Desktop Entry]
 Type=Application
-Name=Ilmenyx
+Name=Ilmenyx Controller
 GenericName=Hardware Diagnostics
 GenericName[pt_BR]=Diagnóstico de hardware
 Comment=Hardware diagnostics, monitoring and benchmarking for Linux
 Comment[pt_BR]=Diagnóstico, monitoramento e benchmarking de hardware para Linux
 Exec=Ilmenyx.Desktop
-Icon=io.github.bismuth_technology.Ilmenyx
+Icon=io.github.ilmenyx_technology.IlmenyxController
 Terminal=false
 Categories=System;Monitor;
 Keywords=hardware;benchmark;sensors;cpu;gpu;monitor;diagnostics;
-StartupWMClass=io.github.bismuth_technology.Ilmenyx
+StartupWMClass=io.github.ilmenyx_technology.IlmenyxController

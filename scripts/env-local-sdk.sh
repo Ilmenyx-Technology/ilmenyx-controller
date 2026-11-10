@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-# SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+# SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 # Optional helper for this session's isolated SDK. Source from the repository root.
 # Requires the official SDK archive already extracted in /tmp/silex-dotnet.
 export DOTNET_ROOT=/tmp/silex-dotnet

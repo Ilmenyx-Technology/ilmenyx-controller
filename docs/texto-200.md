@@ -14,7 +14,7 @@ Logs da reprodução em before-wayland.txt nas evidências.
 
 IMPLEMENTADO: TextWrapping.Wrap nos rótulos dos cards, títulos de sensores e RAM
 e rótulo do caminho. Cabeçalho Sobre usa fonte local compacta de 14 em vez de 20,
-preservando Ilmenyx e by Bismuth Technology completos e permitindo quebra de linha.
+preservando Ilmenyx e by Ilmenyx Technology completos e permitindo quebra de linha.
 O nome e a assinatura no dashboard permanecem com seus tamanhos anteriores.
 Nenhuma tipografia oficial de marca foi definida. O leitor mantém o critério de
 120 DIP; não se reduz fonte do documento para satisfazer o teste.

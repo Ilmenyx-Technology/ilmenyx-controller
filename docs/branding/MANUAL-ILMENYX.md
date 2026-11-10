@@ -1,8 +1,8 @@
 # Ilmenyx — Manual de Identidade e Interface
 
-**Produto:** Ilmenyx, by Bismuth Technology · **Versão do manual:** 1.0 (29/10/2026) · **Status:** proposta para aprovação do mantenedor
+**Produto:** Ilmenyx Controller, by Ilmenyx Technology (renomeado em 09/11/2026; o logotipo ainda mostra só "Ilmenyx") · **Versão do manual:** 1.0 (29/10/2026) · **Status:** proposta para aprovação do mantenedor
 
-> O Ilmenyx tem identidade própria e leva o endosso "by Bismuth Technology". Este manual não confirma registro de marca.
+> O Ilmenyx tem identidade própria e leva o endosso "by Ilmenyx Technology". Este manual não confirma registro de marca.
 
 > **Cópia no repositório.** Os caminhos `assets/`, `tokens/` e `source/` citados abaixo são do kit de identidade, mantido fora do
 > repositório (`Ilmenyx-identidade-visual/`). No código: `src/Ilmenyx.Desktop/Palette.cs`, `IlmenyxTheme.cs`, `AppIcon.cs`, `Assets/`;
@@ -31,7 +31,7 @@ O símbolo traduz os princípios do produto: medir com precisão, não inventar 
 
 **Wordmark:**
 - "Ilmenyx" em **Inter Bold**, com o **"I" serifado** (Inter `cv08`, glifo `I.1`), para que "Il" não seja confundido.
-- O endosso usa Inter Medium e a gema plana da Bismuth.
+- O endosso usa Inter Medium e a gema plana da Ilmenyx Technology.
 
 **Área de proteção:** ¼ da altura do símbolo. **Mínimos:** logotipo com 120 px de largura; símbolo com 16 px (use a versão reduzida).
 
@@ -142,7 +142,7 @@ Inter e IBM Plex Mono são fontes SIL OFL; confira a licença ao embuti-las no p
 
 1. **Paleta:** substitua `src/Ilmenyx.Desktop/Palette.cs` por `tokens/avalonia/Palette.cs` e revise os novos papéis.
 2. **Ícone da janela:** `Window.Icon = new WindowIcon("ilmenyx-window-icon-256.png")`.
-3. **Integração com o desktop:** app ID **`io.github.bismuth_technology.Ilmenyx`**, usado no `.desktop`, nos ícones hicolor, no AppStream, no WM_CLASS (X11) e no app_id (Wayland). No pacote, `bash linux/install-user.sh` registra menu e ícone só para o usuário, sem sudo; `uninstall-user.sh` desfaz.
+3. **Integração com o desktop:** app ID **`io.github.ilmenyx_technology.IlmenyxController`**, usado no `.desktop`, nos ícones hicolor, no AppStream, no WM_CLASS (X11) e no app_id (Wayland). No pacote, `bash linux/install-user.sh` registra menu e ícone só para o usuário, sem sudo; `uninstall-user.sh` desfaz.
 4. **README e site:** use `assets/icones/favicon.svg`, `ilmenyx.ico` e o logotipo com endosso.
 5. **Tela Sobre:** logotipo com endosso, crédito ao RESET EXPLODE e licença, separados da assinatura de marca.
 

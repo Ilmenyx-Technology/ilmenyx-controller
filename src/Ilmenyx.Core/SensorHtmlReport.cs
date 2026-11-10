@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // Existing components retain their terms.
 using System.Globalization;
 using System.Net;
@@ -39,7 +39,7 @@ public static class SensorHtmlReport
             dl{display:grid;grid-template-columns:minmax(120px,1fr) 3fr;gap:8px}dd{margin:0}
             footer{white-space:pre-wrap}@media(max-width:600px){main{padding:12px}dl{display:block}dd{margin-bottom:8px}}
             @media print{main{padding:0}.table-wrap{overflow:visible}th,td{padding:4px;min-width:0}}
-            </style></head><body><main><header><h1>Ilmenyx</h1><p>by Bismuth Technology</p><p>Relatório de sensores · arquivo offline</p></header>
+            </style></head><body><main><header><h1>Ilmenyx Controller</h1><p>by Ilmenyx Technology</p><p>Relatório de sensores · arquivo offline</p></header>
             <p>Leituras brutas do kernel, sem inferência de saúde, calibração ou proteção térmica. Exportar não inicia monitoramento, SMART ou benchmarks.</p>
             <section><h2>Proveniência</h2><dl>
             """);

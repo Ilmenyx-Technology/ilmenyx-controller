@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT AND PolyForm-Noncommercial-1.0.0
 // SPDX-FileCopyrightText: 2026 Gustavo (GustavoReset)
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // Adapted from RESET EXPLODE GpuRtBench.cs (MIT, Copyright (c) 2026 Gustavo (GustavoReset)): same procedural scene, path tracer, measurement and score,
 // ported from Direct3D 12 / DXR 1.1 to Vulkan (VK_KHR_acceleration_structure + VK_KHR_ray_query in a compute shader), offscreen without a window. See NOTICE.md.
 using System.Diagnostics;

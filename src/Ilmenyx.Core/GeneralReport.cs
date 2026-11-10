@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT AND PolyForm-Noncommercial-1.0.0
 // SPDX-FileCopyrightText: 2026 Gustavo (GustavoReset)
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // Adapted from RESET EXPLODE ReportBuilder.cs (MIT, Copyright (c) 2026 Gustavo (GustavoReset)); see NOTICE.md.
 using System.Globalization;
 using System.Net;
@@ -103,7 +103,7 @@ public static class GeneralReport
             .node{font-size:13px;overflow-wrap:anywhere}.num{text-align:right}footer{margin-top:28px;font-size:12px;opacity:.7}
             @media(max-width:600px){.wrap{padding:12px}}@media print{.wrap{padding:0}}</style></head><body><div class="wrap">
             """);
-        sb.Append($"<header><h1>Ilmenyx</h1><p class=\"sub\">by Bismuth Technology · Relatório de hardware · {E(d.Date.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture))}");
+        sb.Append($"<header><h1>Ilmenyx Controller</h1><p class=\"sub\">by Ilmenyx Technology · Relatório de hardware · {E(d.Date.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture))}");
         if (d.AppVersion.Length > 0) sb.Append($" · v{E(d.AppVersion)}");
         sb.Append("</p></header><p class=\"muted\">Números de série e o nome do computador foram omitidos. Arquivo offline: sem scripts nem recursos remotos.</p>");
         foreach (var note in d.Notes) sb.Append($"<p class=\"muted\">{E(note)}</p>");

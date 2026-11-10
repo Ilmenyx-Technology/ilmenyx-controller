@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT AND PolyForm-Noncommercial-1.0.0
 // SPDX-FileCopyrightText: 2026 Gustavo (GustavoReset)
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // New Ilmenyx additions (layout follows the original Games page: search, options, data source, game card grid; cinematic surfaces since 2026-11-06;
 // the HowManyFPS API key and query were removed on 2026-11-08, the page is fully local; calibration gate, spec fallback and personal
 // factor since 2026-11-08, docs/fps-estimativa.md): see LICENSING.md.

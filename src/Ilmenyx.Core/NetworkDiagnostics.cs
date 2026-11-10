@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT AND PolyForm-Noncommercial-1.0.0
 // SPDX-FileCopyrightText: 2026 Gustavo (GustavoReset)
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // New Ilmenyx additions, ported from the flow, thresholds and texts of the original NetworkTest (MIT, see NOTICE): see LICENSING.md.
 // Generates network traffic: only ever started by an explicit click behind a confirmation that lists the endpoints. Never by tests or startup.
 using System.Diagnostics;

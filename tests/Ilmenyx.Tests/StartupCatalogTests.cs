@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // Tabela de inicialização: entradas reais de Mint/Ubuntu/Fedora/KDE/XFCE em fixtures; nada do usuário real é tocado.
 using Ilmenyx.Core;
 using Ilmenyx.Platform.Linux;
@@ -80,7 +80,8 @@ public sealed class StartupCatalogTests : IDisposable
     [InlineData("com.discordapp.Discord.desktop", "flatpak run --command=discord com.discordapp.Discord --start-minimized", "Discord")]
     [InlineData("autostart-app.desktop", "/usr/bin/flatpak run --branch=stable --arch=x86_64 --command=telegram-desktop org.telegram.desktop -startintray", "Telegram")]
     [InlineData("dropbox.desktop", "dropbox start -i", "Dropbox")]
-    [InlineData("io.github.bismuthtechnology.ilmenyx.desktop", "ilmenyx --minimized", "Ilmenyx")]
+    [InlineData("io.github.ilmenyx_technology.IlmenyxController.desktop", "ilmenyx --minimized", "Ilmenyx Controller")]
+    [InlineData("io.github.bismuth_technology.Ilmenyx.desktop", "ilmenyx --minimized", "Ilmenyx Controller")]
     public void KnownAppsAreTheUsersOwn(string id, string exec, string component)
     {
         var a = StartupCatalog.Classify(new(id, "Desktop", exec, "", false, NoKeys));

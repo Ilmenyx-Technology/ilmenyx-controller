@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // Methodology and limits: docs/fps-estimativa.md.
 using System.Globalization;
 using System.Text;
@@ -174,11 +174,27 @@ public static class FpsAlerts
     }
 }
 
-/// <summary>Whole-session statistics from a MangoHud CSV. Gpu = the GPU name MangoHud wrote in the log header, when present.</summary>
-public sealed record MangoHudSessionStats(double AvgFps, double Low1Fps, double DurationSeconds, int Samples, string? Gpu);
+/// <summary>Whole-session statistics from a MangoHud CSV. Gpu = the GPU name MangoHud wrote in the log header, when present.
+/// CappedAt = the FPS limit the session sat on (see <see cref="MangoHudSession.Cap"/>).</summary>
+public sealed record MangoHudSessionStats(double AvgFps, double Low1Fps, double DurationSeconds, int Samples, string? Gpu, double? CappedAt = null);
 
 public static class MangoHudSession
 {
+    /// <summary>Usual FPS limits: screen refresh rates (vsync) and the caps games offer.</summary>
+    public static readonly double[] CommonCaps = [30, 40, 45, 48, 50, 60, 72, 75, 90, 100, 120, 144, 160, 165, 170, 180, 200, 240, 280, 300, 360];
+
+    /// <summary>
+    /// The limit a session sat on, or null: the average is within 3 % below a usual limit and at most 5 % of the samples go more than 3 %
+    /// above it. A GPU- or CPU-bound game varies with the scene and crosses such values; a capped one stays under them (vsync, frame limiter).
+    /// </summary>
+    public static double? Cap(double avg, IReadOnlyList<double> fps)
+    {
+        if (fps.Count < 20 || !double.IsFinite(avg) || avg <= 0) return null;
+        foreach (double c in CommonCaps)
+            if (avg >= c * 0.97 && avg <= c * 1.01 && fps.Count(v => v > c * 1.03) <= fps.Count * 0.05) return c;
+        return null;
+    }
+
     /// <summary>
     /// Average FPS (mean of the per-interval "fps" column: the rows are taken at a fixed interval, so this is frames/time) and 1% low
     /// (1000 / mean of the worst 1 % of the logged frametimes, the same method as the live overlay). Null when no valid row exists.
@@ -210,7 +226,8 @@ public static class MangoHudSession
         }
         if (fps.Count == 0) return null;
         var worst = frames.OrderByDescending(x => x).Take(Math.Max(1, frames.Count / 100)).Average();
-        return new(fps.Average(), 1000.0 / worst, Math.Max(0, last - first), fps.Count, gpu);
+        double avg = fps.Average();
+        return new(avg, 1000.0 / worst, Math.Max(0, last - first), fps.Count, gpu, Cap(avg, fps));
     }
 
     private static string? CleanGpu(string value)
@@ -227,6 +244,6 @@ public static class MangoHudSession
         string name = game.Trim(); if (name.Length == 0) return null;
         return new(name.Length > 120 ? name[..120] : name, at, Math.Round(stats.AvgFps, 1), double.IsFinite(stats.Low1Fps) ? Math.Round(stats.Low1Fps, 1) : 0,
             Math.Round(stats.DurationSeconds), stats.Gpu, resolution is { } r && r != "default" ? r : null,
-            preset is "Baixo" or "Médio" or "Alto" or "Ultra" ? preset : null, upscaling is "Native" or "Quality" or "Performance" ? upscaling : null);
+            preset is "Baixo" or "Médio" or "Alto" or "Ultra" ? preset : null, upscaling is "Native" or "Quality" or "Performance" ? upscaling : null, stats.CappedAt);
     }
 }

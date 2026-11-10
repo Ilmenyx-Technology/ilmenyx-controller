@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // Calibration of this PC (method C), spec-based GPU fallback (method B) and the personal correction factor from measured sessions
 // (method D). Methodology, anchors and limits: docs/fps-estimativa.md and docs/fps-estimativa-metodos.md.
 using System.Globalization;
@@ -115,7 +115,8 @@ public static class FpsModels
     public static PersonalFactor? Personal(IEnumerable<FpsSession> sessions, IEnumerable<GameInfo> games, double gpuIdx, double cpuIdx, string preset, Bottleneck limiter, string? currentGpu = null)
     {
         if (limiter is not (Bottleneck.Gpu or Bottleneck.Cpu)) return null;
-        var list = sessions.Where(s => s.IsValid && s.Preset == preset && s.Resolution is { Length: > 0 } && SameGpu(s.Gpu, currentGpu)).ToList();
+        // A session capped by vsync or a frame limiter only says "at least this much": it would pull the estimate down, so it is left out.
+        var list = sessions.Where(s => s.IsValid && s.CappedAt is null && s.Preset == preset && s.Resolution is { Length: > 0 } && SameGpu(s.Gpu, currentGpu)).ToList();
         var ratios = new List<double>(); var names = new List<string>();
         foreach (var g in games)
         {

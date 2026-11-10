@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT AND PolyForm-Noncommercial-1.0.0
 // SPDX-FileCopyrightText: 2026 Gustavo (GustavoReset)
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // New Ilmenyx additions (layout follows the original GPU page: chips, highlight card, GPU-Z style sections, live sensors; cinematic hero and live tiles 2026-11-06): see LICENSING.md.
 using Avalonia;
 using Avalonia.Controls;
@@ -42,10 +42,11 @@ public sealed class GpuInfoPage : Grid
     public GpuInfoPage(CancellationToken lifetime)
     {
         this.lifetime = lifetime;
+        string? gpuNotice = ValidationNotices.For(DrmGpuInfoProvider.Vendors());
         var notice = new Border
         {
-            HorizontalAlignment = HorizontalAlignment.Left, Background = Palette.WarnBg, CornerRadius = new CornerRadius(IlmenyxTheme.ControlRadius), Padding = new Thickness(10, 5), Margin = new Thickness(0, 6, 0, 8),
-            Child = new TextBlock { Name = "GpuValidationNotice", Text = ValidationNotices.AmdNvidia, Foreground = Palette.Warn, TextWrapping = TextWrapping.Wrap, FontSize = 12 }
+            IsVisible = gpuNotice is not null, HorizontalAlignment = HorizontalAlignment.Left, Background = Palette.WarnBg, CornerRadius = new CornerRadius(IlmenyxTheme.ControlRadius), Padding = new Thickness(10, 5), Margin = new Thickness(0, 6, 0, 8),
+            Child = new TextBlock { Name = "GpuValidationNotice", Text = gpuNotice ?? "", Foreground = Palette.Warn, TextWrapping = TextWrapping.Wrap, FontSize = 12 }
         };
         var heroText = new StackPanel { Children = { UiKit.Label("ADAPTADOR GRÁFICO"), name, subtitle, tags, notice, status } };
         heroText.Children[0].Margin = new Thickness(0, 0, 0, 6);

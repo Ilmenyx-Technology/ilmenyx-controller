@@ -1,7 +1,7 @@
 #version 460
 // SPDX-License-Identifier: MIT AND PolyForm-Noncommercial-1.0.0
 // SPDX-FileCopyrightText: 2026 Gustavo (GustavoReset)
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // Adapted from RESET EXPLODE GpuRtBench.cs (MIT, Copyright (c) 2026 Gustavo (GustavoReset)): GLSL translation of the original HLSL inline-ray path tracer
 // (DXR 1.1 RayQuery -> GL_EXT_ray_query). Same rays per sample: visibility/bounce + soft sun shadow + ambient occlusion. See NOTICE.md.
 #extension GL_EXT_ray_query : require

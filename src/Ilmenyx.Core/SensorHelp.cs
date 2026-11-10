@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // Linux counterpart of the original's "CORRIGIR" (which installed the PawnIO driver): explain why a CPU reading is missing and show
 // fix it with one click: a fixed root script built only from whitelisted values runs through polkit (pkexec), which asks for the
 // password in the system's own dialog (maintainer decision 2026-11-06: users must not have to type commands). The command stays visible.
@@ -9,10 +9,34 @@ public enum CpuPowerAccess { Available, NotPresent, NoPermission, Unknown }
 
 /// <param name="Apply">Fixed root script run on one click through polkit (pkexec): the system asks for the password, Ilmenyx never sees it.</param>
 /// <param name="Undo">Fixed script that reverts <paramref name="Apply"/>.</param>
+/// <summary>A change Ilmenyx made to the system (only its own files under /etc) and the fixed root script that reverts it.</summary>
+/// <param name="Done">Short line shown after the undo worked.</param>
+public sealed record SensorGrant(string Title, string Undo, string Done);
+
 public sealed record SensorFix(string Title, string Why, IReadOnlyList<(string Label, string Command)> Commands, string? Warning = null, string? Apply = null, string? Undo = null, string? ApplyLabel = null);
 
 public static class SensorHelp
 {
+    public const string RaplRule = "/etc/udev/rules.d/90-ilmenyx-rapl.rules";
+    private const string RaplTmpfiles = "/etc/tmpfiles.d/ilmenyx-rapl.conf"; // written by early builds
+    private static readonly string[] TemperatureModules = ["coretemp", "k10temp"];
+
+    // The rule opens every RAPL zone at boot, so the undo closes all of them, not only the package zone.
+    private const string PowerUndo = "rm -f " + RaplRule + " " + RaplTmpfiles + "; for f in /sys/class/powercap/intel-rapl:*/energy_uj; do [ -e \"$f\" ] && chmod o-r \"$f\"; done; true";
+    private static string TemperatureUndo(string module) => $"rm -f /etc/modules-load.d/ilmenyx-{module}.conf";
+
+    /// <summary>What Ilmenyx has released on this PC, found by its own files, so it can still be undone later from the app.</summary>
+    public static IReadOnlyList<SensorGrant> Granted(Func<string, bool> exists)
+    {
+        var grants = new List<SensorGrant>();
+        if (exists(RaplRule) || exists(RaplTmpfiles))
+            grants.Add(new("Consumo da CPU liberado pelo Ilmenyx", PowerUndo, "Desfeito. O consumo da CPU volta a ser só do root."));
+        foreach (var module in TemperatureModules)
+            if (exists($"/etc/modules-load.d/ilmenyx-{module}.conf"))
+                grants.Add(new($"Sensor de temperatura ({module}) ativado pelo Ilmenyx", TemperatureUndo(module), "Desfeito. Vale a partir do próximo reinício."));
+        return grants;
+    }
+
     /// <summary>Kernel module that exposes the CPU temperature for this vendor string (/proc/cpuinfo vendor_id or model name).</summary>
     public static string TemperatureModule(string? cpu) => (cpu ?? "").Contains("AMD", StringComparison.OrdinalIgnoreCase) || (cpu ?? "").Contains("Ryzen", StringComparison.OrdinalIgnoreCase) ? "k10temp" : "coretemp";
 
@@ -41,7 +65,7 @@ public static class SensorHelp
                     [("Carregar agora (até reiniciar)", $"sudo modprobe {module}"),
                      ("Carregar sempre ao ligar o PC", $"echo {module} | sudo tee /etc/modules-load.d/ilmenyx-{module}.conf")],
                     Apply: $"modprobe {module} && printf '%s\\n' {module} > /etc/modules-load.d/ilmenyx-{module}.conf",
-                    Undo: $"rm -f /etc/modules-load.d/ilmenyx-{module}.conf", ApplyLabel: "ATIVAR SENSOR"));
+                    Undo: TemperatureUndo(module), ApplyLabel: "ATIVAR SENSOR"));
             }
         }
         string zone = raplZone is { Length: > 0 } z ? z.Replace("/sys/devices/virtual/powercap/intel-rapl/", "/sys/class/powercap/") : "/sys/class/powercap/intel-rapl:0";
@@ -55,11 +79,11 @@ public static class SensorHelp
                     "O contador de energia da CPU (RAPL) existe, mas o kernel só deixa o root ler. O Ilmenyx não roda como root; para ver o consumo, libere a leitura para os usuários.",
                     [("Liberar até reiniciar", $"sudo chmod o+r {zone}/energy_uj"),
                      ("Liberar sempre ao ligar o PC", "echo 'ACTION==\"add\", SUBSYSTEM==\"powercap\", KERNEL==\"intel-rapl:*\", RUN+=\"/bin/chmod o+r /sys%p/energy_uj\"' | sudo tee /etc/udev/rules.d/90-ilmenyx-rapl.rules"),
-                     ("Desfazer", "sudo rm -f /etc/udev/rules.d/90-ilmenyx-rapl.rules && sudo chmod o-r " + zone + "/energy_uj")],
+                     ("Desfazer", "sudo rm -f " + RaplRule + " && sudo chmod o-r /sys/class/powercap/intel-rapl:*/energy_uj")],
                     "O kernel fechou essa leitura em 2020 porque o consumo pode vazar informação para outros programas (ataque PLATYPUS, CVE-2020-8694). Num PC pessoal o risco é baixo; num computador compartilhado ou servidor, não libere.",
                     // Immediate chmod plus a udev rule, so it also holds after a reboot (the zones are created by udev at boot).
                     Apply: $"chmod o+r {zone}/energy_uj && printf '%s\\n' 'ACTION==\"add\", SUBSYSTEM==\"powercap\", KERNEL==\"intel-rapl:*\", RUN+=\"/bin/chmod o+r /sys%p/energy_uj\"' > /etc/udev/rules.d/90-ilmenyx-rapl.rules",
-                    Undo: $"rm -f /etc/udev/rules.d/90-ilmenyx-rapl.rules /etc/tmpfiles.d/ilmenyx-rapl.conf; chmod o-r {zone}/energy_uj",
+                    Undo: PowerUndo,
                     ApplyLabel: "LIBERAR CONSUMO DA CPU"));
                 break;
             case CpuPowerAccess.NotPresent:

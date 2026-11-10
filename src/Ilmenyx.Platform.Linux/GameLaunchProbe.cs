@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // Read-only probes for the "Jogo não abre?" checklist and for ZRAM: files under /proc, /sys, /etc and /usr, plus read-only programs
 // (flatpak remotes/info/override --show, vulkaninfo --summary, zramctl). Never as root and never changing anything. The only writer here
 // is GameUserFixRunner, which runs the whitelisted user-level flatpak calls of GameLaunchChecks after the user's click.

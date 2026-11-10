@@ -1,14 +1,14 @@
-# Ilmenyx
+# Ilmenyx Controller
 
 **Diagnóstico, monitoramento e benchmark de hardware para Linux.**
-Por **Bismuth Technology**.
+Por **Ilmenyx Technology**.
 
 ![versão](https://img.shields.io/badge/vers%C3%A3o-0.30.0-blue)
 ![plataforma](https://img.shields.io/badge/plataforma-Linux%20x64-informational)
 ![.NET](https://img.shields.io/badge/.NET-10-512bd4)
 ![status](https://img.shields.io/badge/status-experimental-orange)
 
-O Ilmenyx mostra o que há dentro do seu computador (CPU, memória, GPU, discos, sensores, bateria,
+O Ilmenyx Controller mostra o que há dentro do seu computador (CPU, memória, GPU, discos, sensores, bateria,
 rede) e mede o desempenho dele. Tem um **aplicativo desktop** e uma **linha de comando** (`ilmenyx`).
 
 > **Status:** versão experimental, ainda sem lançamento público. O repositório é privado.
@@ -17,7 +17,7 @@ rede) e mede o desempenho dele. Tem um **aplicativo desktop** e uma **linha de c
 
 ## Downloads e verificação
 
-Releases em https://github.com/Bismuth-Technology/ilmenyx/releases. Cada arquivo tem `.sha256` e assinatura `.asc`;
+Releases em https://github.com/Ilmenyx-Technology/ilmenyx/releases. Cada arquivo tem `.sha256` e assinatura `.asc`;
 impressão digital da chave: `3D97 1657 2A39 8DCD D0CF  F0EE 733D 2EC7 8436 DCE8` (veja `docs/assinatura-gpg.md`).
 
 ## Sumário
@@ -90,7 +90,7 @@ Para checar o que falta na sua máquina depois de compilar, rode `ilmenyx doctor
 ### Compilar e testar
 
 ```bash
-git clone --recurse-submodules https://github.com/Bismuth-Technology/ilmenyx.git
+git clone --recurse-submodules https://github.com/Ilmenyx-Technology/ilmenyx.git
 cd ilmenyx
 
 export DOTNET_CLI_TELEMETRY_OPTOUT=1

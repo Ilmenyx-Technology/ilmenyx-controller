@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // RAPL layout copied from a real ASUS E1504FA (AMD Mendocino, kernel 6.14): package-0 + core.
 using Ilmenyx.Core;
 using Ilmenyx.Platform.Linux;
@@ -72,6 +72,19 @@ public sealed class CpuPowerTests : IDisposable
         var temp = SensorHelp.Build(true, CpuPowerAccess.Available, "Intel(R) Core(TM) i5; reboot", null, false).Single();
         Assert.Equal("modprobe coretemp && printf '%s\\n' coretemp > /etc/modules-load.d/ilmenyx-coretemp.conf", temp.Apply); // CPU text never reaches the script
         Assert.Null(SensorHelp.Build(true, CpuPowerAccess.Available, "AMD", null, true).Single().Apply); // VM: nothing to run
+    }
+
+    [Fact]
+    public void WhatIlmenyxReleasedCanStillBeUndoneLater()
+    {
+        Assert.Empty(SensorHelp.Granted(_ => false));
+        var power = SensorHelp.Granted(p => p == SensorHelp.RaplRule).Single();
+        Assert.Contains("rm -f " + SensorHelp.RaplRule, power.Undo);
+        Assert.Contains("/sys/class/powercap/intel-rapl:*/energy_uj", power.Undo); // the rule opened every zone at boot
+        Assert.Equal(power.Undo, SensorHelp.Build(false, CpuPowerAccess.NoPermission, "x", null, false).Single().Undo); // same script as the dialog
+        var both = SensorHelp.Granted(p => p is "/etc/tmpfiles.d/ilmenyx-rapl.conf" or "/etc/modules-load.d/ilmenyx-k10temp.conf");
+        Assert.Equal(2, both.Count);
+        Assert.Equal("rm -f /etc/modules-load.d/ilmenyx-k10temp.conf", both[1].Undo);
     }
 
     [Fact]

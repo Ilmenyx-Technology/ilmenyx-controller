@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // Gaming extras (2026-11-08): a bigger shader cache for the user session and two experimental per-game Proton options.
 // Idea list from the LinuxToys survey (docs/pesquisa-linuxtoys-howmanyfps-2026-11-07.md); own implementation, no code or configuration taken
 // from it (GPL-3.0). Only public technical facts are used, each from the upstream documentation:

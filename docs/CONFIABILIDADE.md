@@ -1,6 +1,6 @@
 # Confiabilidade do Ilmenyx
 
-Posição em 07/11/2026. Documento para o mantenedor, Bismuth Technology.
+Posição em 07/11/2026. Documento para o mantenedor, Ilmenyx Technology.
 
 ## Resumo
 

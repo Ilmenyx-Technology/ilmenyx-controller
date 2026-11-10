@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT AND PolyForm-Noncommercial-1.0.0
 // SPDX-FileCopyrightText: 2026 Gustavo (GustavoReset)
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // Adapted from the idea of RESET EXPLODE GpuBurn.cs (MIT, Copyright (c) 2026 Gustavo (GustavoReset)): independent Vulkan implementation, not the original D3D11 shaders. See NOTICE.md.
 using System.Diagnostics;
 using System.Numerics;

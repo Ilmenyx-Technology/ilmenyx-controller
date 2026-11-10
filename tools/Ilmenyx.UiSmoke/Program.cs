@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 using System.Diagnostics;
 using System.Text.Json;
 using Avalonia;
@@ -67,6 +67,8 @@ public sealed class UiSmokeApp : Application
         };
         base.OnFrameworkInitializationCompleted();
     }
+    /// <summary>The GPU validation notice expected on this PC: none on an Intel-only machine.</summary>
+    private static readonly string? ExpectedGpuNotice = ValidationNotices.For(DrmGpuInfoProvider.Vendors());
     private static T Find<T>(Window window, string name) where T : Control => window.GetVisualDescendants().OfType<T>().Single(c => c.Name == name);
     private static void Click(Window window, string name)
     {
@@ -296,7 +298,7 @@ public sealed class UiSmokeApp : Application
         if (!report.IsReadOnly || !report.Text!.Contains("Nenhuma verificação")) throw new InvalidOperationException("Requirements must start idle and read-only.");
         if (active) { FocusIs(dialog, Find<Button>(dialog, "VerifyRequirements")); Key(dialog, Avalonia.Input.Key.Space); }
         else Click(dialog, "VerifyRequirements");
-        await Until(() => report.Text!.Contains("Ilmenyx doctor") && Find<Button>(dialog, "VerifyRequirements").IsEnabled);
+        await Until(() => report.Text!.Contains("Ilmenyx Controller doctor") && Find<Button>(dialog, "VerifyRequirements").IsEnabled);
         using var expected = new StringWriter(System.Globalization.CultureInfo.InvariantCulture);
         RuntimeRequirementsPresentation.Write(new Ilmenyx.Platform.Linux.LinuxRuntimeDependencies().InspectReport(
             Ilmenyx.Platform.Linux.LinuxRuntimeDependencies.IsInvariantModeRequested(),
@@ -375,7 +377,7 @@ public sealed class UiSmokeApp : Application
                 try { await Reachable(about, text); await Reachable(about, Find<Button>(about, "CloseAbout")); }
                 catch (InvalidOperationException e) { errors.Add(e.Message); }
             }
-            var heading = about.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Text == "Ilmenyx · by Bismuth Technology");
+            var heading = about.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Text == "Ilmenyx Controller · by Ilmenyx Technology");
             try { await Reachable(about, heading); } catch (InvalidOperationException e) { errors.Add(e.Message); }
             Console.WriteLine($"LAYOUT About heading origin={heading.TranslatePoint(default, about)} bounds={heading.Bounds.Size} text={heading.TextLayout.Width}x{heading.TextLayout.Height}");
             TextFits(about, errors);
@@ -386,7 +388,7 @@ public sealed class UiSmokeApp : Application
             var requirements = desktop.Windows.OfType<RequirementsDialog>().Single(w => w.IsVisible);
             await MinimumSize(requirements); ScaleText(requirements, factor); await Task.Delay(100);
             Click(requirements, "VerifyRequirements");
-            await Until(() => Find<TextBox>(requirements, "RequirementsReport").Text!.Contains("Ilmenyx doctor"));
+            await Until(() => Find<TextBox>(requirements, "RequirementsReport").Text!.Contains("Ilmenyx Controller doctor"));
             foreach (var name in new[] { "VerifyRequirements", "CloseRequirements", "RequirementsReport" })
                 try { await Reachable(requirements, Find<Control>(requirements, name)); } catch (InvalidOperationException e) { errors.Add(e.Message); }
             if (Find<TextBox>(requirements, "RequirementsReport").Bounds.Height < 120) errors.Add("Requirements reader below 120 DIP.");
@@ -404,9 +406,9 @@ public sealed class UiSmokeApp : Application
         var shell = new ShellWindow { Width = 1280, Height = 820 };
         shell.Show();
         await Until(() => shell.IsVisible && shell.GetVisualDescendants().OfType<UsageChart>().Any(c => c.Name == "OverviewChart" && c.Count >= 3));
-        if (Find<TextBlock>(shell, "ProductName").Text != "Ilmenyx" || Find<TextBlock>(shell, "MaintainerSignature").Text != "by Bismuth Technology")
+        if (Find<TextBlock>(shell, "ProductName").Text != "Ilmenyx Controller" || Find<TextBlock>(shell, "MaintainerSignature").Text != "by Ilmenyx Technology")
             throw new InvalidOperationException("Identity missing from shell window.");
-        if (Find<TextBlock>(shell, "OverviewGpuNotice").Text != ValidationNotices.AmdNvidia) throw new InvalidOperationException("AMD/NVIDIA notice missing from overview.");
+        if (Find<TextBlock>(shell, "OverviewGpuNotice").Text != (ExpectedGpuNotice ?? "")) throw new InvalidOperationException("AMD/NVIDIA notice wrong on overview.");
         if (!Find<TextBlock>(shell, "OverviewValue").Text!.Contains('%')) throw new InvalidOperationException("Overview CPU load not shown.");
         if (Find<TextBlock>(shell, "SideVersion").Text!.Length < 4) throw new InvalidOperationException("Sidebar version missing.");
         await Task.Delay(3500); Capture(shell, "shell-overview.png");
@@ -436,7 +438,7 @@ public sealed class UiSmokeApp : Application
             await Until(() => shell.CurrentPage == key && shell.GetVisualDescendants().Any(c => c is Control { Name: var n, IsVisible: true } && n == control));
             if (Find<TextBlock>(shell, "TitlePage").Text!.Length == 0) throw new InvalidOperationException("Page title missing for " + key);
             if (key == "procs") { await Until(() => Find<StackPanel>(shell, "ProcessRows").Children.Count > 0); Capture(shell, "shell-processes.png"); }
-            if (key == "gpu" && Find<TextBlock>(shell, "GpuValidationNotice").Text != ValidationNotices.AmdNvidia) throw new InvalidOperationException("AMD/NVIDIA notice missing from GPU page.");
+            if (key == "gpu" && Find<TextBlock>(shell, "GpuValidationNotice").Text != (ExpectedGpuNotice ?? "")) throw new InvalidOperationException("AMD/NVIDIA notice wrong on GPU page.");
             if (key == "net") await Until(() => Find<UsageChart>(shell, "NetChart").Count >= 2);
         }
         // System page (original layout): categories, drive rings, offline RAM inventory import.
@@ -520,7 +522,7 @@ public sealed class UiSmokeApp : Application
         Find<Button>(shell, "Navgpu").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await Until(() => shell.GetVisualDescendants().OfType<StackPanel>().Any(p => p.Name == "GpuSections" && p.Children.Count >= 6));
         if (Find<TextBlock>(shell, "GpuName").Text!.Length == 0 || Find<TextBlock>(shell, "GpuVendor").Text!.Length == 0) throw new InvalidOperationException("GPU highlight card empty.");
-        if (Find<TextBlock>(shell, "GpuValidationNotice").Text != ValidationNotices.AmdNvidia) throw new InvalidOperationException("AMD/NVIDIA notice missing from GPU page.");
+        if (Find<TextBlock>(shell, "GpuValidationNotice").Text != (ExpectedGpuNotice ?? "")) throw new InvalidOperationException("AMD/NVIDIA notice wrong on GPU page.");
         await Until(() => Find<StackPanel>(shell, "GpuLive").Children.Count > 0 || Find<StackPanel>(shell, "GpuExtras").Children.Count > 0);
         await Task.Delay(200); Capture(shell, "shell-gpu.png");
         // At the window minimum (900x560) section values must keep a readable width and live values must not run under their labels.
@@ -1625,8 +1627,8 @@ public sealed class UiSmokeApp : Application
         await MonitorAsync(desktop);
         await KeyboardAsync(window, desktop);
         await RequirementsAsync(window, desktop);
-        if (window.Title != ProductIdentity.Name || Find<TextBlock>(window, "ProductName").Text != "Ilmenyx" ||
-            Find<TextBlock>(window, "MaintainerSignature").Text != "by Bismuth Technology")
+        if (window.Title != ProductIdentity.Name || Find<TextBlock>(window, "ProductName").Text != "Ilmenyx Controller" ||
+            Find<TextBlock>(window, "MaintainerSignature").Text != "by Ilmenyx Technology")
             throw new InvalidOperationException("Ilmenyx identity missing from live window.");
         Click(window, "About");
         await Until(() => desktop.Windows.OfType<AboutDialog>().Any(w => w.IsVisible));
@@ -1647,7 +1649,7 @@ public sealed class UiSmokeApp : Application
             throw new InvalidOperationException("Own usage and commercialization terms missing from About.");
         selector.SelectedIndex = 0; await Task.Delay(60); Capture(about, "about.png");
         Click(about, "CloseAbout"); await Until(() => !about.IsVisible);
-        Console.WriteLine("PASS Ilmenyx identity, by Bismuth Technology, live About/attribution/MIT/dependency documents and close");
+        Console.WriteLine("PASS Ilmenyx identity, by Ilmenyx Technology, live About/attribution/MIT/dependency documents and close");
         var implementation = window.PlatformImpl?.GetType().FullName ?? "unavailable";
         var requested = DesktopBackend.Parse(DesktopBackend.ReadSelection());
         if (requested == DisplayBackend.Wayland && !implementation.StartsWith("Avalonia.Wayland.", StringComparison.Ordinal))
@@ -1681,9 +1683,9 @@ public sealed class UiSmokeApp : Application
                 throw new InvalidOperationException("GPU identification not presented in dashboard.");
         }
         var validationNotice = Find<TextBlock>(window, "GpuValidationNotice");
-        if (!validationNotice.IsEffectivelyVisible || validationNotice.Text != ValidationNotices.AmdNvidia)
-            throw new InvalidOperationException("AMD/NVIDIA hardware validation notice missing.");
-        Console.WriteLine("PASS visible notice: " + ValidationNotices.AmdNvidia);
+        if (validationNotice.IsEffectivelyVisible != (ExpectedGpuNotice is not null) || validationNotice.Text != (ExpectedGpuNotice ?? ""))
+            throw new InvalidOperationException("AMD/NVIDIA hardware validation notice wrong for this PC's GPUs.");
+        Console.WriteLine("PASS validation notice for this PC's GPUs: " + (ExpectedGpuNotice ?? "none (no AMD/NVIDIA GPU)"));
         Console.WriteLine("PASS hardware UI export and overwrite refusal");
 
         if (Find<Button>(window, "ExportMemory").IsEnabled || !Find<TextBlock>(window, "MemorySummary").Text!.StartsWith("Nenhuma"))

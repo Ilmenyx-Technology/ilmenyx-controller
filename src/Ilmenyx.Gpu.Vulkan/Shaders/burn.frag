@@ -1,6 +1,6 @@
 #version 450
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // Strand discard plus a data-dependent ALU loop the compiler cannot remove; the colour depends on the loop result.
 layout(push_constant) uniform PC { mat4 viewProj; float time; float shells; int iterations; float aspect; } pc;
 layout(location = 0) in vec3 vNormal;

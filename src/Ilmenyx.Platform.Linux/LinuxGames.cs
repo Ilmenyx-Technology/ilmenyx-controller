@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT AND PolyForm-Noncommercial-1.0.0
 // SPDX-FileCopyrightText: 2026 Gustavo (GustavoReset)
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // New Ilmenyx additions, adapted from GameLibrary/SteamInfo/GameLauncher of the original (MIT, see NOTICE): see LICENSING.md.
 using System.Diagnostics;
 using System.Text.Json;
@@ -45,6 +45,64 @@ public sealed class LinuxGameLibrary(string? home = null, Func<IReadOnlyList<str
                     if (ParseManifest(acf, apps) is { } g && seen.Add(g.Id)) yield return g;
                 }
             }
+    }
+
+    /// <summary>Store label of the "non-Steam games" added to Steam: Steam opens them, so they are not <see cref="LibGame.IsSteam"/> (no app ID).</summary>
+    public const string NonSteamStore = "Steam (não Steam)";
+
+    /// <summary>"Non-Steam games" from shortcuts.vdf of every Steam user on this PC; hidden ones are left out. Steam opens them by game ID.</summary>
+    public IEnumerable<LibGame> NonSteam()
+    {
+        var seen = new HashSet<uint>();
+        foreach (var steam in SteamRoots())
+        {
+            string userdata = Path.Combine(steam, "userdata");
+            if (!Directory.Exists(userdata)) continue;
+            foreach (var user in Directory.EnumerateDirectories(userdata).OrderBy(d => d, StringComparer.Ordinal).Take(16).ToList())
+            {
+                string f = Path.Combine(user, "config", "shortcuts.vdf");
+                if (!File.Exists(f) || new FileInfo(f).Length > SteamShortcuts.MaxBytes) continue;
+                foreach (var s in SteamShortcuts.Parse(File.ReadAllBytes(f)))
+                    if (!s.Hidden && seen.Add(s.AppId))
+                        yield return new LibGame(NonSteamStore, s.AppId.ToString(System.Globalization.CultureInfo.InvariantCulture), s.Name, s.StartDir, null, s.LaunchUri);
+            }
+        }
+    }
+
+    /// <summary>Menu-entry folders in XDG order (user first, so a user's own entry overrides the system one), with Flatpak exports.</summary>
+    public IReadOnlyList<(string Dir, bool Flatpak)> ApplicationDirs()
+    {
+        bool realHome = home == Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        string dataHome = realHome && Environment.GetEnvironmentVariable("XDG_DATA_HOME") is { Length: > 0 } x ? x : Path.Combine(home, ".local/share");
+        var dirs = new List<(string, bool)> { (Path.Combine(dataHome, "applications"), false), (Path.Combine(dataHome, "flatpak/exports/share/applications"), true) };
+        if (!realHome) return dirs; // another home (tests, fixtures): never the system's own entries
+        foreach (var d in (Environment.GetEnvironmentVariable("XDG_DATA_DIRS") is { Length: > 0 } s ? s : "/usr/local/share:/usr/share").Split(':', StringSplitOptions.RemoveEmptyEntries))
+            if (Path.IsPathFullyQualified(d)) dirs.Add((Path.Combine(d, "applications"), d.Contains("/flatpak/exports/", StringComparison.Ordinal)));
+        dirs.Add(("/var/lib/flatpak/exports/share/applications", true));
+        return dirs.DistinctBy(d => d.Item1).ToList();
+    }
+
+    /// <summary>Games installed on Linux outside the stores, from the menu entries (<see cref="NativeGames"/>). Read-only.</summary>
+    public IEnumerable<LibGame> Native(IReadOnlyList<(string Dir, bool Flatpak)>? dirs = null)
+    {
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var (dir, flatpak) in dirs ?? ApplicationDirs())
+        {
+            if (!Directory.Exists(dir)) continue;
+            List<string> files; try { files = Directory.EnumerateFiles(dir, "*.desktop").OrderBy(f => f, StringComparer.Ordinal).Take(4096).ToList(); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { continue; }
+            foreach (var f in files)
+            {
+                string id = Path.GetFileNameWithoutExtension(f);
+                if (!seen.Add(id)) continue; // XDG: the first folder with this ID wins, even if that entry is hidden
+                NativeGame? n;
+                try { n = new FileInfo(f).Length <= NativeGames.MaxBytes ? NativeGames.FromEntry(id, File.ReadAllText(f), flatpak) : null; }
+                catch (Exception e) when (e is IOException or UnauthorizedAccessException) { continue; }
+                if (n is null) continue;
+                string? program = Path.IsPathFullyQualified(n.Program) ? n.Program : BoundedProcess.FindSystem(n.Program);
+                if (program is null || !IsRunnableFile(program)) continue; // uninstalled leftovers stay out
+                yield return new LibGame("Linux", id, n.Name, "", program, null, NativeGames.JoinArguments(n.Arguments), n.Kind, n.Icon);
+            }
+        }
     }
 
     public static LibGame? ParseManifest(string acf, string steamapps)
@@ -149,6 +207,8 @@ public sealed class LinuxGameLibrary(string? home = null, Func<IReadOnlyList<str
     {
         var all = new List<LibGame>();
         try { all.AddRange(Steam()); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+        try { all.AddRange(NonSteam()); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+        try { all.AddRange(Native()); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
         all.AddRange(Heroic()); all.AddRange(await LutrisAsync(ct));
         foreach (var c in custom)
             if (IsRunnableFile(c.Exe) || IsWindowsExe(c.Exe)) all.Add(new("Manual", c.Exe, string.IsNullOrWhiteSpace(c.Name) ? Path.GetFileNameWithoutExtension(c.Exe) : c.Name, Path.GetDirectoryName(c.Exe) ?? "", c.Exe, null, c.Args));
@@ -298,7 +358,8 @@ public static class GameProcesses
                 else
                 {
                     string cmd = ReadRaw(Path.Combine(d, "cmdline"), 16384).Replace('\0', ' ');
-                    hit = (g.InstallDir.Length > 3 && cmd.Contains(g.InstallDir.TrimEnd('/') + "/", StringComparison.Ordinal)) || (exe is { Length: > 3 } && cmd.Contains(exe, StringComparison.Ordinal));
+                    bool flatpak = exe is not null && Path.GetFileName(exe) == "flatpak";
+                    hit = CommandLineHit(g, exe, cmd, flatpak ? ReadRaw(Path.Combine(d, "environ"), 65536).Split('\0') : null);
                 }
                 if (hit) pids.Add(pid);
             }
@@ -321,10 +382,28 @@ public static class GameProcesses
             string cmd = line[(space + 1)..];
             bool hit = g.IsSteam
                 ? cmd.Split(' ').Any(t => t == $"SteamGameId={g.Id}" || t == $"SteamAppId={g.Id}")
-                : (g.InstallDir.Length > 3 && cmd.Contains(g.InstallDir.TrimEnd('/') + "/", StringComparison.Ordinal)) || (exe is { Length: > 3 } && cmd.Contains(exe, StringComparison.Ordinal));
+                : CommandLineHit(g, exe, cmd, cmd.Split(' ')); // "ps e" appends the environment to the command line
             if (hit) pids.Add(pid);
         }
         return pids;
+    }
+
+    /// <summary>
+    /// A non-Steam game's process: its command line runs from the install folder or names the executable. A Flatpak game is matched by
+    /// FLATPAK_ID in the environment: every Flatpak app is started by the same /usr/bin/flatpak, which then gives way to the sandbox (bwrap),
+    /// so no command line keeps the app ID; every process inside the sandbox has FLATPAK_ID (validated with SuperTuxKart, 2026-11-10).
+    /// </summary>
+    public static bool CommandLineHit(LibGame g, string? exe, string cmd, IReadOnlyCollection<string>? environment = null)
+    {
+        if (exe is not null && Path.GetFileName(exe) == "flatpak")
+            return FlatpakApp(g) is { } app && environment is not null && environment.Contains("FLATPAK_ID=" + app);
+        return (g.InstallDir.Length > 3 && cmd.Contains(g.InstallDir.TrimEnd('/') + "/", StringComparison.Ordinal)) || (exe is { Length: > 3 } && cmd.Contains(exe, StringComparison.Ordinal));
+    }
+
+    public static string? FlatpakApp(LibGame g)
+    {
+        try { return FlatpakLaunch.AppId(GameLaunchOptions.SplitArguments(g.Args)); }
+        catch (FormatException) { return null; }
     }
 
     /// <summary>Host processes of the game: /proc natively; in Flatpak the host's ps through <see cref="HostSpawn"/>.</summary>
@@ -352,12 +431,16 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
     /// <remarks>With <paramref name="shaderCache"/> (the Otimiza option is on) the bigger shader cache variables also go to this game, so a launch
     /// never carries a smaller NVIDIA limit than the session's. With <paramref name="extras"/>, the experimental Proton options of the profile
     /// that apply and do not conflict with the rest of the command (<see cref="GameExtras.Resolve"/>) join a Windows game's environment.</remarks>
+    /// <param name="flatpakCommand">Default command of a Flatpak app (its metadata): needed to run a Flatpak game under MangoHud.</param>
+    /// <param name="mangoLogFolder">Ilmenyx's MangoHud log folder, opened to the sandbox of a Flatpak game.</param>
     public static LaunchCommand BuildManual(string exe, GameProfile p, string gameArgs, string gpuVendor, Func<string, string?> find, string? mangoConfig = null, string? prefixRoot = null,
-        ExtrasContext? extras = null, bool shaderCache = false)
+        ExtrasContext? extras = null, bool shaderCache = false, Func<string, string?>? flatpakCommand = null, string? mangoLogFolder = null)
     {
         var args = new List<string>(); string program = exe;
         var wrappers = new List<string>();
-        if (p.MangoHud && find("mangohud") is { } mh) wrappers.Add(mh);
+        // Flatpak game: the host mangohud cannot enter the sandbox; the extension's mangohud wraps the app's command instead (FlatpakLaunch).
+        bool flatpakMango = p.MangoHud && Path.GetFileName(exe) == "flatpak";
+        if (p.MangoHud && !flatpakMango && find("mangohud") is { } mh) wrappers.Add(mh);
         if (p.GameMode && find("gamemoderun") is { } gm) wrappers.Add(gm);
         var proton = new List<KeyValuePair<string, string>>();
         if (exe.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
@@ -369,7 +452,10 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
         }
         if (wrappers.Count > 0) { program = wrappers[0]; args.AddRange(wrappers.Skip(1)); args.Add(exe); }
         string graphics = GameLaunchOptions.BuildArgs(p);
-        args.AddRange(GameLaunchOptions.SplitArguments((gameArgs + " " + graphics).Trim()));
+        var gameList = GameLaunchOptions.SplitArguments((gameArgs + " " + graphics).Trim());
+        if (flatpakMango && FlatpakLaunch.AppId(gameList) is { } app && flatpakCommand?.Invoke(app) is { } command)
+            gameList = FlatpakLaunch.WithMangoHud(gameList, command, mangoConfig, mangoLogFolder ?? MangoHudLogReader.DefaultFolder());
+        args.AddRange(gameList);
         var env = new List<KeyValuePair<string, string>>(p.GpuHigh ? GameLaunchOptions.GpuEnvironment(gpuVendor) : []);
         if (p.MangoHud && mangoConfig is not null && wrappers.Contains(find("mangohud") ?? "") ) env.Add(new("MANGOHUD_CONFIGFILE", mangoConfig));
         env.AddRange(proton);
@@ -463,7 +549,11 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
             else if (g.LaunchUri is not null) await StartAsync("xdg-open", [g.LaunchUri], [], ct);
             else if (exe is not null && (LinuxGameLibrary.IsRunnableFile(exe) || LinuxGameLibrary.IsWindowsExe(exe)))
             {
-                var cmd = BuildManual(exe, p, g.Args, gpuVendor, BoundedProcess.Find, File.Exists(MangoHudLogReader.ConfigPath()) ? MangoHudLogReader.ConfigPath() : null, extras: extras, shaderCache: shaderCache);
+                // With MangoHud on, the config with FPS logging is written the first time (as for Steam games), so the session gets measured.
+                string? mangoConfig = p.MangoHud && OperatingSystem.IsLinux() ? MangoHudLogReader.EnsureConfig(IlmenyxSettings.Load(IlmenyxSettings.DefaultPath())) : File.Exists(MangoHudLogReader.ConfigPath()) ? MangoHudLogReader.ConfigPath() : null;
+                if (p.MangoHud) Directory.CreateDirectory(MangoHudLogReader.DefaultFolder()); // a Flatpak sandbox can only be given an existing folder
+                var cmd = BuildManual(exe, p, g.Args, gpuVendor, BoundedProcess.Find, mangoConfig, extras: extras, shaderCache: shaderCache,
+                    flatpakCommand: id => new FlatpakApps().Metadata(id).Command, mangoLogFolder: MangoHudLogReader.DefaultFolder());
                 if (cmd.Environment.FirstOrDefault(e => e.Key == "WINEPREFIX").Value is { } prefix)
                 {
                     Directory.CreateDirectory(Path.GetDirectoryName(prefix)!);
@@ -483,7 +573,8 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
             var session = MangoHudSession.ToSession(MangoHudLogReader.ReadSession(MangoHudLogReader.DefaultFolder(), started), g.Name, DateTimeOffset.UtcNow, p.Res, p.GfxPreset, p.GfxUpscaling);
             status(session is null
                 ? $"{g.Name} encerrado. Ajustes temporários desfeitos. Sessão não registrada: sem log do MangoHud na pasta do Ilmenyx (gere a configuração na página Overlay) ou sessão com menos de {FpsSession.MinSeconds:0} s."
-                : $"{g.Name} encerrado. Ajustes temporários desfeitos. Medido: {session.AvgFps:0} FPS médio (1% low {session.Low1Fps:0}) — salvo na Estimativa de FPS.");
+                : $"{g.Name} encerrado. Ajustes temporários desfeitos. Medido: {session.AvgFps:0} FPS médio (1% low {session.Low1Fps:0}) — salvo na Estimativa de FPS."
+                  + (session.CappedAt is { } cap ? $" Limitado a {cap:0} FPS (vsync ou limite do jogo): o PC pode render mais. Para medir o máximo, desligue o vsync no jogo." : ""));
             return session;
         }
         catch (OperationCanceledException) { status("Acompanhamento cancelado."); }

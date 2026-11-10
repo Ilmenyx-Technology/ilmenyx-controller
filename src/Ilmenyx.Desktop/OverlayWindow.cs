@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // New Ilmenyx additions (the original OSD is a transparent always-on-top click-through window): see LICENSING.md.
 using Avalonia;
 using Avalonia.Controls;
@@ -23,7 +23,7 @@ public sealed class OverlayWindow : Window
 
     public OverlayWindow()
     {
-        Icon = AppIcon.Window; Title = "Ilmenyx · Overlay"; WindowDecorations = WindowDecorations.None; Topmost = true; ShowInTaskbar = false; ShowActivated = false; CanResize = false;
+        Icon = AppIcon.Window; Title = "Ilmenyx Controller · Overlay"; WindowDecorations = WindowDecorations.None; Topmost = true; ShowInTaskbar = false; ShowActivated = false; CanResize = false;
         Background = Brushes.Transparent; TransparencyLevelHint = [WindowTransparencyLevel.Transparent]; SizeToContent = SizeToContent.WidthAndHeight; Focusable = false;
         Content = new Border { Background = Brush.Parse("#CC181A1C"), CornerRadius = new CornerRadius(8), Padding = new Thickness(10, 8), Child = new StackPanel { Children = { body, graph } } };
         SizeChanged += (_, _) => Reposition();

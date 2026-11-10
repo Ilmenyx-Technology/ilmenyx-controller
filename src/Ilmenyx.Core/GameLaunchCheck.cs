@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // "Jogo não abre?" page: a READ-ONLY checklist of the usual reasons why Proton, Flatpak or a game does not start on Linux. Each item says
 // what was found, explains it in plain words, gives the risk and the exact command to copy. Only user-level Flatpak changes (no root:
 // Flathub remote for the user, a Steam Flatpak filesystem override) are offered as one-click fixes; anything that needs root, and above

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
@@ -238,7 +238,8 @@ public sealed partial class ShellWindow
         open.Click += (_, _) => Select("bench");
         var openValidations = new Button { Name = "OpenValidations", Content = "Validações reduzidas", Background = Brushes.Transparent, Foreground = Palette.Fg, FontSize = 12, Padding = new Thickness(10, 8) };
         openValidations.Click += (_, _) => Select("validate");
-        var notice = new Border { HorizontalAlignment = HorizontalAlignment.Left, Background = Palette.WarnBg, CornerRadius = new CornerRadius(IlmenyxTheme.Pill), Padding = new Thickness(11, 4), Child = new TextBlock { Name = "OverviewGpuNotice", Text = ValidationNotices.AmdNvidia, Foreground = Palette.Warn, TextWrapping = TextWrapping.Wrap, FontSize = 11, FontWeight = FontWeight.Medium } };
+        string? gpuNotice = ValidationNotices.For(DrmGpuInfoProvider.Vendors());
+        var notice = new Border { IsVisible = gpuNotice is not null, HorizontalAlignment = HorizontalAlignment.Left, Background = Palette.WarnBg, CornerRadius = new CornerRadius(IlmenyxTheme.Pill), Padding = new Thickness(11, 4), Child = new TextBlock { Name = "OverviewGpuNotice", Text = gpuNotice ?? "", Foreground = Palette.Warn, TextWrapping = TextWrapping.Wrap, FontSize = 11, FontWeight = FontWeight.Medium } };
         var memoryRow = Wrapped("OverviewMemory", "—", 12.5, Palette.Fg); var procRow = Wrapped("OverviewProcesses", "—", 12.5, Palette.Fg);
         var cpuName = new TextBlock { Name = "OverviewCpuName", Text = "—", FontSize = 13, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap };
         usage.Updated += () => { memoryRow.Text = usage.MemoryLine; procRow.Text = usage.ProcessSummary; cpuName.Text = usage.CpuModel; };
@@ -530,6 +531,34 @@ public sealed partial class ShellWindow
         });
     }
 
+    /// <summary>
+    /// What Ilmenyx released on this PC (found by its own files under /etc), each with DESFAZER: the first-run screen and the sensor
+    /// dialog offer the undo only right after the change, so the way back has to stay reachable here.
+    /// </summary>
+    private Control? GrantsCard()
+    {
+        var grants = SensorHelp.Granted(File.Exists);
+        if (grants.Count == 0) return null;
+        var list = new StackPanel { Spacing = 8, Children = { UiKit.Label("PERMISSÕES DADAS PELO ILMENYX") } };
+        for (int i = 0; i < grants.Count; i++)
+        {
+            var g = grants[i];
+            var status = new TextBlock { Name = "GrantStatus" + i, FontSize = 12, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center };
+            var undo = new Button { Name = "GrantUndo" + i, Content = "DESFAZER", FontSize = 12, Padding = new Thickness(14, 7), IsEnabled = PrivilegedFix.Available };
+            if (!PrivilegedFix.Available) status.Text = "O pedido de senha do sistema (pkexec/polkit) não está instalado.";
+            undo.Click += async (_, _) =>
+            {
+                if (!await ConfirmDialog.AskAsync(this, g.Title, "Desfazer?\n\nO sistema vai abrir a janela dele pedindo a sua senha de administrador.", "Desfazer", "Cancelar")) return;
+                undo.IsEnabled = false; status.Text = "Aguardando a sua senha na janela do sistema…"; status.Foreground = Palette.Muted;
+                var (ok, message) = await PrivilegedFix.RunAsync(g.Undo, stop.Token);
+                status.Text = ok ? g.Done : message; status.Foreground = ok ? Palette.Success : Palette.Warn;
+                undo.IsEnabled = !ok;
+            };
+            list.Children.Add(new WrapPanel { ItemSpacing = 10, LineSpacing = 6, Children = { new TextBlock { Text = g.Title, FontSize = 13, VerticalAlignment = VerticalAlignment.Center }, undo, status } });
+        }
+        return UiKit.Card(list);
+    }
+
     private Control ToolsPage()
     {
         var requirements = new Button { Name = "ShowRequirements", Content = "Requisitos" };
@@ -545,11 +574,13 @@ public sealed partial class ShellWindow
             bool on = appSettings.DeviceToasts;
             try { IlmenyxSettings.Update(settingsPath, s => s.DeviceToasts = on); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
         };
-        return Scroll("ToolsScroll", new StackPanel
+        var page = new StackPanel
         {
             Spacing = 12,
             Children = { UiKit.PageHeader("Requisitos e sobre"), UiKit.Card(new StackPanel { Spacing = 12, Children = { UiKit.Label("FERRAMENTAS"), new WrapPanel { ItemSpacing = 10, LineSpacing = 8, Children = { requirements, about, classicButton } }, toastToggle,
                 Wrapped("ToolsNote", ProductIdentity.Attribution, 12, Palette.Faint) } }) }
-        });
+        };
+        if (GrantsCard() is { } grants) page.Children.Add(grants);
+        return Scroll("ToolsScroll", page);
     }
 }

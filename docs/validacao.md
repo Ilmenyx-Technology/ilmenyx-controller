@@ -475,7 +475,7 @@ Base 3904a47, branch feat/silex-linux-phase1; primeiro commit desta sessão 54fe
 ignoradas). Sem remote principal, sem criação de fork/org/URL fictícia. SHA upstream intacto.
 
 IMPLEMENTADO: Ilmenyx.* em solução/projetos/namespaces novos, CLI apphost ilmenyx, UI/título e
-assinatura by Bismuth Technology, metadados Product/Company (crédito mantenedor), Sobre com abas
+assinatura by Ilmenyx Technology, metadados Product/Company (crédito mantenedor), Sobre com abas
 origem/MIT/dependências locais, avisos de privacidade e redação de padrões óbvios em texto limitado.
 Sem troca de schemas/IDs/workloads/golden, copyright original ou material histórico. Nenhum asset
 visual novo/final; nenhum logo RESET. Props somente em src copia LICENSE/NOTICE/terceiros para

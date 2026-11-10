@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -16,7 +16,7 @@ public sealed class SensorHelpDialog : Window
     /// <param name="run">Runs a fix's fixed script as root (polkit). Null: only the commands are shown.</param>
     public SensorHelpDialog(IReadOnlyList<SensorFix> fixes, Func<string, Task<(bool Ok, string Message)>>? run = null)
     {
-        Icon = AppIcon.Window; Title = "Ilmenyx — Sensores da CPU"; Width = 640; Height = 560; MinWidth = 460; MinHeight = 340;
+        Icon = AppIcon.Window; Title = "Ilmenyx Controller — Sensores da CPU"; Width = 640; Height = 560; MinWidth = 460; MinHeight = 340;
         WindowStartupLocation = WindowStartupLocation.CenterOwner; Background = Palette.Panel;
         KeyboardNavigation.SetTabNavigation(this, KeyboardNavigationMode.Cycle);
         var list = new StackPanel { Spacing = 12 };

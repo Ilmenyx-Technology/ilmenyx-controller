@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // Nenhum sinal real é enviado: o envio de SIGTERM é injetado e opera só sobre diretórios de fixture.
 using Ilmenyx.Core;
 using Ilmenyx.Platform.Linux;

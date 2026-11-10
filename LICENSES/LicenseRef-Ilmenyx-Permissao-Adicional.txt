@@ -2,7 +2,7 @@ Ilmenyx — Permissão Adicional à PolyForm Noncommercial License 1.0.0
 Ilmenyx — Additional Permission to the PolyForm Noncommercial License 1.0.0
 Versão / Version 1.0 — 2026-11-07
 
-Required Notice: Copyright (c) 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology) — https://github.com/Bismuth-Technology/ilmenyx
+Required Notice: Copyright (c) 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology) — https://github.com/Ilmenyx-Technology/ilmenyx
 
 =====================================================================
 PORTUGUÊS (esta versão prevalece)
@@ -51,7 +51,7 @@ PORTUGUÊS (esta versão prevalece)
 
 8. Demais regras. Aplicam-se também a esta permissão as seções "Notices", "No Other Rights",
    "Violations", "No Liability" e "Definitions" da PolyForm. Esta permissão não concede direito
-   de usar o nome Ilmenyx, o logo ou o nome Bismuth Technology como marca de outro produto ou
+   de usar o nome Ilmenyx, o logo ou o nome Ilmenyx Technology como marca de outro produto ou
    serviço; citar o Ilmenyx para identificá-lo é permitido.
 
 9. Idioma. Se o texto em português e o texto em inglês desta permissão divergirem, prevalece o
@@ -108,7 +108,7 @@ ENGLISH (translation; the Portuguese version prevails)
 
 8. Other rules. The "Notices", "No Other Rights", "Violations", "No Liability" and "Definitions"
    sections of PolyForm also apply to this permission. This permission grants no right to use the
-   name Ilmenyx, the logo or the name Bismuth Technology as a brand for another product or
+   name Ilmenyx, the logo or the name Ilmenyx Technology as a brand for another product or
    service; naming Ilmenyx to identify it is allowed.
 
 9. Language. If the Portuguese and the English texts of this permission differ, the Portuguese

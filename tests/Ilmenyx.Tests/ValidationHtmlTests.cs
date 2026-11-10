@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // New test contribution: see LICENSING.md; original fixtures/components retain their own terms.
 using Ilmenyx.Cli;
 using Ilmenyx.Contracts;
@@ -32,7 +32,7 @@ public class ValidationHtmlTests
         foreach(var (html,hash) in results)
         {
             Assert.Contains("id=\"validation-result\"",html);Assert.Contains(hash,html);Assert.Contains(cpu.ReferenceCommit,html);
-            Assert.Contains("Ilmenyx",html);Assert.Contains("Bismuth Technology",html);Assert.Contains("GustavoReset",html);
+            Assert.Contains("Ilmenyx",html);Assert.Contains("Ilmenyx Technology",html);Assert.Contains("GustavoReset",html);
             Assert.Contains(System.Net.WebUtility.HtmlEncode(payload),html);Assert.DoesNotContain("<script",html);
             Assert.DoesNotContain("<img",html);Assert.DoesNotContain("<iframe",html);Assert.Contains("default-src 'none'",html);
             Assert.Contains("não executa carga adicional",html);Assert.Contains("Sem pontuação",html);

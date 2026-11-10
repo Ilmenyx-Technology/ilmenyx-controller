@@ -1,15 +1,15 @@
 # Ilmenyx — origem, atribuição e avisos
 
-Required Notice: Copyright (c) 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology) — https://github.com/Bismuth-Technology/ilmenyx
+Required Notice: Copyright (c) 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology) — https://github.com/Ilmenyx-Technology/ilmenyx
 
 ## Origem
 
 O Ilmenyx é uma adaptação independente e não oficial para Linux, derivada do RESET EXPLODE, criado por
-Gustavo (GustavoReset). É mantido sob a identidade Bismuth Technology e não tem afiliação, patrocínio ou
+Gustavo (GustavoReset). É mantido sob a identidade Ilmenyx Technology e não tem afiliação, patrocínio ou
 endosso da equipe RESET.
 
 Ilmenyx is an independent, unofficial Linux adaptation derived from RESET EXPLODE by Gustavo
-(GustavoReset). It is maintained under the Bismuth Technology identity and is not affiliated with,
+(GustavoReset). It is maintained under the Ilmenyx Technology identity and is not affiliated with,
 sponsored by, or endorsed by the RESET team.
 
 - Original: https://github.com/GustavoReset/ResetExplode
@@ -58,6 +58,6 @@ e equivalência de pontuações com o Windows não são certificadas.
 
 Dependências e termos próprios: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) e
 [docs/legal/THIRD-PARTY-INVENTORY.md](docs/legal/THIRD-PARTY-INVENTORY.md). Nome e identidade visual:
-[LICENSES/LicenseRef-Ilmenyx-Marca.txt](LICENSES/LicenseRef-Ilmenyx-Marca.txt). Ilmenyx e Bismuth
+[LICENSES/LicenseRef-Ilmenyx-Marca.txt](LICENSES/LicenseRef-Ilmenyx-Marca.txt). Ilmenyx, Ilmenyx Controller e Ilmenyx
 Technology não são apresentados aqui como marcas registradas. Este aviso não concede direitos sobre
 marcas ou assets do RESET.

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT AND PolyForm-Noncommercial-1.0.0
 // SPDX-FileCopyrightText: 2026 Gustavo (GustavoReset)
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // Adapted from RESET EXPLODE OverlayMetrics.cs / MainWindow.Overlay.cs (MIT, Copyright (c) 2026 Gustavo (GustavoReset)); see NOTICE.md.
 using System.Globalization;
 using System.Text;
@@ -103,7 +103,7 @@ public static class MangoHudConfig
     {
         if (!Corners.Contains(corner)) throw new ArgumentException("Canto inválido.", nameof(corner));
         if (scale is < MinScale or > MaxScale) throw new ArgumentOutOfRangeException(nameof(scale));
-        var sb = new StringBuilder("# Gerado pelo Ilmenyx (by Bismuth Technology). Não é o seu MangoHud.conf; regenerado pela página Overlay.\n");
+        var sb = new StringBuilder("# Gerado pelo Ilmenyx (by Ilmenyx Technology). Não é o seu MangoHud.conf; regenerado pela página Overlay.\n");
         void Flag(bool on, string key) { if (on) sb.Append(key).Append('\n'); }
         sb.Append("position=").Append(corner).Append('\n');
         sb.Append("font_scale=").Append(scale.ToString("0.0#", CultureInfo.InvariantCulture)).Append('\n');

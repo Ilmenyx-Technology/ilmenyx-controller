@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-# SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+# SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 # Downloads the official .NET 10 SDK (linux-x64) into /tmp/silex-dotnet, the path scripts/env-local-sdk.sh expects.
 # Verifies the SHA-512 published by Microsoft; never uses sudo or touches system directories. /tmp is cleared on reboot.
 # Uso: bash scripts/get-local-sdk.sh   e depois, num shell bash: source scripts/env-local-sdk.sh

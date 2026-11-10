@@ -1,5 +1,5 @@
 <!-- SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 -->
-<!-- SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology) -->
+<!-- SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology) -->
 # Bloqueados: itens removidos e por quê
 
 A página **Bloqueados (!)** lista só o que ainda pode ser portado ou validado. Em 2026-11-07 saíram da lista os itens

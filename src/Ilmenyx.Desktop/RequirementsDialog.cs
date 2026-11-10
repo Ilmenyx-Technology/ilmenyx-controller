@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 using System.Globalization;
 using Avalonia;
 using Avalonia.Automation;
@@ -22,7 +22,7 @@ public sealed class RequirementsDialog : Window
             LinuxRuntimeDependencies.IsInvariantModeRequested(),
             !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DISPLAY")),
             !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WAYLAND_DISPLAY")));
-        Icon = AppIcon.Window; Title = "Ilmenyx — Requisitos"; Width = 740; Height = 560;
+        Icon = AppIcon.Window; Title = "Ilmenyx Controller — Requisitos"; Width = 740; Height = 560;
         MinWidth = 480; MinHeight = 360; WindowStartupLocation = WindowStartupLocation.CenterOwner;
         Background = Palette.Panel; Foreground = Palette.Fg;
         KeyboardNavigation.SetTabNavigation(this, KeyboardNavigationMode.Cycle);

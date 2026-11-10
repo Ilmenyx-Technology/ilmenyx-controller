@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-# SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+# SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 # Third-party components retain their terms.
 # Read-only diagnostics plus exports in a new test directory; no workloads or SMART.
 set -euo pipefail
@@ -22,7 +22,7 @@ for directory in cli desktop; do
   done
 done
 [[ -x $bundle/cli/ilmenyx && -x $bundle/desktop/Ilmenyx.Desktop ]]
-[[ -f $bundle/linux/io.github.bismuth_technology.Ilmenyx.desktop && -x $bundle/linux/install-user.sh && -f $bundle/linux/hicolor/scalable/apps/io.github.bismuth_technology.Ilmenyx.svg ]]
+[[ -f $bundle/linux/io.github.ilmenyx_technology.IlmenyxController.desktop && -x $bundle/linux/install-user.sh && -f $bundle/linux/hicolor/scalable/apps/io.github.ilmenyx_technology.IlmenyxController.svg ]]
 "$bundle/cli/ilmenyx" --help > "$output/help.txt"
 "$bundle/cli/ilmenyx" info --json --output "$output/info.json" > "$output/info-stdout.json"
 jq -e -s 'length == 2 and .[0] == .[1] and .[0].schemaVersion == "1.3"' "$output/info.json" "$output/info-stdout.json" >/dev/null

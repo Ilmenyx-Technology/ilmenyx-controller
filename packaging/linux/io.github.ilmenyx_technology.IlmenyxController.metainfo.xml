@@ -1,24 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 -->
-<!-- SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology) -->
+<!-- SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology) -->
 <!-- AppStream metadata for software centers. -->
 <component type="desktop-application">
-  <id>io.github.bismuth_technology.Ilmenyx</id>
+  <id>io.github.ilmenyx_technology.IlmenyxController</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>MIT AND PolyForm-Noncommercial-1.0.0</project_license>
-  <name>Ilmenyx</name>
+  <name>Ilmenyx Controller</name>
   <summary>Hardware diagnostics, monitoring and benchmarking for Linux</summary>
   <summary xml:lang="pt_BR">Diagnóstico, monitoramento e benchmarking de hardware para Linux</summary>
-  <developer id="io.github.bismuth_technology">
-    <name>Bismuth Technology</name>
+  <developer id="io.github.ilmenyx_technology">
+    <name>Ilmenyx Technology</name>
   </developer>
   <description>
-    <p>Ilmenyx shows what is inside your computer — CPU, memory, GPU, disks, sensors, battery and network — and measures its performance.</p>
-    <p>Read-only by default, no telemetry, no hidden sudo, and no invented data: when a sensor does not exist, Ilmenyx says so.</p>
+    <p>Ilmenyx Controller shows what is inside your computer — CPU, memory, GPU, disks, sensors, battery and network — and measures its performance.</p>
+    <p>Read-only by default, no telemetry, no hidden sudo, and no invented data: when a sensor does not exist, Ilmenyx Controller says so.</p>
     <p>An independent, unofficial Linux adaptation of RESET EXPLODE by Gustavo (GustavoReset); not affiliated with or endorsed by the RESET team.</p>
   </description>
-  <launchable type="desktop-id">io.github.bismuth_technology.Ilmenyx.desktop</launchable>
-  <url type="homepage">https://github.com/Bismuth-Technology</url>
+  <launchable type="desktop-id">io.github.ilmenyx_technology.IlmenyxController.desktop</launchable>
+  <url type="homepage">https://github.com/Ilmenyx-Technology/ilmenyx</url>
   <categories>
     <category>System</category>
     <category>Monitor</category>

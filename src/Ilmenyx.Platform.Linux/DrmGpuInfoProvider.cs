@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 using System.Globalization;
 using Ilmenyx.Contracts;
 
@@ -76,4 +76,17 @@ public sealed class DrmGpuInfoProvider(IDiagnosticSysfsFiles files) : IGpuInfoPr
         }
     }
     private static string Source(string card, string attr) => $"/sys/class/drm/{card}/device/{attr}";
+
+    /// <summary>PCI vendor IDs of the GPUs (cardN, not the connectors), for <see cref="ValidationNotices.For"/>. Empty when unreadable.</summary>
+    public static IReadOnlyList<string> Vendors(string root = "/sys/class/drm")
+    {
+        try
+        {
+            return Directory.Exists(root)
+                ? Directory.EnumerateDirectories(root, "card*").Where(d => Path.GetFileName(d)[4..].All(char.IsAsciiDigit)).Take(16)
+                    .Select(d => SysfsText.Read(Path.Combine(d, "device", "vendor"), 16)).Where(v => v.Length > 0).ToList()
+                : [];
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return []; }
+    }
 }

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT AND PolyForm-Noncommercial-1.0.0
 // SPDX-FileCopyrightText: 2026 Gustavo (GustavoReset)
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // New Ilmenyx additions (layout follows the original RESET JOGOS launcher: game list left, profile cards right; cinematic library grid and hero since 2026-11-06): see LICENSING.md.
 using Avalonia;
 using Avalonia.Automation;
@@ -87,6 +87,14 @@ public sealed class LauncherPage : Grid
     private Border hero = null!;
     private bool heroArt;
     private readonly string? steamRoot;
+    private readonly NativeArtFinder nativeArt = new();
+    private readonly FlatpakApps flatpaks = new();
+    private readonly bool hostMango = BoundedProcess.Find("mangohud") is not null;
+    private readonly TextBlock mangoFlatpakStatus = new() { Name = "MangoFlatpakStatus", FontSize = 12, Foreground = Palette.Warn, TextWrapping = TextWrapping.Wrap };
+    private readonly Button mangoFlatpakInstall = new() { Name = "MangoFlatpakInstall", Content = "INSTALAR MANGOHUD PARA FLATPAK", FontSize = 12, Padding = new Thickness(14, 7) };
+    private readonly ProgressBar mangoFlatpakProgress = new() { IsIndeterminate = true, IsVisible = false, Height = 4, MinWidth = 120 };
+    private readonly StackPanel mangoFlatpakBox = new() { Name = "MangoFlatpakBox", Spacing = 6, IsVisible = false, Margin = new Thickness(26, 0, 0, 8) };
+    private string? mangoFlatpakBranch;
     private int columns = 2;
     private Grid? leftPane;
     private bool narrowWindow;
@@ -248,8 +256,11 @@ public sealed class LauncherPage : Grid
         extrasBox.Children.Add(chkWayland); extrasBox.Children.Add(chkLowLat); extrasBox.Children.Add(extrasNote);
         ToolTip.SetTip(chkGpu, multiGpu ? "Define as variáveis de PRIME offload para a GPU dedicada." : "Esta máquina tem uma única GPU: não há o que selecionar.");
         chkGpu.IsEnabled = multiGpu;
-        bool hasGm = BoundedProcess.Find("gamemoderun") is not null, hasMango = BoundedProcess.Find("mangohud") is not null;
+        bool hasGm = BoundedProcess.Find("gamemoderun") is not null, hasMango = hostMango;
         chkGameMode.IsEnabled = hasGm; chkMango.IsEnabled = hasMango;
+        mangoFlatpakBox.Children.Add(mangoFlatpakStatus);
+        mangoFlatpakBox.Children.Add(new WrapPanel { ItemSpacing = 10, LineSpacing = 6, Children = { mangoFlatpakInstall, mangoFlatpakProgress } });
+        mangoFlatpakInstall.Click += async (_, _) => await InstallFlatpakMangoAsync();
         if (!hasGm) ToolTip.SetTip(chkGameMode, "gamemoderun não está instalado."); if (!hasMango) ToolTip.SetTip(chkMango, "mangohud não está instalado.");
         var setExe = new Button { Name = "BtnSetExe", Content = "DEFINIR EXECUTÁVEL", FontSize = 12, Padding = new Thickness(14, 7) }; setExe.Click += (_, _) => SetExe();
         var browseExe = new Button { Name = "BtnSetExeBrowse", Content = "PROCURAR…", FontSize = 12, Padding = new Thickness(14, 7) };
@@ -260,7 +271,7 @@ public sealed class LauncherPage : Grid
         {
             Children =
             {
-                CardTitle(Icons.Oc, "DESEMPENHO"), chkPlan, chkGpu, chkGameMode, chkMango, chkGuard, extrasBox, exeText, new Border { Height = 6 }, exePath, new Border { Height = 8 },
+                CardTitle(Icons.Oc, "DESEMPENHO"), chkPlan, chkGpu, chkGameMode, chkMango, mangoFlatpakBox, chkGuard, extrasBox, exeText, new Border { Height = 6 }, exePath, new Border { Height = 8 },
                 new WrapPanel { ItemSpacing = 8, LineSpacing = 6, Children = { browseExe, setExe, recommended } }, protonBox,
                 new TextBlock { Text = "O perfil de energia vale só durante o jogo e volta ao anterior. Prioridade de processo elevada exige privilégios no Linux; o GameMode cuida disso quando instalado. O executável é descoberto sozinho; se errar, informe o caminho certo.", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0) }
             }
@@ -340,7 +351,7 @@ public sealed class LauncherPage : Grid
     {
         heroTags.Children.Clear();
         if (current is not { } g || profile is not { } p) return;
-        var tags = new List<string> { g.Store };
+        var tags = new List<string> { g.Kind ?? g.Store };
         if (p.HighPerfPlan) tags.Add("Alto desempenho");
         if (p.GpuHigh && multiGpu) tags.Add("GPU dedicada");
         if (p.GameMode && chkGameMode.IsEnabled) tags.Add("GameMode");
@@ -372,7 +383,7 @@ public sealed class LauncherPage : Grid
         {
             games = await library.ScanAsync(settings.CustomGames.ToList(), lifetime);
             Filter();
-            count.Text = games.Count == 0 ? "Nenhum jogo encontrado. Use + ADICIONAR EXECUTÁVEL para incluir um à mão." : $"{games.Count} jogos · {string.Join(" · ", games.GroupBy(g => g.Store).Select(x => $"{x.Key} {x.Count()}"))}";
+            count.Text = games.Count == 0 ? "Nenhum jogo encontrado. Use + ADICIONAR EXECUTÁVEL para incluir um à mão." : $"{games.Count} {(games.Count == 1 ? "jogo" : "jogos")} · {string.Join(" · ", games.GroupBy(g => g.Kind ?? g.Store).Select(x => $"{x.Key} {x.Count()}"))}";
         }
         catch (OperationCanceledException) { count.Text = "Busca cancelada."; }
     }
@@ -388,7 +399,7 @@ public sealed class LauncherPage : Grid
         foreach (var g in shown)
         {
             var item = Tile(g, g.Key == big, g.Key == keep);
-            AutomationProperties.SetName(item, g.Name + " (" + g.Store + ")");
+            AutomationProperties.SetName(item, g.Name + " (" + g.Subtitle + ")");
             var game = g; item.Click += (_, _) => { Select(game); FocusTile(game); };
             if (g.Key == big || columns == 1) { list.Children.Add(item); row = null; continue; }
             if (row is null || col >= columns) { row = new Grid { ColumnDefinitions = new(string.Join(",8,", Enumerable.Repeat("*", columns))), Margin = new Thickness(0, 0, 0, 8) }; list.Children.Add(row); col = 0; }
@@ -406,7 +417,7 @@ public sealed class LauncherPage : Grid
             Spacing = 2,
             Children =
             {
-                GameArt.Cover(art, g.Name, current is null ? 118 : large ? (columns == 1 ? 104 : 128) : (columns == 1 ? 0 : 68)),
+                GameArt.Cover(art, g.Name, appIcon: art is null && g.Icon is not null ? GameArt.FromFile(nativeArt.Icon(g.Icon), false) : null, height: current is null ? 118 : large ? (columns == 1 ? 104 : 128) : (columns == 1 ? 0 : 68)),
                 new TextBlock { Text = g.Name, FontSize = large ? 13.5 : 12.5, FontWeight = FontWeight.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(2, 6, 2, 0), Foreground = selected ? Palette.AccentText : Palette.Fg },
                 new TextBlock { Text = g.Subtitle, FontSize = 11, Foreground = Palette.Faint, Margin = new Thickness(2, 0, 2, 0) },
             },
@@ -449,12 +460,12 @@ public sealed class LauncherPage : Grid
         ApplyLayout(force: true);
         if (!settings.GameProfiles.TryGetValue(SettingsKey(g), out var p)) { p = new GameProfile(); settings.GameProfiles[SettingsKey(g)] = p; }
         loading = true; profile = p;
-        title.Text = g.Name; sub.Text = $"{g.Store} · {g.InstallDir}";
+        title.Text = g.Name; sub.Text = g.InstallDir.Length > 0 ? $"{g.Subtitle} · {g.InstallDir}" : g.ExePath is { } exe ? $"{g.Subtitle} · {exe} {g.Args}".TrimEnd() : g.Subtitle;
         var art = ArtFor(g, hero: true); heroArt = art is not null;
         if (art is null && g.IsWindowsManual && p.ProtonGameId is { Length: > 0 } artId) FetchArtLater(g, artId);
         hero.Background = art is null ? UiKit.HeroBrush() : new ImageBrush { Source = art, Stretch = Stretch.UniformToFill };
         heroScrim.IsVisible = heroArt; title.Foreground = heroArt ? Brushes.White : Palette.Fg; sub.Foreground = heroArt ? GameArt.OnImageMuted : Palette.Muted;
-        chkPlan.IsChecked = p.HighPerfPlan; chkGpu.IsChecked = p.GpuHigh && multiGpu; chkGameMode.IsChecked = p.GameMode; chkMango.IsChecked = p.MangoHud; chkGuard.IsChecked = p.FullscreenGuard; chkGuard.IsVisible = multiGpu && gpuVendor == "NVIDIA";
+        chkPlan.IsChecked = p.HighPerfPlan; chkGpu.IsChecked = p.GpuHigh && multiGpu; chkGameMode.IsChecked = p.GameMode; chkMango.IsChecked = p.MangoHud; UpdateFlatpakMango(g); chkGuard.IsChecked = p.FullscreenGuard; chkGuard.IsVisible = multiGpu && gpuVendor == "NVIDIA";
         modeChips!.Select(p.WinMode); resChips!.Select(p.Res); hzChips!.Select(p.Hz); styleChips!.Select(p.Style); gfxPresetChips!.Select(p.GfxPreset ?? ""); gfxUpChips!.Select(p.GfxUpscaling ?? ""); extra.Text = p.Extra; exePath.Text = p.ExePath ?? g.ExePath ?? "";
         protonBox.IsVisible = g.IsWindowsManual; protonId.Text = p.ProtonGameId ?? ""; protonIdStatus.Text = "";
         removeGame.IsVisible = renameGame.IsVisible = g.Store == "Manual";
@@ -565,6 +576,11 @@ public sealed class LauncherPage : Grid
     private Bitmap? ArtFor(LibGame g, bool hero)
     {
         if (g.IsSteam) return GameArt.Steam(steamRoot, g.Id, hero);
+        if (g.Store == "Linux")
+        {
+            if (nativeArt.Cached(g.Id) is { } shot) return GameArt.FromFile(shot, hero);
+            FetchNativeArtLater(g); return null;
+        }
         if (!g.IsWindowsManual || !settings.GameProfiles.TryGetValue(SettingsKey(g), out var gp) || gp.ProtonGameId is not { Length: > 0 } id) return null;
         return GameArt.Steam(steamRoot, id, hero) ?? GameArt.FromFile(ArtCache.CachedArt(id), hero);
     }
@@ -586,6 +602,63 @@ public sealed class LauncherPage : Grid
             if (file is null) return;
             Avalonia.Threading.Dispatcher.UIThread.Post(() => { Filter(); if (current?.Key == g.Key) Select(current); });
         });
+    }
+
+    /// <summary>Once per game and session: the AppStream screenshot of a Linux game (catalog read and download off the UI thread), then repaints.</summary>
+    private void FetchNativeArtLater(LibGame g)
+    {
+        if (!artTried.Add(g.Key)) return;
+        _ = Task.Run(async () =>
+        {
+            string? file = null;
+            try { file = await nativeArt.ScreenshotAsync(g.Id, g.Kind == "Linux · Flatpak", lifetime); }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException or TaskCanceledException) { }
+            if (file is null) return;
+            Avalonia.Threading.Dispatcher.UIThread.Post(() => { Filter(); if (current?.Key == g.Key) Select(current); });
+        });
+    }
+
+    /// <summary>
+    /// A Flatpak game needs MangoHud's Flatpak extension for its runtime (the host mangohud does not reach the sandbox): the option is enabled
+    /// only with it; otherwise the card says so and offers the user-scope install (no password).
+    /// </summary>
+    private void UpdateFlatpakMango(LibGame g)
+    {
+        mangoFlatpakBox.IsVisible = false; mangoFlatpakBranch = null;
+        string? app = g.ExePath is { } exe && Path.GetFileName(exe) == "flatpak" ? GameProcesses.FlatpakApp(g) : null;
+        if (app is null) { chkMango.IsEnabled = hostMango; ToolTip.SetTip(chkMango, hostMango ? null : "mangohud não está instalado."); return; }
+        string? branch = flatpaks.Metadata(app).RuntimeBranch;
+        bool ok = branch is not null && flatpaks.HasMangoHud(branch);
+        chkMango.IsEnabled = ok;
+        ToolTip.SetTip(chkMango, ok ? $"Jogo Flatpak: usa a extensão MangoHud para Flatpak (runtime {branch})." : "Jogo Flatpak: o MangoHud do sistema não entra no Flatpak; precisa da extensão MangoHud para Flatpak.");
+        if (ok) return;
+        mangoFlatpakBox.IsVisible = true; mangoFlatpakProgress.IsVisible = false; mangoFlatpakStatus.Foreground = Palette.Warn;
+        mangoFlatpakBranch = branch;
+        mangoFlatpakInstall.IsVisible = branch is not null;
+        mangoFlatpakStatus.Text = branch is null ? "Não consegui ler o runtime deste Flatpak; o MangoHud fica desligado para ele." : $"MangoHud para Flatpak não instalado (runtime {branch}).";
+        ToolTip.SetTip(mangoFlatpakStatus, "Jogos Flatpak rodam isolados do sistema. O overlay e o FPS medido precisam da extensão oficial " + FlatpakLaunch.MangoHudExtension + " na versão do runtime do jogo.");
+    }
+
+    private async Task InstallFlatpakMangoAsync()
+    {
+        if (mangoFlatpakBranch is not { } branch || current is not { } game) return;
+        if (owner() is { } window && !await ConfirmDialog.AskAsync(window, "MangoHud para Flatpak", $"Instalar a extensão {FlatpakLaunch.MangoHudExtension} ({branch}) do Flathub?\n\nSó para o seu usuário, sem senha. Precisa de internet.", "Instalar", "Cancelar")) return;
+        mangoFlatpakInstall.IsEnabled = false; mangoFlatpakProgress.IsVisible = true;
+        mangoFlatpakStatus.Foreground = Palette.Muted; mangoFlatpakStatus.Text = "Baixando a extensão do Flathub…";
+        (int Code, string Output) r;
+        try { r = await BoundedProcess.RunAsync("flatpak", FlatpakApps.InstallMangoHud(branch), TimeSpan.FromMinutes(10), 64 * 1024, lifetime); }
+        catch (Exception e) when (e is IOException or FileNotFoundException or TimeoutException or System.ComponentModel.Win32Exception) { r = (-1, e.Message); }
+        catch (OperationCanceledException) { return; }
+        mangoFlatpakInstall.IsEnabled = true; mangoFlatpakProgress.IsVisible = false;
+        if (r.Code == 0 && flatpaks.HasMangoHud(branch))
+        {
+            if (current == game) UpdateFlatpakMango(game);
+            status.Text = "MangoHud para Flatpak instalado. Marque MangoHud para usar o overlay neste jogo.";
+            return;
+        }
+        string last = r.Output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).LastOrDefault() ?? "";
+        mangoFlatpakStatus.Foreground = Palette.Warn;
+        mangoFlatpakStatus.Text = "Não consegui instalar" + (last.Length > 0 ? ": " + (last.Length > 160 ? last[..160] + "…" : last) : ".");
     }
 
     /// <summary>Fills the Steam ID of the selected Windows game from its name (automatic: only when empty, quietly when nothing is found).</summary>
@@ -769,11 +842,17 @@ internal static class GameArt
     }
 
     /// <summary>Cover surface: the artwork cropped to fill, or the brand gradient with the game's initials and the games icon.</summary>
-    public static Border Cover(Bitmap? art, string name, double height)
+    /// <param name="appIcon">Shown centered when there is no artwork (Linux games without a screenshot), instead of the initials.</param>
+    public static Border Cover(Bitmap? art, string name, double height, Bitmap? appIcon = null)
     {
         var b = new Border { Height = height, CornerRadius = new CornerRadius(IlmenyxTheme.ControlRadius + 2), ClipToBounds = true };
         if (art is not null) { b.Background = new ImageBrush { Source = art, Stretch = Stretch.UniformToFill }; return b; }
         b.Background = UiKit.HeroBrush();
+        if (appIcon is not null)
+        {
+            b.Child = new Image { Source = appIcon, Height = Math.Max(16, height * 0.62), Stretch = Stretch.Uniform, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+            return b;
+        }
         var icon = UiKit.Icon(Icons.Games, Math.Max(18, height * 0.42), Palette.Fg);
         icon.Opacity = 0.10; icon.HorizontalAlignment = HorizontalAlignment.Right; icon.VerticalAlignment = VerticalAlignment.Bottom; icon.Margin = new Thickness(0, 0, 10, 6);
         b.Child = new Grid

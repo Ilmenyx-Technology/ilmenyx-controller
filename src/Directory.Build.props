@@ -1,9 +1,9 @@
 <!-- SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 -->
-<!-- SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology) -->
+<!-- SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology) -->
 <Project>
   <PropertyGroup>
-    <Product>Ilmenyx</Product>
-    <Company>Bismuth Technology</Company>
+    <Product>Ilmenyx Controller</Product>
+    <Company>Ilmenyx Technology</Company>
     <Description>Independent, unofficial Linux adaptation of RESET EXPLODE by Gustavo (GustavoReset). Hardware diagnostics, monitoring and experimental benchmarking.</Description>
     <PackageLicenseFile>LICENSING.md</PackageLicenseFile>
     <IsPackable>false</IsPackable>

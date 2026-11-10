@@ -1,14 +1,14 @@
 # Ilmenyx — tudo o que está pendente (atualizado em 2026-11-07)
 
-Lista para continuar em qualquer máquina. Repositório: https://github.com/Bismuth-Technology/ilmenyx (privado).
+Lista para continuar em qualquer máquina. Repositório: https://github.com/Ilmenyx-Technology/ilmenyx (privado).
 Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes que faltam por área: `Sem_teste.md` e `docs/CONFIABILIDADE.md`.
 
 ## 0. Como retomar numa máquina nova
 - **No seu PC pessoal (clone em `/mnt/HDD/Github/Ilmenyx`)**: o repositório mudou de dono. Aponte o clone para o endereço novo e
-  traga tudo: `git remote set-url origin https://github.com/Bismuth-Technology/ilmenyx.git && git fetch --all && git checkout main && git pull`.
+  traga tudo: `git remote set-url origin https://github.com/Ilmenyx-Technology/ilmenyx.git && git fetch --all && git checkout main && git pull`.
   (O GitHub Desktop também aceita: Repository → Repository settings → Remote.) A cópia `ilmenyx-repo.tar.gz` deste pendrive é de
   2026-11-07 (commit cce044b) e serve se estiver sem internet.
-1. `git clone https://github.com/Bismuth-Technology/ilmenyx.git` e `cd ilmenyx`.
+1. `git clone https://github.com/Ilmenyx-Technology/ilmenyx.git` e `cd ilmenyx`.
 2. SDK local (sem instalar nada no sistema): `bash scripts/get-local-sdk.sh` e `source scripts/env-local-sdk.sh`; depois `dotnet restore Ilmenyx.slnx`.
 3. Build e testes: `dotnet build Ilmenyx.slnx -c Release` e `dotnet test Ilmenyx.slnx -c Release --no-build`.
 4. **Assinatura GPG:** a subchave de assinatura só está no Dell de teste. Numa máquina nova, importe a chave principal do seu
@@ -59,10 +59,10 @@ Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes qu
 
 ## 4. Decisões e tarefas de governança (você)
 - [ ] **Busca de marca manual** em 3 bases que bloquearam robôs: WIPO Global Brand Database, TMview, EUIPO (termos ilmenyx, ilmen*,
-  bismuth; classes 9, 42, 41). Passo a passo: `docs/legal/BUSCA-MARCA-2026-11-07.md`, seção 4.
-- [ ] **Depositar a marca ILMENYX no INPI** (recomendado: pessoa física, classes 9 e 42, R$ 880 no total). "Bismuth Technology":
+  "ilmenyx controller", "ilmenyx technology"; classes 9, 42, 41). Passo a passo: `docs/legal/BUSCA-MARCA-2026-11-07.md`, seção 4.
+- [ ] **Depositar a marca ILMENYX no INPI** (recomendado: pessoa física, classes 9 e 42, R$ 880 no total). "Ilmenyx Technology":
   esperar a empresa ou escolher um nome mais distintivo.
-- [ ] **E-mail da Bismuth** com encaminhamento para o seu (grátis: Gmail próprio com encaminhamento; ou domínio + Cloudflare Email
+- [ ] **E-mail da Ilmenyx Technology** com encaminhamento para o seu (grátis: Gmail próprio com encaminhamento; ou domínio + Cloudflare Email
   Routing/ImprovMX). Depois trocar o contato em SECURITY.md e nas ofertas escritas das licenças GPL.
 - [ ] **Doações**: configurar GitHub Sponsors na organização e/ou Pix (decisão 10-A já está na licença).
 - [ ] Confirmar se as **21 páginas "layout segue o original"** copiaram algo do RESET EXPLODE (se não, viram só PolyForm). Opcional.
@@ -78,3 +78,49 @@ Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes qu
 - [ ] **Calibração de FPS**: clicar CALIBRAR AGORA nesta máquina (940MX com driver 580) e jogar LoL/CS2 com MangoHud e qualidade informada, para conferir a faixa.
 - [ ] **Ideias do LinuxToys** (só ideias; o código é GPL-3.0, incompatível): diagnóstico "por que o Proton/Flatpak não abre", cache de
   shader maior por usuário, mais apps de jogo no instalador, ZRAM pela via oficial da distro, opções por jogo (Proton Wayland, low-latency).
+
+## 2026-11-09 (noite): máquina pessoal do dono (HP 250 G8, Intel Iris Xe, CachyOS/Arch, KDE Plasma Wayland)
+
+- Renomeação: produto **Ilmenyx Controller**, organização **Ilmenyx Technology** (github.com/Ilmenyx-Technology/ilmenyx), app ID
+  `io.github.ilmenyx_technology.IlmenyxController`. Branch `chore/ilmenyx-controller` (sobre a feat/rodada3). Testes 1287; UiSmoke 68/68
+  no KDE Wayland real (primeira vez fora do compositor aninhado).
+- [x] **Legibilidade no app real, temas claro e escuro: VALIDADA pelo dono.**
+- [x] **Nome novo no app** (menu lateral, título da janela, Sobre, doctor): VALIDADO pelo dono. Ajuste pedido: título da página
+  estava colado na marca; menu lateral 214 -> 230 px e 20 px antes do título e do conteúdo. Dono aprovou; UiSmoke 68/68.
+- [x] **Tela de permissões na 1ª execução com senha real: VALIDADA** (22:49, consumo da CPU liberado; regra udev criada).
+- [x] **Desfazer depois**: antes só existia logo após liberar. Novo card "PERMISSÕES DADAS PELO ILMENYX" em Requisitos e sobre, com
+  DESFAZER; desfazer fecha todas as zonas RAPL. VALIDADO pelo dono: regra removida e leitura negada ao usuário. Testes 1288.
+- [x] **ZRAM já ligada pela distribuição** (CachyOS, zram-generator padrão): "ZRAM já está ativo", sem LIGAR/DESFAZER. VALIDADO pelo dono.
+- [x] **Jogos não Steam** (shortcuts.vdf binário): aparecem como "Steam (não Steam)" e abrem pela Steam; somem quando saem da Steam (testado com arquivo real).
+- [x] **Jogos nativos** (atalhos de menu com categoria Game: pacote, Flatpak): "Linux" / "Linux · Flatpak", abertos pelo Ilmenyx. Lojas,
+  ferramentas (Steam, Lutris, Bottles, ProtonPlus), emuladores e atalhos steam:// ficam de fora. Imagem: captura AppStream (Flathub/metainfo,
+  baixada uma vez para ~/.cache/ilmenyx/art-native) ou o ícone. VALIDADO pelo dono: Hytale (ícone) e SuperTuxKart (captura). "1 jogo" no singular.
+- [x] **Aviso de GPU por fabricante**: "AMD dedicada não testada" / "NVIDIA só numa 940MX" aparecem só se o PC tiver AMD/NVIDIA;
+  num PC só Intel, nenhum aviso. VALIDADO pelo dono.
+- [x] **Carga da GPU Intel** (i915/xe não têm gpu_busy_percent): tempo por motor dos programas do usuário (DRM fdinfo), sem senha;
+  varredura de /proc a cada 10 s. Não conta processos do sistema (compositor). VALIDADO pelo dono.
+- [x] **Jogo nativo + MangoHud + FPS medido** (SuperTuxKart via Flatpak): VALIDADO pelo dono, "Medido: 60 FPS médio (1% low 58)", salvo.
+  Flatpak: o mangohud do sistema não entra no sandbox; usa a extensão org.freedesktop.Platform.VulkanLayer.MangoHud//<runtime> (botão
+  INSTALAR MANGOHUD PARA FLATPAK, só usuário), o mangohud dela envolve o comando do app, e o jogo é achado por FLATPAK_ID no ambiente.
+  Config do MangoHud com log criada sozinha também para jogos fora da Steam. Ao fechar, o SuperTuxKart dá SIGSEGV com MangoHud (OpenGL);
+  o Ilmenyx não usa o código de saída. 60 FPS = vsync (teto da tela).
+- [x] **Sessão limitada por vsync/limite do jogo**: média até 3 % abaixo de um limite usual (30, 60, 75, 120, 144…) e no máximo 5 % das
+  amostras acima dele = "limitado a N FPS". Fica salva como medida, mas não ajusta a estimativa (é só um piso). Conferido com os 3 logs
+  reais do SuperTuxKart a 60 Hz. Falta: o dono ver a mensagem numa sessão nova.
+- [~] **Calibração neste PC** (Iris Xe, 09/11 22:54): página mostra "PC calibrado" com índices GPU 9,34 / CPU 40, driver e kernel. Sem jogo
+  do catálogo instalado aqui; comparação com Notebookcheck (1080p Alto): Valorant 58–144 vs 112 e Fortnite 10–24 vs 21,2 dentro; CS2 17–41
+  vs 14,8 um pouco abaixo (estimativa otimista). Faixas largas: reforça "reajustar índices de GPU" (17% -> 12%). Comparação com jogo
+  real medido fica para quando houver um jogo do catálogo instalado.
+- [x] **Instalar jogo de Windows no Arch** (OpenTTD 15.3 oficial, NSIS, SHA-256 conferido): Proton padrão instalou em C:\Jogos\openttd,
+  moveu para ~/Jogos/openttd, apagou o Windows temporário e ofereceu ADICIONAR (openttd.exe). VALIDADO pelo dono.
+  Corrigido no teste: (1) Cancelar deixava wineserver/serviços do Wine rodando num prefixo já apagado: agora todos os processos com aquele
+  WINEPREFIX são encerrados no cancelar e no fim; (2) a lista ADICIONAR ficava vazia porque o NSIS mantém a data original dos arquivos:
+  agora procura nas pastas movidas; (3) nome da pasta sem versão/plataforma ("openttd-15.3-windows-win64" -> "openttd").
+- [x] **Botão Cancelar do instalador** (modo Soda, com o instalador aberto): nenhum processo do Wine sobrou. VALIDADO.
+- [x] **Instalador grande (repack do Silksong) no Arch**, modo Soda: instalou do começo ao fim em ~5 min (sem CRC, sem travar em 0,9%),
+  C:\Jogos\Hollow Knight - Silksong -> ~/Jogos (7,6 GB), adicionado à biblioteca, nenhum processo do Wine sobrando. VALIDADO pelo dono.
+- [ ] **IDEIA FUTURA do dono (2026-11-09): base comunitária de FPS**. Usuários que aceitarem enviam diagnóstico e FPS médio dos jogos
+  para a Estimativa de FPS ficar mais real. Análise pronta (infraestrutura, LGPD, abuso, massa crítica): `docs/fps-estimativa-metodos.md`,
+  método (e). Antes de começar: decidir servidor e custo, termo de consentimento, PRIVACY.md e o formato da sessão a enviar.
+- [ ] Logotipo ainda mostra só "Ilmenyx" (decisão de identidade do dono). Chave GPG com UID antigo "Bismuth Technology": acrescentar UID novo.
+- [ ] Busca de marca para "Ilmenyx Controller" e "Ilmenyx Technology" (a de 2026-11-07 cobriu Ilmenyx e Bismuth Technology).

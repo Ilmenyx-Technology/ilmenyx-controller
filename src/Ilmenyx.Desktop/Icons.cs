@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 AND Apache-2.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // SPDX-FileCopyrightText: Pictogrammers (Material Design Icons path data, @mdi/js 7.4.47)
 // Icon path data from Material Design Icons (@mdi/js 7.4.47, Pictogrammers), Apache License 2.0. See THIRD-PARTY-NOTICES.md.
 // Generated: only the icons the interface uses. 24x24 viewbox.

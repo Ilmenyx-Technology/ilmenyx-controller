@@ -39,7 +39,7 @@ melhores** para "teto da GPU" e "teto da CPU" sem depender de um serviço fechad
 | b | Modelo físico pelas especificações (shaders × clock, banda, VRAM, arquitetura) | ±30–50 % entre arquiteturas; melhor dentro da mesma família | Médio | Baixo (especificações são fatos; fonte: fabricante, driver) | Ótima | Média: um fator por arquitetura nova |
 | c | Calibrar com o benchmark de GPU do próprio Ilmenyx (cena Vulkan) | ±25–40 % (uma cena sintética ≠ todos os jogos) | Médio | **Nenhum** (dados próprios) | Ótima | Baixa |
 | d | Fator pessoal a partir das sessões "Medido neste PC" | ±10–20 % em jogos parecidos, **depois** de 2–3 sessões | Baixo | Nenhum | Ótima (nada sai do PC) | Baixa |
-| e | Base comunitária opcional (servidor Bismuth, anônima, com consentimento) | Potencialmente ±10–15 % para combinações populares | **Alto** | Baixo (dados próprios, com termo) | **Exige LGPD** | Alta (servidor, moderação, abuso) |
+| e | Base comunitária opcional (servidor da Ilmenyx Technology, anônima, com consentimento) | Potencialmente ±10–15 % para combinações populares | **Alto** | Baixo (dados próprios, com termo) | **Exige LGPD** | Alta (servidor, moderação, abuso) |
 | f | Steam / ProtonDB | Não dá FPS | — | ProtonDB: ODbL | — | — |
 
 ## (a) Método atual, calibrado melhor
@@ -167,7 +167,7 @@ e, no texto, quantas sessões e de quais jogos.
 
 **Privacidade:** nada sai do PC. **Licença:** nenhum risco. **Manutenção:** quase nenhuma.
 
-## (e) Base comunitária opcional (servidor Bismuth)
+## (e) Base comunitária opcional (servidor da Ilmenyx Technology)
 
 **Ideia.** Usuários que aceitarem enviam, de forma anônima, o resumo das sessões: jogo, GPU, CPU, driver, distro, resolução,
 preset, FPS médio e 1 % low. Com volume, a estimativa vira "mediana de quem tem um PC parecido".

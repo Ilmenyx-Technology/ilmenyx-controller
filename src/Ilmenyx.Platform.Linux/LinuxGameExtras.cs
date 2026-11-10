@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // Linux side of the gaming extras (see Ilmenyx.Core.GameExtras): the user's environment.d file for the bigger shader cache, the size of the
 // shader cache folders, the Wayland session and the Proton build umu or Steam will use. Writes only the user's own file, after confirmation.
 using Ilmenyx.Core;

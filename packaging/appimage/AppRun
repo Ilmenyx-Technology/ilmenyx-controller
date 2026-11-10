@@ -1,6 +1,6 @@
 #!/bin/sh
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-# SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+# SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 # AppImage entry point. The image is mounted read-only at a path that changes on every run and disappears when the app
 # closes, so the bundled programs (MangoHud, OpenRGB) are copied once per version into the user's data folder: wrappers and
 # Steam launch options keep working after the app exits. Nothing outside the user's own data folder is touched; no root.

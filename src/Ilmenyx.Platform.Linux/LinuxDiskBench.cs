@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT AND PolyForm-Noncommercial-1.0.0
 // SPDX-FileCopyrightText: 2026 Gustavo (GustavoReset)
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // Adapted from RESET EXPLODE DiskBench.cs (MIT, Copyright (c) 2026 Gustavo (GustavoReset)); see NOTICE.md.
 using System.Diagnostics;
 using System.Runtime.InteropServices;

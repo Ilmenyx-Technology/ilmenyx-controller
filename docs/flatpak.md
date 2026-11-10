@@ -10,8 +10,8 @@ flatpak install --user flathub org.flatpak.Builder org.freedesktop.Platform//25.
 bash scripts/package-flatpak.sh /caminho/absoluto/destino-novo
 # Instalar e abrir (só este usuário):
 flatpak install --user Ilmenyx-0.30.0-x86_64.flatpak
-flatpak run io.github.bismuth_technology.Ilmenyx          # interface
-flatpak run --command=ilmenyx io.github.bismuth_technology.Ilmenyx info   # linha de comando
+flatpak run io.github.ilmenyx_technology.IlmenyxController          # interface
+flatpak run --command=ilmenyx io.github.ilmenyx_technology.IlmenyxController info   # linha de comando
 ```
 
 ## Por que o Flatpak precisa de uma ponte para o sistema
@@ -70,5 +70,5 @@ Instalado com `flatpak install --user --bundle` e aberto num servidor X virtual 
 - **Benchmarks de GPU (Vulkan)** no Flatpak: as ICDs Mesa e NVIDIA estão presentes no sandbox, mas nenhum benchmark foi rodado nele.
 - `/boot` não é visível: a lista de kernels instalados vem de `/lib/modules` e dos pacotes.
 - Wayland nativo dentro do Flatpak: não testado (só X11).
-- Configurações ficam em `~/.var/app/io.github.bismuth_technology.Ilmenyx/` — separadas das do app nativo/AppImage.
+- Configurações ficam em `~/.var/app/io.github.ilmenyx_technology.IlmenyxController/` — separadas das do app nativo/AppImage.
 - Outras distros e Flatpak de sistema (`--system`): não testados.

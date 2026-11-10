@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT AND PolyForm-Noncommercial-1.0.0
 // SPDX-FileCopyrightText: 2026 Gustavo (GustavoReset)
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // Card model adapted from the original GameRow (MIT, see NOTICE; it lived in HowManyFpsClient.cs until the HowManyFPS client was
 // removed on 2026-11-08). Ilmenyx additions (estimate range, confidence, sessions measured on this PC): see LICENSING.md.
 namespace Ilmenyx.Core;
@@ -65,7 +65,8 @@ public sealed class GameFpsRow(GameInfo game)
         string dur = s.DurationSeconds >= 3600 ? $"{Math.Floor(s.DurationSeconds / 3600):0} h {Math.Floor(s.DurationSeconds % 3600 / 60):00} min" : $"{Math.Max(1, Math.Round(s.DurationSeconds / 60)):0} min";
         Set(s.AvgFps, s.Low1Fps, SourceMeasured, $"última sessão {when} · {dur}");
         Measured = s;
-        Summary = $"Medido neste PC: {s.AvgFps.ToString("0", inv)} FPS" + (s.Low1Fps > 0 ? $" (1% low {s.Low1Fps.ToString("0", inv)})" : "") + $" · última sessão {when}, {dur}"
+        Summary = $"Medido neste PC: {s.AvgFps.ToString("0", inv)} FPS" + (s.Low1Fps > 0 ? $" (1% low {s.Low1Fps.ToString("0", inv)})" : "")
+            + (s.CappedAt is { } cap ? $" · limitado a {cap.ToString("0", inv)} FPS (vsync ou limite do jogo): o PC pode render mais, por isso não ajusta a estimativa" : "") + $" · última sessão {when}, {dur}"
             + (s.Gpu is { Length: > 0 } g ? $" · GPU {g}" : "") + (s.Resolution is { } r ? $" · {r}" : "") + ". Medido com MangoHud nas configurações que você usou no jogo.";
     }
 

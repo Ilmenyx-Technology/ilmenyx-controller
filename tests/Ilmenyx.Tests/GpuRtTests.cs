@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // Ray tracing benchmark (adapted from RESET EXPLODE GpuRtBench, MIT): math, limits, adapter choice and CLI parsing.
 // No test here creates a Vulkan device or renders, except the opt-in one guarded by ILMENYX_RUN_GPU_TESTS=1.
 using System.Text.Json;

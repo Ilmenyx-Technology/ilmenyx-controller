@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 using System.Globalization;
 using System.Net;
 using System.Text;
@@ -32,7 +32,7 @@ public static class SmartImportHtmlReport
             *{box-sizing:border-box}body{margin:0;font:15px system-ui,sans-serif;line-height:1.5}main{max-width:1000px;margin:auto;padding:24px}
             p,dd,li{overflow-wrap:anywhere}dl{display:grid;grid-template-columns:minmax(150px,1fr) 3fr;gap:8px}dd{margin:0}
             footer{white-space:pre-wrap}@media(max-width:600px){main{padding:12px}dl{display:block}dd{margin-bottom:8px}}
-            </style></head><body><main><h1>Ilmenyx</h1><p>by Bismuth Technology</p><h2>SMART importado — análise offline</h2>
+            </style></head><body><main><h1>Ilmenyx Controller</h1><p>by Ilmenyx Technology</p><h2>SMART importado — análise offline</h2>
             <p>Relatório histórico fornecido pelo usuário. Nenhuma nova consulta ao disco. Origem e data original não confirmadas; não é garantia de saúde atual.</p><dl>
             """);
         Field("Formato HTML", FormatVersion); Field("Schema de importação", report.SchemaVersion); Field("Tipo de relatório", report.ReportKind);

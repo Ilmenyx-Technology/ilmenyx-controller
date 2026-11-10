@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Bismuth Technology)
+// SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 using System.Globalization;
 using System.Net;
 using System.Text;
@@ -11,7 +11,21 @@ public static class ValidationNotices
 {
     // 2026-11-06: an AMD APU (Radeon 610M) was validated on real hardware; dedicated AMD/NVIDIA GPUs were not (maintainer decision to keep the notice).
     // 2026-11-07: NVIDIA validated on one real dedicated GPU (GeForce 940MX, driver 580, laptop); dedicated AMD still untested.
-    public const string AmdNvidia = "GPU AMD dedicada não testada · NVIDIA validada só numa GeForce 940MX";
+    // 2026-11-09: shown only for the vendors present; an Intel-only PC (the development machine) gets no notice.
+    public const string Amd = "GPU AMD dedicada não testada", Nvidia = "NVIDIA validada só numa GeForce 940MX";
+    public const string AmdNvidia = Amd + " · " + Nvidia;
+
+    /// <summary>Notice for the GPUs of this PC by PCI vendor ID ("0x1002" AMD, "0x10de" NVIDIA); null when neither is present.
+    /// With no vendor known the full notice stays, since nothing proves the GPU was validated.</summary>
+    public static string? For(IEnumerable<string?> vendorIds)
+    {
+        var ids = vendorIds.OfType<string>().Select(v => v.Trim().ToLowerInvariant()).ToList();
+        if (ids.Count == 0) return AmdNvidia;
+        var parts = new List<string>();
+        if (ids.Contains("0x1002")) parts.Add(Amd);
+        if (ids.Contains("0x10de")) parts.Add(Nvidia);
+        return parts.Count == 0 ? null : string.Join(" · ", parts);
+    }
 }
 
 /// <summary>Standalone, passive HTML. All data is encoded as text; no untrusted attributes or markup.</summary>
@@ -45,7 +59,7 @@ public static class HardwareHtmlReport
             li{margin:8px 0}dl{display:grid;grid-template-columns:minmax(140px,1fr) 3fr;gap:8px}dt{color:#c4c4cf}dd{margin:0;overflow-wrap:anywhere}
             @media(max-width:600px){main{padding:12px}section{padding:12px}dl{display:block}dd{margin-bottom:10px}}
             @media print{:root{color-scheme:light}body,section{background:white;color:black}.muted,th,dt{color:#333}.notice{background:#eee;color:black}main{padding:0}.table-wrap{overflow:visible}th,td{min-width:0;padding:5px}}
-            </style></head><body><main><header><h1>Ilmenyx</h1><p>by Bismuth Technology</p><p class="muted">Relatório de hardware · arquivo offline</p></header>
+            </style></head><body><main><header><h1>Ilmenyx Controller</h1><p>by Ilmenyx Technology</p><p class="muted">Relatório de hardware · arquivo offline</p></header>
             <p class="notice">Snapshot de diagnóstico. Dados não indicam saúde ou desempenho. Nenhum benchmark é executado para gerar este relatório.</p>
             """);
         html.Append("<section><h2>Proveniência</h2><dl>");
@@ -67,7 +81,8 @@ public static class HardwareHtmlReport
             }
         else AddReading("Dispositivos de bloco", Reading<string>.Missing("devices", snapshot.Disks.Source, snapshot.Disks.Reason ?? "Nenhum dispositivo informado."));
         EndTable();
-        html.Append("<section><h2>GPU · DRM/PCI</h2><p class=\"notice\">").Append(E(ValidationNotices.AmdNvidia)).Append("</p>");
+        html.Append("<section><h2>GPU · DRM/PCI</h2>");
+        if (ValidationNotices.For(snapshot.Gpus?.Devices.Select(g => g.VendorId.Value) ?? []) is { } gpuNotice) html.Append("<p class=\"notice\">").Append(E(gpuNotice)).Append("</p>");
         if (snapshot.Gpus is { } gpus)
         {
             MetadataParagraph("Estado do inventário", gpus.Status); MetadataParagraph("Coleta UTC", gpus.CollectedAt.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture));
@@ -103,7 +118,7 @@ public static class HardwareHtmlReport
         html.Append("<section><h2>Capacidades</h2><div class=\"table-wrap\"><table><thead><tr><th>Recurso</th><th>Estado</th><th>Motivo</th></tr></thead><tbody>");
         foreach (var capability in snapshot.Capabilities) Row(capability.Name, capability.Status, capability.Reason);
         EndTable(); Limitations("Limitações do snapshot", snapshot.Limitations);
-        html.Append("<footer><p>Ilmenyx é uma adaptação independente e não oficial de RESET EXPLODE, de Gustavo (GustavoReset), MIT. by Bismuth Technology. Sem afiliação, patrocínio ou endosso da equipe RESET.</p><p>Revise antes de compartilhar: fontes, rótulos livres e configuração podem identificar a máquina. Não é anonimização garantida.</p><p>SMART não é consultado na exportação: diagnóstico separado na CLI por opt-in. Scores Linux/Windows não têm comparabilidade validada.</p></footer></main></body></html>\n");
+        html.Append("<footer><p>Ilmenyx é uma adaptação independente e não oficial de RESET EXPLODE, de Gustavo (GustavoReset), MIT. by Ilmenyx Technology. Sem afiliação, patrocínio ou endosso da equipe RESET.</p><p>Revise antes de compartilhar: fontes, rótulos livres e configuração podem identificar a máquina. Não é anonimização garantida.</p><p>SMART não é consultado na exportação: diagnóstico separado na CLI por opt-in. Scores Linux/Windows não têm comparabilidade validada.</p></footer></main></body></html>\n");
         return html.ToString();
 
         void Metadata(string key, string value) => html.Append("<dt>").Append(E(key)).Append("</dt><dd>").Append(E(value)).Append("</dd>");
