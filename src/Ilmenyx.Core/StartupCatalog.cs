@@ -197,6 +197,12 @@ public static class StartupCatalog
         new(["zeitgeist-datahub", "zeitgeist*"], StartupRole.Optional, "Sistema", "Registra a sua atividade recente para sugestões e arquivos recentes.", "a lista de atividades recentes"),
         new(["spice-vdagent", "vmware-user*", "vboxclient*", "open-vm-tools*"], StartupRole.Optional, "Máquina virtual", Vm, "máquina virtual"),
 
+        // Update notifiers of the Arch family and Fedora (CachyOS: cachy-update ships /etc/xdg/autostart/arch-update-tray.desktop, seen 2026-11-10)
+        new(["arch-update-tray", "arch-update"], StartupRole.Recommended, "Atualizações", Updates + " Ícone na bandeja do Arch-Update (no CachyOS, Cachy-Update)."),
+        new(["pamac-tray", "pamac-tray-plasma"], StartupRole.Recommended, "Manjaro", Updates),
+        new(["octopi-notifier"], StartupRole.Recommended, "Atualizações", Updates),
+        new(["dnfdragora-updater"], StartupRole.Recommended, "Fedora", Updates),
+
         // Distribution tools (Linux Mint)
         new(["mintupdate", "mintupdate-launcher"], StartupRole.Recommended, Mint, Updates),
         new(["mintreport", "mintreport-tray"], StartupRole.Optional, Mint, "Relatórios do sistema: avisa sobre falhas de programas e pacotes de idioma faltando.", "os avisos de relatório do sistema"),

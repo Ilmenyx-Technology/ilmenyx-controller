@@ -30,6 +30,8 @@ public sealed class StartupCatalogTests : IDisposable
     [InlineData("print-applet.desktop", "system-config-printer-applet", StartupRole.Optional, "Impressão")]
     [InlineData("im-launch.desktop", "sh -c 'if [ \"x$XDG_SESSION_TYPE\" = \"xwayland\" ] ; then exec env IM_CONFIG_CHECK_ENV=1 im-launch true; fi'", StartupRole.Optional, "Método de entrada")]
     [InlineData("mintupdate.desktop", "mintupdate-launcher", StartupRole.Recommended, "Linux Mint")]
+    [InlineData("arch-update-tray.desktop", "/bin/sh -c \"sleep 3 && arch-update --tray\"", StartupRole.Recommended, "Atualizações")] // CachyOS (cachy-update 4.4.4)
+    [InlineData("pamac-tray.desktop", "pamac-tray", StartupRole.Recommended, "Manjaro")]
     [InlineData("warpinator-autostart.desktop", "warpinator --autostart", StartupRole.Optional, "Linux Mint")]
     [InlineData("at-spi-dbus-bus.desktop", "/usr/libexec/at-spi-bus-launcher --launch-immediately", StartupRole.Required, "Acessibilidade")]
     [InlineData("xapp-sn-watcher.desktop", "/usr/libexec/xapps/xapp-sn-watcher", StartupRole.Required, "Bandeja")]
