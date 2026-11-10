@@ -33,7 +33,8 @@ public sealed partial class LinuxDiskHealthReader(string sysRoot = "/sys")
             string resolved = new DirectoryInfo(dir).ResolveLinkTarget(true)?.FullName ?? "";
             var bus = LinuxParsers.DiskBus(name, resolved);
             string rot = One(Path.Combine(dir, "queue/rotational"));
-            string media = rot == "0" && bus.Value is not ("VirtIO" or "Virtual/software") ? "SSD" : rot == "1" && bus.Value is not ("VirtIO" or "Virtual/software") ? "HDD" : "";
+            bool knownMedia = bus.Value is not ("VirtIO" or "Virtual/software" or "USB"); // USB bridges often report pen drives as rotational
+            string media = rot == "0" && knownMedia ? "SSD" : rot == "1" && knownMedia ? "HDD" : "";
             string model = One(Path.Combine(dir, "device/model"));
             string fw = One(Path.Combine(dir, "device/firmware_rev")); if (fw.Length == 0) fw = One(Path.Combine(dir, "device/rev"));
             long size = long.TryParse(One(Path.Combine(dir, "size")), NumberStyles.None, CultureInfo.InvariantCulture, out long sectors) && sectors <= long.MaxValue / 512 ? sectors * 512 : 0;
