@@ -119,6 +119,10 @@ Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes qu
 - [x] **Botão Cancelar do instalador** (modo Soda, com o instalador aberto): nenhum processo do Wine sobrou. VALIDADO.
 - [x] **Instalador grande (repack do Silksong) no Arch**, modo Soda: instalou do começo ao fim em ~5 min (sem CRC, sem travar em 0,9%),
   C:\Jogos\Hollow Knight - Silksong -> ~/Jogos (7,6 GB), adicionado à biblioteca, nenhum processo do Wine sobrando. VALIDADO pelo dono.
+- [x] **Wine próprio para o modo Soda** (branch feat/wine-proprio): sem Wine próprio nem do Bottles, o Ilmenyx oferece baixar o Soda 11.0-10
+  (o mesmo build que instalou o repack nas duas máquinas, LGPL) do GitHub do Bottles, 174 MB, SHA-256 fixado e conferido com o arquivo real,
+  para ~/.local/share/ilmenyx/runners/wine-soda-11.0-10 (preferido ao do Bottles). VALIDADO pelo dono pela tela, com o Soda do Bottles
+  escondido: pergunta, download com progresso, OpenTTD instalado com o Wine do Ilmenyx, nenhum processo sobrando.
 - [ ] **IDEIA FUTURA do dono (2026-11-09): base comunitária de FPS**. Usuários que aceitarem enviam diagnóstico e FPS médio dos jogos
   para a Estimativa de FPS ficar mais real. Análise pronta (infraestrutura, LGPD, abuso, massa crítica): `docs/fps-estimativa-metodos.md`,
   método (e). Antes de começar: decidir servidor e custo, termo de consentimento, PRIVACY.md e o formato da sessão a enviar.

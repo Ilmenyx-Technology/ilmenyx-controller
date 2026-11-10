@@ -131,6 +131,14 @@ Inventário, hashes e avisos coletados não equivalem a liberação jurídica de
 - **Steam Deck** — status de compatibilidade da loja Steam (Valve), consultado sob demanda. Steam e Steam Deck são marcas da Valve.
 - **SteamDB** — não usado como fonte de dados (o FAQ do site proíbe scraping); apenas link.
 
+## Wine e Proton para instaladores (não acompanham o pacote; baixados a pedido do usuário)
+
+- **Soda 11.0-10** (projeto Bottles, github.com/bottlesdevs/wine, um build do Wine): LGPL-2.1-or-later. Baixado do lançamento oficial
+  só quando o usuário escolhe o modo "Wine comum (Soda)" e confirma; conferido pelo SHA-256 fixado no código e guardado em
+  `~/.local/share/ilmenyx/runners/wine-soda-11.0-10`. O Ilmenyx não redistribui o Wine; os fontes estão no repositório do projeto.
+- **GE-Proton9-27** (github.com/GloriousEggroll/proton-ge-custom): licenças do Proton e dos seus componentes (BSD-3-Clause, LGPL e
+  outras). Baixado do mesmo jeito para o modo "Proton clássico", conferido pelo SHA-512 fixado.
+
 ## Ícones da interface
 
 - **Material Design Icons** (Pictogrammers, pacote `@mdi/js` 7.4.47): traçados SVG de cerca de 40 ícones copiados para

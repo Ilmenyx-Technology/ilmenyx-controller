@@ -48,31 +48,7 @@ public static class ClassicProton
     public static async Task EnsureAsync(HttpClient http, IProgress<double>? progress, CancellationToken ct, string? root = null)
     {
         if (IsInstalled(root)) return;
-        string dir = root ?? Root(); Directory.CreateDirectory(dir);
-        string archive = Path.Combine(dir, Version + ".tar.gz.part");
-        try
-        {
-            using (var response = await http.GetAsync(Url, HttpCompletionOption.ResponseHeadersRead, ct))
-            {
-                response.EnsureSuccessStatusCode();
-                if (response.Content.Headers.ContentLength is long len && len != Size) throw new IOException($"Tamanho inesperado do {Version}: {len} bytes.");
-                await using var source = await response.Content.ReadAsStreamAsync(ct);
-                await using var target = File.Create(archive);
-                using var sha = IncrementalHash.CreateHash(HashAlgorithmName.SHA512);
-                var buffer = new byte[1 << 20]; long total = 0; int read;
-                while ((read = await source.ReadAsync(buffer, ct)) > 0)
-                {
-                    await target.WriteAsync(buffer.AsMemory(0, read), ct); sha.AppendData(buffer, 0, read); total += read;
-                    if (total > Size) throw new IOException($"O {Version} ficou maior que o esperado.");
-                    progress?.Report(0.9 * total / Size);
-                }
-                if (total != Size || !Convert.ToHexString(sha.GetHashAndReset()).Equals(Sha512, StringComparison.OrdinalIgnoreCase))
-                    throw new IOException($"O arquivo baixado do {Version} não confere com a soma oficial (SHA-512); foi descartado.");
-            }
-            var (code, output) = await BoundedProcess.RunAsync("tar", ["-xzf", archive, "-C", dir, "--no-same-owner"], TimeSpan.FromMinutes(10), 4096, ct);
-            if (code != 0 || !IsInstalled(root)) throw new IOException("Não consegui extrair o " + Version + ": " + output.Trim());
-            progress?.Report(1);
-        }
-        finally { try { File.Delete(archive); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { } }
+        await RunnerDownload.FetchAsync(http, Url, Size, HashAlgorithmName.SHA512, Sha512, Folder(root), Version, progress, ct);
+        if (!IsInstalled(root)) throw new IOException("Não consegui extrair o " + Version + ".");
     }
 }
