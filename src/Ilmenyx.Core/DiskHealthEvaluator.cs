@@ -20,40 +20,40 @@ public static class DiskHealthEvaluator
         bool anyData = r.ReportedPassed != null || r.Wear != null || r.Temp != null || r.PowerOnHours != null;
         string N0(double v) => v.ToString("0", CultureInfo.InvariantCulture);
 
-        if (r.ReportedPassed == false) crit.Add("O próprio disco avisa (S.M.A.R.T.) que deve falhar em breve. Faça backup agora.");
+        if (r.ReportedPassed == false) crit.Add(L.T("O próprio disco avisa (S.M.A.R.T.) que deve falhar em breve. Faça backup agora."));
         if (r.Wear is double w)
         {
-            if (w >= 95) crit.Add($"Desgaste de {N0(w)}%: o SSD está no fim da vida útil. Troque e faça backup.");
-            else if (w >= 80) warn.Add($"Desgaste de {N0(w)}%: o SSD já gastou boa parte da vida útil. Planeje a troca.");
+            if (w >= 95) crit.Add(L.T($"Desgaste de {N0(w)}%: o SSD está no fim da vida útil. Troque e faça backup."));
+            else if (w >= 80) warn.Add(L.T($"Desgaste de {N0(w)}%: o SSD já gastou boa parte da vida útil. Planeje a troca."));
         }
         if (r.Temp is double t)
         {
             double okMax = isSsd ? 70 : 55, critMax = isSsd ? 85 : 65;
-            if (t >= critMax) crit.Add($"Temperatura de {N0(t)} °C é muito alta para este disco.");
-            else if (t >= okMax) warn.Add($"Temperatura de {N0(t)} °C está alta. Melhore a ventilação.");
+            if (t >= critMax) crit.Add(L.T($"Temperatura de {N0(t)} °C é muito alta para este disco."));
+            else if (t >= okMax) warn.Add(L.T($"Temperatura de {N0(t)} °C está alta. Melhore a ventilação."));
         }
-        if (r.UncorrectedErrors > 0) warn.Add($"Erros não corrigidos/de mídia: {r.UncorrectedErrors:N0}.".Replace(",", "."));
+        if (r.UncorrectedErrors > 0) warn.Add(L.T($"Erros não corrigidos/de mídia: {r.UncorrectedErrors:N0}.").Replace(",", "."));
 
         var v = crit.Count > 0 ? HealthVerdict.Critical : warn.Count > 0 ? HealthVerdict.Warning : anyData ? HealthVerdict.Good : HealthVerdict.Unknown;
         var reasons = crit.Concat(warn).ToList();
         if (reasons.Count == 0)
-            reasons.Add(v == HealthVerdict.Good ? "Nenhum problema encontrado nas leituras disponíveis."
-                : "Este disco não informa dados de saúde sem SMART (comum em pendrives e alguns HDs externos). Use \"Consultar SMART\" com permissão ou importe o JSON do smartctl.");
+            reasons.Add(v == HealthVerdict.Good ? L.T("Nenhum problema encontrado nas leituras disponíveis.")
+                : L.T("Este disco não informa dados de saúde sem SMART (comum em pendrives e alguns HDs externos). Use \"Consultar SMART\" com permissão ou importe o JSON do smartctl."));
 
         string kind = r.Media.Length > 0 ? r.Media : isSsd ? "SSD" : "";
-        var meta = new[] { kind, r.Bus, FmtSize(r.SizeBytes), r.Mounts.Length > 0 ? "Montado em: " + r.Mounts : "" }.Where(x => !string.IsNullOrEmpty(x));
+        var meta = new[] { kind, r.Bus, FmtSize(r.SizeBytes), r.Mounts.Length > 0 ? L.T("Montado em: ") + r.Mounts : "" }.Where(x => !string.IsNullOrEmpty(x));
 
         var metrics = new List<KeyValuePair<string, string>>();
         void M(string key, string? value) { if (value != null) metrics.Add(new(key, value)); }
-        M("Temperatura", r.Temp is double tt ? N0(tt) + " °C" : null);
-        if (r.Wear is double wr) { M("Desgaste", N0(wr) + "%"); M("Vida útil restante", N0(Math.Max(0, 100 - wr)) + "%"); }
-        M("Horas ligado", r.PowerOnHours is long h ? $"{h:N0} h ({h / 24.0:N0} dias)".Replace(",", ".") : null);
-        M("Ciclos liga/desliga", r.StartStop is long ss ? ss.ToString("N0", CultureInfo.InvariantCulture).Replace(",", ".") : null);
-        M("Erros não corrigidos/de mídia", r.UncorrectedErrors is long ue ? ue.ToString("N0", CultureInfo.InvariantCulture).Replace(",", ".") : null);
-        M("Setores realocados", r.ReallocatedSectors is long rs ? rs.ToString("N0", CultureInfo.InvariantCulture).Replace(",", ".") : null);
-        M("Total gravado", r.WrittenBytes is double wg && wg > 0 ? FmtSize((long)wg) : null);
-        M("Total lido", r.ReadBytes is double rg && rg > 0 ? FmtSize((long)rg) : null);
-        M("Falha prevista (S.M.A.R.T.)", r.ReportedPassed is bool ok ? (ok ? "Não" : "SIM") : null);
+        M(L.T("Temperatura"), r.Temp is double tt ? N0(tt) + " °C" : null);
+        if (r.Wear is double wr) { M(L.T("Desgaste"), N0(wr) + "%"); M(L.T("Vida útil restante"), N0(Math.Max(0, 100 - wr)) + "%"); }
+        M(L.T("Horas ligado"), r.PowerOnHours is long h ? L.T($"{h:N0} h ({h / 24.0:N0} dias)").Replace(",", ".") : null);
+        M(L.T("Ciclos liga/desliga"), r.StartStop is long ss ? ss.ToString("N0", CultureInfo.InvariantCulture).Replace(",", ".") : null);
+        M(L.T("Erros não corrigidos/de mídia"), r.UncorrectedErrors is long ue ? ue.ToString("N0", CultureInfo.InvariantCulture).Replace(",", ".") : null);
+        M(L.T("Setores realocados"), r.ReallocatedSectors is long rs ? rs.ToString("N0", CultureInfo.InvariantCulture).Replace(",", ".") : null);
+        M(L.T("Total gravado"), r.WrittenBytes is double wg && wg > 0 ? FmtSize((long)wg) : null);
+        M(L.T("Total lido"), r.ReadBytes is double rg && rg > 0 ? FmtSize((long)rg) : null);
+        M(L.T("Falha prevista (S.M.A.R.T.)"), r.ReportedPassed is bool ok ? (ok ? L.T("Não") : "SIM") : null);
         M("Firmware", r.Firmware.Length > 0 && r.Firmware != "—" ? r.Firmware : null);
 
         return new()

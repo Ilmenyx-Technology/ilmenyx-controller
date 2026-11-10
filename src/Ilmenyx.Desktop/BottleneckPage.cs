@@ -37,7 +37,7 @@ public sealed class BottleneckPage : StackPanel
     private readonly TextBlock liveAdvice = new() { Name = "BnLiveAdvice", TextWrapping = TextWrapping.Wrap, Foreground = Palette.Muted, FontSize = 13, MaxWidth = 620, HorizontalAlignment = HorizontalAlignment.Left, MaxLines = 3, TextTrimming = TextTrimming.CharacterEllipsis };
     private readonly TextBlock sessionStatus = new() { Name = "BnSessionStatus", Foreground = Palette.Muted, Margin = new Thickness(0, 14, 0, 0), TextWrapping = TextWrapping.Wrap };
     private readonly StackPanel result = new() { Name = "BnResult", IsVisible = false, Margin = new Thickness(0, 16, 0, 0) };
-    private readonly Button start = UiKit.Primary("BtnBnSession", "Iniciar análise", 18, 9);
+    private readonly Button start = UiKit.Primary("BtnBnSession", L.T("Iniciar análise"), 18, 9);
     public BottleneckSession? Session => session;
     public Limiter? LiveLimiter { get; private set; }
 
@@ -47,7 +47,7 @@ public sealed class BottleneckPage : StackPanel
     public BottleneckPage(UsageViewModel usage, CancellationToken lifetime, Func<FrameStats?>? frameSource = null)
     {
         this.frameSource = frameSource; this.usage = usage; this.lifetime = lifetime; Spacing = 4;
-        Children.Add(UiKit.PageHeader("Detector de gargalo", "Descobre o que está limitando o seu FPS: GPU, CPU, memória ou temperatura"));
+        Children.Add(UiKit.PageHeader(L.T("Detector de gargalo"), L.T("Descobre o que está limitando o seu FPS: GPU, CPU, memória ou temperatura")));
 
         // Hero: the live verdict dominates the page.
         var mark = UiKit.Icon(Icons.Bottleneck, 96, Palette.Fg); mark.Opacity = 0.12; mark.VerticalAlignment = VerticalAlignment.Center; mark.Margin = new Thickness(16, 0, 6, 0);
@@ -56,9 +56,9 @@ public sealed class BottleneckPage : StackPanel
             VerticalAlignment = VerticalAlignment.Center, Spacing = 6,
             Children =
             {
-                new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { new Border { Width = 8, Height = 8, CornerRadius = new CornerRadius(4), Background = Palette.Success, VerticalAlignment = VerticalAlignment.Center }, UiKit.Label("AGORA · AO VIVO") } },
+                new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { new Border { Width = 8, Height = 8, CornerRadius = new CornerRadius(4), Background = Palette.Success, VerticalAlignment = VerticalAlignment.Center }, UiKit.Label(L.T("AGORA · AO VIVO")) } },
                 liveTitle,
-                new TextBlock { Name = "BnLiveGame", Foreground = Palette.Muted, FontSize = 12.5, TextWrapping = TextWrapping.Wrap, Text = "Abra um jogo e deixe esta página aberta." },
+                new TextBlock { Name = "BnLiveGame", Foreground = Palette.Muted, FontSize = 12.5, TextWrapping = TextWrapping.Wrap, Text = L.T("Abra um jogo e deixe esta página aberta.") },
                 liveAdvice,
             },
         };
@@ -76,23 +76,23 @@ public sealed class BottleneckPage : StackPanel
         {
             Children =
             {
-                CardTitle(Icons.Cpu, "EQUILÍBRIO DO HARDWARE"), new Grid { ColumnDefinitions = new("*,*"), Children = { cpuName, gpuName } },
+                CardTitle(Icons.Cpu, L.T("EQUILÍBRIO DO HARDWARE")), new Grid { ColumnDefinitions = new("*,*"), Children = { cpuName, gpuName } },
                 scale, Legend(), balanceText,
                 basisNote
             }
         }, new Thickness(0));
 
         var grid = new UniformGrid { Columns = 3 };
-        foreach (var (key, label) in new[] { ("gpu", "GPU"), ("cpu", "CPU total"), ("core", "Núcleo mais carregado"), ("vram", "VRAM"), ("ram", "RAM"), ("gpuT", "Temp. GPU"), ("cpuT", "Temp. CPU"), ("fps", "FPS") })
+        foreach (var (key, label) in new[] { ("gpu", "GPU"), ("cpu", "CPU total"), ("core", L.T("Núcleo mais carregado")), ("vram", "VRAM"), ("ram", "RAM"), ("gpuT", L.T("Temp. GPU")), ("cpuT", L.T("Temp. CPU")), ("fps", "FPS") })
         { var m = new MeterView(label, "Bn_" + key) { Margin = new Thickness(0, 0, 20, 12) }; meters[key] = m; grid.Children.Add(m); }
         grid.SizeChanged += (_, e) => grid.Columns = e.NewSize.Width < 3 * 240 ? 2 : 3; // long labels ("Núcleo mais carregado") need ~240 px with their value
-        var live = UiKit.Card(new StackPanel { Children = { CardTitle(Icons.Sensors, "LEITURAS AO VIVO"), grid } }, new Thickness(0));
+        var live = UiKit.Card(new StackPanel { Children = { CardTitle(Icons.Sensors, L.T("LEITURAS AO VIVO")), grid } }, new Thickness(0));
         Children.Add(Pair(balance, live, 1, 1.5, 760));
 
         var durations = new UiKit.ChipGroup<int>("BnDurationPanel", [("1 min", 1), ("3 min", 3), ("5 min", 5)], 1, minutes => chosen = TimeSpan.FromMinutes(minutes));
         durations.Panel.VerticalAlignment = VerticalAlignment.Center;
         start.Click += (_, _) => { if (session is { Done: false }) Finish(); else StartSession(chosen); };
-        var intro = new StackPanel { Children = { CardTitle(Icons.Stress, "ANÁLISE DE SESSÃO"), new TextBlock { Text = "Clique em iniciar, abra o jogo e jogue normalmente. Ao final você recebe o diagnóstico. As amostras ficam só na memória.", Foreground = Palette.Muted, FontSize = 13, TextWrapping = TextWrapping.Wrap } } };
+        var intro = new StackPanel { Children = { CardTitle(Icons.Stress, L.T("ANÁLISE DE SESSÃO")), new TextBlock { Text = L.T("Clique em iniciar, abra o jogo e jogue normalmente. Ao final você recebe o diagnóstico. As amostras ficam só na memória."), Foreground = Palette.Muted, FontSize = 13, TextWrapping = TextWrapping.Wrap } } };
         var controls = new WrapPanel { HorizontalAlignment = HorizontalAlignment.Right, ItemSpacing = 14, LineSpacing = 8, Margin = new Thickness(0, 12, 0, 0), Children = { durations.Panel, start } };
         Children.Add(UiKit.Card(new StackPanel { Children = { intro, controls, sessionStatus } }));
         // The session diagnosis is the page's secondary highlight.
@@ -125,7 +125,7 @@ public sealed class BottleneckPage : StackPanel
         g.SizeChanged += (_, e) => Layout(e.NewSize.Width >= breakpoint);
         return g;
     }
-    private static Grid Legend() { var g = new Grid { Margin = new Thickness(0, 0, 0, 0) }; g.Children.Add(new TextBlock { Text = "limita a GPU", Foreground = Palette.Faint, FontSize = 11 }); g.Children.Add(new TextBlock { Text = "equilibrado", Foreground = Palette.Faint, FontSize = 11, HorizontalAlignment = HorizontalAlignment.Center }); g.Children.Add(new TextBlock { Text = "limita a CPU", Foreground = Palette.Faint, FontSize = 11, HorizontalAlignment = HorizontalAlignment.Right }); return g; }
+    private static Grid Legend() { var g = new Grid { Margin = new Thickness(0, 0, 0, 0) }; g.Children.Add(new TextBlock { Text = L.T("limita a GPU"), Foreground = Palette.Faint, FontSize = 11 }); g.Children.Add(new TextBlock { Text = "equilibrado", Foreground = Palette.Faint, FontSize = 11, HorizontalAlignment = HorizontalAlignment.Center }); g.Children.Add(new TextBlock { Text = L.T("limita a CPU"), Foreground = Palette.Faint, FontSize = 11, HorizontalAlignment = HorizontalAlignment.Right }); return g; }
 
     private double ratio = 1;
     /// <summary>Marker position as in the original: logarithmic scale of the GPU/CPU ratio (0.4x … 2.5x), centre = balanced.</summary>
@@ -143,7 +143,7 @@ public sealed class BottleneckPage : StackPanel
             var all = await Task.Run(() => collector.Collect(ids, smi), lifetime);
             gpu = all.Count > 0 ? all[0] : null;
             string cpu = usage.Last?.CpuModel ?? "CPU";
-            Grid.SetColumn(gpuName, 1); cpuName.Text = cpu; gpuName.Text = gpu?.Raw.Name ?? "sem GPU";
+            Grid.SetColumn(gpuName, 1); cpuName.Text = cpu; gpuName.Text = gpu?.Raw.Name ?? L.T("sem GPU");
             double? cpuKnown = GameCatalog.CpuPerf(GameCatalog.ShortCpuName(cpu)) ?? GameCatalog.CpuPerf(cpu), gpuKnown = gpu is { } g ? GameCatalog.GpuPerf(g.Raw.Name) : null;
             cpuIdx = cpuKnown ?? 80; gpuIdx = gpuKnown ?? 50;
             basisNote.Text = BasisNote(cpuKnown, gpuKnown);
@@ -154,9 +154,9 @@ public sealed class BottleneckPage : StackPanel
 
     /// <summary>Which indices the balance used: the table's (scale RTX 4070 = 100, Ryzen 7 7700X = 100) or the default for a part that is not in it.</summary>
     public static string BasisNote(double? cpu, double? gpu) =>
-        "Estimativa pelo desempenho relativo típico; o detector ao vivo mostra a realidade de cada jogo. " +
-        (cpu is not null && gpu is not null ? $"Índices da tabela: CPU {cpu:0.#}, GPU {gpu:0.#} (RTX 4070 = 100)."
-         : $"Fora da tabela, valor padrão: {(cpu is null ? "CPU 80" : "")}{(cpu is null && gpu is null ? " e " : "")}{(gpu is null ? "GPU 50" : "")}.");
+        L.T("Estimativa pelo desempenho relativo típico; o detector ao vivo mostra a realidade de cada jogo. ") +
+        (cpu is not null && gpu is not null ? L.T($"Índices da tabela: CPU {cpu:0.#}, GPU {gpu:0.#} (RTX 4070 = 100).")
+         : L.T($"Fora da tabela, valor padrão: {(cpu is null ? "CPU 80" : "")}{(cpu is null && gpu is null ? " e " : "")}{(gpu is null ? "GPU 50" : "")}."));
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
@@ -197,36 +197,36 @@ public sealed class BottleneckPage : StackPanel
         M("gpu", s.GpuLoad, " %", 100); M("cpu", s.CpuTotal, " %", 100);
         meters["core"].Set(s.CpuMaxCore is { } c ? $"{c.ToString("0", CultureInfo.InvariantCulture)} % ({s.BusiestCore})" : "—", (s.CpuMaxCore ?? 0) / 100);
         M("vram", s.VramPct, " %", 100); M("ram", s.RamPct, " %", 100); M("gpuT", s.GpuTemp, " °C", 100); M("cpuT", s.CpuTemp, " °C", 100);
-        meters["fps"].Set(s.Fps is { } fps ? fps.ToString("0", CultureInfo.InvariantCulture) : "indisponível", s.Fps is { } f2 ? Math.Min(1, f2 / 240) : 0); // FPS only from a MangoHud log written with the Ilmenyx config
+        meters["fps"].Set(s.Fps is { } fps ? fps.ToString("0", CultureInfo.InvariantCulture) : L.T("indisponível"), s.Fps is { } f2 ? Math.Min(1, f2 / 240) : 0); // FPS only from a MangoHud log written with the Ilmenyx config
         var limiter = s.Classify(); LiveLimiter = limiter;
         liveTitle.Text = BottleneckAnalyzer.Title(limiter); liveAdvice.Text = BottleneckAnalyzer.Advice(limiter);
         if (session is { } sess)
         {
-            sess.Add(s); sessionStatus.Text = $"Analisando… {(int)(sess.Progress * 100)} % · {sess.Count} amostra(s). Jogue normalmente.";
+            sess.Add(s); sessionStatus.Text = L.T($"Analisando… {(int)(sess.Progress * 100)} % · {sess.Count} amostra(s). Jogue normalmente.");
             if (sess.Done) Finish();
         }
     }
 
     public void StartSession(TimeSpan duration)
     {
-        session = new BottleneckSession(duration); result.IsVisible = false; start.Content = "Parar análise";
-        sessionStatus.Text = "Análise iniciada. Abra o jogo e jogue normalmente."; StartPolling();
+        session = new BottleneckSession(duration); result.IsVisible = false; start.Content = L.T("Parar análise");
+        sessionStatus.Text = L.T("Análise iniciada. Abra o jogo e jogue normalmente."); StartPolling();
     }
 
     private void Finish()
     {
         if (session is not { } s) return;
-        start.Content = "Iniciar análise";
-        if (s.Count == 0 || s.Main is not { } main) { sessionStatus.Text = "Nenhuma amostra coletada."; session = null; return; }
+        start.Content = L.T("Iniciar análise");
+        if (s.Count == 0 || s.Main is not { } main) { sessionStatus.Text = L.T("Nenhuma amostra coletada."); session = null; return; }
         result.Children.Clear();
-        var caption = UiKit.Label("DIAGNÓSTICO DA SESSÃO"); caption.Foreground = Palette.Muted; result.Children.Add(caption);
+        var caption = UiKit.Label(L.T("DIAGNÓSTICO DA SESSÃO")); caption.Foreground = Palette.Muted; result.Children.Add(caption);
         result.Children.Add(new TextBlock { Name = "BnResultTitle", Text = BottleneckAnalyzer.Title(main), FontSize = 22, FontWeight = FontWeight.Bold, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) });
         string F(double? v, string u) => v is { } x ? x.ToString("0", CultureInfo.InvariantCulture) + u : "—";
         result.Children.Add(new TextBlock { Name = "BnResultSummary", Foreground = Palette.Muted, Margin = new Thickness(0, 4, 0, 14), TextWrapping = TextWrapping.Wrap,
-            Text = $"{s.Count} amostra(s) · GPU média {F(s.Avg(x => x.GpuLoad), " %")} · CPU média {F(s.Avg(x => x.CpuTotal), " %")} (pico de núcleo {F(s.Max(x => x.CpuMaxCore), " %")}) · RAM média {F(s.Avg(x => x.RamPct), " %")} · FPS: não medido" });
+            Text = L.T($"{s.Count} amostra(s) · GPU média {F(s.Avg(x => x.GpuLoad), " %")} · CPU média {F(s.Avg(x => x.CpuTotal), " %")} (pico de núcleo {F(s.Max(x => x.CpuMaxCore), " %")}) · RAM média {F(s.Avg(x => x.RamPct), " %")} · FPS: não medido") });
         foreach (var (limiter, pct) in s.Distribution())
         { var m = new MeterView(BottleneckAnalyzer.Title(limiter), "BnDist_" + limiter); m.Set(pct.ToString("0", CultureInfo.InvariantCulture) + " %", pct / 100); result.Children.Add(m); }
         result.Children.Add(new TextBlock { Name = "BnResultAdvice", Text = BottleneckAnalyzer.Advice(main), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) });
-        result.IsVisible = true; sessionStatus.Text = $"Concluído às {DateTime.Now:HH:mm:ss}."; session = null;
+        result.IsVisible = true; sessionStatus.Text = L.T($"Concluído às {DateTime.Now:HH:mm:ss}."); session = null;
     }
 }

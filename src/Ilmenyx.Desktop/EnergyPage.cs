@@ -18,20 +18,20 @@ public sealed class EnergyPage : StackPanel
     private readonly SensorMonitorViewModel sensors;
     private readonly CancellationToken lifetime;
     private readonly StackPanel cards = new() { Name = "EnergyCards" };
-    private readonly TextBlock status = new() { Name = "EnergyStatus", Text = "Bateria, fonte de energia e consumo", Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(2, 0, 0, 10) };
+    private readonly TextBlock status = new() { Name = "EnergyStatus", Text = L.T("Bateria, fonte de energia e consumo"), Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(2, 0, 0, 10) };
     private bool busy;
     public IReadOnlyList<HealthCard> Cards { get; private set; } = [];
 
     public EnergyPage(SensorMonitorViewModel sensors, CancellationToken lifetime)
     {
         this.sensors = sensors; this.lifetime = lifetime;
-        var refresh = UiKit.Primary("BtnEnergyRefresh", "Atualizar");
+        var refresh = UiKit.Primary("BtnEnergyRefresh", L.T("Atualizar"));
         refresh.Click += async (_, _) => await RefreshAsync();
-        Children.Add(UiKit.PageHeader("Energia", "Bateria, fonte de energia e consumo", refresh));
+        Children.Add(UiKit.PageHeader(L.T("Energia"), L.T("Bateria, fonte de energia e consumo"), refresh));
         Children.Add(status); Children.Add(cards);
         Children.Add(new TextBlock
         {
-            Text = "Os dados vêm de /sys/class/power_supply e do power-profiles-daemon. Alguns notebooks não informam ciclos de carga ou a capacidade de projeto. O consumo mostrado vem dos sensores de potência do kernel (hwmon), não da fonte (PSU) do PC.",
+            Text = L.T("Os dados vêm de /sys/class/power_supply e do power-profiles-daemon. Alguns notebooks não informam ciclos de carga ou a capacidade de projeto. O consumo mostrado vem dos sensores de potência do kernel (hwmon), não da fonte (PSU) do PC."),
             Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(2, 4, 0, 8)
         });
         Loaded += async (_, _) => { if (Cards.Count == 0) await RefreshAsync(); };
@@ -40,7 +40,7 @@ public sealed class EnergyPage : StackPanel
     public async Task RefreshAsync()
     {
         if (busy) return;
-        busy = true; status.Text = "Lendo as fontes de energia…";
+        busy = true; status.Text = L.T("Lendo as fontes de energia…");
         try
         {
             var readout = await Task.Run(() => reader.Read(), lifetime);
@@ -50,9 +50,9 @@ public sealed class EnergyPage : StackPanel
             Cards = BatteryEvaluator.Evaluate(readout.Batteries, readout.MainsOnline, plan, power);
             cards.Children.Clear();
             cards.Children.Add(HealthCardView.Columns(Cards.Select(c => HealthCardView.Build(c)).ToList()));
-            status.Text = readout.Batteries.Count == 0 ? $"Nenhuma bateria · PC de mesa ou sem dados · lido às {DateTime.Now:HH:mm:ss}" : $"{readout.Batteries.Count} bateria(s) · lido às {DateTime.Now:HH:mm:ss}";
+            status.Text = readout.Batteries.Count == 0 ? L.T($"Nenhuma bateria · PC de mesa ou sem dados · lido às {DateTime.Now:HH:mm:ss}") : L.T($"{readout.Batteries.Count} bateria(s) · lido às {DateTime.Now:HH:mm:ss}");
         }
-        catch (OperationCanceledException) { status.Text = "Leitura cancelada."; }
+        catch (OperationCanceledException) { status.Text = L.T("Leitura cancelada."); }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { status.Text = "Falhou: " + e.Message; }
         finally { busy = false; }
     }

@@ -7,6 +7,7 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using Silk.NET.Vulkan;
 using Image = Silk.NET.Vulkan.Image;
+using Ilmenyx.Core;
 
 namespace Ilmenyx.Gpu.Vulkan;
 
@@ -18,13 +19,13 @@ public sealed record GpuBurnOptions(int AdapterIndex = 0, int Width = 1920, int 
     public TimeSpan EffectiveDuration => Duration ?? TimeSpan.FromSeconds(20);
 
     public static string? Validate(GpuBurnOptions o) =>
-        !o.AllowGpuLoad ? "O stress de GPU exige consentimento explícito (gera carga máxima na GPU)."
-        : o.AdapterIndex < 0 ? "Adaptador inválido."
-        : o.Width is < 320 or > 3840 || o.Height is < 240 or > 2160 ? "Resolução de 320×240 a 3840×2160."
-        : o.Msaa is not (1 or 2 or 4 or 8) ? "MSAA 1, 2, 4 ou 8."
-        : o.Shells is < 1 or > 256 ? "Camadas de 1 a 256."
-        : o.Iterations is < 0 or > 512 ? "Iterações de 0 a 512."
-        : o.EffectiveDuration <= TimeSpan.Zero || o.EffectiveDuration > TimeSpan.FromSeconds(MaxSeconds) ? $"Duração de 1 a {MaxSeconds} s."
+        !o.AllowGpuLoad ? L.T("O stress de GPU exige consentimento explícito (gera carga máxima na GPU).")
+        : o.AdapterIndex < 0 ? L.T("Adaptador inválido.")
+        : o.Width is < 320 or > 3840 || o.Height is < 240 or > 2160 ? L.T("Resolução de 320×240 a 3840×2160.")
+        : o.Msaa is not (1 or 2 or 4 or 8) ? L.T("MSAA 1, 2, 4 ou 8.")
+        : o.Shells is < 1 or > 256 ? L.T("Camadas de 1 a 256.")
+        : o.Iterations is < 0 or > 512 ? L.T("Iterações de 0 a 512.")
+        : o.EffectiveDuration <= TimeSpan.Zero || o.EffectiveDuration > TimeSpan.FromSeconds(MaxSeconds) ? L.T($"Duração de 1 a {MaxSeconds} s.")
         : null;
 }
 
@@ -61,7 +62,7 @@ public sealed unsafe class GpuBurn
             try { cx = new VulkanContext(o.AdapterIndex); }
             catch (VulkanException e) { return new(GpuRunStatus.Unavailable, "", 0, 0, null, e.Message); }
             catch (Exception e) when (e is DllNotFoundException or EntryPointNotFoundException or Silk.NET.Core.Loader.SymbolLoadingException)
-            { return new(GpuRunStatus.Unavailable, "", 0, 0, null, "A biblioteca Vulkan (libvulkan.so.1) não foi encontrada."); }
+            { return new(GpuRunStatus.Unavailable, "", 0, 0, null, L.T("A biblioteca Vulkan (libvulkan.so.1) não foi encontrada.")); }
             return Render(cx, o, ct, progress);
         }
         catch (VulkanException e) { return new(GpuRunStatus.Failed, cx?.AdapterName ?? "", Frames, 0, null, e.Message); }
@@ -94,18 +95,18 @@ public sealed unsafe class GpuBurn
             var clock = Stopwatch.StartNew(); double nextReport = 0; int slot = 0; long done = 0;
             while (clock.Elapsed < o.EffectiveDuration)
             {
-                if (ct.IsCancellationRequested) return Finish(cx, GpuRunStatus.Cancelled, done, clock, "Interrompido: nenhum valor é publicado.");
+                if (ct.IsCancellationRequested) return Finish(cx, GpuRunStatus.Cancelled, done, clock, L.T("Interrompido: nenhum valor é publicado."));
                 var fence = fences[slot];
                 var wait = vk.WaitForFences(dev, 1, in fence, true, FenceTimeoutNs);
-                if (wait == Result.Timeout) return Finish(cx, GpuRunStatus.Failed, done, clock, "A GPU não respondeu em 5 s (pode ter travado). O teste foi abortado.");
-                Check(wait, "Esperar a GPU");
+                if (wait == Result.Timeout) return Finish(cx, GpuRunStatus.Failed, done, clock, L.T("A GPU não respondeu em 5 s (pode ter travado). O teste foi abortado."));
+                Check(wait, L.T("Esperar a GPU"));
                 vk.ResetFences(dev, 1, in fence);
                 var cmd = buffers[slot];
                 Record(cx, cmd, o, color, depth, layout, pipeline, new Push { ViewProj = view * proj, Time = (float)clock.Elapsed.TotalSeconds, Shells = o.Shells, Iterations = o.Iterations, Aspect = o.Width / (float)o.Height });
                 var submit = new SubmitInfo { SType = StructureType.SubmitInfo, CommandBufferCount = 1, PCommandBuffers = &cmd };
                 var sr = vk.QueueSubmit(cx.Queue, 1, in submit, fence);
-                if (sr is Result.ErrorDeviceLost) return Finish(cx, GpuRunStatus.Failed, done, clock, "A GPU foi reiniciada pelo driver (DEVICE_LOST): carga alta demais para esta GPU. Reduza camadas/iterações/resolução.");
-                Check(sr, "Enviar comandos");
+                if (sr is Result.ErrorDeviceLost) return Finish(cx, GpuRunStatus.Failed, done, clock, L.T("A GPU foi reiniciada pelo driver (DEVICE_LOST): carga alta demais para esta GPU. Reduza camadas/iterações/resolução."));
+                Check(sr, L.T("Enviar comandos"));
                 done++; Interlocked.Exchange(ref frames, done); slot = (slot + 1) % InFlight;
                 if (clock.Elapsed.TotalSeconds >= nextReport) { nextReport = clock.Elapsed.TotalSeconds + 0.5; progress?.Report(new(clock.Elapsed.TotalSeconds, done, done / Math.Max(0.001, clock.Elapsed.TotalSeconds))); }
             }
@@ -132,7 +133,7 @@ public sealed unsafe class GpuBurn
         return new(status, cx.AdapterName, frames, s, status == GpuRunStatus.Completed && s > 0 ? frames / s : null, reason);
     }
 
-    private static void Check(Result r, string what) { if (r != Result.Success) throw new VulkanException($"{what} falhou ({r}).", r); }
+    private static void Check(Result r, string what) { if (r != Result.Success) throw new VulkanException(L.T($"{what} falhou ({r})."), r); }
 
     private static Pipeline CreatePipeline(VulkanContext cx, ShaderModule vert, ShaderModule frag, PipelineLayout layout, SampleCountFlags samples)
     {
@@ -159,7 +160,7 @@ public sealed unsafe class GpuBurn
                 SType = StructureType.GraphicsPipelineCreateInfo, PNext = &rendering, StageCount = 2, PStages = stages, PVertexInputState = &vi, PInputAssemblyState = &ia, PViewportState = &vp,
                 PRasterizationState = &rs, PMultisampleState = &ms, PDepthStencilState = &ds, PColorBlendState = &cb, PDynamicState = &dyni, Layout = layout
             };
-            Check(vk.CreateGraphicsPipelines(cx.Device, default, 1, in gci, null, out var pipeline), "Criar o pipeline gráfico");
+            Check(vk.CreateGraphicsPipelines(cx.Device, default, 1, in gci, null, out var pipeline), L.T("Criar o pipeline gráfico"));
             return pipeline;
         }
         finally { Marshal.FreeHGlobal((nint)name); }
@@ -170,7 +171,7 @@ public sealed unsafe class GpuBurn
         var vk = cx.Api;
         vk.ResetCommandBuffer(cmd, 0);
         var begin = new CommandBufferBeginInfo { SType = StructureType.CommandBufferBeginInfo, Flags = CommandBufferUsageFlags.OneTimeSubmitBit };
-        Check(vk.BeginCommandBuffer(cmd, in begin), "Iniciar o buffer de comandos");
+        Check(vk.BeginCommandBuffer(cmd, in begin), L.T("Iniciar o buffer de comandos"));
         void Barrier(Image image, ImageAspectFlags aspect, ImageLayout to, AccessFlags access, PipelineStageFlags stage)
         {
             var b = new ImageMemoryBarrier { SType = StructureType.ImageMemoryBarrier, OldLayout = ImageLayout.Undefined, NewLayout = to, DstAccessMask = access, Image = image, SrcQueueFamilyIndex = Vk.QueueFamilyIgnored, DstQueueFamilyIndex = Vk.QueueFamilyIgnored, SubresourceRange = new ImageSubresourceRange(aspect, 0, 1, 0, 1) };
@@ -188,6 +189,6 @@ public sealed unsafe class GpuBurn
         vk.CmdPushConstants(cmd, layout, ShaderStageFlags.VertexBit | ShaderStageFlags.FragmentBit, 0, (uint)sizeof(Push), &push);
         vk.CmdDraw(cmd, 192 * 96 * 6, (uint)o.Shells, 0, 0);
         vk.CmdEndRendering(cmd);
-        Check(vk.EndCommandBuffer(cmd), "Finalizar o buffer de comandos");
+        Check(vk.EndCommandBuffer(cmd), L.T("Finalizar o buffer de comandos"));
     }
 }

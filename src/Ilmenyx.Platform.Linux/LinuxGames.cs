@@ -314,10 +314,10 @@ public sealed class SteamInfo(string home, string procRoot = "/proc")
     /// <summary>Returns null on success or the error text. Steam must be closed (it overwrites the file on exit); the original is copied first.</summary>
     public string? SetLaunchOptions(string appId, string options)
     {
-        if (appId.Length is 0 or > 12 || !appId.All(char.IsAsciiDigit)) return "Identificador de jogo inválido.";
-        if (IsRunning) return "A Steam está aberta. Feche-a para gravar as opções (ela sobrescreve o arquivo ao sair).";
+        if (appId.Length is 0 or > 12 || !appId.All(char.IsAsciiDigit)) return L.T("Identificador de jogo inválido.");
+        if (IsRunning) return L.T("A Steam está aberta. Feche-a para gravar as opções (ela sobrescreve o arquivo ao sair).");
         string? f = LocalConfig();
-        if (f is null) return "Não achei o localconfig.vdf da Steam (entre na Steam ao menos uma vez neste PC).";
+        if (f is null) return L.T("Não achei o localconfig.vdf da Steam (entre na Steam ao menos uma vez neste PC).");
         try
         {
             var root = Vdf.Parse(File.ReadAllText(f)); var app = AppsNode(root, true)!.GetOrAddChild(appId);
@@ -327,7 +327,7 @@ public sealed class SteamInfo(string home, string procRoot = "/proc")
             File.WriteAllText(tmp, Vdf.Serialize(root), new System.Text.UTF8Encoding(false)); File.Move(tmp, f, overwrite: true);
             return null;
         }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return "Não consegui gravar: " + e.Message; }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return L.T("Não consegui gravar: ") + e.Message; }
     }
 
     public async Task<bool> ShutdownAsync(CancellationToken ct = default)
@@ -446,7 +446,7 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
         if (exe.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
         {
             // Windows game: Proton through umu-launcher (system copy first, else the one in the package), with a prefix per game.
-            wrappers.Add(find("umu-run") ?? throw new InvalidOperationException("Este é um jogo de Windows e o umu-launcher (Proton fora da Steam) não foi encontrado."));
+            wrappers.Add(find("umu-run") ?? throw new InvalidOperationException(L.T("Este é um jogo de Windows e o umu-launcher (Proton fora da Steam) não foi encontrado.")));
             proton.AddRange(ProtonEnvironment(exe, p.ProtonGameId, prefixRoot ?? DefaultPrefixRoot()));
             if (GameLaunchOptions.GuardApplies(p, gpuVendor)) proton.Add(new(GameLaunchOptions.GuardVariable, GameLaunchOptions.GuardValue));
         }
@@ -508,7 +508,7 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
 
     public static async Task<bool> SetPowerProfileAsync(string id, CancellationToken ct)
     {
-        if (!AllowedProfiles.Contains(id)) throw new ArgumentException("Perfil de energia inválido.");
+        if (!AllowedProfiles.Contains(id)) throw new ArgumentException(L.T("Perfil de energia inválido."));
         try { var (code, _) = await BoundedProcess.RunAsync("powerprofilesctl", ["set", id], TimeSpan.FromSeconds(3), 256, ct); return code == 0; }
         catch (Exception e) when (e is IOException or FileNotFoundException or TimeoutException or System.ComponentModel.Win32Exception) { return false; }
     }
@@ -523,28 +523,28 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
         string? oldPlan = null; var helpers = new List<(Process Proc, bool Close)>(); var started = DateTimeOffset.UtcNow;
         try
         {
-            status("Aplicando o perfil…");
+            status(L.T("Aplicando o perfil…"));
             if (p.HighPerfPlan)
             {
                 oldPlan = await PowerProfileAsync(ct);
-                if (oldPlan is null) status("power-profiles-daemon indisponível: o perfil de energia não será alterado.");
-                else if (oldPlan != "performance") { if (!await SetPowerProfileAsync("performance", ct)) { status("Não consegui ativar o perfil Alto desempenho."); oldPlan = null; } }
+                if (oldPlan is null) status(L.T("power-profiles-daemon indisponível: o perfil de energia não será alterado."));
+                else if (oldPlan != "performance") { if (!await SetPowerProfileAsync("performance", ct)) { status(L.T("Não consegui ativar o perfil Alto desempenho.")); oldPlan = null; } }
                 else oldPlan = null;
             }
             string? exe = p.ExePath ?? g.ExePath ?? LinuxGameLibrary.FindMainExe(g.InstallDir, g.Name);
             foreach (var h in p.Helpers.Where(h => LinuxGameLibrary.IsRunnableFile(h.Path)))
             {
-                status($"Abrindo {Path.GetFileName(h.Path)}…");
+                status(L.T($"Abrindo {Path.GetFileName(h.Path)}…"));
                 try
                 {
                     var psi = HostSpawn.Start(h.Path, GameLaunchOptions.SplitArguments(h.Args).ToList(), workingDirectory: Path.GetDirectoryName(h.Path) ?? "", redirect: false);
                     if (Process.Start(psi) is { } proc) helpers.Add((proc, h.CloseWithGame));
                 }
-                catch (Exception e) when (e is IOException or System.ComponentModel.Win32Exception or FormatException) { status("Não consegui abrir " + h.Path + ": " + e.Message); }
+                catch (Exception e) when (e is IOException or System.ComponentModel.Win32Exception or FormatException) { status(L.T("Não consegui abrir ") + h.Path + ": " + e.Message); }
             }
             if (helpers.Count > 0) await Task.Delay(1500, ct);
 
-            status($"Iniciando {g.Name}…");
+            status(L.T($"Iniciando {g.Name}…"));
             if (g.IsSteam) await StartAsync("steam", [$"steam://rungameid/{g.Id}"], [], ct);
             else if (g.LaunchUri is not null) await StartAsync("xdg-open", [g.LaunchUri], [], ct);
             else if (exe is not null && (LinuxGameLibrary.IsRunnableFile(exe) || LinuxGameLibrary.IsWindowsExe(exe)))
@@ -557,27 +557,27 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
                 if (cmd.Environment.FirstOrDefault(e => e.Key == "WINEPREFIX").Value is { } prefix)
                 {
                     Directory.CreateDirectory(Path.GetDirectoryName(prefix)!);
-                    status(Directory.Exists(prefix) ? $"Iniciando {g.Name} com Proton…" : "Primeira vez com Proton: baixando o Proton e preparando o \"Windows\" do jogo (pode levar alguns minutos)…");
+                    status(Directory.Exists(prefix) ? L.T($"Iniciando {g.Name} com Proton…") : L.T("Primeira vez com Proton: baixando o Proton e preparando o \"Windows\" do jogo (pode levar alguns minutos)…"));
                 }
                 await StartAsync(cmd.Program, cmd.Arguments, cmd.Environment, ct, Path.GetDirectoryName(exe));
             }
-            else throw new InvalidOperationException("Não achei o executável deste jogo. Escolha o arquivo na seção Desempenho.");
+            else throw new InvalidOperationException(L.T("Não achei o executável deste jogo. Escolha o arquivo na seção Desempenho."));
 
             IReadOnlyList<int> running = [];
             for (int i = 0; i < 120 && running.Count == 0; i++) { await Task.Delay(1500, ct); running = await GameProcesses.FindAsync(procRoot, g, p.ExePath ?? g.ExePath, ct); }
-            if (running.Count == 0) { status("Não detectei o processo do jogo (ele pode ter demorado a abrir). Os ajustes continuam aplicados."); return null; }
-            status($"{g.Name} em execução" + (p.HighPerfPlan ? " · perfil Alto desempenho" : "") + ".");
+            if (running.Count == 0) { status(L.T("Não detectei o processo do jogo (ele pode ter demorado a abrir). Os ajustes continuam aplicados.")); return null; }
+            status(L.T($"{g.Name} em execução") + (p.HighPerfPlan ? L.T(" · perfil Alto desempenho") : "") + ".");
             int quiet = 0;
             while (quiet < 6) { await Task.Delay(1000, ct); running = await GameProcesses.FindAsync(procRoot, g, p.ExePath ?? g.ExePath, ct); quiet = running.Count == 0 ? quiet + 1 : 0; }
-            if (!p.MangoHud) { status($"{g.Name} encerrado. Ajustes temporários desfeitos."); return null; }
+            if (!p.MangoHud) { status(L.T($"{g.Name} encerrado. Ajustes temporários desfeitos.")); return null; }
             var session = MangoHudSession.ToSession(MangoHudLogReader.ReadSession(MangoHudLogReader.DefaultFolder(), started), g.Name, DateTimeOffset.UtcNow, p.Res, p.GfxPreset, p.GfxUpscaling);
             status(session is null
-                ? $"{g.Name} encerrado. Ajustes temporários desfeitos. Sessão não registrada: sem log do MangoHud na pasta do Ilmenyx (gere a configuração na página Overlay) ou sessão com menos de {FpsSession.MinSeconds:0} s."
-                : $"{g.Name} encerrado. Ajustes temporários desfeitos. Medido: {session.AvgFps:0} FPS médio (1% low {session.Low1Fps:0}) — salvo na Estimativa de FPS."
-                  + (session.CappedAt is { } cap ? $" Limitado a {cap:0} FPS (vsync ou limite do jogo): o PC pode render mais. Para medir o máximo, desligue o vsync no jogo." : ""));
+                ? L.T($"{g.Name} encerrado. Ajustes temporários desfeitos. Sessão não registrada: sem log do MangoHud na pasta do Ilmenyx (gere a configuração na página Overlay) ou sessão com menos de {FpsSession.MinSeconds:0} s.")
+                : L.T($"{g.Name} encerrado. Ajustes temporários desfeitos. Medido: {session.AvgFps:0} FPS médio (1% low {session.Low1Fps:0}) — salvo na Estimativa de FPS.")
+                  + (session.CappedAt is { } cap ? L.T($" Limitado a {cap:0} FPS (vsync ou limite do jogo): o PC pode render mais. Para medir o máximo, desligue o vsync no jogo.") : ""));
             return session;
         }
-        catch (OperationCanceledException) { status("Acompanhamento cancelado."); }
+        catch (OperationCanceledException) { status(L.T("Acompanhamento cancelado.")); }
         catch (Exception e) when (e is InvalidOperationException or IOException or System.ComponentModel.Win32Exception or FormatException or ArgumentException) { status("Falhou: " + e.Message); }
         finally
         {
@@ -589,9 +589,9 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
 
     private static async Task StartAsync(string program, IReadOnlyList<string> args, IReadOnlyList<KeyValuePair<string, string>> env, CancellationToken ct, string? workDir = null)
     {
-        string path = program.StartsWith('/') ? program : BoundedProcess.Find(program) ?? throw new FileNotFoundException($"{program} não encontrado.");
+        string path = program.StartsWith('/') ? program : BoundedProcess.Find(program) ?? throw new FileNotFoundException(L.T($"{program} não encontrado."));
         var psi = HostSpawn.Start(path, args, env.Count == 0 ? null : env.ToDictionary(e => e.Key, e => e.Value), workDir, redirect: false);
-        using var process = Process.Start(psi) ?? throw new IOException("Não foi possível iniciar " + program);
+        using var process = Process.Start(psi) ?? throw new IOException(L.T("Não foi possível iniciar ") + program);
         await Task.Delay(200, ct);
     }
 

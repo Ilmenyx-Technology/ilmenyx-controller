@@ -18,8 +18,8 @@ public sealed class MemoryValidationRunner(TimeProvider? timeProvider = null) : 
     private readonly TimeProvider clock = timeProvider ?? TimeProvider.System;
     public static void Validate(MemoryValidationOptions options)
     {
-        if (options.Threads is not (1 or 2 or 4)) throw new ArgumentException("Validação de memória permite somente 1, 2 ou 4 workers.");
-        if (options.Timeout <= TimeSpan.Zero || options.Timeout > TimeSpan.FromSeconds(10)) throw new ArgumentException("Timeout de memória deve ser positivo e no máximo 10 segundos.");
+        if (options.Threads is not (1 or 2 or 4)) throw new ArgumentException(L.T("Validação de memória permite somente 1, 2 ou 4 workers."));
+        if (options.Timeout <= TimeSpan.Zero || options.Timeout > TimeSpan.FromSeconds(10)) throw new ArgumentException(L.T("Timeout de memória deve ser positivo e no máximo 10 segundos."));
     }
     public Task<MemoryValidationResult> RunAsync(MemoryValidationOptions options, CancellationToken ct = default, IProgress<MemoryValidationProgress>? progress = null)
     {
@@ -75,12 +75,12 @@ public sealed class MemoryValidationRunner(TimeProvider? timeProvider = null) : 
                 options.Threads, options.Timeout.TotalSeconds, 1, WorkingSetBytes, 3L * WorkingSetBytes + Elements / 8 * sizeof(int), WarmupSteps,
                 TraversalSteps, completed, finalIndex, readSum, copySum, ring, copy, null, "not-measured",
                 RuntimeInformation.FrameworkDescription, RuntimeInformation.ProcessArchitecture.ToString(),
-                ["Validação pequena de algoritmos; não mede latência, GB/s, estabilidade ou saúde da RAM.",
-                 "Buffers de 256 KiB podem caber em caches; resultados não são comparáveis ao benchmark completo Windows.",
-                 "Semente 42, passos de 64 bytes; warmup reduzido para 1024, percurso 32768 e uma repetição de leitura/cópia.",
-                 "Workers restritos a 1/2/4 para particionamento integral e sem sobra do laço desenrolado; soma/cópia variam com a inicialização por worker.",
-                 "Buffers principais: 784 KiB, mais buffers de hash e overhead do runtime; não representa uso total do processo.",
-                 "Não há perfil completo de RAM, GameSim, teste de disco ou rede neste comando."]);
+                [L.T("Validação pequena de algoritmos; não mede latência, GB/s, estabilidade ou saúde da RAM."),
+                 L.T("Buffers de 256 KiB podem caber em caches; resultados não são comparáveis ao benchmark completo Windows."),
+                 L.T("Semente 42, passos de 64 bytes; warmup reduzido para 1024, percurso 32768 e uma repetição de leitura/cópia."),
+                 L.T("Workers restritos a 1/2/4 para particionamento integral e sem sobra do laço desenrolado; soma/cópia variam com a inicialização por worker."),
+                 L.T("Buffers principais: 784 KiB, mais buffers de hash e overhead do runtime; não representa uso total do processo."),
+                 L.T("Não há perfil completo de RAM, GameSim, teste de disco ou rede neste comando.")]);
     }
     internal static long[] BuildRing(CancellationToken ct)
     {

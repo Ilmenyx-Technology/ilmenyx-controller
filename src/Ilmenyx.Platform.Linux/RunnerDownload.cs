@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 using System.Security.Cryptography;
+using Ilmenyx.Core;
 
 namespace Ilmenyx.Platform.Linux;
 
@@ -22,7 +23,7 @@ public static class RunnerDownload
             using (var response = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct))
             {
                 response.EnsureSuccessStatusCode();
-                if (response.Content.Headers.ContentLength is long len && len != size) throw new IOException($"Tamanho inesperado do {name}: {len} bytes.");
+                if (response.Content.Headers.ContentLength is long len && len != size) throw new IOException(L.T($"Tamanho inesperado do {name}: {len} bytes."));
                 await using var source = await response.Content.ReadAsStreamAsync(ct);
                 await using var file = File.Create(archive);
                 using var digest = IncrementalHash.CreateHash(algorithm);
@@ -30,17 +31,17 @@ public static class RunnerDownload
                 while ((read = await source.ReadAsync(buffer, ct)) > 0)
                 {
                     await file.WriteAsync(buffer.AsMemory(0, read), ct); digest.AppendData(buffer, 0, read); total += read;
-                    if (total > size) throw new IOException($"O {name} ficou maior que o esperado.");
+                    if (total > size) throw new IOException(L.T($"O {name} ficou maior que o esperado."));
                     progress?.Report(0.9 * total / size);
                 }
                 if (total != size || !Convert.ToHexString(digest.GetHashAndReset()).Equals(hash, StringComparison.OrdinalIgnoreCase))
-                    throw new IOException($"O arquivo baixado do {name} não confere com a soma oficial ({algorithm.Name}); foi descartado.");
+                    throw new IOException(L.T($"O arquivo baixado do {name} não confere com a soma oficial ({algorithm.Name}); foi descartado."));
             }
             if (Directory.Exists(staging)) Directory.Delete(staging, true);
             Directory.CreateDirectory(staging);
             string[] args = ["-xf", archive, "-C", staging, "--no-same-owner", .. stripTopFolder ? new[] { "--strip-components=1" } : []];
             var (code, output) = await BoundedProcess.RunAsync("tar", args, TimeSpan.FromMinutes(10), 4096, ct);
-            if (code != 0) throw new IOException("Não consegui extrair o " + name + ": " + output.Trim());
+            if (code != 0) throw new IOException(L.T("Não consegui extrair o ") + name + ": " + output.Trim());
             if (Directory.Exists(target)) Directory.Delete(target, true);
             Directory.Move(stripTopFolder ? staging : Path.Combine(staging, Path.GetFileName(target)), target);
             progress?.Report(1);

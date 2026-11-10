@@ -13,12 +13,12 @@ public sealed record PerformanceSummary(double? CpuScore, double? CpuDelta, stri
     {
         var cpu = runs.Where(r => r.Kind == "CPU" && r.Score is not null).ToList();
         double? delta = cpu.Count > 1 ? cpu[0].Score - cpu[1].Score : null;
-        string sub = cpu.Count > 0 ? $"pts · render de CPU · {cpu[0].At.LocalDateTime.ToString("dd/MM HH:mm", CultureInfo.InvariantCulture)}" : "rode o Benchmark para ter uma nota";
+        string sub = cpu.Count > 0 ? L.T($"pts · render de CPU · {cpu[0].At.LocalDateTime.ToString("dd/MM HH:mm", CultureInfo.InvariantCulture)}") : L.T("rode o Benchmark para ter uma nota");
         string Last(string kind) => runs.FirstOrDefault(r => r.Kind == kind)?.Summary.Split('·')[0].Trim() ?? "—";
         return new(cpu.Count > 0 ? cpu[0].Score : null, delta, sub,
         [
-            new("Memória", Last("Memória")), new("Simulação de jogo", Last("GameSim")), new("Disco", Last("Disco")),
-            new("Verificação OC", runs.FirstOrDefault(r => r.Kind == "OC") is { } oc ? oc.Summary.Split('·')[0].Trim() : "—")
+            new(L.T("Memória"), Last(L.T("Memória"))), new(L.T("Simulação de jogo"), Last("GameSim")), new(L.T("Disco"), Last(L.T("Disco"))),
+            new(L.T("Verificação OC"), runs.FirstOrDefault(r => r.Kind == "OC") is { } oc ? oc.Summary.Split('·')[0].Trim() : "—")
         ]);
     }
 }
@@ -35,23 +35,23 @@ public static class HealthChecklist
     {
         var list = new List<HealthCheck>();
         if (i.CpuTempAvailable is bool t)
-            list.Add(new("Sensor de temperatura da CPU", t ? "Temperatura da CPU disponível." : "Nenhum sensor de temperatura da CPU foi encontrado (hwmon coretemp/k10temp); o stress test não terá corte por temperatura.", t));
+            list.Add(new(L.T("Sensor de temperatura da CPU"), t ? L.T("Temperatura da CPU disponível.") : L.T("Nenhum sensor de temperatura da CPU foi encontrado (hwmon coretemp/k10temp); o stress test não terá corte por temperatura."), t));
         list.Add(i.KernelErrors switch
         {
-            null => new("Erros de hardware", "Ainda não verificado.", null),
-            { Error: not null } e => new("Erros de hardware", "Não foi possível ler o log do kernel: " + e.Error + ".", null),
-            { Total: 0 } => new("Sem erros de hardware", "Nenhum MCE, EDAC, PCIe AER ou reinício de GPU no log do kernel em 7 dias.", true),
-            var e => new("Erros de hardware", $"{e.Total} ocorrência(s) em 7 dias (CPU/MCE {e.Cpu}, memória {e.Memory}, PCIe {e.Pcie}, GPU {e.Gpu}). Veja a página OC.", false)
+            null => new(L.T("Erros de hardware"), L.T("Ainda não verificado."), null),
+            { Error: not null } e => new(L.T("Erros de hardware"), L.T("Não foi possível ler o log do kernel: ") + e.Error + ".", null),
+            { Total: 0 } => new(L.T("Sem erros de hardware"), L.T("Nenhum MCE, EDAC, PCIe AER ou reinício de GPU no log do kernel em 7 dias."), true),
+            var e => new(L.T("Erros de hardware"), L.T($"{e.Total} ocorrência(s) em 7 dias (CPU/MCE {e.Cpu}, memória {e.Memory}, PCIe {e.Pcie}, GPU {e.Gpu}). Veja a página OC."), false)
         });
         int disks = i.DisksGood + i.DisksAttention + i.DisksUnknown;
         if (disks > 0)
-            list.Add(i.DisksAttention > 0 ? new("Discos", $"{i.DisksAttention} disco(s) com aviso. Veja a página Discos e faça backup.", false)
-                : i.DisksUnknown > 0 ? new("Discos", $"{i.DisksUnknown} de {disks} disco(s) sem dados de saúde (SMART não consultado).", null)
-                : new("Discos", "Todos os discos informam saúde sem avisos.", true));
+            list.Add(i.DisksAttention > 0 ? new(L.T("Discos"), L.T($"{i.DisksAttention} disco(s) com aviso. Veja a página Discos e faça backup."), false)
+                : i.DisksUnknown > 0 ? new(L.T("Discos"), L.T($"{i.DisksUnknown} de {disks} disco(s) sem dados de saúde (SMART não consultado)."), null)
+                : new(L.T("Discos"), L.T("Todos os discos informam saúde sem avisos."), true));
         if (i.PowerProfile is { Length: > 0 } p)
-            list.Add(new("Perfil de energia", i.OnBattery ? $"Em bateria, perfil {p}." : p == "performance" ? "Alto desempenho ativo." : $"Perfil {p}: para jogar, o Launcher ativa Alto desempenho durante o jogo.", i.OnBattery ? null : true));
+            list.Add(new(L.T("Perfil de energia"), i.OnBattery ? L.T($"Em bateria, perfil {p}.") : p == "performance" ? L.T("Alto desempenho ativo.") : L.T($"Perfil {p}: para jogar, o Launcher ativa Alto desempenho durante o jogo."), i.OnBattery ? null : true));
         if (i.GameModeInstalled is bool g)
-            list.Add(new("GameMode", g ? "gamemoderun encontrado: o Launcher pode usá-lo." : "gamemode não instalado (opcional, pacote da distribuição).", g ? true : null));
+            list.Add(new("GameMode", g ? L.T("gamemoderun encontrado: o Launcher pode usá-lo.") : L.T("gamemode não instalado (opcional, pacote da distribuição)."), g ? true : null));
         return list;
     }
 }

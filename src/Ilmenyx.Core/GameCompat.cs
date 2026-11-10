@@ -18,12 +18,12 @@ public sealed record ProtonSummary(string Tier, string? TrendingTier, string? Be
 {
     public static string TierName(string? tier) => tier switch
     {
-        "platinum" => "Platina", "gold" => "Ouro", "silver" => "Prata", "bronze" => "Bronze", "borked" => "Quebrado", "native" => "Nativo", "pending" => "Pendente", _ => "—",
+        "platinum" => L.T("Platina"), "gold" => L.T("Ouro"), "silver" => L.T("Prata"), "bronze" => "Bronze", "borked" => L.T("Quebrado"), "native" => L.T("Nativo"), "pending" => L.T("Pendente"), _ => "—",
     };
     public static string TierMeaning(string? tier) => tier switch
     {
-        "platinum" => "roda perfeitamente, sem ajustes", "gold" => "roda perfeitamente depois de ajustes", "silver" => "roda com pequenos problemas",
-        "bronze" => "roda, mas trava ou tem problemas que atrapalham", "borked" => "não abre ou não dá para jogar", "pending" => "poucos relatos ainda", _ => "",
+        "platinum" => L.T("roda perfeitamente, sem ajustes"), "gold" => L.T("roda perfeitamente depois de ajustes"), "silver" => L.T("roda com pequenos problemas"),
+        "bronze" => L.T("roda, mas trava ou tem problemas que atrapalham"), "borked" => L.T("não abre ou não dá para jogar"), "pending" => L.T("poucos relatos ainda"), _ => "",
     };
     public static string ConfidenceName(string? c) => c switch { "strong" => "alta", "good" => "boa", "moderate" => "moderada", "low" => "baixa", "inadequate" => "insuficiente", _ => c ?? "—" };
 
@@ -47,29 +47,29 @@ public sealed record ProtonSummary(string Tier, string? TrendingTier, string? Be
 /// <summary>Steam Deck compatibility from the Steam store: 3 verified, 2 playable, 1 unsupported, 0 unknown.</summary>
 public sealed record DeckStatus(int Category, IReadOnlyList<string> Notes)
 {
-    public string Name => Category switch { 3 => "Verificado", 2 => "Jogável", 1 => "Não suportado", _ => "Desconhecido" };
+    public string Name => Category switch { 3 => L.T("Verificado"), 2 => L.T("Jogável"), 1 => L.T("Não suportado"), _ => L.T("Desconhecido") };
 
     private static readonly Dictionary<string, string> Known = new(StringComparer.Ordinal)
     {
-        ["ControllerGlyphsDoNotMatchDeckDevice"] = "Os botões mostrados no jogo não são os do controle do Deck",
-        ["ControllerGlyphsMatchDeckDevice"] = "O jogo mostra os botões do controle do Deck",
-        ["InterfaceTextIsLegible"] = "O texto é legível na tela do Deck",
-        ["Unsupported_Other"] = "Não funciona no Deck (motivo informado pela Valve: outro)",
-        ["UnsupportedAntiCheat"] = "O anti-cheat não é compatível",
-        ["DefaultConfigurationIsNotPerformant"] = "Desempenho fraco na configuração padrão",
-        ["ExternalControllersNotSupportedLocalMultiplayer"] = "Controles externos não funcionam no multijogador local",
-        ["InterfaceTextIsNotLegible"] = "Parte do texto é pequena demais para ler na tela do Deck",
-        ["DefaultControllerConfigFullyFunctional"] = "O controle funciona na configuração padrão",
-        ["DefaultConfigurationIsPerformant"] = "Bom desempenho na configuração padrão",
-        ["GameStartupFunctional"] = "O jogo abre corretamente",
-        ["ExternalControllersNotSupportedPrimaryPlayer"] = "Controles externos não funcionam para o jogador principal",
-        ["TextInputDoesNotAutomaticallyInvokesKeyboard"] = "O teclado virtual não abre sozinho em campos de texto",
-        ["LauncherInteractionIssues"] = "O launcher do jogo exige toque ou mouse",
-        ["RequiresManualKeyboardInvocation"] = "É preciso abrir o teclado virtual manualmente",
-        ["SingleplayerGameplayFunctional"] = "O modo para um jogador funciona",
-        ["MultiplayerGameplayFunctional"] = "O multijogador funciona",
-        ["AntiCheatUnsupported"] = "O anti-cheat não é compatível",
-        ["UnsupportedAntiCheat_Other"] = "O anti-cheat não é compatível",
+        ["ControllerGlyphsDoNotMatchDeckDevice"] = L.T("Os botões mostrados no jogo não são os do controle do Deck"),
+        ["ControllerGlyphsMatchDeckDevice"] = L.T("O jogo mostra os botões do controle do Deck"),
+        ["InterfaceTextIsLegible"] = L.T("O texto é legível na tela do Deck"),
+        ["Unsupported_Other"] = L.T("Não funciona no Deck (motivo informado pela Valve: outro)"),
+        ["UnsupportedAntiCheat"] = L.T("O anti-cheat não é compatível"),
+        ["DefaultConfigurationIsNotPerformant"] = L.T("Desempenho fraco na configuração padrão"),
+        ["ExternalControllersNotSupportedLocalMultiplayer"] = L.T("Controles externos não funcionam no multijogador local"),
+        ["InterfaceTextIsNotLegible"] = L.T("Parte do texto é pequena demais para ler na tela do Deck"),
+        ["DefaultControllerConfigFullyFunctional"] = L.T("O controle funciona na configuração padrão"),
+        ["DefaultConfigurationIsPerformant"] = L.T("Bom desempenho na configuração padrão"),
+        ["GameStartupFunctional"] = L.T("O jogo abre corretamente"),
+        ["ExternalControllersNotSupportedPrimaryPlayer"] = L.T("Controles externos não funcionam para o jogador principal"),
+        ["TextInputDoesNotAutomaticallyInvokesKeyboard"] = L.T("O teclado virtual não abre sozinho em campos de texto"),
+        ["LauncherInteractionIssues"] = L.T("O launcher do jogo exige toque ou mouse"),
+        ["RequiresManualKeyboardInvocation"] = L.T("É preciso abrir o teclado virtual manualmente"),
+        ["SingleplayerGameplayFunctional"] = L.T("O modo para um jogador funciona"),
+        ["MultiplayerGameplayFunctional"] = L.T("O multijogador funciona"),
+        ["AntiCheatUnsupported"] = L.T("O anti-cheat não é compatível"),
+        ["UnsupportedAntiCheat_Other"] = L.T("O anti-cheat não é compatível"),
     };
 
     public static DeckStatus? Parse(string json)
@@ -100,11 +100,11 @@ public sealed record AntiCheatInfo(string Name, string Status, IReadOnlyList<str
 {
     public string StatusName => Status switch
     {
-        "Supported" => "Suportado — o anti-cheat foi liberado para Linux/Proton",
-        "Running" => "Roda — funciona, sem confirmação oficial do suporte",
-        "Planned" => "Planejado — o estúdio disse que vai liberar",
-        "Broken" => "Quebrado — o anti-cheat impede o jogo online no Linux",
-        "Denied" => "Negado — o estúdio bloqueia o Linux de propósito",
+        "Supported" => L.T("Suportado — o anti-cheat foi liberado para Linux/Proton"),
+        "Running" => L.T("Roda — funciona, sem confirmação oficial do suporte"),
+        "Planned" => L.T("Planejado — o estúdio disse que vai liberar"),
+        "Broken" => L.T("Quebrado — o anti-cheat impede o jogo online no Linux"),
+        "Denied" => L.T("Negado — o estúdio bloqueia o Linux de propósito"),
         _ => Status,
     };
     public bool BlocksOnline => Status is "Broken" or "Denied";
@@ -164,8 +164,8 @@ public sealed record CompatReport
     public static readonly string[] FaultKeys = ["stabilityFaults", "performanceFaults", "graphicalFaults", "audioFaults", "inputFaults", "windowingFaults", "saveGameFaults", "significantBugs"];
     public static string FaultName(string key) => key switch
     {
-        "stabilityFaults" => "Travamentos / fecha sozinho", "performanceFaults" => "Desempenho", "graphicalFaults" => "Gráficos", "audioFaults" => "Áudio",
-        "inputFaults" => "Controles / entrada", "windowingFaults" => "Janela / tela cheia", "saveGameFaults" => "Saves", "significantBugs" => "Bugs graves", _ => key,
+        "stabilityFaults" => L.T("Travamentos / fecha sozinho"), "performanceFaults" => L.T("Desempenho"), "graphicalFaults" => L.T("Gráficos"), "audioFaults" => L.T("Áudio"),
+        "inputFaults" => L.T("Controles / entrada"), "windowingFaults" => L.T("Janela / tela cheia"), "saveGameFaults" => "Saves", "significantBugs" => L.T("Bugs graves"), _ => key,
     };
 
     /// <summary>One element of reports_piiremoved.json → compact report; null when it has no Steam app id. Free text is length-limited and home paths are hidden.</summary>
@@ -276,17 +276,17 @@ public static class CompatMatcher
     {
         var matches = new List<string>(); int score = 0;
         var (mine, mineCodes) = Tokens(hw.GpuText); var (theirs, theirCodes) = Tokens(r.Gpu);
-        if (mine.Where(t => !t.StartsWith("base:", StringComparison.Ordinal)).Intersect(theirs).Any()) { score += 5; matches.Add("mesma GPU"); }
-        else if (mine.Where(t => t.StartsWith("base:", StringComparison.Ordinal)).Intersect(theirs).Any()) { score += 3; matches.Add("GPU da mesma série"); }
-        if (mineCodes.Intersect(theirCodes).Any()) { score += 3; if (!matches.Contains("mesma GPU")) matches.Add("mesmo chip"); }
-        if (hw.Vendor.Length > 0 && hw.Vendor == VendorOf(r.Gpu)) { score += 2; if (matches.Count == 0) matches.Add("mesmo fabricante de GPU"); }
+        if (mine.Where(t => !t.StartsWith("base:", StringComparison.Ordinal)).Intersect(theirs).Any()) { score += 5; matches.Add(L.T("mesma GPU")); }
+        else if (mine.Where(t => t.StartsWith("base:", StringComparison.Ordinal)).Intersect(theirs).Any()) { score += 3; matches.Add(L.T("GPU da mesma série")); }
+        if (mineCodes.Intersect(theirCodes).Any()) { score += 3; if (!matches.Contains(L.T("mesma GPU"))) matches.Add(L.T("mesmo chip")); }
+        if (hw.Vendor.Length > 0 && hw.Vendor == VendorOf(r.Gpu)) { score += 2; if (matches.Count == 0) matches.Add(L.T("mesmo fabricante de GPU")); }
         string driver = (r.GpuDriver ?? "").ToLowerInvariant();
         bool theirNvidiaProp = driver.Contains("nvidia") && !driver.Contains("mesa");
         if (driver.Length > 0 && theirNvidiaProp == hw.NvidiaProprietary) score += 1;
         if (hw.Distro is { Length: > 0 } d)
         {
-            if (DistroName(d) is { } dn && dn == DistroName(r.Os)) { score += 2; matches.Add("mesma distro"); }
-            else if (DistroFamily(d) is { Length: > 0 } fam && fam == DistroFamily(r.Os)) { score += 1; matches.Add("distro da mesma família"); }
+            if (DistroName(d) is { } dn && dn == DistroName(r.Os)) { score += 2; matches.Add(L.T("mesma distro")); }
+            else if (DistroFamily(d) is { Length: > 0 } fam && fam == DistroFamily(r.Os)) { score += 1; matches.Add(L.T("distro da mesma família")); }
         }
         if (now - r.Date < TimeSpan.FromDays(365)) score += 1;
         return new(r, score, matches);
@@ -336,16 +336,16 @@ public static class LaunchOptionSafety
     public static Verdict Check(string? options)
     {
         string o = (options ?? "").Trim();
-        if (o.Length == 0) return new(false, "Sem opções de inicialização.");
-        if (o.Length > 400) return new(false, "Longa demais para aplicar com segurança.");
+        if (o.Length == 0) return new(false, L.T("Sem opções de inicialização."));
+        if (o.Length > 400) return new(false, L.T("Longa demais para aplicar com segurança."));
         if (o.IndexOfAny(ShellCharacters) >= 0)
-            return new(false, "Tem caracteres de shell (; | & $ aspas…): pode executar outros comandos. Só para leitura.");
+            return new(false, L.T("Tem caracteres de shell (; | & $ aspas…): pode executar outros comandos. Só para leitura."));
         var tokens = o.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         int cmd = Array.IndexOf(tokens, "%command%");
         // Without %command% Steam appends the whole text to the game's own arguments: accepted only when every token is a game argument.
         if (cmd < 0)
-            return tokens.All(GameArg.IsMatch) ? new(true, null) : new(false, "Sem %command% e com algo que não é argumento do jogo. Só para leitura.");
-        if (tokens.Count(t => t == "%command%") > 1) return new(false, "Tem %command% mais de uma vez.");
+            return tokens.All(GameArg.IsMatch) ? new(true, null) : new(false, L.T("Sem %command% e com algo que não é argumento do jogo. Só para leitura."));
+        if (tokens.Count(t => t == "%command%") > 1) return new(false, L.T("Tem %command% mais de uma vez."));
         bool afterWrapper = false;
         for (int i = 0; i < cmd; i++)
         {
@@ -353,10 +353,10 @@ public static class LaunchOptionSafety
             if (Env.IsMatch(t) && !afterWrapper) continue;
             if (Wrappers.Contains(t)) { afterWrapper = true; continue; }
             if (afterWrapper && (Flag.IsMatch(t) || Env.IsMatch(t))) continue;
-            return new(false, $"\"{CompatText.Clean(t, 40)}\" não é variável de ambiente nem programa conhecido (gamemoderun, mangohud, gamescope…). Só para leitura.");
+            return new(false, L.T($"\"{CompatText.Clean(t, 40)}\" não é variável de ambiente nem programa conhecido (gamemoderun, mangohud, gamescope…). Só para leitura."));
         }
         for (int i = cmd + 1; i < tokens.Length; i++)
-            if (!GameArg.IsMatch(tokens[i])) return new(false, $"Argumento do jogo \"{CompatText.Clean(tokens[i], 40)}\" fora do formato aceito. Só para leitura.");
+            if (!GameArg.IsMatch(tokens[i])) return new(false, L.T($"Argumento do jogo \"{CompatText.Clean(tokens[i], 40)}\" fora do formato aceito. Só para leitura."));
         return new(true, null);
     }
 

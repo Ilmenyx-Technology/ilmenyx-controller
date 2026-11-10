@@ -60,7 +60,7 @@ public static partial class NvidiaScripts
     internal static string Quote(string value)
     {
         // Every value was validated by the regexes above (no quote, space or shell character); quoting is defence in depth.
-        if (value.Contains('\'') || value.Any(char.IsWhiteSpace)) throw new ArgumentException("Valor inválido para script: " + value);
+        if (value.Contains('\'') || value.Any(char.IsWhiteSpace)) throw new ArgumentException(L.T("Valor inválido para script: ") + value);
         return "'" + value + "'";
     }
 
@@ -69,12 +69,12 @@ public static partial class NvidiaScripts
     /// <summary>Apt script: re-checks with apt-get -s as root (state may change between the click and the run), runs apt-get, verifies, PRIME.</summary>
     internal static string Apt(IReadOnlyList<string> arguments, string guardPattern, string kernel, bool dkmsCheck, bool primeOnDemand, string doneMessage)
     {
-        if (!arguments.All(a => a is "install" or "purge" or "--purge" || ValidPackage(a.TrimEnd('-')))) throw new ArgumentException("Argumento inválido para o apt.");
-        if (!ValidKernel(kernel)) throw new ArgumentException("Kernel inválido.");
+        if (!arguments.All(a => a is "install" or "purge" or "--purge" || ValidPackage(a.TrimEnd('-')))) throw new ArgumentException(L.T("Argumento inválido para o apt."));
+        if (!ValidKernel(kernel)) throw new ArgumentException(L.T("Kernel inválido."));
         string args = string.Join(' ', arguments.Select(Quote));
         var s = new List<string>
         {
-            "set -eu", "export DEBIAN_FRONTEND=noninteractive", "export LC_ALL=C",
+            "set -eu", L.T("export DEBIAN_FRONTEND=noninteractive"), "export LC_ALL=C",
             "echo '== Ilmenyx 1/4: simulação de segurança (apt-get -s): nenhum kernel novo, o kernel em uso fica'",
             $"SIM=$(apt-get -s {args} 2>&1) || {{ printf '%s\\n' \"$SIM\"; echo 'ABORTADO: a simulação do apt falhou; nada foi alterado.'; exit 3; }}",
             $"if printf '%s\\n' \"$SIM\" | grep -Eq '{guardPattern}'; then printf '%s\\n' \"$SIM\" | grep -E '^(Inst|Remv|Purg) linux-' || true; echo 'ABORTADO: o apt quer instalar ou remover um kernel; nada foi alterado.'; exit 3; fi",
@@ -146,8 +146,8 @@ public static class NvidiaPlanner
     /// <summary>The packages to install for the running kernel (DKMS, never the prebuilt per-kernel modules that pull another kernel).</summary>
     public static IReadOnlyList<string> UbuntuPackages(string branch, bool open, string kernel)
     {
-        if (!NvidiaScripts.ValidBranch(branch)) throw new ArgumentException("Ramo fora da tabela: " + branch);
-        if (!NvidiaScripts.IsUbuntuKernel(kernel)) throw new ArgumentException("Kernel sem pacote de cabeçalhos da distribuição: " + kernel);
+        if (!NvidiaScripts.ValidBranch(branch)) throw new ArgumentException(L.T("Ramo fora da tabela: ") + branch);
+        if (!NvidiaScripts.IsUbuntuKernel(kernel)) throw new ArgumentException(L.T("Kernel sem pacote de cabeçalhos da distribuição: ") + kernel);
         return [DkmsPackage(branch, open), DriverPackage(branch, open), "linux-headers-" + kernel];
     }
 
@@ -156,7 +156,7 @@ public static class NvidiaPlanner
         var state = Evaluate(d);
         var findings = Findings(d, state);
         if (state == NvidiaDriverState.NoNvidiaGpu)
-            return new(state, "Nenhuma placa NVIDIA neste computador", "Esta aba instala e cuida do driver de placas NVIDIA. Não encontramos nenhuma no barramento PCI.", findings, []);
+            return new(state, L.T("Nenhuma placa NVIDIA neste computador"), L.T("Esta aba instala e cuida do driver de placas NVIDIA. Não encontramos nenhuma no barramento PCI."), findings, []);
         var gpu = d.Primary!; var support = gpu.Support;
         string gpuText = $"{NvidiaGenerations.MarketingName(gpu.Name)} ({NvidiaGenerations.Name(gpu.Generation)}{(gpu.Chip.Length > 0 ? " · " + gpu.Chip : "")})";
         var actions = new List<NvidiaAction>();
@@ -204,18 +204,18 @@ public static class NvidiaPlanner
         if (support.Branch is null) guidance = support.Note;
         else if (actions.Count == 0 && state is NvidiaDriverState.NotInstalled or NvidiaDriverState.Broken)
             guidance = d.Distro.Family == DistroFamily.Other
-                ? $"Sua distribuição ({d.Distro.Name}) não está na lista do Ilmenyx. Use o gerenciador de drivers dela e escolha o ramo {support.Branch}."
-                : NvidiaScripts.IsUbuntuKernel(d.RunningKernel) || !d.Distro.UsesApt ? $"Sem plano automático para esta combinação. Use o gerenciador de drivers da distribuição e escolha o ramo {support.Branch}."
-                : $"O kernel em uso ({d.RunningKernel}) não é um kernel da distribuição: não há pacote de cabeçalhos para ele. Inicie um kernel da distribuição e verifique de novo.";
+                ? L.T($"Sua distribuição ({d.Distro.Name}) não está na lista do Ilmenyx. Use o gerenciador de drivers dela e escolha o ramo {support.Branch}.")
+                : NvidiaScripts.IsUbuntuKernel(d.RunningKernel) || !d.Distro.UsesApt ? L.T($"Sem plano automático para esta combinação. Use o gerenciador de drivers da distribuição e escolha o ramo {support.Branch}.")
+                : L.T($"O kernel em uso ({d.RunningKernel}) não é um kernel da distribuição: não há pacote de cabeçalhos para ele. Inicie um kernel da distribuição e verifique de novo.");
 
         var (headline, summary) = state switch
         {
-            NvidiaDriverState.Working => ($"Funcionando · driver {d.SmiVersion ?? d.LoadedVersion}", $"{gpuText} usa o driver NVIDIA {d.SmiVersion ?? d.LoadedVersion}; o nvidia-smi responde."),
-            NvidiaDriverState.LoadedButSmiFails => ("Driver carregado, mas o nvidia-smi não responde", $"O módulo NVIDIA {d.LoadedVersion} está carregado para {gpuText}, mas o nvidia-smi falhou ou não está instalado. Reiniciar costuma resolver depois de uma atualização."),
-            NvidiaDriverState.NeedsReboot => ("Instalado · reinicie o computador", $"O driver NVIDIA está instalado e o módulo existe para o kernel {d.RunningKernel}, mas a placa ainda usa {d.KernelDriver}. Reinicie para ativar."),
-            NvidiaDriverState.Broken => ("Instalação com problema · reparo disponível", $"Há pacotes do driver ou do kernel pela metade (ou um kernel sem cabeçalhos completos). {gpuText} não tem o driver NVIDIA funcionando."),
-            NvidiaDriverState.NotInstalled => ($"Driver NVIDIA não instalado · em uso: {d.KernelDriver}", $"{gpuText}: o driver recomendado é o ramo {support.Branch}. {support.Note}"),
-            NvidiaDriverState.Unsupported => ("Sem driver NVIDIA suportado para esta placa", $"{gpuText}: {support.Note}"),
+            NvidiaDriverState.Working => (L.T($"Funcionando · driver {d.SmiVersion ?? d.LoadedVersion}"), L.T($"{gpuText} usa o driver NVIDIA {d.SmiVersion ?? d.LoadedVersion}; o nvidia-smi responde.")),
+            NvidiaDriverState.LoadedButSmiFails => (L.T("Driver carregado, mas o nvidia-smi não responde"), L.T($"O módulo NVIDIA {d.LoadedVersion} está carregado para {gpuText}, mas o nvidia-smi falhou ou não está instalado. Reiniciar costuma resolver depois de uma atualização.")),
+            NvidiaDriverState.NeedsReboot => (L.T("Instalado · reinicie o computador"), L.T($"O driver NVIDIA está instalado e o módulo existe para o kernel {d.RunningKernel}, mas a placa ainda usa {d.KernelDriver}. Reinicie para ativar.")),
+            NvidiaDriverState.Broken => (L.T("Instalação com problema · reparo disponível"), L.T($"Há pacotes do driver ou do kernel pela metade (ou um kernel sem cabeçalhos completos). {gpuText} não tem o driver NVIDIA funcionando.")),
+            NvidiaDriverState.NotInstalled => (L.T($"Driver NVIDIA não instalado · em uso: {d.KernelDriver}"), L.T($"{gpuText}: o driver recomendado é o ramo {support.Branch}. {support.Note}")),
+            NvidiaDriverState.Unsupported => (L.T("Sem driver NVIDIA suportado para esta placa"), $"{gpuText}: {support.Note}"),
             _ => ("", ""),
         };
         return new NvidiaPlan(state, headline, summary, findings, actions, guidance);
@@ -225,11 +225,11 @@ public static class NvidiaPlanner
     {
         var risks = new List<string>();
         if (d.SecureBoot == SecureBootState.Enabled)
-            risks.Add("Secure Boot ligado: o módulo montado pelo DKMS é assinado com uma chave local (MOK) que precisa ser registrada. Depois de instalar, rode no terminal `sudo mokutil --import /var/lib/shim-signed/mok/MOK.der` (crie uma senha de uso único), reinicie e escolha \"Enroll MOK\" na tela azul. Sem isso a placa continua no nouveau. (NÃO TESTADO nesta máquina, que tem o Secure Boot desligado.)");
-        if (d.SecureBoot == SecureBootState.Unknown) risks.Add("Não foi possível ler o estado do Secure Boot (mokutil ausente). Se ele estiver ligado, será preciso registrar uma chave MOK no próximo boot.");
-        if (support.Generation == NvidiaGeneration.Kepler) risks.Add("Driver legado 470: a NVIDIA encerrou o suporte; a distribuição só aplica correções. Pode deixar de compilar em um kernel futuro.");
-        else if (support.Legacy) risks.Add($"Ramo {support.Branch} legado: é o último que suporta {NvidiaGenerations.Name(support.Generation)}. Não troque por um ramo mais novo (590+), que não reconhece esta placa.");
-        risks.Add("Baixa ~400 MB da internet e leva alguns minutos (monta o módulo para o kernel em uso). Não desligue o computador durante a instalação.");
+            risks.Add(L.T("Secure Boot ligado: o módulo montado pelo DKMS é assinado com uma chave local (MOK) que precisa ser registrada. Depois de instalar, rode no terminal `sudo mokutil --import /var/lib/shim-signed/mok/MOK.der` (crie uma senha de uso único), reinicie e escolha \"Enroll MOK\" na tela azul. Sem isso a placa continua no nouveau. (NÃO TESTADO nesta máquina, que tem o Secure Boot desligado.)"));
+        if (d.SecureBoot == SecureBootState.Unknown) risks.Add(L.T("Não foi possível ler o estado do Secure Boot (mokutil ausente). Se ele estiver ligado, será preciso registrar uma chave MOK no próximo boot."));
+        if (support.Generation == NvidiaGeneration.Kepler) risks.Add(L.T("Driver legado 470: a NVIDIA encerrou o suporte; a distribuição só aplica correções. Pode deixar de compilar em um kernel futuro."));
+        else if (support.Legacy) risks.Add(L.T($"Ramo {support.Branch} legado: é o último que suporta {NvidiaGenerations.Name(support.Generation)}. Não troque por um ramo mais novo (590+), que não reconhece esta placa."));
+        risks.Add(L.T("Baixa ~400 MB da internet e leva alguns minutos (monta o módulo para o kernel em uso). Não desligue o computador durante a instalação."));
         return risks;
     }
 
@@ -239,16 +239,16 @@ public static class NvidiaPlanner
         var support = d.Primary!.Support;
         var steps = new List<string>
         {
-            $"Instalar {DriverPackage(branch, open)} (driver NVIDIA ramo {branch}{(open ? ", módulos \"open\"" : "")}) e {DkmsPackage(branch, open)}: o DKMS monta o módulo para o kernel que está em uso ({d.RunningKernel}).",
-            $"Garantir os cabeçalhos do kernel em uso (linux-headers-{d.RunningKernel}), que o DKMS precisa para montar o módulo.",
-            "Não usar os módulos pré-compilados por kernel (linux-modules-nvidia-*): eles puxam um kernel novo, que foi o que falhou no caso real desta aba.",
+            L.T($"Instalar {DriverPackage(branch, open)} (driver NVIDIA ramo {branch}{(open ? L.T(", módulos \"open\"") : "")}) e {DkmsPackage(branch, open)}: o DKMS monta o módulo para o kernel que está em uso ({d.RunningKernel})."),
+            L.T($"Garantir os cabeçalhos do kernel em uso (linux-headers-{d.RunningKernel}), que o DKMS precisa para montar o módulo."),
+            L.T("Não usar os módulos pré-compilados por kernel (linux-modules-nvidia-*): eles puxam um kernel novo, que foi o que falhou no caso real desta aba."),
         };
-        if (fromBranch is not null) steps.Insert(0, $"Trocar o ramo {fromBranch} instalado pelo {branch}: o apt remove os pacotes do ramo antigo.");
-        if (d.Hybrid && d.PrimeSelectAvailable) steps.Add("Deixar o PRIME em \"on-demand\": a tela continua na placa integrada e a NVIDIA entra nos jogos/programas que pedirem (economiza bateria).");
-        steps.Add("Conferir no final (dkms status e arquivo do módulo) e pedir para você reiniciar.");
-        string title = kind == NvidiaActionKind.Update ? (fromBranch is null ? $"Atualizar o driver NVIDIA {branch}" : $"Atualizar para o ramo {branch}") : $"Instalar o driver NVIDIA {branch}";
-        string script = NvidiaScripts.Apt(["install", .. pkgs], NvidiaScripts.GuardInstall(d.RunningKernel), d.RunningKernel, true, d.Hybrid && d.PrimeSelectAvailable, "concluído. Reinicie o computador para usar o driver NVIDIA.");
-        return new NvidiaAction(kind, title, kind == NvidiaActionKind.Update ? "Atualizar" : "Instalar", steps, CommonRisks(d, support), script, ["install", .. pkgs], purge, tested);
+        if (fromBranch is not null) steps.Insert(0, L.T($"Trocar o ramo {fromBranch} instalado pelo {branch}: o apt remove os pacotes do ramo antigo."));
+        if (d.Hybrid && d.PrimeSelectAvailable) steps.Add(L.T("Deixar o PRIME em \"on-demand\": a tela continua na placa integrada e a NVIDIA entra nos jogos/programas que pedirem (economiza bateria)."));
+        steps.Add(L.T("Conferir no final (dkms status e arquivo do módulo) e pedir para você reiniciar."));
+        string title = kind == NvidiaActionKind.Update ? (fromBranch is null ? L.T($"Atualizar o driver NVIDIA {branch}") : L.T($"Atualizar para o ramo {branch}")) : L.T($"Instalar o driver NVIDIA {branch}");
+        string script = NvidiaScripts.Apt(["install", .. pkgs], NvidiaScripts.GuardInstall(d.RunningKernel), d.RunningKernel, true, d.Hybrid && d.PrimeSelectAvailable, L.T("concluído. Reinicie o computador para usar o driver NVIDIA."));
+        return new NvidiaAction(kind, title, kind == NvidiaActionKind.Update ? L.T("Atualizar driver") : L.T("Instalar driver"), steps, CommonRisks(d, support), script, ["install", .. pkgs], purge, tested);
     }
 
     private static NvidiaAction UbuntuRepair(NvidiaDiagnosis d, string branch, bool open, bool tested)
@@ -261,21 +261,21 @@ public static class NvidiaPlanner
         var pkgs = UbuntuPackages(branch, open, d.RunningKernel);
         var steps = new List<string>();
         var broken = d.BrokenPackages.Select(p => $"{p.Name} ({p.StatusText})").ToList();
-        if (broken.Count > 0) steps.Add("Pacotes pela metade encontrados: " + string.Join(", ", broken.Take(8)) + (broken.Count > 8 ? $" e mais {broken.Count - 8}" : "") + ".");
+        if (broken.Count > 0) steps.Add(L.T("Pacotes pela metade encontrados: ") + string.Join(", ", broken.Take(8)) + (broken.Count > 8 ? L.T($" e mais {broken.Count - 8}") : "") + ".");
         foreach (var k in kernels)
         {
             var h = d.Kernels.First(x => x.Kernel == k);
-            steps.Add($"Remover o kernel {k}, que não está em uso" + (h.Present && !h.Complete ? $" e veio com cabeçalhos incompletos (faltam {string.Join(", ", h.Missing)})" : " e tem pacotes do driver que falharam") + ". O computador continua iniciando no kernel atual, " + d.RunningKernel + ".");
+            steps.Add(L.T($"Remover o kernel {k}, que não está em uso") + (h.Present && !h.Complete ? L.T($" e veio com cabeçalhos incompletos (faltam {string.Join(", ", h.Missing)})") : L.T(" e tem pacotes do driver que falharam")) + L.T(". O computador continua iniciando no kernel atual, ") + d.RunningKernel + ".");
         }
-        if (purge.Count > 0) steps.Add("Pacotes que serão removidos (purge): " + string.Join(", ", purge) + ".");
-        steps.Add($"Instalar {DkmsPackage(branch, open)} e {DriverPackage(branch, open)} com os cabeçalhos do kernel em uso (linux-headers-{d.RunningKernel}): o DKMS monta o módulo para ele.");
-        if (d.Hybrid && d.PrimeSelectAvailable) steps.Add("Deixar o PRIME em \"on-demand\".");
-        steps.Add("Conferir no final (dkms status e arquivo do módulo) e pedir para você reiniciar.");
+        if (purge.Count > 0) steps.Add(L.T("Pacotes que serão removidos (purge): ") + string.Join(", ", purge) + ".");
+        steps.Add(L.T($"Instalar {DkmsPackage(branch, open)} e {DriverPackage(branch, open)} com os cabeçalhos do kernel em uso (linux-headers-{d.RunningKernel}): o DKMS monta o módulo para ele."));
+        if (d.Hybrid && d.PrimeSelectAvailable) steps.Add(L.T("Deixar o PRIME em \"on-demand\"."));
+        steps.Add(L.T("Conferir no final (dkms status e arquivo do módulo) e pedir para você reiniciar."));
         var risks = CommonRisks(d, d.Primary!.Support);
-        if (kernels.Count > 0) risks.Insert(0, "O kernel removido some do menu de boot. Se você o escolhia de propósito, ele volta numa atualização futura da distribuição (com cabeçalhos corrigidos).");
+        if (kernels.Count > 0) risks.Insert(0, L.T("O kernel removido some do menu de boot. Se você o escolhia de propósito, ele volta numa atualização futura da distribuição (com cabeçalhos corrigidos)."));
         var args = new List<string> { "install", "--purge" }; args.AddRange(pkgs); args.AddRange(purge.Select(p => p + "-"));
-        string script = NvidiaScripts.Apt(args, NvidiaScripts.GuardRepair(d.RunningKernel), d.RunningKernel, true, d.Hybrid && d.PrimeSelectAvailable, "reparo concluído. Reinicie o computador para usar o driver NVIDIA.");
-        return new NvidiaAction(NvidiaActionKind.Repair, $"Reparar a instalação do driver NVIDIA {branch}", "REPARAR", steps, risks, script, args, purge, tested);
+        string script = NvidiaScripts.Apt(args, NvidiaScripts.GuardRepair(d.RunningKernel), d.RunningKernel, true, d.Hybrid && d.PrimeSelectAvailable, L.T("reparo concluído. Reinicie o computador para usar o driver NVIDIA."));
+        return new NvidiaAction(NvidiaActionKind.Repair, L.T($"Reparar a instalação do driver NVIDIA {branch}"), L.T("REPARAR"), steps, risks, script, args, purge, tested);
     }
 
     private static NvidiaAction UbuntuRevert(NvidiaDiagnosis d, bool tested)
@@ -283,26 +283,26 @@ public static class NvidiaPlanner
         var purge = d.NvidiaPackages.Select(p => p.Name).Distinct().OrderBy(n => n, StringComparer.Ordinal).ToList();
         var steps = new List<string>
         {
-            "Remover (purge) os pacotes do driver NVIDIA: " + string.Join(", ", purge.Take(10)) + (purge.Count > 10 ? $" e mais {purge.Count - 10}" : "") + ".",
-            "Com isso a regra que bloqueia o nouveau sai junto; no próximo boot a placa volta ao nouveau (driver livre do kernel).",
-            "O kernel, o nvidia-prime e o nvidia-settings não são removidos.",
+            L.T("Remover (purge) os pacotes do driver NVIDIA: ") + string.Join(", ", purge.Take(10)) + (purge.Count > 10 ? L.T($" e mais {purge.Count - 10}") : "") + ".",
+            L.T("Com isso a regra que bloqueia o nouveau sai junto; no próximo boot a placa volta ao nouveau (driver livre do kernel)."),
+            L.T("O kernel, o nvidia-prime e o nvidia-settings não são removidos."),
         };
-        var risks = new List<string> { "Sem o driver NVIDIA: jogos e programas que dependem de CUDA/NVENC deixam de usar a placa; o nouveau tem desempenho bem menor e, em placas Maxwell ou mais novas, não controla o clock." };
-        string script = NvidiaScripts.Apt(["purge", .. purge], NvidiaScripts.GuardInstall(d.RunningKernel), d.RunningKernel, false, false, "driver NVIDIA removido. Reinicie o computador para voltar ao nouveau.");
-        return new NvidiaAction(NvidiaActionKind.Revert, "Voltar ao nouveau (remover o driver NVIDIA)", "VOLTAR AO NOUVEAU", steps, risks, script, ["purge", .. purge], [], tested);
+        var risks = new List<string> { L.T("Sem o driver NVIDIA: jogos e programas que dependem de CUDA/NVENC deixam de usar a placa; o nouveau tem desempenho bem menor e, em placas Maxwell ou mais novas, não controla o clock.") };
+        string script = NvidiaScripts.Apt(["purge", .. purge], NvidiaScripts.GuardInstall(d.RunningKernel), d.RunningKernel, false, false, L.T("driver NVIDIA removido. Reinicie o computador para voltar ao nouveau."));
+        return new NvidiaAction(NvidiaActionKind.Revert, L.T("Voltar ao nouveau (remover o driver NVIDIA)"), L.T("VOLTAR AO NOUVEAU"), steps, risks, script, ["purge", .. purge], [], tested);
     }
 
     private static NvidiaAction DebianInstall(NvidiaDiagnosis d)
     {
         string k = d.RunningKernel;
         if (d.Primary!.Generation == NvidiaGeneration.Kepler)
-            return new NvidiaAction(NvidiaActionKind.Install, "Instalar o driver NVIDIA (Debian)", "Instalar", ["Debian: o driver legado 470 tem pacotes próprios (nvidia-tesla-470-driver) que mudam entre versões do Debian."], [], "", null, [], false,
-                "Debian com placa Kepler: sem plano automático. Veja https://wiki.debian.org/NvidiaGraphicsDrivers.");
+            return new NvidiaAction(NvidiaActionKind.Install, L.T("Instalar o driver NVIDIA (Debian)"), L.T("Instalar"), [L.T("Debian: o driver legado 470 tem pacotes próprios (nvidia-tesla-470-driver) que mudam entre versões do Debian.")], [], "", null, [], false,
+                L.T("Debian com placa Kepler: sem plano automático. Veja https://wiki.debian.org/NvidiaGraphicsDrivers."));
         string[] pkgs = ["nvidia-kernel-dkms", "nvidia-driver", "firmware-misc-nonfree", "linux-headers-" + k];
-        var steps = new List<string> { "Debian: instala nvidia-driver (a versão que o Debian publica, não necessariamente a 580) com DKMS e os cabeçalhos do kernel em uso.", "Requer os componentes \"contrib non-free non-free-firmware\" habilitados no sources.list; senão a simulação falha e nada é feito." };
-        var risks = CommonRisks(d, d.Primary.Support); risks.Insert(0, "NÃO TESTADO: plano documentado para Debian, nunca executado de verdade.");
-        return new NvidiaAction(NvidiaActionKind.Install, "Instalar o driver NVIDIA (Debian)", "Instalar", steps, risks,
-            NvidiaScripts.Apt(["install", .. pkgs], NvidiaScripts.GuardInstall(k), k, true, false, "concluído. Reinicie o computador."), ["install", .. pkgs], [], false);
+        var steps = new List<string> { L.T("Debian: instala nvidia-driver (a versão que o Debian publica, não necessariamente a 580) com DKMS e os cabeçalhos do kernel em uso."), L.T("Requer os componentes \"contrib non-free non-free-firmware\" habilitados no sources.list; senão a simulação falha e nada é feito.") };
+        var risks = CommonRisks(d, d.Primary.Support); risks.Insert(0, L.T("NÃO TESTADO: plano documentado para Debian, nunca executado de verdade."));
+        return new NvidiaAction(NvidiaActionKind.Install, L.T("Instalar o driver NVIDIA (Debian)"), L.T("Instalar"), steps, risks,
+            NvidiaScripts.Apt(["install", .. pkgs], NvidiaScripts.GuardInstall(k), k, true, false, L.T("concluído. Reinicie o computador.")), ["install", .. pkgs], [], false);
     }
 
     /// <summary>Fedora (RPM Fusion akmod), Arch (pacman + DKMS) and openSUSE (zypper): fixed scripts, all NÃO TESTADO; no simulation step.</summary>
@@ -311,7 +311,7 @@ public static class NvidiaPlanner
         string k = d.RunningKernel; var gen = gpu.Generation;
         if (!NvidiaScripts.ValidKernel(k)) return null;
         var risks = CommonRisks(d, gpu.Support);
-        risks.Insert(0, "NÃO TESTADO: plano documentado, nunca executado de verdade nesta distribuição. Sem simulação prévia: confira o script.");
+        risks.Insert(0, L.T("NÃO TESTADO: plano documentado, nunca executado de verdade nesta distribuição. Sem simulação prévia: confira o script."));
         bool turingPlus = gen >= NvidiaGeneration.Turing;
         switch (d.Distro.Family)
         {
@@ -326,19 +326,19 @@ public static class NvidiaPlanner
                     $"echo '== Ilmenyx 2/3: dnf install {akmod} {cuda} kernel-devel-'\"$K\"",
                     $"dnf install -y {NvidiaScripts.Quote(akmod)} {NvidiaScripts.Quote(cuda)} \"kernel-devel-$K\"",
                     "echo '== Ilmenyx 3/3: montando o módulo para o kernel em uso (akmods)'",
-                    "akmods --force --kernels \"$K\"",
+                    L.T("akmods --force --kernels \"$K\""),
                     "if find \"/lib/modules/$K\" -name 'nvidia.ko*' 2>/dev/null | grep -q .; then echo 'OK: módulo nvidia presente.'; else echo 'ATENÇÃO: módulo nvidia não encontrado.'; exit 4; fi",
                     "echo '== Ilmenyx: concluído. Reinicie o computador.'") + "\n";
-                return new NvidiaAction(NvidiaActionKind.Install, $"Instalar o driver NVIDIA ({akmod}, RPM Fusion)", "Instalar",
-                    [$"Habilitar o RPM Fusion (free e nonfree) se ainda não estiver.", $"Instalar {akmod} e {cuda} com kernel-devel do kernel em uso ({k}).", "Forçar o akmods a montar o módulo agora e conferir o arquivo do módulo.", turingPlus ? "Placas Turing ou mais novas seguem o ramo atual do RPM Fusion (hoje mais novo que o 580)." : "Os nomes dos pacotes legados do RPM Fusion podem mudar: se o dnf não os achar, nada é instalado."],
+                return new NvidiaAction(NvidiaActionKind.Install, L.T($"Instalar o driver NVIDIA ({akmod}, RPM Fusion)"), L.T("Instalar"),
+                    [L.T($"Habilitar o RPM Fusion (free e nonfree) se ainda não estiver."), L.T($"Instalar {akmod} e {cuda} com kernel-devel do kernel em uso ({k})."), L.T("Forçar o akmods a montar o módulo agora e conferir o arquivo do módulo."), turingPlus ? L.T("Placas Turing ou mais novas seguem o ramo atual do RPM Fusion (hoje mais novo que o 580).") : L.T("Os nomes dos pacotes legados do RPM Fusion podem mudar: se o dnf não os achar, nada é instalado.")],
                     risks, script, null, [], false);
             }
             case DistroFamily.Arch:
             {
                 string? headers = ArchHeaders(k);
                 if (!turingPlus || headers is null)
-                    return new NvidiaAction(NvidiaActionKind.Install, "Instalar o driver NVIDIA (Arch)", "Instalar", [], risks, "", null, [], false,
-                        !turingPlus ? $"Arch e derivadas: placas {NvidiaGenerations.Name(gen)} usam o driver {gpu.Support.Branch} do AUR (nvidia-{gpu.Support.Branch}xx-dkms), que o Ilmenyx não instala. Use um assistente do AUR (yay/paru)." : $"Não reconhecemos o pacote de cabeçalhos do kernel {k}. Instale nvidia-open-dkms e os cabeçalhos do seu kernel pelo pacman.");
+                    return new NvidiaAction(NvidiaActionKind.Install, L.T("Instalar o driver NVIDIA (Arch)"), L.T("Instalar"), [], risks, "", null, [], false,
+                        !turingPlus ? L.T($"Arch e derivadas: placas {NvidiaGenerations.Name(gen)} usam o driver {gpu.Support.Branch} do AUR (nvidia-{gpu.Support.Branch}xx-dkms), que o Ilmenyx não instala. Use um assistente do AUR (yay/paru).") : L.T($"Não reconhecemos o pacote de cabeçalhos do kernel {k}. Instale nvidia-open-dkms e os cabeçalhos do seu kernel pelo pacman."));
                 string script = string.Join('\n',
                     "set -eu",
                     $"echo '== Ilmenyx 1/2: pacman -S nvidia-open-dkms nvidia-utils {headers}'",
@@ -347,23 +347,23 @@ public static class NvidiaPlanner
                     $"dkms status -k {NvidiaScripts.Quote(k)} || true",
                     $"if find /usr/lib/modules/{NvidiaScripts.Quote(k)} -name 'nvidia.ko*' 2>/dev/null | grep -q .; then echo 'OK: módulo nvidia presente.'; else echo 'ATENÇÃO: módulo nvidia não encontrado.'; exit 4; fi",
                     "echo '== Ilmenyx: concluído. Reinicie o computador.'") + "\n";
-                return new NvidiaAction(NvidiaActionKind.Install, "Instalar o driver NVIDIA (nvidia-open-dkms)", "Instalar",
-                    [$"Instalar nvidia-open-dkms, nvidia-utils e {headers} (cabeçalhos do kernel em uso, {k}).", "O DKMS monta o módulo; conferimos o arquivo no final.", "Placas Turing ou mais novas seguem o ramo atual do Arch (hoje mais novo que o 580)."],
+                return new NvidiaAction(NvidiaActionKind.Install, L.T("Instalar o driver NVIDIA (nvidia-open-dkms)"), L.T("Instalar"),
+                    [L.T($"Instalar nvidia-open-dkms, nvidia-utils e {headers} (cabeçalhos do kernel em uso, {k})."), L.T("O DKMS monta o módulo; conferimos o arquivo no final."), L.T("Placas Turing ou mais novas seguem o ramo atual do Arch (hoje mais novo que o 580).")],
                     risks, script, null, [], false);
             }
             case DistroFamily.OpenSuse:
             {
                 if (!turingPlus)
-                    return new NvidiaAction(NvidiaActionKind.Install, "Instalar o driver NVIDIA (openSUSE)", "Instalar", [], risks, "", null, [], false,
-                        "openSUSE com placa anterior à Turing: os pacotes do ramo legado mudam com o repositório da NVIDIA. Use o YaST (Software → Repositórios → NVIDIA).");
+                    return new NvidiaAction(NvidiaActionKind.Install, L.T("Instalar o driver NVIDIA (openSUSE)"), L.T("Instalar"), [], risks, "", null, [], false,
+                        L.T("openSUSE com placa anterior à Turing: os pacotes do ramo legado mudam com o repositório da NVIDIA. Use o YaST (Software → Repositórios → NVIDIA)."));
                 string script = string.Join('\n',
                     "set -eu",
                     "if ! zypper --non-interactive lr -u | grep -q 'download.nvidia.com'; then echo 'ABORTADO: repositório da NVIDIA não configurado (YaST → Repositórios). Nada foi alterado.'; exit 3; fi",
                     "echo '== Ilmenyx 1/1: zypper install nvidia-open-driver-G06-signed-kmp-default nvidia-video-G06 nvidia-gl-G06 nvidia-compute-utils-G06'",
                     "zypper --non-interactive install --auto-agree-with-licenses nvidia-open-driver-G06-signed-kmp-default nvidia-video-G06 nvidia-gl-G06 nvidia-compute-utils-G06",
                     "echo '== Ilmenyx: concluído. Reinicie o computador.'") + "\n";
-                return new NvidiaAction(NvidiaActionKind.Install, "Instalar o driver NVIDIA (G06 open, openSUSE)", "Instalar",
-                    ["Conferir que o repositório da NVIDIA está configurado (senão, nada é feito).", "Instalar os módulos \"open\" assinados (G06) e o driver de espaço do usuário."], risks, script, null, [], false);
+                return new NvidiaAction(NvidiaActionKind.Install, L.T("Instalar o driver NVIDIA (G06 open, openSUSE)"), L.T("Instalar"),
+                    [L.T("Conferir que o repositório da NVIDIA está configurado (senão, nada é feito)."), L.T("Instalar os módulos \"open\" assinados (G06) e o driver de espaço do usuário.")], risks, script, null, [], false);
             }
             default: return null;
         }
@@ -377,8 +377,8 @@ public static class NvidiaPlanner
             DistroFamily.Arch => "set -eu\necho '== Ilmenyx: removendo o driver NVIDIA (pacman)'\nP=$(pacman -Qq | grep -E '^(nvidia-open-dkms|nvidia-dkms|nvidia|nvidia-open|nvidia-utils|lib32-nvidia-utils|nvidia-[0-9]{3}xx-dkms|nvidia-[0-9]{3}xx-utils)$' || true)\nif [ -n \"$P\" ]; then pacman -Rns --noconfirm $P; fi\necho '== Ilmenyx: concluído. Reinicie o computador para voltar ao nouveau.'\n",
             _ => null,
         };
-        return script is null ? null : new NvidiaAction(NvidiaActionKind.Revert, "Voltar ao nouveau (remover o driver NVIDIA)", "VOLTAR AO NOUVEAU",
-            ["Remover os pacotes do driver NVIDIA; no próximo boot a placa volta ao nouveau."], ["NÃO TESTADO nesta distribuição.", "Sem o driver NVIDIA, CUDA/NVENC e o desempenho em jogos deixam de existir."], script, null, [], false);
+        return script is null ? null : new NvidiaAction(NvidiaActionKind.Revert, L.T("Voltar ao nouveau (remover o driver NVIDIA)"), L.T("VOLTAR AO NOUVEAU"),
+            [L.T("Remover os pacotes do driver NVIDIA; no próximo boot a placa volta ao nouveau.")], [L.T("NÃO TESTADO nesta distribuição."), L.T("Sem o driver NVIDIA, CUDA/NVENC e o desempenho em jogos deixam de existir.")], script, null, [], false);
     }
 
     /// <summary>Arch kernel flavour → headers package (linux, linux-lts, linux-zen, linux-hardened, CachyOS, Manjaro linuxXY). Null when unknown.</summary>
@@ -401,22 +401,22 @@ public static class NvidiaPlanner
     public static IReadOnlyList<string> CheckSimulation(NvidiaAction action, AptSimulation sim, string runningKernel)
     {
         var problems = new List<string>();
-        foreach (var e in sim.Errors) problems.Add("A simulação do apt falhou: " + e);
+        foreach (var e in sim.Errors) problems.Add(L.T("A simulação do apt falhou: ") + e);
         foreach (var a in sim.Installs)
         {
             if (Regex.IsMatch(a.Package, @"^linux-(image|modules|objects|signatures|main-modules)-"))
-                problems.Add($"A simulação instalaria {a.Package}: isso puxaria outro kernel ou módulos pré-compilados (o que quebrou o caso real). Plano recusado.");
+                problems.Add(L.T($"A simulação instalaria {a.Package}: isso puxaria outro kernel ou módulos pré-compilados (o que quebrou o caso real). Plano recusado."));
             else if (Regex.IsMatch(a.Package, @"^linux-(.+-)?headers-") && !a.Package.Contains(NvidiaScripts.KernelBase(runningKernel), StringComparison.Ordinal))
-                problems.Add($"A simulação instalaria cabeçalhos de outro kernel ({a.Package}). Plano recusado.");
+                problems.Add(L.T($"A simulação instalaria cabeçalhos de outro kernel ({a.Package}). Plano recusado."));
         }
         foreach (var a in sim.Removals)
         {
             if (NvidiaScripts.IsKernelCore(a.Package, runningKernel))
-                problems.Add($"A simulação removeria {a.Package}, do kernel em uso ({runningKernel}). Plano recusado.");
+                problems.Add(L.T($"A simulação removeria {a.Package}, do kernel em uso ({runningKernel}). Plano recusado."));
             else if (a.Package.StartsWith("linux-image-", StringComparison.Ordinal) && !action.AllowedRemovals.Contains(a.Package))
-                problems.Add($"A simulação removeria o kernel {a.Package}. Plano recusado.");
+                problems.Add(L.T($"A simulação removeria o kernel {a.Package}. Plano recusado."));
             else if (!NvidiaScripts.IsNvidiaPackage(a.Package) && !action.AllowedRemovals.Contains(a.Package))
-                problems.Add($"A simulação removeria {a.Package}, que não é do driver NVIDIA. Plano recusado.");
+                problems.Add(L.T($"A simulação removeria {a.Package}, que não é do driver NVIDIA. Plano recusado."));
         }
         return problems;
     }
@@ -426,39 +426,39 @@ public static class NvidiaPlanner
     {
         if (kind == NvidiaActionKind.Revert)
             return after.NvidiaPackages.Any(p => !p.Name.StartsWith("linux-", StringComparison.Ordinal))
-                ? (false, "Ainda há pacotes do driver NVIDIA instalados: " + string.Join(", ", after.NvidiaPackages.Select(p => p.Name).Take(6)) + ".")
-                : (true, "Driver NVIDIA removido. Reinicie o computador para a placa voltar ao nouveau.");
-        if (after.BrokenPackages.Any()) return (false, "Ainda há pacotes pela metade: " + string.Join(", ", after.BrokenPackages.Select(p => p.Name + " (" + p.StatusText + ")").Take(6)) + ". Veja o log.");
-        if (!after.ModuleReadyForRunningKernel) return (false, $"O módulo NVIDIA não foi encontrado para o kernel {after.RunningKernel}. Veja o log (DKMS).");
+                ? (false, L.T("Ainda há pacotes do driver NVIDIA instalados: ") + string.Join(", ", after.NvidiaPackages.Select(p => p.Name).Take(6)) + ".")
+                : (true, L.T("Driver NVIDIA removido. Reinicie o computador para a placa voltar ao nouveau."));
+        if (after.BrokenPackages.Any()) return (false, L.T("Ainda há pacotes pela metade: ") + string.Join(", ", after.BrokenPackages.Select(p => p.Name + " (" + p.StatusText + ")").Take(6)) + L.T(". Veja o log."));
+        if (!after.ModuleReadyForRunningKernel) return (false, L.T($"O módulo NVIDIA não foi encontrado para o kernel {after.RunningKernel}. Veja o log (DKMS)."));
         string dkms = after.Dkms.FirstOrDefault(x => x.Kernel == after.RunningKernel && x.Module.StartsWith("nvidia", StringComparison.Ordinal)) is { } e ? $" (dkms: {e.Module}/{e.Version} {e.State})" : "";
-        return (true, $"Módulo NVIDIA pronto para o kernel {after.RunningKernel}{dkms}. Reinicie o computador para ativar o driver.");
+        return (true, L.T($"Módulo NVIDIA pronto para o kernel {after.RunningKernel}{dkms}. Reinicie o computador para ativar o driver."));
     }
 
     public static IReadOnlyList<string> Findings(NvidiaDiagnosis d, NvidiaDriverState state)
     {
         var f = new List<string>();
         foreach (var g in d.Gpus)
-            f.Add($"GPU NVIDIA: {g.Name} [10de:{g.DeviceId}] · {NvidiaGenerations.Name(g.Generation)}{(g.Chip.Length > 0 ? " " + g.Chip : "")} · driver em uso: {(g.KernelDriver.Length > 0 ? g.KernelDriver : "nenhum")} · ramo indicado: {g.Support.Branch ?? "nenhum"}");
-        if (d.OtherGpus.Count > 0) f.Add("Outra GPU: " + string.Join(", ", d.OtherGpus) + (d.Gpus.Count > 0 ? " (notebook/PC híbrido: PRIME)" : ""));
-        f.Add($"Sistema: {d.Distro.Name} ({FamilyText(d.Distro.Family)}) · kernel em uso {d.RunningKernel} ({d.Architecture})");
-        if (d.RunningHeaders is { } h) f.Add(h.Complete ? $"Cabeçalhos do kernel em uso: completos" : h.Present ? $"Cabeçalhos do kernel em uso: INCOMPLETOS (faltam {string.Join(", ", h.Missing)})" : "Cabeçalhos do kernel em uso: ausentes (serão instalados junto)");
+            f.Add(L.T($"GPU NVIDIA: {g.Name} [10de:{g.DeviceId}] · {NvidiaGenerations.Name(g.Generation)}{(g.Chip.Length > 0 ? " " + g.Chip : "")} · driver em uso: {(g.KernelDriver.Length > 0 ? g.KernelDriver : L.T("nenhum"))} · ramo indicado: {g.Support.Branch ?? "nenhum"}"));
+        if (d.OtherGpus.Count > 0) f.Add(L.T("Outra GPU: ") + string.Join(", ", d.OtherGpus) + (d.Gpus.Count > 0 ? L.T(" (notebook/PC híbrido: PRIME)") : ""));
+        f.Add(L.T($"Sistema: {d.Distro.Name} ({FamilyText(d.Distro.Family)}) · kernel em uso {d.RunningKernel} ({d.Architecture})"));
+        if (d.RunningHeaders is { } h) f.Add(h.Complete ? L.T($"Cabeçalhos do kernel em uso: completos") : h.Present ? L.T($"Cabeçalhos do kernel em uso: INCOMPLETOS (faltam {string.Join(", ", h.Missing)})") : L.T("Cabeçalhos do kernel em uso: ausentes (serão instalados junto)"));
         foreach (var k in d.Kernels.Where(k => k.Kernel != d.RunningKernel))
-            f.Add($"Outro kernel instalado: {k.Kernel} · cabeçalhos {(k.Complete ? "completos" : k.Present ? "INCOMPLETOS (faltam " + string.Join(", ", k.Missing) + ")" : "ausentes")}");
-        foreach (var p in d.BrokenPackages.Take(12)) f.Add($"Pacote pela metade: {p.Name} {p.Version} · {p.Status.Trim()} ({p.StatusText})");
-        if (d.InstalledDriver is { } i) f.Add($"Pacote do driver: nvidia-driver-{i.Branch}{(i.Open ? "-open" : "")} {i.Version}" + (d.CandidateVersion is { } c ? c != i.Version ? $" · disponível: {c}" : " · em dia (é o candidato do gerenciador de pacotes para este ramo)" : ""));
+            f.Add(L.T($"Outro kernel instalado: {k.Kernel} · cabeçalhos {(k.Complete ? L.T("completos") : k.Present ? L.T("INCOMPLETOS (faltam ") + string.Join(", ", k.Missing) + ")" : L.T("ausentes"))}"));
+        foreach (var p in d.BrokenPackages.Take(12)) f.Add(L.T($"Pacote pela metade: {p.Name} {p.Version} · {p.Status.Trim()} ({p.StatusText})"));
+        if (d.InstalledDriver is { } i) f.Add(L.T($"Pacote do driver: nvidia-driver-{i.Branch}{(i.Open ? "-open" : "")} {i.Version}") + (d.CandidateVersion is { } c ? c != i.Version ? L.T($" · disponível: {c}") : L.T(" · em dia (é o candidato do gerenciador de pacotes para este ramo)") : ""));
         foreach (var e in d.Dkms.Where(e => e.Module.StartsWith("nvidia", StringComparison.Ordinal))) f.Add($"DKMS: {e.Module}/{e.Version} · {e.Kernel} · {e.State}");
-        if (d.LoadedVersion is { } lv) f.Add($"Módulo carregado: nvidia {lv}");
-        if (d.SmiVersion is { } sv) f.Add($"nvidia-smi: responde (driver {sv})"); else if (d.SmiInstalled) f.Add("nvidia-smi: instalado, mas não respondeu");
+        if (d.LoadedVersion is { } lv) f.Add(L.T($"Módulo carregado: nvidia {lv}"));
+        if (d.SmiVersion is { } sv) f.Add(L.T($"nvidia-smi: responde (driver {sv})")); else if (d.SmiInstalled) f.Add(L.T("nvidia-smi: instalado, mas não respondeu"));
         f.Add("Secure Boot: " + SecureBootText(d.SecureBoot));
-        if (d.PrimeMode is { } pm) f.Add("PRIME (prime-select): " + pm);
+        if (d.PrimeMode is { } pm) f.Add(L.T("PRIME (prime-select): ") + pm);
         f.AddRange(d.Notes);
         return f;
     }
 
-    public static string SecureBootText(SecureBootState s) => s switch { SecureBootState.Enabled => "ligado", SecureBootState.Disabled => "desligado", SecureBootState.NotUefi => "não se aplica (BIOS legado)", _ => "desconhecido" };
+    public static string SecureBootText(SecureBootState s) => s switch { SecureBootState.Enabled => "ligado", SecureBootState.Disabled => "desligado", SecureBootState.NotUefi => L.T("não se aplica (BIOS legado)"), _ => "desconhecido" };
     public static string FamilyText(DistroFamily f) => f switch
     {
         DistroFamily.Ubuntu => "base Ubuntu, apt", DistroFamily.Debian => "Debian, apt", DistroFamily.Fedora => "Fedora, dnf + RPM Fusion", DistroFamily.Arch => "Arch, pacman",
-        DistroFamily.OpenSuse => "openSUSE, zypper", _ => "fora da lista: só orientação",
+        DistroFamily.OpenSuse => L.T("openSUSE, zypper"), _ => L.T("fora da lista: só orientação"),
     };
 }

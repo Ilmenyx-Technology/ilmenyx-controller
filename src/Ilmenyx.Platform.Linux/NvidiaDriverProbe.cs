@@ -50,7 +50,7 @@ public sealed class NvidiaDriverProbe
         if (osRelease.Length == 0) osRelease = Read(Path.Combine(Path.GetDirectoryName(etc)!, "usr/lib/os-release"), 8192);
         var distro = DistroInfo.Parse(osRelease);
         string kernel = Read(Path.Combine(proc, "sys/kernel/osrelease"), 128);
-        if (!NvidiaScripts.ValidKernel(kernel)) { notes.Add("Versão do kernel em uso ilegível."); kernel = ""; }
+        if (!NvidiaScripts.ValidKernel(kernel)) { notes.Add(L.T("Versão do kernel em uso ilegível.")); kernel = ""; }
         string arch = Read(Path.Combine(proc, "sys/kernel/arch"), 32) is { Length: > 0 } a ? a : System.Runtime.InteropServices.RuntimeInformation.OSArchitecture switch
         { System.Runtime.InteropServices.Architecture.X64 => "x86_64", System.Runtime.InteropServices.Architecture.Arm64 => "aarch64", var o => o.ToString().ToLowerInvariant() };
 
@@ -88,8 +88,8 @@ public sealed class NvidiaDriverProbe
     /// <summary>Real `apt-get -s` (simulation; apt says so and needs no root). Only the action's validated arguments are passed.</summary>
     public async Task<AptSimulation> SimulateAsync(NvidiaAction action, CancellationToken ct = default)
     {
-        if (action.SimulationArguments is not { Count: > 0 } args) throw new InvalidOperationException("Esta ação não tem simulação.");
-        if (!args.All(a => a is "install" or "purge" or "--purge" || NvidiaScripts.ValidPackage(a.TrimEnd('-')))) throw new ArgumentException("Argumento inválido.");
+        if (action.SimulationArguments is not { Count: > 0 } args) throw new InvalidOperationException(L.T("Esta ação não tem simulação."));
+        if (!args.All(a => a is "install" or "purge" or "--purge" || NvidiaScripts.ValidPackage(a.TrimEnd('-')))) throw new ArgumentException(L.T("Argumento inválido."));
         var (code, output) = await run("apt-get", ["-s", .. args], TimeSpan.FromMinutes(2), ct);
         return AptSimulation.Parse(output, code);
     }
@@ -175,13 +175,13 @@ public static class NvidiaDriverRunner
     public static async Task<(bool Ok, string Message)> RunAsync(string script, Action<string> line, CancellationToken ct = default)
     {
         string? pkexec = BoundedProcess.FindSystem("pkexec");
-        if (pkexec is null) return (false, "O pedido de senha do sistema (pkexec/polkit) não está instalado.");
+        if (pkexec is null) return (false, L.T("O pedido de senha do sistema (pkexec/polkit) não está instalado."));
         var start = HostSpawn.Start(pkexec, ["/bin/sh", "-c", script]);
         using var process = new System.Diagnostics.Process { StartInfo = start };
         using var stop = CancellationTokenSource.CreateLinkedTokenSource(ct); stop.CancelAfter(TimeSpan.FromMinutes(40));
         try
         {
-            if (!process.Start()) return (false, "Não foi possível iniciar o pkexec.");
+            if (!process.Start()) return (false, L.T("Não foi possível iniciar o pkexec."));
             var tail = new StringBuilder();
             async Task Pump(StreamReader r)
             {
@@ -197,13 +197,13 @@ public static class NvidiaDriverRunner
             return process.ExitCode switch
             {
                 0 => (true, "Pronto."),
-                126 => (false, "Cancelado: a senha não foi informada. Nada foi alterado."),
-                127 => (false, "O sistema não autorizou (sua conta precisa ser de administrador)."),
-                3 => (false, "Abortado pela verificação de segurança antes de alterar o sistema (veja o log)."),
-                var c => (false, "Falhou (código " + c + "). Veja o log."),
+                126 => (false, L.T("Cancelado: a senha não foi informada. Nada foi alterado.")),
+                127 => (false, L.T("O sistema não autorizou (sua conta precisa ser de administrador).")),
+                3 => (false, L.T("Abortado pela verificação de segurança antes de alterar o sistema (veja o log).")),
+                var c => (false, L.T("Falhou (código ") + c + L.T("). Veja o log.")),
             };
         }
-        catch (OperationCanceledException) { return (false, ct.IsCancellationRequested ? "Interrompido." : "Tempo esgotado (40 min)."); }
+        catch (OperationCanceledException) { return (false, ct.IsCancellationRequested ? "Interrompido." : L.T("Tempo esgotado (40 min).")); }
         catch (Exception e) when (e is IOException or System.ComponentModel.Win32Exception) { return (false, "Falhou: " + e.Message); }
         finally
         {

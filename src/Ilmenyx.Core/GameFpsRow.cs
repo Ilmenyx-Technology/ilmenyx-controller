@@ -8,9 +8,9 @@ namespace Ilmenyx.Core;
 /// <summary>Card model of the original GameRow, without UI notifications.</summary>
 public sealed class GameFpsRow(GameInfo game)
 {
-    public const string SourceEstimate = "ESTIMATIVA", SourceMeasured = "MEDIDO NESTE PC", SourceProvisional = "PROVISÓRIO";
+    public static readonly string SourceEstimate = L.T("ESTIMATIVA"), SourceMeasured = L.T("MEDIDO NESTE PC"), SourceProvisional = L.T("PROVISÓRIO");
     /// <summary>Label of an estimate shown before this PC is calibrated (greyed card).</summary>
-    public const string ProvisionalNote = "provisório — calibre o PC";
+    public static readonly string ProvisionalNote = L.T("provisório — calibre o PC");
     public GameInfo Game { get; } = game;
     public string Name => Game.Name;
     public string Genre => Game.Genre;
@@ -29,9 +29,9 @@ public sealed class GameFpsRow(GameInfo game)
     public string BasisText { get; private set; } = "";
     public PersonalFactor? Personal { get; private set; }
     public string FpsText => Range is { } r ? r.Text : Fps > 0 ? Fps.ToString("0", System.Globalization.CultureInfo.InvariantCulture) : "—";
-    public string LowText => IsProvisional ? "sem confiança" : Assessment is { } a ? a.ConfidenceText : Low > 0 ? $"1% low {Low.ToString("0", System.Globalization.CultureInfo.InvariantCulture)}" : "";
+    public string LowText => IsProvisional ? L.T("sem confiança") : Assessment is { } a ? a.ConfidenceText : Low > 0 ? $"1% low {Low.ToString("0", System.Globalization.CultureInfo.InvariantCulture)}" : "";
     /// <summary>Common ranges of FPS calculators: 144+ excellent, 90+ great, 60+ playable. A range is rated by its centre.</summary>
-    public string Rating => Fps switch { <= 0 => "", >= 144 => "EXCELENTE", >= 90 => "ÓTIMO", >= 60 => "JOGÁVEL", >= 30 => "FRACO", _ => "INJOGÁVEL" };
+    public string Rating => Fps switch { <= 0 => "", >= 144 => L.T("EXCELENTE"), >= 90 => L.T("ÓTIMO"), >= 60 => L.T("JOGÁVEL"), >= 30 => "FRACO", _ => L.T("INJOGÁVEL") };
     public double Bar => Math.Clamp(Fps / 240.0, 0, 1);
     /// <summary>Longer text for tooltips and screen readers.</summary>
     public string Summary { get; private set; } = "";
@@ -54,8 +54,8 @@ public sealed class GameFpsRow(GameInfo game)
         Range = FpsAccuracy.Range(e, Game, a); Assessment = a; IsProvisional = provisional; Personal = personal;
         BasisText = provisional ? ProvisionalNote : "base: " + FpsModels.BasisText(basis) + (personal is { } q ? " · " + q.Text : "");
         Summary = provisional
-            ? $"Provisório — calibre o PC: {Range.Text} FPS pela {FpsModels.BasisText(basis)}, sem medir esta máquina. Não confie neste número antes de calibrar."
-            : $"Estimativa (não é medição): {Range.Text} FPS, {a.ConfidenceText}, base: {FpsModels.BasisText(basis)}" + (personal is { } r ? $" ajustada por {r.Text}" : "") + $" — {string.Join("; ", a.Reasons)}.";
+            ? L.T($"Provisório — calibre o PC: {Range.Text} FPS pela {FpsModels.BasisText(basis)}, sem medir esta máquina. Não confie neste número antes de calibrar.")
+            : L.T($"Estimativa (não é medição): {Range.Text} FPS, {a.ConfidenceText}, base: {FpsModels.BasisText(basis)}") + (personal is { } r ? L.T($" ajustada por {r.Text}") : "") + $" — {string.Join("; ", a.Reasons)}.";
     }
 
     public void SetMeasured(FpsSession s)
@@ -63,14 +63,14 @@ public sealed class GameFpsRow(GameInfo game)
         var inv = System.Globalization.CultureInfo.InvariantCulture;
         string when = s.At.ToLocalTime().ToString("dd/MM", inv);
         string dur = s.DurationSeconds >= 3600 ? $"{Math.Floor(s.DurationSeconds / 3600):0} h {Math.Floor(s.DurationSeconds % 3600 / 60):00} min" : $"{Math.Max(1, Math.Round(s.DurationSeconds / 60)):0} min";
-        Set(s.AvgFps, s.Low1Fps, SourceMeasured, $"última sessão {when} · {dur}");
+        Set(s.AvgFps, s.Low1Fps, SourceMeasured, L.T($"última sessão {when} · {dur}"));
         Measured = s;
-        Summary = $"Medido neste PC: {s.AvgFps.ToString("0", inv)} FPS" + (s.Low1Fps > 0 ? $" (1% low {s.Low1Fps.ToString("0", inv)})" : "")
-            + (s.CappedAt is { } cap ? $" · limitado a {cap.ToString("0", inv)} FPS (vsync ou limite do jogo): o PC pode render mais, por isso não ajusta a estimativa" : "") + $" · última sessão {when}, {dur}"
-            + (s.Gpu is { Length: > 0 } g ? $" · GPU {g}" : "") + (s.Resolution is { } r ? $" · {r}" : "") + ". Medido com MangoHud nas configurações que você usou no jogo.";
+        Summary = L.T($"Medido neste PC: {s.AvgFps.ToString("0", inv)} FPS") + (s.Low1Fps > 0 ? $" (1% low {s.Low1Fps.ToString("0", inv)})" : "")
+            + (s.CappedAt is { } cap ? L.T($" · limitado a {cap.ToString("0", inv)} FPS (vsync ou limite do jogo): o PC pode render mais, por isso não ajusta a estimativa") : "") + L.T($" · última sessão {when}, {dur}")
+            + (s.Gpu is { Length: > 0 } g ? $" · GPU {g}" : "") + (s.Resolution is { } r ? $" · {r}" : "") + L.T(". Medido com MangoHud nas configurações que você usou no jogo.");
     }
 
-    public static string LimiterText(FpsEstimate e, GameInfo g) => e.Limiter switch { Bottleneck.Cpu => "gargalo: CPU", Bottleneck.Gpu => "gargalo: GPU", Bottleneck.Engine => $"trava do jogo em {g.EngineCap:0} FPS", _ => "" };
+    public static string LimiterText(FpsEstimate e, GameInfo g) => e.Limiter switch { Bottleneck.Cpu => L.T("gargalo: CPU"), Bottleneck.Gpu => L.T("gargalo: GPU"), Bottleneck.Engine => L.T($"trava do jogo em {g.EngineCap:0} FPS"), _ => "" };
 
     /// <summary>Local estimate as a range with its confidence, then sessions measured on this PC take priority for their games.</summary>
     public static void RefreshLocal(IEnumerable<GameFpsRow> rows, double gpuIdx, double cpuIdx, string res, string preset, string upscaling, FpsAssessment assessment, IReadOnlyList<FpsSession>? sessions = null)

@@ -16,11 +16,11 @@ public sealed class SensorPanel : Border
     {
         DataContext = model;
         Background = Brushes.Transparent; Padding = new Thickness(0, 0, 10, 16); Margin = new Thickness(0, 4, 0, 0);
-        var refresh = UiKit.Primary("RefreshSensors", "Atualizar sensores"); refresh.Margin = new Thickness(0, 0, 8, 8);
-        var monitor = new Button { Name = "MonitorSensors", Content = "Monitorar (2 s)", Margin = new Thickness(0, 0, 8, 8) };
-        var stop = new Button { Name = "StopSensors", Content = "Parar monitor", Margin = new Thickness(0, 0, 8, 8) };
-        var export = new Button { Name = "ExportSensors", Content = "Exportar sensores JSON", Margin = new Thickness(0, 0, 8, 8) };
-        var exportHtml = new Button { Name = "ExportSensorsHtml", Content = "Exportar sensores HTML", Margin = new Thickness(0, 0, 8, 8) };
+        var refresh = UiKit.Primary("RefreshSensors", L.T("Atualizar sensores")); refresh.Margin = new Thickness(0, 0, 8, 8);
+        var monitor = new Button { Name = "MonitorSensors", Content = L.T("Monitorar (2 s)"), Margin = new Thickness(0, 0, 8, 8) };
+        var stop = new Button { Name = "StopSensors", Content = L.T("Parar monitor"), Margin = new Thickness(0, 0, 8, 8) };
+        var export = new Button { Name = "ExportSensors", Content = L.T("Exportar sensores JSON"), Margin = new Thickness(0, 0, 8, 8) };
+        var exportHtml = new Button { Name = "ExportSensorsHtml", Content = L.T("Exportar sensores HTML"), Margin = new Thickness(0, 0, 8, 8) };
         refresh.Bind(IsEnabledProperty, new Binding(nameof(model.CanRefresh)));
         monitor.Bind(IsEnabledProperty, new Binding(nameof(model.CanPoll)));
         stop.Bind(IsEnabledProperty, new Binding(nameof(model.IsPolling)));
@@ -47,8 +47,8 @@ public sealed class SensorPanel : Border
         // Readable table built from the same snapshot; the raw text stays available (and identical to before) behind a toggle.
         var table = new StackPanel { Name = "SensorTable" };
         var raw = new Border { Name = "SensorRaw", IsVisible = false, Margin = new Thickness(0, 8, 0, 0), Child = values }; // direct child: stays in the visual tree while hidden
-        var toggleRaw = new Button { Content = "Mostrar texto bruto", FontSize = 12, Padding = new Thickness(12, 5), Background = Brushes.Transparent, Foreground = Palette.Muted };
-        toggleRaw.Click += (_, _) => { raw.IsVisible = !raw.IsVisible; toggleRaw.Content = raw.IsVisible ? "Ocultar texto bruto" : "Mostrar texto bruto"; };
+        var toggleRaw = new Button { Content = L.T("Mostrar texto bruto"), FontSize = 12, Padding = new Thickness(12, 5), Background = Brushes.Transparent, Foreground = Palette.Muted };
+        toggleRaw.Click += (_, _) => { raw.IsVisible = !raw.IsVisible; toggleRaw.Content = raw.IsVisible ? L.T("Ocultar texto bruto") : L.T("Mostrar texto bruto"); };
         void Fill() => FillTable(table, model.Snapshot);
         model.PropertyChanged += (_, e) => { if (e.PropertyName is nameof(model.Snapshot) or null) Avalonia.Threading.Dispatcher.UIThread.Post(Fill); };
         Fill();
@@ -57,8 +57,8 @@ public sealed class SensorPanel : Border
             Spacing = 10,
             Children =
             {
-                UiKit.PageHeader("Sensores", "Temperaturas, ventoinhas, tensões e energia lidas do kernel (hwmon, thermal, power_supply)"),
-                new TextBlock { Text = "Leituras brutas do kernel, sem inferência de saúde. Canais não identificados preservam o nome original.\nMonitor opcional: atualiza a cada 2 segundos, sem manter histórico. Tensão pode exigir calibração da placa.", TextWrapping = TextWrapping.Wrap, Foreground = Palette.Muted, FontSize = 12, Margin = new Thickness(0, -8, 0, 4) },
+                UiKit.PageHeader(L.T("Sensores"), L.T("Temperaturas, ventoinhas, tensões e energia lidas do kernel (hwmon, thermal, power_supply)")),
+                new TextBlock { Text = L.T("Leituras brutas do kernel, sem inferência de saúde. Canais não identificados preservam o nome original.\nMonitor opcional: atualiza a cada 2 segundos, sem manter histórico. Tensão pode exigir calibração da placa."), TextWrapping = TextWrapping.Wrap, Foreground = Palette.Muted, FontSize = 12, Margin = new Thickness(0, -8, 0, 4) },
                 new WrapPanel { Children = { refresh, monitor, stop, export, exportHtml } }, status,
                 UiKit.Card(new StackPanel { Children = { table, new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(-12, 6, 0, 0), Children = { toggleRaw } }, raw } }, new Thickness(0, 4, 0, 0))
             }
@@ -69,9 +69,9 @@ public sealed class SensorPanel : Border
     private static void FillTable(StackPanel table, SensorSnapshot? snapshot)
     {
         table.Children.Clear();
-        if (snapshot is null) { table.Children.Add(new TextBlock { Text = "Sem snapshot de sensores. Use \"Atualizar sensores\".", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap }); return; }
+        if (snapshot is null) { table.Children.Add(new TextBlock { Text = L.T("Sem snapshot de sensores. Use \"Atualizar sensores\"."), Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap }); return; }
         if (snapshot.Readings.Count == 0 && snapshot.PowerSupplies is not { Count: > 0 })
-        { table.Children.Add(new TextBlock { Text = snapshot.Reason ?? "Nenhum sensor exposto pelo kernel.", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap }); return; }
+        { table.Children.Add(new TextBlock { Text = snapshot.Reason ?? L.T("Nenhum sensor exposto pelo kernel."), Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap }); return; }
         var groups = new List<Control>();
         foreach (var group in snapshot.Readings.GroupBy(r => (r.Chip, r.Device)))
         {
@@ -81,9 +81,9 @@ public sealed class SensorPanel : Border
         }
         if (snapshot.PowerSupplies is { Count: > 0 } supplies)
         {
-            var g = new StackPanel { Margin = new Thickness(0, 0, 0, 16), Children = { Heading("FONTES DE ENERGIA", "power_supply") } };
+            var g = new StackPanel { Margin = new Thickness(0, 0, 0, 16), Children = { Heading(L.T("FONTES DE ENERGIA"), "power_supply") } };
             foreach (var p in supplies)
-                g.Children.Add(Row(p.Device, $"{SnapshotReport.Describe(p.Type)} · {SnapshotReport.Describe(p.Status)} · presente: {SnapshotReport.Describe(p.Present)}", true));
+                g.Children.Add(Row(p.Device, L.T($"{SnapshotReport.Describe(p.Type)} · {SnapshotReport.Describe(p.Status)} · presente: {SnapshotReport.Describe(p.Present)}"), true));
             groups.Add(g);
         }
         // Two balanced columns of chip groups on wide windows, one column at the window minimum.

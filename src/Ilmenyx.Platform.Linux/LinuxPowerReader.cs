@@ -37,7 +37,7 @@ public sealed class LinuxPowerReader(string sysRoot = "/sys")
         return new(batteries, mains);
     }
 
-    public static string ProfileName(string id) => id switch { "power-saver" => "Economia de energia", "balanced" => "Equilibrado", "performance" => "Alto desempenho", _ => id };
+    public static string ProfileName(string id) => id switch { "power-saver" => L.T("Economia de energia"), "balanced" => L.T("Equilibrado"), "performance" => L.T("Alto desempenho"), _ => id };
 
     /// <summary>Active profile from power-profiles-daemon (read-only <c>powerprofilesctl get</c>); null when the tool is absent or fails.</summary>
     public static async Task<string?> ActiveProfileAsync(CancellationToken ct = default)

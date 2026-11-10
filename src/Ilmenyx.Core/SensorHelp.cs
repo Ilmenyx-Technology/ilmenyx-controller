@@ -30,10 +30,10 @@ public static class SensorHelp
     {
         var grants = new List<SensorGrant>();
         if (exists(RaplRule) || exists(RaplTmpfiles))
-            grants.Add(new("Consumo da CPU liberado pelo Ilmenyx", PowerUndo, "Desfeito. O consumo da CPU volta a ser só do root."));
+            grants.Add(new(L.T("Consumo da CPU liberado pelo Ilmenyx"), PowerUndo, L.T("Desfeito. O consumo da CPU volta a ser só do root.")));
         foreach (var module in TemperatureModules)
             if (exists($"/etc/modules-load.d/ilmenyx-{module}.conf"))
-                grants.Add(new($"Sensor de temperatura ({module}) ativado pelo Ilmenyx", TemperatureUndo(module), "Desfeito. Vale a partir do próximo reinício."));
+                grants.Add(new(L.T($"Sensor de temperatura ({module}) ativado pelo Ilmenyx"), TemperatureUndo(module), L.T("Desfeito. Vale a partir do próximo reinício.")));
         return grants;
     }
 
@@ -57,15 +57,15 @@ public static class SensorHelp
         if (cpuTemperatureMissing)
         {
             if (virtualMachine)
-                fixes.Add(new("Temperatura da CPU", "Este Linux roda numa máquina virtual: o hipervisor não repassa os sensores da CPU. Não há o que corrigir aqui; rode o Ilmenyx direto no PC.", []));
+                fixes.Add(new(L.T("Temperatura da CPU"), L.T("Este Linux roda numa máquina virtual: o hipervisor não repassa os sensores da CPU. Não há o que corrigir aqui; rode o Ilmenyx direto no PC."), []));
             else
             {
                 string module = TemperatureModule(cpuModel); // whitelisted: k10temp or coretemp
-                fixes.Add(new("Temperatura da CPU", $"O módulo do kernel que lê o sensor da sua CPU ({module}) não está carregado.",
-                    [("Carregar agora (até reiniciar)", $"sudo modprobe {module}"),
-                     ("Carregar sempre ao ligar o PC", $"echo {module} | sudo tee /etc/modules-load.d/ilmenyx-{module}.conf")],
+                fixes.Add(new(L.T("Temperatura da CPU"), L.T($"O módulo do kernel que lê o sensor da sua CPU ({module}) não está carregado."),
+                    [(L.T("Carregar agora (até reiniciar)"), $"sudo modprobe {module}"),
+                     (L.T("Carregar sempre ao ligar o PC"), $"echo {module} | sudo tee /etc/modules-load.d/ilmenyx-{module}.conf")],
                     Apply: $"modprobe {module} && printf '%s\\n' {module} > /etc/modules-load.d/ilmenyx-{module}.conf",
-                    Undo: TemperatureUndo(module), ApplyLabel: "Ativar sensor"));
+                    Undo: TemperatureUndo(module), ApplyLabel: L.T("Ativar sensor")));
             }
         }
         string zone = raplZone is { Length: > 0 } z ? z.Replace("/sys/devices/virtual/powercap/intel-rapl/", "/sys/class/powercap/") : "/sys/class/powercap/intel-rapl:0";
@@ -75,23 +75,23 @@ public static class SensorHelp
         switch (power)
         {
             case CpuPowerAccess.NoPermission:
-                fixes.Add(new("Consumo da CPU (W)",
-                    "O contador de energia da CPU (RAPL) existe, mas o kernel só deixa o root ler. O Ilmenyx não roda como root; para ver o consumo, libere a leitura para os usuários.",
-                    [("Liberar até reiniciar", $"sudo chmod o+r {zone}/energy_uj"),
-                     ("Liberar sempre ao ligar o PC", "echo 'ACTION==\"add\", SUBSYSTEM==\"powercap\", KERNEL==\"intel-rapl:*\", RUN+=\"/bin/chmod o+r /sys%p/energy_uj\"' | sudo tee /etc/udev/rules.d/90-ilmenyx-rapl.rules"),
-                     ("Desfazer", "sudo rm -f " + RaplRule + " && sudo chmod o-r /sys/class/powercap/intel-rapl:*/energy_uj")],
-                    "O kernel fechou essa leitura em 2020 porque o consumo pode vazar informação para outros programas (ataque PLATYPUS, CVE-2020-8694). Num PC pessoal o risco é baixo; num computador compartilhado ou servidor, não libere.",
+                fixes.Add(new(L.T("Consumo da CPU (W)"),
+                    L.T("O contador de energia da CPU (RAPL) existe, mas o kernel só deixa o root ler. O Ilmenyx não roda como root; para ver o consumo, libere a leitura para os usuários."),
+                    [(L.T("Liberar até reiniciar"), $"sudo chmod o+r {zone}/energy_uj"),
+                     (L.T("Liberar sempre ao ligar o PC"), "echo 'ACTION==\"add\", SUBSYSTEM==\"powercap\", KERNEL==\"intel-rapl:*\", RUN+=\"/bin/chmod o+r /sys%p/energy_uj\"' | sudo tee /etc/udev/rules.d/90-ilmenyx-rapl.rules"),
+                     (L.T("Desfazer"), "sudo rm -f " + RaplRule + " && sudo chmod o-r /sys/class/powercap/intel-rapl:*/energy_uj")],
+                    L.T("O kernel fechou essa leitura em 2020 porque o consumo pode vazar informação para outros programas (ataque PLATYPUS, CVE-2020-8694). Num PC pessoal o risco é baixo; num computador compartilhado ou servidor, não libere."),
                     // Immediate chmod plus a udev rule, so it also holds after a reboot (the zones are created by udev at boot).
                     Apply: $"chmod o+r {zone}/energy_uj && printf '%s\\n' 'ACTION==\"add\", SUBSYSTEM==\"powercap\", KERNEL==\"intel-rapl:*\", RUN+=\"/bin/chmod o+r /sys%p/energy_uj\"' > /etc/udev/rules.d/90-ilmenyx-rapl.rules",
                     Undo: PowerUndo,
-                    ApplyLabel: "Liberar consumo da CPU"));
+                    ApplyLabel: L.T("Liberar consumo da CPU")));
                 break;
             case CpuPowerAccess.NotPresent:
-                fixes.Add(new("Consumo da CPU (W)", virtualMachine
-                    ? "Máquinas virtuais não expõem o contador de energia da CPU."
-                    : "O kernel não expõe o contador de energia (RAPL) desta CPU. Em CPUs Intel e AMD Zen ele vem do módulo intel_rapl_msr.",
-                    virtualMachine ? [] : [("Carregar o módulo (até reiniciar)", "sudo modprobe intel_rapl_msr")],
-                    Apply: virtualMachine ? null : "modprobe intel_rapl_msr", ApplyLabel: virtualMachine ? null : "CARREGAR MÓDULO"));
+                fixes.Add(new(L.T("Consumo da CPU (W)"), virtualMachine
+                    ? L.T("Máquinas virtuais não expõem o contador de energia da CPU.")
+                    : L.T("O kernel não expõe o contador de energia (RAPL) desta CPU. Em CPUs Intel e AMD Zen ele vem do módulo intel_rapl_msr."),
+                    virtualMachine ? [] : [(L.T("Carregar o módulo (até reiniciar)"), "sudo modprobe intel_rapl_msr")],
+                    Apply: virtualMachine ? null : "modprobe intel_rapl_msr", ApplyLabel: virtualMachine ? null : L.T("CARREGAR MÓDULO")));
                 break;
         }
         return fixes;

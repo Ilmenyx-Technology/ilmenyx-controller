@@ -51,7 +51,8 @@ Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes qu
 - [~] **Instalar jogos de Windows a partir do instalador** (`setup.exe`) — FEITO no código ("INSTALAR JOGO DE WINDOWS"), falta testar com um instalador real. com Proton, de forma genérica (GOG offline, mídia física,
   itch.io...). Sem recursos específicos para repacks.
 - [ ] **Tutorial/Ajuda** (em construção, ver item 1).
-- [ ] **Idiomas: inglês e espanhol** (extrair os textos da interface para arquivos por idioma).
+- [x] **Idiomas: inglês e espanhol** — FEITO em 2026-11-10: botão de idioma no topo, 3.356 textos em `Locales/en.json` e `es.json`,
+  Central de ajuda e tour nos três idiomas (`docs/idiomas.md`). Falta revisão de um falante nativo de inglês e de espanhol.
 - [ ] **Passe de otimização antes do lançamento público**: medir quanto o próprio Ilmenyx usa de CPU/RAM/GPU/disco/energia parado,
   monitorando e em cada página; achar e reduzir gargalos.
 - [ ] Próxima release (v0.31): incluir o umu-launcher e anexar os fontes GPL dele e do python-xlib (`scripts/fetch-gpl-sources.sh`

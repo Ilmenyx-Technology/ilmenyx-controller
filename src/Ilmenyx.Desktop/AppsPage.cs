@@ -22,8 +22,8 @@ public sealed class AppsPage : StackPanel
     private readonly List<InstallableApp> apps = AppCatalog.Default();
     private readonly StackPanel list = new() { Name = "AppsList" };
     private readonly TextBlock status = new() { Name = "AppsStatus", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 16) };
-    private readonly Button install = UiKit.Primary("BtnAppsInstall", "Instalar selecionados");
-    private readonly Button flathub = new() { Name = "BtnAppsFlathub", Content = "Adicionar Flathub (somente para o seu usuário)", IsVisible = false, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 14, 0, 0) };
+    private readonly Button install = UiKit.Primary("BtnAppsInstall", L.T("Instalar selecionados"));
+    private readonly Button flathub = new() { Name = "BtnAppsFlathub", Content = L.T("Adicionar Flathub (somente para o seu usuário)"), IsVisible = false, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 14, 0, 0) };
     private readonly Border progress = new() { Name = "AppsProgress", Background = Palette.Accent, HorizontalAlignment = HorizontalAlignment.Left, Height = 3 };
     private readonly Grid track = new() { Height = 3, Margin = new Thickness(0, 0, 0, 8), Background = Palette.Line };
     private bool busy, stopRequested; private double fraction;
@@ -40,18 +40,18 @@ public sealed class AppsPage : StackPanel
         this.installer = installer; this.flatpakAvailable = flatpakAvailable; this.owner = owner; this.lifetime = lifetime; Spacing = 4;
         this.openUrl = openUrl ?? ((url, ct) => OperatingSystem.IsLinux() ? DriverTools.OpenUrlAsync(url, ct) : Task.CompletedTask);
         install.HorizontalAlignment = HorizontalAlignment.Right; install.VerticalAlignment = VerticalAlignment.Top; install.Click += async (_, _) => await InstallAsync();
-        var header = UiKit.PageHeader("Instalar apps", "Os essenciais depois de instalar o sistema · Flathub (por usuário) e pacotes oficiais da sua distribuição");
+        var header = UiKit.PageHeader(L.T("Instalar apps"), L.T("Os essenciais depois de instalar o sistema · Flathub (por usuário) e pacotes oficiais da sua distribuição"));
         header.RowDefinitions = new("Auto,Auto");
         Grid.SetRow(install, 1); install.Margin = new Thickness(0, 10, 0, 0);
         header.Children.Add(install);
         track.Children.Add(progress); track.SizeChanged += (_, _) => progress.Width = track.Bounds.Width * fraction;
-        var all = new Button { Name = "BtnAppsAll", Content = "Marcar todos", Padding = new Thickness(10, 4), FontSize = 11 }; var none = new Button { Name = "BtnAppsNone", Content = "Desmarcar", Padding = new Thickness(10, 4), FontSize = 11 };
+        var all = new Button { Name = "BtnAppsAll", Content = L.T("Marcar todos"), Padding = new Thickness(10, 4), FontSize = 11 }; var none = new Button { Name = "BtnAppsNone", Content = L.T("Desmarcar"), Padding = new Thickness(10, 4), FontSize = 11 };
         all.Click += (_, _) => { if (busy) return; foreach (var a in apps) a.Selected = !a.Installed && a.Unavailable is null && !a.LinkOnly; Rebuild(); }; none.Click += (_, _) => { if (busy) return; foreach (var a in apps) a.Selected = false; Rebuild(); };
         flathub.Click += async (_, _) => await AddFlathubAsync();
         var head = new Grid(); head.Children.Add(UiKit.Label("APPS")); head.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right, Children = { all, none } });
         Children.Add(header); Children.Add(track); Children.Add(status);
         Children.Add(UiKit.Card(new StackPanel { Children = { head, new Border { Height = 8 }, list, flathub } }));
-        Children.Add(new TextBlock { Text = "Nada é instalado sem clicar em Instalar selecionados e confirmar a lista. Flathub: só para o seu usuário, sem senha. ArtCraft: pacote oficial da sua distribuição, com a senha do sistema.", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 8) });
+        Children.Add(new TextBlock { Text = L.T("Nada é instalado sem clicar em Instalar selecionados e confirmar a lista. Flathub: só para o seu usuário, sem senha. ArtCraft: pacote oficial da sua distribuição, com a senha do sistema."), Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 8) });
         Loaded += async (_, _) => await RefreshAsync();
     }
 
@@ -64,13 +64,13 @@ public sealed class AppsPage : StackPanel
         await installer.RefreshInstalledAsync(apps, lifetime);
         bool hasFlathub = flatpakAvailable && await installer.HasFlathubAsync(lifetime);
         // Flathub apps need Flatpak and the Flathub remote; apps from a GitHub release (ArtCraft) use the distribution's own packages.
-        string? flatpakMissing = !flatpakAvailable ? "Precisa do Flatpak: " + LinuxAppInstaller.FlatpakInstallHint(Distro().Id, Distro().IdLike) + "."
-            : !hasFlathub ? "Precisa do repositório Flathub (botão Adicionar Flathub abaixo)." : null;
+        string? flatpakMissing = !flatpakAvailable ? L.T("Precisa do Flatpak: ") + LinuxAppInstaller.FlatpakInstallHint(Distro().Id, Distro().IdLike) + "."
+            : !hasFlathub ? L.T("Precisa do repositório Flathub (botão Adicionar Flathub abaixo).") : null;
         if (flatpakMissing is not null) foreach (var a in apps.Where(a => a.FlatpakId.Length > 0 && !a.Installed)) a.Unavailable = flatpakMissing;
         foreach (var a in apps) a.Selected = a.PreSelect && !a.Installed && a.Unavailable is null;
         flathub.IsVisible = flatpakAvailable && !hasFlathub; install.IsEnabled = true;
         int total = apps.Count(a => !a.LinkOnly);
-        status.Text = $"{apps.Count(a => a.Installed && !a.LinkOnly)} de {total} já instalados." + (flatpakMissing is null ? " Marque o que quer e clique em Instalar selecionados." : " Apps do Flathub indisponíveis por enquanto.");
+        status.Text = L.T($"{apps.Count(a => a.Installed && !a.LinkOnly)} de {total} já instalados.") + (flatpakMissing is null ? L.T(" Marque o que quer e clique em Instalar selecionados.") : L.T(" Apps do Flathub indisponíveis por enquanto."));
         ToolTip.SetTip(status, flatpakMissing);
         Rebuild();
     }
@@ -89,19 +89,19 @@ public sealed class AppsPage : StackPanel
     {
         string key = app.Key.Replace('.', '_');
         var check = new CheckBox { Name = "App_" + key, IsChecked = app.Selected, IsEnabled = !app.Installed && !busy && app.Unavailable is null && !app.LinkOnly, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 1, 12, 0) };
-        AutomationProperties.SetName(check, "Instalar " + app.Name); check.IsCheckedChanged += (_, _) => app.Selected = check.IsChecked == true;
+        AutomationProperties.SetName(check, L.T("Instalar ") + app.Name); check.IsCheckedChanged += (_, _) => app.Selected = check.IsChecked == true;
         if (app.LinkOnly) check.IsVisible = false;
-        string title = app.Name + (app.Installed ? "  ·  JÁ INSTALADO" : app.LinkOnly ? "  ·  SÓ PELO SITE OFICIAL" : "");
+        string title = app.Name + (app.Installed ? L.T("  ·  JÁ INSTALADO") : app.LinkOnly ? L.T("  ·  SÓ PELO SITE OFICIAL") : "");
         var body = new StackPanel { Children = { new TextBlock { Text = title, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap }, new TextBlock { Text = app.Description, Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap } } };
-        if (app.Caveat.Length > 0) body.Children.Add(new TextBlock { Name = "AppCaveat_" + key, Text = "Atenção: " + app.Caveat, Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) });
-        string meta = string.Join(" · ", new[] { app.FlatpakId.Length > 0 ? "Flathub: " + app.Ref : app.FromGithub ? "GitHub: " + app.GithubRepo + ", " + GithubPackages.Label(installer.Github.Format) : "", app.License.Length > 0 ? "Licença: " + app.License : "" }.Where(x => x.Length > 0));
+        if (app.Caveat.Length > 0) body.Children.Add(new TextBlock { Name = "AppCaveat_" + key, Text = L.T("Atenção: ") + app.Caveat, Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) });
+        string meta = string.Join(" · ", new[] { app.FlatpakId.Length > 0 ? "Flathub: " + app.Ref : app.FromGithub ? "GitHub: " + app.GithubRepo + ", " + GithubPackages.Label(installer.Github.Format) : "", app.License.Length > 0 ? L.T("Licença: ") + app.License : "" }.Where(x => x.Length > 0));
         if (meta.Length > 0) body.Children.Add(new TextBlock { Text = meta, Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 0) });
         if (app.Unavailable is not null && !app.LinkOnly && !app.Installed) body.Children.Add(new TextBlock { Name = "AppUnavailable_" + key, Text = app.Unavailable, Foreground = Palette.Muted, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 0) });
         if (app.LinkOnly)
         {
-            var open = new Button { Name = "AppLink_" + key, Content = "Abrir página oficial", FontSize = 11, Padding = new Thickness(10, 4), Margin = new Thickness(0, 6, 0, 0), HorizontalAlignment = HorizontalAlignment.Left };
+            var open = new Button { Name = "AppLink_" + key, Content = L.T("Abrir página oficial"), FontSize = 11, Padding = new Thickness(10, 4), Margin = new Thickness(0, 6, 0, 0), HorizontalAlignment = HorizontalAlignment.Left };
             ToolTip.SetTip(open, app.LinkUrl);
-            open.Click += async (_, _) => { try { await openUrl(app.LinkUrl, lifetime); app.Status = "Página aberta no navegador: " + app.LinkUrl; } catch (Exception e) when (e is IOException or FileNotFoundException or TimeoutException or System.ComponentModel.Win32Exception) { app.Status = "Não consegui abrir o navegador. Endereço: " + app.LinkUrl; } Rebuild(); };
+            open.Click += async (_, _) => { try { await openUrl(app.LinkUrl, lifetime); app.Status = L.T("Página aberta no navegador: ") + app.LinkUrl; } catch (Exception e) when (e is IOException or FileNotFoundException or TimeoutException or System.ComponentModel.Win32Exception) { app.Status = L.T("Não consegui abrir o navegador. Endereço: ") + app.LinkUrl; } Rebuild(); };
             body.Children.Add(open);
         }
         body.Children.Add(new TextBlock { Name = "AppStatus_" + key, Text = app.Status, IsVisible = app.Status.Length > 0, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 0) });
@@ -111,36 +111,36 @@ public sealed class AppsPage : StackPanel
 
     private async Task AddFlathubAsync()
     {
-        if (owner() is not { } window || !await ConfirmDialog.AskAsync(window, "Instalar apps", "Adicionar o repositório Flathub (https://flathub.org) à instalação Flatpak do seu usuário? Nada é instalado para outros usuários e nenhum privilégio é usado.", "Adicionar", "Cancelar")) return;
+        if (owner() is not { } window || !await ConfirmDialog.AskAsync(window, L.T("Instalar apps"), L.T("Adicionar o repositório Flathub (https://flathub.org) à instalação Flatpak do seu usuário? Nada é instalado para outros usuários e nenhum privilégio é usado."), L.T("Adicionar"), L.T("Cancelar"))) return;
         flathub.IsEnabled = false;
         try { var (ok, message) = await installer.AddFlathubAsync(lifetime); status.Text = message; if (ok) await RefreshAsync(); }
-        catch (Exception e) when (e is IOException or FileNotFoundException or TimeoutException or System.ComponentModel.Win32Exception) { status.Text = "Não foi possível adicionar o Flathub: " + e.Message; }
+        catch (Exception e) when (e is IOException or FileNotFoundException or TimeoutException or System.ComponentModel.Win32Exception) { status.Text = L.T("Não foi possível adicionar o Flathub: ") + e.Message; }
         finally { flathub.IsEnabled = true; }
     }
 
     public async Task InstallAsync()
     {
-        if (busy) { stopRequested = true; install.IsEnabled = false; status.Text = "Parando depois do app atual…"; return; }
+        if (busy) { stopRequested = true; install.IsEnabled = false; status.Text = L.T("Parando depois do app atual…"); return; }
         var chosen = apps.Where(a => a.Selected && !a.Installed && !a.LinkOnly && a.Unavailable is null).ToList();
-        if (chosen.Count == 0) { status.Text = "Nenhum app selecionado."; return; }
+        if (chosen.Count == 0) { status.Text = L.T("Nenhum app selecionado."); return; }
         if (owner() is not { } window) return;
         string names = string.Join("\n", chosen.Select(a => $"  • {a.Name} ({(a.FromGithub ? a.GithubRepo + ", " + GithubPackages.Label(installer.Github.Format) : a.Ref)})"));
         var notes = chosen.Where(a => a.Caveat.Length > 0).Select(a => $"  • {a.Name}: {a.Caveat}").ToList();
-        string extra = notes.Count > 0 ? "\n\nPrecisam de algo a mais no sistema:\n" + string.Join("\n", notes) : "";
+        string extra = notes.Count > 0 ? L.T("\n\nPrecisam de algo a mais no sistema:\n") + string.Join("\n", notes) : "";
         bool asksPassword = chosen.Any(a => a.FromGithub) && installer.Github.Format != PackageFormat.AppImage;
-        string where = chosen.All(a => a.FromGithub) ? "" : chosen.Any(a => a.FromGithub) ? " (Flathub para o seu usuário; ArtCraft pelo pacote da sua distribuição)" : " do Flathub para o seu usuário";
-        string password = asksPassword ? "\n\nO sistema vai pedir a sua senha para cada app ArtCraft (instalação para todo o sistema). Cada pacote é conferido pela soma SHA-256 oficial antes." : "";
-        if (!await ConfirmDialog.AskAsync(window, "Instalar apps", $"Baixar e instalar {chosen.Count} app(s){where}?\n\n{names}\n\nPode levar vários minutos e baixar centenas de MB.{password}{extra}", "Instalar", "Cancelar")) return;
-        busy = true; stopRequested = false; install.Content = "Parar"; Rebuild();
-        foreach (var a in chosen) a.Status = "Na fila.";
+        string where = chosen.All(a => a.FromGithub) ? "" : chosen.Any(a => a.FromGithub) ? L.T(" (Flathub para o seu usuário; ArtCraft pelo pacote da sua distribuição)") : L.T(" do Flathub para o seu usuário");
+        string password = asksPassword ? L.T("\n\nO sistema vai pedir a sua senha para cada app ArtCraft (instalação para todo o sistema). Cada pacote é conferido pela soma SHA-256 oficial antes.") : "";
+        if (!await ConfirmDialog.AskAsync(window, L.T("Instalar apps"), L.T($"Baixar e instalar {chosen.Count} app(s){where}?\n\n{names}\n\nPode levar vários minutos e baixar centenas de MB.{password}{extra}"), L.T("Instalar"), L.T("Cancelar"))) return;
+        busy = true; stopRequested = false; install.Content = L.T("Parar"); Rebuild();
+        foreach (var a in chosen) a.Status = L.T("Na fila.");
         int ok = 0, done = 0; var failed = new List<string>(); SetProgress(0);
         try
         {
             foreach (var app in chosen)
             {
-                if (stopRequested) { app.Status = "Não instalado (parado)."; continue; }
-                string head = $"Instalando {app.Name} ({done + 1} de {chosen.Count})…";
-                status.Text = head; app.Status = "Instalando…"; Rebuild();
+                if (stopRequested) { app.Status = L.T("Não instalado (parado)."); continue; }
+                string head = L.T($"Instalando {app.Name} ({done + 1} de {chosen.Count})…");
+                status.Text = head; app.Status = L.T("Instalando…"); Rebuild();
                 int step = done; bool appDone = false;
                 // Progress reports arrive asynchronously: one landing after the app finished must not overwrite the final message.
                 var report = new Progress<double>(f => { if (appDone) return; status.Text = $"{head} {f:P0}"; SetProgress((step + f) / chosen.Count); });
@@ -149,8 +149,8 @@ public sealed class AppsPage : StackPanel
                 catch (Exception e) when (e is IOException or TimeoutException or FileNotFoundException or ArgumentException or System.ComponentModel.Win32Exception) { appDone = true; app.Status = "Falhou: " + e.Message; failed.Add(app.Name); }
                 done++; SetProgress((double)done / chosen.Count);
             }
-            status.Text = $"{ok} de {chosen.Count} instalados." + (failed.Count > 0 ? $" Falharam: {string.Join(", ", failed)}." : "") + (stopRequested ? " Parado pelo usuário." : "");
+            status.Text = L.T($"{ok} de {chosen.Count} instalados.") + (failed.Count > 0 ? L.T($" Falharam: {string.Join(", ", failed)}.") : "") + (stopRequested ? L.T(" Parado pelo usuário.") : "");
         }
-        finally { busy = false; install.IsEnabled = true; install.Content = "Instalar selecionados"; Rebuild(); }
+        finally { busy = false; install.IsEnabled = true; install.Content = L.T("Instalar selecionados"); Rebuild(); }
     }
 }

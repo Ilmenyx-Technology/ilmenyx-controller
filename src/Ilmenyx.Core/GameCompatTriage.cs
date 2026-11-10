@@ -33,17 +33,17 @@ public static class LaunchOptionTriage
     public static readonly IReadOnlyList<LaunchConflict> Conflicts =
     [
         new("renderer", ["PROTON_USE_WINED3D=1"], DxvkOnly,
-            "Não combina com {0}: o PROTON_USE_WINED3D=1 troca o DXVK/VKD3D (Vulkan) pelo OpenGL, e as opções DXVK_, VKD3D_, NVAPI e DirectX 12 só funcionam com eles."),
-        new("api", Apis, [], "Não combina com {0}: os dois escolhem a API gráfica do jogo (DirectX 9/11/12, Vulkan ou OpenGL), e o jogo só usa uma."),
-        new("nod3d11", ["PROTON_NO_D3D11=1"], ["-dx11", "-d3d11", "-force-d3d11"], "Não combina com {0}: um desliga o DirectX 11 e o outro pede ao jogo para usar o DirectX 11."),
-        new("nod3d10", ["PROTON_NO_D3D10=1"], ["-dx10", "-d3d10"], "Não combina com {0}: um desliga o DirectX 10 e o outro pede ao jogo para usar o DirectX 10."),
+            L.T("Não combina com {0}: o PROTON_USE_WINED3D=1 troca o DXVK/VKD3D (Vulkan) pelo OpenGL, e as opções DXVK_, VKD3D_, NVAPI e DirectX 12 só funcionam com eles.")),
+        new("api", Apis, [], L.T("Não combina com {0}: os dois escolhem a API gráfica do jogo (DirectX 9/11/12, Vulkan ou OpenGL), e o jogo só usa uma.")),
+        new("nod3d11", ["PROTON_NO_D3D11=1"], ["-dx11", "-d3d11", "-force-d3d11"], L.T("Não combina com {0}: um desliga o DirectX 11 e o outro pede ao jogo para usar o DirectX 11.")),
+        new("nod3d10", ["PROTON_NO_D3D10=1"], ["-dx10", "-d3d10"], L.T("Não combina com {0}: um desliga o DirectX 10 e o outro pede ao jogo para usar o DirectX 10.")),
         new("nvapi", ["PROTON_ENABLE_NVAPI=1", "DXVK_ENABLE_NVAPI=1"], ["PROTON_DISABLE_NVAPI=1", "PROTON_HIDE_NVIDIA_GPU=1"],
-            "Não combina com {0}: um liga o NVAPI (recursos da NVIDIA, como DLSS) e o outro desliga o NVAPI ou esconde a placa NVIDIA do jogo."),
-        new("mangohud", ["mangohud", "MANGOHUD=1"], [], "Faz o mesmo que {0} (liga o MangoHud, o contador de FPS): basta um."),
+            L.T("Não combina com {0}: um liga o NVAPI (recursos da NVIDIA, como DLSS) e o outro desliga o NVAPI ou esconde a placa NVIDIA do jogo.")),
+        new("mangohud", ["mangohud", "MANGOHUD=1"], [], L.T("Faz o mesmo que {0} (liga o MangoHud, o contador de FPS): basta um.")),
         // GE-Proton README: PROTON_USE_WAYLAND and PROTON_ENABLE_WAYLAND both enable the Wayland driver; under Gamescope keep Wine's default XWayland.
-        new("wayland", ["PROTON_ENABLE_WAYLAND=1", "PROTON_USE_WAYLAND=1"], [], "Faz o mesmo que {0} (liga o driver Wayland do Proton): basta um."),
+        new("wayland", ["PROTON_ENABLE_WAYLAND=1", "PROTON_USE_WAYLAND=1"], [], L.T("Faz o mesmo que {0} (liga o driver Wayland do Proton): basta um.")),
         new("wayland-gamescope", ["PROTON_ENABLE_WAYLAND=1", "PROTON_USE_WAYLAND=1"], ["gamescope"],
-            "Não combina com {0}: dentro do Gamescope o GE-Proton recomenda o XWayland padrão, sem a opção Wayland."),
+            L.T("Não combina com {0}: dentro do Gamescope o GE-Proton recomenda o XWayland padrão, sem a opção Wayland.")),
     ];
 
     public static readonly IReadOnlyList<LaunchGpuRule> GpuRules =
@@ -67,9 +67,9 @@ public static class LaunchOptionTriage
     /// <summary>Wrappers whose arguments (screen size, FPS limit) are not kept in the counted pieces: never part of an automatic combination.</summary>
     public static readonly IReadOnlyList<LaunchManualRule> ManualRules =
     [
-        new("gamescope", "O gamescope precisa da resolução da sua tela e de \"--\" antes do jogo: configure à mão, olhando os relatos abaixo."),
-        new("strangle", "O strangle precisa do limite de FPS (ex.: strangle 60): configure à mão, olhando os relatos abaixo."),
-        new("dxvk-hud", "Não é um programa padrão das distribuições: veja no relato como a pessoa usou."),
+        new("gamescope", L.T("O gamescope precisa da resolução da sua tela e de \"--\" antes do jogo: configure à mão, olhando os relatos abaixo.")),
+        new("strangle", L.T("O strangle precisa do limite de FPS (ex.: strangle 60): configure à mão, olhando os relatos abaixo.")),
+        new("dxvk-hud", L.T("Não é um programa padrão das distribuições: veja no relato como a pessoa usou.")),
     ];
 
     private static readonly Regex EnvPiece = new(@"^([A-Z_][A-Z0-9_]*)=(.*)$", RegexOptions.CultureInvariant);
@@ -94,7 +94,7 @@ public static class LaunchOptionTriage
     public static string? Conflict(string candidate, string kept)
     {
         if (Env(candidate) is { } a && Env(kept) is { } b && a.Key == b.Key && !a.Value.Equals(b.Value, StringComparison.OrdinalIgnoreCase))
-            return $"Outro valor para {a.Key} (a combinação já usa {kept}): a variável só guarda um valor.";
+            return L.T($"Outro valor para {a.Key} (a combinação já usa {kept}): a variável só guarda um valor.");
         foreach (var c in Conflicts)
         {
             bool hit = c.B.Length == 0
@@ -116,10 +116,10 @@ public static class LaunchOptionTriage
 
     private static string NeedText(GpuNeed n) => n switch
     {
-        GpuNeed.NvidiaProprietary => "placas NVIDIA com o driver proprietário",
-        GpuNeed.Amd => "placas AMD (driver RADV do Mesa)",
-        GpuNeed.Intel => "placas Intel (driver ANV do Mesa)",
-        _ => "drivers Mesa (AMD, Intel ou NVIDIA com nouveau)",
+        GpuNeed.NvidiaProprietary => L.T("placas NVIDIA com o driver proprietário"),
+        GpuNeed.Amd => L.T("placas AMD (driver RADV do Mesa)"),
+        GpuNeed.Intel => L.T("placas Intel (driver ANV do Mesa)"),
+        _ => L.T("drivers Mesa (AMD, Intel ou NVIDIA com nouveau)"),
     };
 
     /// <summary>Why the option does not apply to this machine (GPU, missing tool, manual setup), or null.</summary>
@@ -127,9 +127,9 @@ public static class LaunchOptionTriage
     {
         if (ManualRules.FirstOrDefault(r => Matches(r.Pattern, option)) is { } manual) return manual.Reason;
         if (Capabilities(hw) is { } caps && GpuRules.FirstOrDefault(r => Matches(r.Pattern, option)) is { } gpu && !caps.Contains(gpu.Need))
-            return $"Só serve para {NeedText(gpu.Need)}; a sua é outra ({CompatText.Clean(hw.GpuText, 60) ?? "GPU desconhecida"}).";
+            return L.T($"Só serve para {NeedText(gpu.Need)}; a sua é outra ({CompatText.Clean(hw.GpuText, 60) ?? L.T("GPU desconhecida")}).");
         if (ToolRules.FirstOrDefault(r => Matches(r.Pattern, option)) is { } tool && !toolInstalled(tool.Tool))
-            return $"Precisa do programa {tool.Tool} (pacote {tool.Package}), que não foi encontrado neste PC.";
+            return L.T($"Precisa do programa {tool.Tool} (pacote {tool.Package}), que não foi encontrado neste PC.");
         return null;
     }
 
@@ -144,14 +144,14 @@ public static class LaunchOptionTriage
         {
             if (kept.Any(k => k.Option.Equals(o.Option, StringComparison.Ordinal))) continue;
             string? reason = Unusable(o.Option, hw, toolInstalled) ?? kept.Select(k => Conflict(o.Option, k.Option)).FirstOrDefault(r => r is not null);
-            if (reason is null && kept.Count >= maxRecommended) reason = "Menos usada; a combinação já tem as opções mais citadas.";
+            if (reason is null && kept.Count >= maxRecommended) reason = L.T("Menos usada; a combinação já tem as opções mais citadas.");
             if (reason is null) kept.Add(o); else excluded.Add(new(o.Option, o.Count, o.Of, reason));
         }
         string? line = Compose(kept.Select(k => k.Option));
         if (line is not null && LaunchOptionSafety.Check(line) is { Applicable: false }) { line = null; } // defence: never offer a line Steam would run unsafely
         var ordered = protons.OrderByDescending(p => p.Count).ThenBy(p => p.Option, StringComparer.Ordinal).ToList();
         var proton = ordered.FirstOrDefault();
-        var others = ordered.Skip(1).Select(p => new ExcludedOption(p.Option, p.Count, p.Of, $"A Steam usa uma versão do Proton por jogo; {proton!.Option} foi a mais usada.")).ToList();
+        var others = ordered.Skip(1).Select(p => new ExcludedOption(p.Option, p.Count, p.Of, L.T($"A Steam usa uma versão do Proton por jogo; {proton!.Option} foi a mais usada."))).ToList();
         return new(kept, excluded, line, proton, others);
     }
 

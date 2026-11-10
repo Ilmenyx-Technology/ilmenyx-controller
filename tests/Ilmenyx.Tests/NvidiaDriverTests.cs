@@ -227,7 +227,7 @@ public sealed class NvidiaDriverTests
         var plan = NvidiaPlanner.Plan(Fresh("134d", NvidiaGeneration.Maxwell, "ID=linuxmint\nID_LIKE=\"ubuntu debian\"\nPRETTY_NAME=\"Linux Mint 22.3\""));
         Assert.Equal(NvidiaDriverState.NotInstalled, plan.State);
         var a = Assert.Single(plan.Actions);
-        Assert.Equal((NvidiaActionKind.Install, "Instalar"), (a.Kind, a.Button));
+        Assert.Equal((NvidiaActionKind.Install, "Instalar driver"), (a.Kind, a.Button));
         Assert.Equal(["install", "nvidia-dkms-580", "nvidia-driver-580", "linux-headers-6.14.0-37-generic"], a.SimulationArguments);
         Assert.Contains(a.Risks, r => r.Contains("último que suporta Maxwell"));
         Assert.Contains("Inst linux-(image|modules|objects|signatures|main-modules)-", a.Script);
@@ -268,7 +268,7 @@ public sealed class NvidiaDriverTests
         // A newer candidate in the same branch → ATUALIZAR, with the same DKMS packages.
         var update = NvidiaPlanner.Plan(Working("580.178.04-0ubuntu0.24.04.2")).Actions.Single(a => a.Kind == NvidiaActionKind.Update);
         Assert.Equal(["install", "nvidia-dkms-580", "nvidia-driver-580", "linux-headers-6.14.0-37-generic"], update.SimulationArguments);
-        Assert.Equal("Atualizar", update.Button);
+        Assert.Equal("Atualizar driver", update.Button);
     }
 
     [Fact]

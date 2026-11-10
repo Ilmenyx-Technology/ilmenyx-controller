@@ -145,7 +145,7 @@ public sealed class LinuxOptimizer(string procRoot = "/proc", string sysRoot = "
 
     public async Task<bool> SetMouseAccelProfileAsync(string profile, CancellationToken ct = default)
     {
-        if (profile is not ("flat" or "adaptive" or "default")) throw new ArgumentException("Perfil inválido.");
+        if (profile is not ("flat" or "adaptive" or "default")) throw new ArgumentException(L.T("Perfil inválido."));
         try { var (code, _) = await Gsettings(["set", "org.gnome.desktop.peripherals.mouse", "accel-profile", profile], ct); return code == 0; }
         catch (Exception e) when (e is IOException or FileNotFoundException or TimeoutException or System.ComponentModel.Win32Exception) { return false; }
     }

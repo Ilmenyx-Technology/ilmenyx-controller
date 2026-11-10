@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Ilmenyx.Core.Benchmarks;
 using Microsoft.Win32.SafeHandles;
+using Ilmenyx.Core;
 
 namespace Ilmenyx.Platform.Linux;
 
@@ -48,7 +49,7 @@ public static class LinuxDiskBench
     /// <summary>Why a memory-backed folder must be refused (it would measure RAM, not storage); null if acceptable.</summary>
     public static string? MemoryBackedReason(string path, string mountsText) =>
         FilesystemTypeOf(path, mountsText) is { } type && MemoryBackedFilesystems.Contains(type)
-            ? $"Esta pasta está em {type} (memória): o teste mediria a RAM, não um disco. Escolha uma pasta em disco real."
+            ? L.T($"Esta pasta está em {type} (memória): o teste mediria a RAM, não um disco. Escolha uma pasta em disco real.")
             : null;
 
     [System.Runtime.Versioning.SupportedOSPlatform("linux")]
@@ -56,11 +57,11 @@ public static class LinuxDiskBench
     {
         string? why;
         try { why = DiskBenchOptions.Validate(options, Directory.Exists(options.Directory) ? new DriveInfo(Path.GetFullPath(options.Directory)).AvailableFreeSpace : 0); }
-        catch (Exception e) when (e is IOException or ArgumentException or UnauthorizedAccessException) { why = "Não foi possível consultar o espaço livre da pasta: " + e.Message; }
+        catch (Exception e) when (e is IOException or ArgumentException or UnauthorizedAccessException) { why = L.T("Não foi possível consultar o espaço livre da pasta: ") + e.Message; }
         if (why is null)
         {
             try { why = MemoryBackedReason(options.Directory, File.ReadAllText("/proc/mounts")); }
-            catch (Exception e) when (e is IOException or UnauthorizedAccessException) { why = "Não foi possível identificar o sistema de arquivos da pasta."; }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException) { why = L.T("Não foi possível identificar o sistema de arquivos da pasta."); }
         }
         if (why is not null) return Task.FromResult(Unavailable(options, why));
         return Task.Run(() => Run(options, ct, progress));
@@ -88,8 +89,8 @@ public static class LinuxDiskBench
             {
                 int errno = Marshal.GetLastPInvokeError();
                 return Unavailable(options, errno == 22
-                    ? "O sistema de arquivos desta pasta não aceita E/S direta (O_DIRECT; ex.: tmpfs). Escolha uma pasta em disco real."
-                    : $"Não foi possível criar o arquivo de teste (errno {errno}).");
+                    ? L.T("O sistema de arquivos desta pasta não aceita E/S direta (O_DIRECT; ex.: tmpfs). Escolha uma pasta em disco real.")
+                    : L.T($"Não foi possível criar o arquivo de teste (errno {errno})."));
             }
             mem = NativeMemory.AlignedAlloc(Block, 4096);
             var seq = new Span<byte>(mem, Block);
@@ -99,31 +100,31 @@ public static class LinuxDiskBench
             for (long off = 0; off < fileBytes; off += Block)
             {
                 ct.ThrowIfCancellationRequested();
-                if (PWrite(fd, mem, Block, off) != Block) return Failed(options, "Falha de escrita no arquivo de teste (disco cheio ou erro de E/S).");
-                progress?.Report(("Escrita sequencial (1 MiB)", 0.25 * off / fileBytes));
+                if (PWrite(fd, mem, Block, off) != Block) return Failed(options, L.T("Falha de escrita no arquivo de teste (disco cheio ou erro de E/S)."));
+                progress?.Report((L.T("Escrita sequencial (1 MiB)"), 0.25 * off / fileBytes));
             }
-            if (Fsync(fd) != 0) return Failed(options, "fsync falhou após a escrita sequencial.");
+            if (Fsync(fd) != 0) return Failed(options, L.T("fsync falhou após a escrita sequencial."));
             double seqWrite = options.FileMegabytes / sw.Elapsed.TotalSeconds;
             // Sequential read
             sw.Restart();
             for (long off = 0; off < fileBytes; off += Block)
             {
                 ct.ThrowIfCancellationRequested();
-                if (PRead(fd, mem, Block, off) != Block) return Failed(options, "Falha de leitura no arquivo de teste.");
-                progress?.Report(("Leitura sequencial (1 MiB)", 0.25 + 0.25 * off / fileBytes));
+                if (PRead(fd, mem, Block, off) != Block) return Failed(options, L.T("Falha de leitura no arquivo de teste."));
+                progress?.Report((L.T("Leitura sequencial (1 MiB)"), 0.25 + 0.25 * off / fileBytes));
             }
             double seqRead = options.FileMegabytes / sw.Elapsed.TotalSeconds;
             long slots = fileBytes / Small;
-            double rIops = RandomLoop(fd, mem, slots, false, options.RandomSeconds, progress, "Leitura 4 KiB aleatória (1 por vez)", 0.50, ct, out double rLat);
-            double wIops = RandomLoop(fd, mem, slots, true, options.RandomSeconds, progress, "Escrita 4 KiB aleatória (1 por vez)", 0.65, ct, out double wLat);
+            double rIops = RandomLoop(fd, mem, slots, false, options.RandomSeconds, progress, L.T("Leitura 4 KiB aleatória (1 por vez)"), 0.50, ct, out double rLat);
+            double wIops = RandomLoop(fd, mem, slots, true, options.RandomSeconds, progress, L.T("Escrita 4 KiB aleatória (1 por vez)"), 0.65, ct, out double wLat);
             double q8 = ParallelRead(fd, slots, 8, options.RandomSeconds, progress, ct);
-            progress?.Report(("Concluído", 1));
+            progress?.Report((L.T("Concluído"), 1));
             return new(BenchRunStatus.Completed, options.Directory, options.FileMegabytes, seqRead, seqWrite, rIops, wIops, rLat, wLat, q8, null);
         }
         catch (OperationCanceledException)
         {
             return new(external.IsCancellationRequested ? BenchRunStatus.Cancelled : BenchRunStatus.TimedOut, options.Directory, options.FileMegabytes,
-                null, null, null, null, null, null, null, "Interrompido: nenhum valor é publicado.");
+                null, null, null, null, null, null, null, L.T("Interrompido: nenhum valor é publicado."));
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
@@ -152,7 +153,7 @@ public static class LinuxDiskBench
             {
                 long off = rng.NextInt64(slots) * Small;
                 nint r = write ? PWrite(fd, buf, Small, off) : PRead(fd, buf, Small, off);
-                if (r != Small) throw new IOException("Falha de E/S no teste aleatório.");
+                if (r != Small) throw new IOException(L.T("Falha de E/S no teste aleatório."));
                 ops++;
             }
             ct.ThrowIfCancellationRequested();
@@ -182,7 +183,7 @@ public static class LinuxDiskBench
                     while (sw.Elapsed.TotalSeconds < seconds && !ct.IsCancellationRequested)
                         for (int i = 0; i < 32; i++)
                         {
-                            if (PRead(fd, mem, Small, rng.NextInt64(slots) * Small) != Small) throw new IOException("Falha de leitura paralela.");
+                            if (PRead(fd, mem, Small, rng.NextInt64(slots) * Small) != Small) throw new IOException(L.T("Falha de leitura paralela."));
                             local++;
                         }
                     Interlocked.Add(ref total, local);
@@ -192,7 +193,7 @@ public static class LinuxDiskBench
             }, TaskCreationOptions.LongRunning);
         }
         while (!Task.WaitAll(tasks, 150))
-            progress?.Report(("Leitura 4 KiB aleatória (8 em paralelo)", 0.80 + 0.19 * Math.Min(1, sw.Elapsed.TotalSeconds / seconds)));
+            progress?.Report((L.T("Leitura 4 KiB aleatória (8 em paralelo)"), 0.80 + 0.19 * Math.Min(1, sw.Elapsed.TotalSeconds / seconds)));
         ct.ThrowIfCancellationRequested();
         if (error is not null) throw error;
         return total / sw.Elapsed.TotalSeconds;

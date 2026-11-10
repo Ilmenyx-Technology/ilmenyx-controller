@@ -13,15 +13,15 @@ public sealed record DiskBenchOptions(string Directory, int FileMegabytes = 1024
     /// <summary>Null when the options are acceptable; otherwise why the run must not start.</summary>
     public static string? Validate(DiskBenchOptions o, long freeBytes)
     {
-        if (string.IsNullOrWhiteSpace(o.Directory) || !Path.IsPathRooted(o.Directory)) return "Escolha uma pasta absoluta autorizada para o arquivo temporário.";
-        if (o.FileMegabytes is < MinimumFileMegabytes or > MaximumFileMegabytes) return $"Tamanho do arquivo de {MinimumFileMegabytes} a {MaximumFileMegabytes} MB.";
-        if (o.RandomSeconds is < 1 or > 10) return "Duração das fases aleatórias de 1 a 10 s.";
-        if (o.EffectiveTimeout <= TimeSpan.Zero || o.EffectiveTimeout > TimeSpan.FromMinutes(10)) return "Timeout de até 10 minutos.";
+        if (string.IsNullOrWhiteSpace(o.Directory) || !Path.IsPathRooted(o.Directory)) return L.T("Escolha uma pasta absoluta autorizada para o arquivo temporário.");
+        if (o.FileMegabytes is < MinimumFileMegabytes or > MaximumFileMegabytes) return L.T($"Tamanho do arquivo de {MinimumFileMegabytes} a {MaximumFileMegabytes} MB.");
+        if (o.RandomSeconds is < 1 or > 10) return L.T("Duração das fases aleatórias de 1 a 10 s.");
+        if (o.EffectiveTimeout <= TimeSpan.Zero || o.EffectiveTimeout > TimeSpan.FromMinutes(10)) return L.T("Timeout de até 10 minutos.");
         string full = Path.GetFullPath(o.Directory);
         foreach (string forbidden in new[] { "/dev", "/proc", "/sys", "/run/udev" })
-            if (full == forbidden || full.StartsWith(forbidden + "/", StringComparison.Ordinal)) return $"{forbidden} não é uma pasta de dados: o teste nunca usa dispositivos.";
+            if (full == forbidden || full.StartsWith(forbidden + "/", StringComparison.Ordinal)) return L.T($"{forbidden} não é uma pasta de dados: o teste nunca usa dispositivos.");
         long need = ((long)o.FileMegabytes << 20) + FreeSpaceMarginBytes;
-        if (freeBytes < need) return $"Pouco espaço livre: precisa de {need >> 20} MB e há {freeBytes >> 20} MB.";
+        if (freeBytes < need) return L.T($"Pouco espaço livre: precisa de {need >> 20} MB e há {freeBytes >> 20} MB.");
         return null;
     }
 }

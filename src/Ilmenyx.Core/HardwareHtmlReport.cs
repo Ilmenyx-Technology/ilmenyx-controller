@@ -12,8 +12,8 @@ public static class ValidationNotices
     // 2026-11-06: an AMD APU (Radeon 610M) was validated on real hardware; dedicated AMD/NVIDIA GPUs were not (maintainer decision to keep the notice).
     // 2026-11-07: NVIDIA validated on one real dedicated GPU (GeForce 940MX, driver 580, laptop); dedicated AMD still untested.
     // 2026-11-09: shown only for the vendors present; an Intel-only PC (the development machine) gets no notice.
-    public const string Amd = "GPU AMD dedicada não testada", Nvidia = "NVIDIA validada só numa GeForce 940MX";
-    public const string AmdNvidia = Amd + " · " + Nvidia;
+    public static readonly string Amd = L.T("GPU AMD dedicada não testada"), Nvidia = L.T("NVIDIA validada só numa GeForce 940MX");
+    public static readonly string AmdNvidia = Amd + " · " + Nvidia;
 
     /// <summary>Notice for the GPUs of this PC by PCI vendor ID ("0x1002" AMD, "0x10de" NVIDIA); null when neither is present.
     /// With no vendor known the full notice stays, since nothing proves the GPU was validated.</summary>
@@ -45,12 +45,12 @@ public static class HardwareHtmlReport
     {
         ct.ThrowIfCancellationRequested();
         var html = new StringBuilder(16384);
-        html.Append("""
+        html.Append($$$"""
             <!doctype html>
-            <html lang="pt-BR"><head><meta charset="utf-8">
+            <html lang="{{{L.Current}}}"><head><meta charset="utf-8">
             <meta name="viewport" content="width=device-width,initial-scale=1">
             <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
-            <title>Ilmenyx — Relatório de hardware</title>
+            <title>{{{L.T("Ilmenyx — Relatório de hardware")}}}</title>
             <style>
             :root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#111315;color:#ededf0;font:15px system-ui,sans-serif;line-height:1.5}
             main{max-width:1400px;margin:auto;padding:32px}h1{font-size:32px;margin-bottom:4px}h2{font-size:21px;margin-top:0}
@@ -59,71 +59,71 @@ public static class HardwareHtmlReport
             li{margin:8px 0}dl{display:grid;grid-template-columns:minmax(140px,1fr) 3fr;gap:8px}dt{color:#c4c4cf}dd{margin:0;overflow-wrap:anywhere}
             @media(max-width:600px){main{padding:12px}section{padding:12px}dl{display:block}dd{margin-bottom:10px}}
             @media print{:root{color-scheme:light}body,section{background:white;color:black}.muted,th,dt{color:#333}.notice{background:#eee;color:black}main{padding:0}.table-wrap{overflow:visible}th,td{min-width:0;padding:5px}}
-            </style></head><body><main><header><h1>Ilmenyx Controller</h1><p>by Ilmenyx Technology</p><p class="muted">Relatório de hardware · arquivo offline</p></header>
-            <p class="notice">Snapshot de diagnóstico. Dados não indicam saúde ou desempenho. Nenhum benchmark é executado para gerar este relatório.</p>
+            </style></head><body><main><header><h1>Ilmenyx Controller</h1><p>by Ilmenyx Technology</p><p class="muted">{{{L.T("Relatório de hardware · arquivo offline")}}}</p></header>
+            <p class="notice">{{{L.T("Snapshot de diagnóstico. Dados não indicam saúde ou desempenho. Nenhum benchmark é executado para gerar este relatório.")}}}</p>
             """);
-        html.Append("<section><h2>Proveniência</h2><dl>");
-        Metadata("Formato HTML", FormatVersion); Metadata("Schema de hardware", snapshot.SchemaVersion);
-        Metadata("Aplicação", snapshot.ApplicationVersion); Metadata("Coleta UTC", snapshot.CollectedAt.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture));
+        html.Append(L.T("<section><h2>Proveniência</h2><dl>"));
+        Metadata(L.T("Formato HTML"), FormatVersion); Metadata(L.T("Schema de hardware"), snapshot.SchemaVersion);
+        Metadata(L.T("Aplicação"), snapshot.ApplicationVersion); Metadata(L.T("Coleta UTC"), snapshot.CollectedAt.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture));
         Metadata("Runtime", snapshot.Runtime);
-        html.Append("</dl><p>Sem coleta adicional de hostname, serial, UUID, IP ou machine-id. Fontes do kernel são registradas; padrões óbvios de identificadores em texto livre podem ser redigidos. Isso não garante anonimização.</p></section>");
-        Table("Sistema, CPU e memória");
-        AddReading("Sistema operacional", snapshot.OperatingSystem); AddReading("Kernel", snapshot.Kernel);
-        AddReading("CPU", snapshot.Cpu.Name); AddReading("Processadores lógicos visíveis", snapshot.Cpu.LogicalProcessors);
-        AddReading("RAM total", snapshot.Memory.Total); AddReading("RAM disponível", snapshot.Memory.Available); EndTable();
-        Table("Dispositivos de bloco — capacidade, não espaço livre");
+        html.Append(L.T("</dl><p>Sem coleta adicional de hostname, serial, UUID, IP ou machine-id. Fontes do kernel são registradas; padrões óbvios de identificadores em texto livre podem ser redigidos. Isso não garante anonimização.</p></section>"));
+        Table(L.T("Sistema, CPU e memória"));
+        AddReading(L.T("Sistema operacional"), snapshot.OperatingSystem); AddReading("Kernel", snapshot.Kernel);
+        AddReading("CPU", snapshot.Cpu.Name); AddReading(L.T("Processadores lógicos visíveis"), snapshot.Cpu.LogicalProcessors);
+        AddReading("RAM total", snapshot.Memory.Total); AddReading(L.T("RAM disponível"), snapshot.Memory.Available); EndTable();
+        Table(L.T("Dispositivos de bloco — capacidade, não espaço livre"));
         if (snapshot.Disks.Status == "available" && snapshot.Disks.Value is { Count: > 0 } disks)
             foreach (var disk in disks)
             {
                 AddReading(disk.Device, disk.Capacity);
-                if (disk.Kind is { } kind) AddReading(disk.Device + " · tipo (rotational)", kind);
-                if (disk.Bus is { } bus) AddReading(disk.Device + " · barramento", bus);
+                if (disk.Kind is { } kind) AddReading(disk.Device + L.T(" · tipo (rotational)"), kind);
+                if (disk.Bus is { } bus) AddReading(disk.Device + L.T(" · barramento"), bus);
             }
-        else AddReading("Dispositivos de bloco", Reading<string>.Missing("devices", snapshot.Disks.Source, snapshot.Disks.Reason ?? "Nenhum dispositivo informado."));
+        else AddReading(L.T("Dispositivos de bloco"), Reading<string>.Missing("devices", snapshot.Disks.Source, snapshot.Disks.Reason ?? L.T("Nenhum dispositivo informado.")));
         EndTable();
         html.Append("<section><h2>GPU · DRM/PCI</h2>");
         if (ValidationNotices.For(snapshot.Gpus?.Devices.Select(g => g.VendorId.Value) ?? []) is { } gpuNotice) html.Append("<p class=\"notice\">").Append(E(gpuNotice)).Append("</p>");
         if (snapshot.Gpus is { } gpus)
         {
-            MetadataParagraph("Estado do inventário", gpus.Status); MetadataParagraph("Coleta UTC", gpus.CollectedAt.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture));
-            html.Append("</section>"); Table("Leituras GPU");
-            if (gpus.Devices.Count == 0) Row("GPU", "Indisponível", "", gpus.Status, "/sys/class/drm", "", "", gpus.Reason ?? "Nenhuma placa informada.");
+            MetadataParagraph(L.T("Estado do inventário"), gpus.Status); MetadataParagraph(L.T("Coleta UTC"), gpus.CollectedAt.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture));
+            html.Append("</section>"); Table(L.T("Leituras GPU"));
+            if (gpus.Devices.Count == 0) Row("GPU", L.T("Indisponível"), "", gpus.Status, "/sys/class/drm", "", "", gpus.Reason ?? L.T("Nenhuma placa informada."));
             foreach (var gpu in gpus.Devices)
             {
-                AddReading(gpu.Device + " · vendor PCI", gpu.VendorId); AddReading(gpu.Device + " · device PCI", gpu.DeviceId); AddReading(gpu.Device + " · classe PCI", gpu.PciClass);
-                AddReading(gpu.Device + " · carga", gpu.BusyPercent); AddReading(gpu.Device + " · VRAM total", gpu.VramTotal); AddReading(gpu.Device + " · VRAM usada", gpu.VramUsed);
+                AddReading(gpu.Device + " · vendor PCI", gpu.VendorId); AddReading(gpu.Device + " · device PCI", gpu.DeviceId); AddReading(gpu.Device + L.T(" · classe PCI"), gpu.PciClass);
+                AddReading(gpu.Device + L.T(" · carga"), gpu.BusyPercent); AddReading(gpu.Device + " · VRAM total", gpu.VramTotal); AddReading(gpu.Device + L.T(" · VRAM usada"), gpu.VramUsed);
             }
-            EndTable(); Limitations("Limitações GPU", gpus.Limitations);
+            EndTable(); Limitations(L.T("Limitações GPU"), gpus.Limitations);
         }
-        else html.Append("<p>Inventário GPU indisponível: leitor não configurado.</p></section>");
+        else html.Append(L.T("<p>Inventário GPU indisponível: leitor não configurado.</p></section>"));
         if (snapshot.Sensors is { } sensors)
         {
-            Table("Sensores · hwmon / thermal / energia");
-            if (sensors.Readings.Count == 0) Row("Sensores", "Indisponível", "", sensors.Status, "", "", "", sensors.Reason ?? "Nenhuma leitura informada.");
+            Table(L.T("Sensores · hwmon / thermal / energia"));
+            if (sensors.Readings.Count == 0) Row(L.T("Sensores"), L.T("Indisponível"), "", sensors.Status, "", "", "", sensors.Reason ?? L.T("Nenhuma leitura informada."));
             foreach (var sensor in sensors.Readings)
                 AddReading($"{sensor.Device} · {sensor.Chip} · {sensor.Label}", sensor.Reading, sensor.CollectedAt, sensor.Quality);
             EndTable();
-            html.Append("<section><h2>Metadados de sensores</h2><dl>");
-            Metadata("Schema", sensors.SchemaVersion); Metadata("Estado agregado", sensors.Status); Metadata("Motivo", sensors.Reason ?? "");
-            Metadata("Coleta UTC", sensors.CollectedAt.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture)); html.Append("</dl></section>");
-            Table("Bateria e alimentação — dados brutos");
-            if (sensors.PowerSupplies is not { Count: > 0 }) Row("Energia", "Indisponível", "", "unavailable", "/sys/class/power_supply", "", "", "Nenhuma fonte de energia informada.");
+            html.Append(L.T("<section><h2>Metadados de sensores</h2><dl>"));
+            Metadata("Schema", sensors.SchemaVersion); Metadata(L.T("Estado agregado"), sensors.Status); Metadata(L.T("Motivo"), sensors.Reason ?? "");
+            Metadata(L.T("Coleta UTC"), sensors.CollectedAt.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture)); html.Append("</dl></section>");
+            Table(L.T("Bateria e alimentação — dados brutos"));
+            if (sensors.PowerSupplies is not { Count: > 0 }) Row(L.T("Energia"), L.T("Indisponível"), "", "unavailable", "/sys/class/power_supply", "", "", L.T("Nenhuma fonte de energia informada."));
             foreach (var supply in sensors.PowerSupplies ?? [])
             {
-                AddReading(supply.Device + " · tipo", supply.Type); AddReading(supply.Device + " · status", supply.Status); AddReading(supply.Device + " · presente", supply.Present);
+                AddReading(supply.Device + L.T(" · tipo"), supply.Type); AddReading(supply.Device + " · status", supply.Status); AddReading(supply.Device + L.T(" · presente"), supply.Present);
             }
-            EndTable(); Limitations("Limitações de sensores", sensors.Limitations);
+            EndTable(); Limitations(L.T("Limitações de sensores"), sensors.Limitations);
         }
-        else html.Append("<section><h2>Sensores</h2><p>Indisponível: leitor não configurado.</p></section>");
-        html.Append("<section><h2>Capacidades</h2><div class=\"table-wrap\"><table><thead><tr><th>Recurso</th><th>Estado</th><th>Motivo</th></tr></thead><tbody>");
+        else html.Append(L.T("<section><h2>Sensores</h2><p>Indisponível: leitor não configurado.</p></section>"));
+        html.Append(L.T("<section><h2>Capacidades</h2><div class=\"table-wrap\"><table><thead><tr><th>Recurso</th><th>Estado</th><th>Motivo</th></tr></thead><tbody>"));
         foreach (var capability in snapshot.Capabilities) Row(capability.Name, capability.Status, capability.Reason);
-        EndTable(); Limitations("Limitações do snapshot", snapshot.Limitations);
-        html.Append("<footer><p>Ilmenyx é uma adaptação independente e não oficial de RESET EXPLODE, de Gustavo (GustavoReset), MIT. by Ilmenyx Technology. Sem afiliação, patrocínio ou endosso da equipe RESET.</p><p>Revise antes de compartilhar: fontes, rótulos livres e configuração podem identificar a máquina. Não é anonimização garantida.</p><p>SMART não é consultado na exportação: diagnóstico separado na CLI por opt-in. Scores Linux/Windows não têm comparabilidade validada.</p></footer></main></body></html>\n");
+        EndTable(); Limitations(L.T("Limitações do snapshot"), snapshot.Limitations);
+        html.Append(L.T("<footer><p>Ilmenyx é uma adaptação independente e não oficial de RESET EXPLODE, de Gustavo (GustavoReset), MIT. by Ilmenyx Technology. Sem afiliação, patrocínio ou endosso da equipe RESET.</p><p>Revise antes de compartilhar: fontes, rótulos livres e configuração podem identificar a máquina. Não é anonimização garantida.</p><p>SMART não é consultado na exportação: diagnóstico separado na CLI por opt-in. Scores Linux/Windows não têm comparabilidade validada.</p></footer></main></body></html>\n"));
         return html.ToString();
 
         void Metadata(string key, string value) => html.Append("<dt>").Append(E(key)).Append("</dt><dd>").Append(E(value)).Append("</dd>");
         void MetadataParagraph(string key, string value) => html.Append("<p>").Append(E(key)).Append(": ").Append(E(value)).Append("</p>");
-        void Table(string title) => html.Append("<section><h2>").Append(E(title)).Append("</h2><div class=\"table-wrap\"><table><thead><tr><th>Item</th><th>Valor</th><th>Unidade</th><th>Estado</th><th>Fonte</th><th>Coleta UTC</th><th>Qualidade</th><th>Motivo</th></tr></thead><tbody>");
+        void Table(string title) => html.Append("<section><h2>").Append(E(title)).Append(L.T("</h2><div class=\"table-wrap\"><table><thead><tr><th>Item</th><th>Valor</th><th>Unidade</th><th>Estado</th><th>Fonte</th><th>Coleta UTC</th><th>Qualidade</th><th>Motivo</th></tr></thead><tbody>"));
         void EndTable() => html.Append("</tbody></table></div></section>");
         void Row(params string[] cells)
         {
@@ -133,7 +133,7 @@ public static class HardwareHtmlReport
         }
         void AddReading<T>(string label, Reading<T> reading, DateTimeOffset? collected = null, string quality = "")
         {
-            string value = reading.Status == "available" && reading.Value is { } v ? Convert.ToString(v, CultureInfo.InvariantCulture) ?? "" : "Indisponível";
+            string value = reading.Status == "available" && reading.Value is { } v ? Convert.ToString(v, CultureInfo.InvariantCulture) ?? "" : L.T("Indisponível");
             Row(label, value, reading.Unit, reading.Status, reading.Source, (collected ?? snapshot.CollectedAt).ToUniversalTime().ToString("O", CultureInfo.InvariantCulture), quality, reading.Reason ?? "");
         }
         void Limitations(string title, IReadOnlyList<string> items)

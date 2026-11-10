@@ -31,7 +31,7 @@ public static class CompatPaths
 public sealed class CompatDatabase(string folder)
 {
     public const int MaxReportsPerApp = 80, MaxSameGpuPerApp = 40;
-    public const string Attribution = "Relatos: ProtonDB (protondb.com), Open Database License 1.0, via github.com/bdefore/protondb-data";
+    public static readonly string Attribution = L.T("Relatos: ProtonDB (protondb.com), Open Database License 1.0, via github.com/bdefore/protondb-data");
     private static readonly JsonSerializerOptions Json = new() { DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull };
     private Dictionary<string, string>? titles;
     public string Folder => folder;
@@ -135,7 +135,7 @@ public sealed class CompatDatabase(string folder)
                 break;
             }
         }
-        if (byApp.Count == 0) throw new InvalidDataException("O arquivo baixado não tem relatos do ProtonDB no formato esperado.");
+        if (byApp.Count == 0) throw new InvalidDataException(L.T("O arquivo baixado não tem relatos do ProtonDB no formato esperado."));
         string parent = Path.GetDirectoryName(Path.GetFullPath(folder))!;
         Directory.CreateDirectory(parent);
         string work = Path.Combine(parent, "compat.new-" + Guid.NewGuid().ToString("N"));
@@ -217,10 +217,10 @@ public sealed class CompatOnline
         using var limit = CancellationTokenSource.CreateLinkedTokenSource(ct); limit.CancelAfter(TimeSpan.FromSeconds(20));
         using var resp = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, limit.Token);
         if (resp.StatusCode == HttpStatusCode.NotFound) { Save(file, "404:"); return (HttpStatusCode.NotFound, ""); }
-        if (!resp.IsSuccessStatusCode) throw new HttpRequestException((int)resp.StatusCode == 429 ? "o serviço pediu para esperar (limite de consultas)" : $"HTTP {(int)resp.StatusCode}");
+        if (!resp.IsSuccessStatusCode) throw new HttpRequestException((int)resp.StatusCode == 429 ? L.T("o serviço pediu para esperar (limite de consultas)") : $"HTTP {(int)resp.StatusCode}");
         using var reader = new StreamReader(await resp.Content.ReadAsStreamAsync(limit.Token));
         var buffer = new char[maxChars + 1]; int n = await reader.ReadBlockAsync(buffer, limit.Token);
-        if (n > maxChars) throw new HttpRequestException("resposta maior que o esperado");
+        if (n > maxChars) throw new HttpRequestException(L.T("resposta maior que o esperado"));
         string body = new(buffer, 0, n); Save(file, body);
         return (HttpStatusCode.OK, body);
     }
@@ -231,13 +231,13 @@ public sealed class CompatOnline
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
     }
 
-    private static string Id(string appId) => appId.Length is > 0 and <= 12 && appId.All(char.IsAsciiDigit) ? appId : throw new ArgumentException("Identificador Steam inválido.", nameof(appId));
+    private static string Id(string appId) => appId.Length is > 0 and <= 12 && appId.All(char.IsAsciiDigit) ? appId : throw new ArgumentException(L.T("Identificador Steam inválido."), nameof(appId));
 
     /// <summary>Null when ProtonDB has no reports for the game.</summary>
     public async Task<ProtonSummary?> SummaryAsync(string appId, CancellationToken ct = default)
     {
         var (code, body) = await GetCachedAsync("protondb-" + Id(appId), $"{ProtonDbHost}/api/v1/reports/summaries/{appId}.json", 4096, ct);
-        return code == HttpStatusCode.NotFound ? null : ProtonSummary.Parse(body) ?? throw new HttpRequestException("resposta do ProtonDB fora do formato");
+        return code == HttpStatusCode.NotFound ? null : ProtonSummary.Parse(body) ?? throw new HttpRequestException(L.T("resposta do ProtonDB fora do formato"));
     }
 
     public async Task<DeckStatus?> DeckAsync(string appId, CancellationToken ct = default)
@@ -292,12 +292,12 @@ public sealed class CompatOnline
             using var limit = CancellationTokenSource.CreateLinkedTokenSource(ct); limit.CancelAfter(TimeSpan.FromSeconds(20));
             using var resp = await http.GetAsync($"{ArtHost}/{id}/{name}", HttpCompletionOption.ResponseHeadersRead, limit.Token);
             if (resp.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Forbidden) continue;
-            if (!resp.IsSuccessStatusCode) throw new HttpRequestException($"imagem: HTTP {(int)resp.StatusCode}");
+            if (!resp.IsSuccessStatusCode) throw new HttpRequestException(L.T($"imagem: HTTP {(int)resp.StatusCode}"));
             if (resp.Content.Headers.ContentType?.MediaType is { } type && !type.StartsWith("image/", StringComparison.OrdinalIgnoreCase)) continue;
             if (resp.Content.Headers.ContentLength is > MaxArtBytes) continue;
             await using var input = await resp.Content.ReadAsStreamAsync(limit.Token);
             using var ms = new MemoryStream(); var buffer = new byte[1 << 15]; int n;
-            while ((n = await input.ReadAsync(buffer, limit.Token)) > 0) { if (ms.Length + n > MaxArtBytes) throw new HttpRequestException("imagem maior que o esperado"); ms.Write(buffer, 0, n); }
+            while ((n = await input.ReadAsync(buffer, limit.Token)) > 0) { if (ms.Length + n > MaxArtBytes) throw new HttpRequestException(L.T("imagem maior que o esperado")); ms.Write(buffer, 0, n); }
             if (!IsImage(ms.GetBuffer().AsSpan(0, (int)ms.Length))) continue;
             try
             {
@@ -331,9 +331,9 @@ public sealed class CompatOnline
         using var limit = CancellationTokenSource.CreateLinkedTokenSource(ct); limit.CancelAfter(TimeSpan.FromSeconds(20));
         using var req = new HttpRequestMessage(HttpMethod.Get, GitHubApi); req.Headers.Accept.ParseAdd("application/vnd.github+json");
         using var resp = await http.SendAsync(req, limit.Token);
-        if (!resp.IsSuccessStatusCode) throw new HttpRequestException($"GitHub respondeu HTTP {(int)resp.StatusCode}");
+        if (!resp.IsSuccessStatusCode) throw new HttpRequestException(L.T($"GitHub respondeu HTTP {(int)resp.StatusCode}"));
         string body = await resp.Content.ReadAsStringAsync(limit.Token);
-        return PickLatest(body) ?? throw new HttpRequestException("nenhum arquivo de relatos na listagem do GitHub");
+        return PickLatest(body) ?? throw new HttpRequestException(L.T("nenhum arquivo de relatos na listagem do GitHub"));
     }
 
     private static readonly string[] Months = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
@@ -363,9 +363,9 @@ public sealed class CompatOnline
     /// <summary>Downloads the export to <paramref name="destination"/> (a new file), refusing more than <see cref="MaxDumpBytes"/>; throws if the git blob SHA-1 does not match.</summary>
     public async Task DownloadDumpAsync(CompatDumpInfo dump, string destination, IProgress<(long Done, long Total)>? progress = null, CancellationToken ct = default)
     {
-        if (dump.Size is <= 0 or > MaxDumpBytes) throw new HttpRequestException("tamanho do arquivo fora do limite");
+        if (dump.Size is <= 0 or > MaxDumpBytes) throw new HttpRequestException(L.T("tamanho do arquivo fora do limite"));
         using var resp = await http.GetAsync(dump.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, ct);
-        if (!resp.IsSuccessStatusCode) throw new HttpRequestException($"download respondeu HTTP {(int)resp.StatusCode}");
+        if (!resp.IsSuccessStatusCode) throw new HttpRequestException(L.T($"download respondeu HTTP {(int)resp.StatusCode}"));
         using var sha = IncrementalHash.CreateHash(HashAlgorithmName.SHA1);
         sha.AppendData(Encoding.ASCII.GetBytes($"blob {dump.Size}\0"));
         long done = 0; var buffer = new byte[1 << 16];
@@ -378,13 +378,13 @@ public sealed class CompatOnline
                 while ((n = await input.ReadAsync(buffer, ct)) > 0)
                 {
                     done += n;
-                    if (done > dump.Size) throw new HttpRequestException("o arquivo é maior que o anunciado");
+                    if (done > dump.Size) throw new HttpRequestException(L.T("o arquivo é maior que o anunciado"));
                     sha.AppendData(buffer, 0, n); await output.WriteAsync(buffer.AsMemory(0, n), ct);
                     progress?.Report((done, dump.Size));
                 }
             }
-            if (done != dump.Size) throw new HttpRequestException("download incompleto");
-            if (!Convert.ToHexStringLower(sha.GetHashAndReset()).Equals(dump.GitSha, StringComparison.Ordinal)) throw new HttpRequestException("o arquivo não confere com o hash publicado pelo GitHub");
+            if (done != dump.Size) throw new HttpRequestException(L.T("download incompleto"));
+            if (!Convert.ToHexStringLower(sha.GetHashAndReset()).Equals(dump.GitSha, StringComparison.Ordinal)) throw new HttpRequestException(L.T("o arquivo não confere com o hash publicado pelo GitHub"));
         }
         catch { try { File.Delete(destination); } catch (IOException) { } throw; }
     }
@@ -392,16 +392,16 @@ public sealed class CompatOnline
     /// <summary>Latest export → verified download → index → the downloaded file is deleted.</summary>
     public async Task<CompatMeta> UpdateDatabaseAsync(CompatDatabase db, IProgress<string>? status = null, CancellationToken ct = default, CompatHardware? machine = null)
     {
-        status?.Report("Procurando o arquivo de relatos mais recente…");
+        status?.Report(L.T("Procurando o arquivo de relatos mais recente…"));
         var dump = await LatestDumpAsync(ct);
         Directory.CreateDirectory(cacheFolder);
         string file = Path.Combine(cacheFolder, "download-" + Guid.NewGuid().ToString("N") + ".tar.gz");
         try
         {
-            await DownloadDumpAsync(dump, file, new Progress<(long Done, long Total)>(p => status?.Report($"Baixando {dump.Name}: {p.Done >> 20} de {p.Total >> 20} MB")), ct);
-            status?.Report("Hash conferido. Montando o índice local (pode levar alguns minutos)…");
+            await DownloadDumpAsync(dump, file, new Progress<(long Done, long Total)>(p => status?.Report(L.T($"Baixando {dump.Name}: {p.Done >> 20} de {p.Total >> 20} MB"))), ct);
+            status?.Report(L.T("Hash conferido. Montando o índice local (pode levar alguns minutos)…"));
             await using var stream = File.OpenRead(file);
-            return await CompatDatabase.BuildAsync(stream, db.Folder, dump, new Progress<int>(n => status?.Report($"Montando o índice: {n:N0} relatos lidos")), ct, machine);
+            return await CompatDatabase.BuildAsync(stream, db.Folder, dump, new Progress<int>(n => status?.Report(L.T($"Montando o índice: {n:N0} relatos lidos"))), ct, machine);
         }
         finally { try { File.Delete(file); } catch (IOException) { } }
     }

@@ -24,12 +24,12 @@ public static class DriverOverview
     /// <summary>Title, one-line description and empty-state text of each card (in page order).</summary>
     public static readonly IReadOnlyList<(DriverCategory Category, string Title, string Description, string Empty)> Categories =
     [
-        (DriverCategory.Video, "Vídeo / placa de vídeo", "Desenha a tela e roda os jogos.", "Nenhuma placa de vídeo PCI encontrada."),
-        (DriverCategory.Network, "Rede e Wi-Fi", "Internet por cabo e sem fio.", "Nenhuma placa de rede encontrada."),
-        (DriverCategory.Bluetooth, "Bluetooth", "Fones, caixas de som, mouses e controles sem fio.", "Nenhum adaptador Bluetooth encontrado (o PC pode não ter, ou ele está desligado na BIOS ou no modo avião)."),
-        (DriverCategory.Audio, "Áudio", "Alto-falantes, fone, microfone e som pelo HDMI.", "Nenhuma placa de som encontrada."),
-        (DriverCategory.Printing, "Impressoras e scanners", "Ligados por USB. Os de rede ou Wi-Fi não aparecem aqui: veja nas configurações de impressão do sistema.", "Nenhuma impressora ou scanner USB conectado agora."),
-        (DriverCategory.Other, "Outros", "Armazenamento, portas USB, teclado, mouse, câmera e peças internas da placa-mãe.", "Nenhum outro dispositivo."),
+        (DriverCategory.Video, L.T("Vídeo / placa de vídeo"), L.T("Desenha a tela e roda os jogos."), L.T("Nenhuma placa de vídeo PCI encontrada.")),
+        (DriverCategory.Network, L.T("Rede e Wi-Fi"), L.T("Internet por cabo e sem fio."), L.T("Nenhuma placa de rede encontrada.")),
+        (DriverCategory.Bluetooth, "Bluetooth", L.T("Fones, caixas de som, mouses e controles sem fio."), L.T("Nenhum adaptador Bluetooth encontrado (o PC pode não ter, ou ele está desligado na BIOS ou no modo avião).")),
+        (DriverCategory.Audio, L.T("Áudio"), L.T("Alto-falantes, fone, microfone e som pelo HDMI."), L.T("Nenhuma placa de som encontrada.")),
+        (DriverCategory.Printing, L.T("Impressoras e scanners"), L.T("Ligados por USB. Os de rede ou Wi-Fi não aparecem aqui: veja nas configurações de impressão do sistema."), L.T("Nenhuma impressora ou scanner USB conectado agora.")),
+        (DriverCategory.Other, L.T("Outros"), L.T("Armazenamento, portas USB, teclado, mouse, câmera e peças internas da placa-mãe."), L.T("Nenhum outro dispositivo.")),
     ];
 
     /// <summary>Kernel modules that are Wi-Fi drivers (USB and PCI), when sysfs has no wireless interface yet (for example, the radio is off).</summary>
@@ -52,7 +52,7 @@ public static class DriverOverview
         if (r.Class == "DISPLAY" || (r.Bus == "PCI" && pci.StartsWith("03", StringComparison.Ordinal))) return DriverCategory.Video;
         if (Is(r.Driver, ["btusb", "btintel", "btrtl", "btmtk", "hci_uart", "bluetooth"]) || (r.Bus == "PCI" && pci.StartsWith("0d11", StringComparison.Ordinal)) || UsbClass(r, "e0") || (r.Bus != "PCI" && Name(r, "Bluetooth"))) return DriverCategory.Bluetooth;
         if (r.Class == "NET" || r.Wireless || Is(r.Driver, WifiDrivers) || Is(r.Driver, UsbNetDrivers)) return DriverCategory.Network;
-        if (Is(r.Driver, ["usblp", "ipp-usb"]) || UsbClass(r, "07") || Name(r, "Printer", "Scanner", "Impressora", "Multifuncional", "LaserJet", "DeskJet", "OfficeJet", "PIXMA", "CanoScan", "ScanJet", "Perfection")) return DriverCategory.Printing;
+        if (Is(r.Driver, ["usblp", "ipp-usb"]) || UsbClass(r, "07") || Name(r, "Printer", "Scanner", L.T("Impressora"), L.T("Multifuncional"), "LaserJet", "DeskJet", "OfficeJet", "PIXMA", "CanoScan", "ScanJet", "Perfection")) return DriverCategory.Printing;
         if ((r.Class == "MEDIA" && (pci.StartsWith("0401", StringComparison.Ordinal) || pci.StartsWith("0403", StringComparison.Ordinal) || pci.Length == 0)) || Is(r.Driver, ["snd_*", "snd-*"]) || UsbClass(r, "01")) return DriverCategory.Audio;
         return DriverCategory.Other;
     }
@@ -63,32 +63,32 @@ public static class DriverOverview
         string pci = Pci(r);
         return c switch
         {
-            DriverCategory.Video => "Placa de vídeo",
-            DriverCategory.Network => r.Wireless || Is(r.Driver, WifiDrivers) || pci.StartsWith("0280", StringComparison.Ordinal) ? "Wi-Fi" : "Rede cabeada",
+            DriverCategory.Video => L.T("Placa de vídeo"),
+            DriverCategory.Network => r.Wireless || Is(r.Driver, WifiDrivers) || pci.StartsWith("0280", StringComparison.Ordinal) ? L.T("Wi-Fi") : L.T("Rede cabeada"),
             DriverCategory.Bluetooth => "Bluetooth",
-            DriverCategory.Audio => r.Bus == "USB" ? "Som USB (fone ou placa externa)" : "Placa de som",
-            DriverCategory.Printing => "Impressora ou scanner",
-            _ when r.Class == "STORAGE" => "Armazenamento (SSD, HD)",
-            _ when Is(r.Driver, ["usb-storage", "uas"]) || UsbClass(r, "08") => "Pendrive ou HD externo",
-            _ when Is(r.Driver, ["uvcvideo"]) || UsbClass(r, "0e") => "Câmera (webcam)",
-            _ when Is(r.Driver, ["usbhid", "hid-generic", "xpad"]) || UsbClass(r, "03") => "Teclado, mouse ou controle",
+            DriverCategory.Audio => r.Bus == "USB" ? L.T("Som USB (fone ou placa externa)") : L.T("Placa de som"),
+            DriverCategory.Printing => L.T("Impressora ou scanner"),
+            _ when r.Class == "STORAGE" => L.T("Armazenamento (SSD, HD)"),
+            _ when Is(r.Driver, ["usb-storage", "uas"]) || UsbClass(r, "08") => L.T("Pendrive ou HD externo"),
+            _ when Is(r.Driver, ["uvcvideo"]) || UsbClass(r, "0e") => L.T("Câmera (webcam)"),
+            _ when Is(r.Driver, ["usbhid", "hid-generic", "xpad"]) || UsbClass(r, "03") => L.T("Teclado, mouse ou controle"),
             _ when UsbClass(r, "09") => "Hub USB",
-            _ when r.Class == "USB/BUS" => "Controlador USB ou de barramento",
-            _ when r.Class == "MEDIA" => "Multimídia (captura de vídeo)",
-            _ when r.Class == "SYSTEM" => "Peça interna da placa-mãe",
-            _ when r.Bus == "USB" => "Aparelho USB",
-            _ => "Dispositivo",
+            _ when r.Class == "USB/BUS" => L.T("Controlador USB ou de barramento"),
+            _ when r.Class == "MEDIA" => L.T("Multimídia (captura de vídeo)"),
+            _ when r.Class == "SYSTEM" => L.T("Peça interna da placa-mãe"),
+            _ when r.Bus == "USB" => L.T("Aparelho USB"),
+            _ => L.T("Dispositivo"),
         };
     }
 
-    public static bool HasDriver(DriverRow r) => r.Driver.Length > 0 && r.Driver != "sem driver";
+    public static bool HasDriver(DriverRow r) => r.Driver.Length > 0 && r.Driver != L.T("sem driver");
 
     public static string LicenseOf(DriverRow r)
     {
         if (!HasDriver(r)) return "—";
-        if (r.Flags.Contains("proprietário", StringComparison.Ordinal) || Is(r.Driver, ProprietaryDrivers)) return "Proprietário (do fabricante)";
-        if (r.Flags.Contains("fora da árvore", StringComparison.Ordinal)) return "Livre, instalado à parte do kernel";
-        return "Livre (vem com o Linux)";
+        if (r.Flags.Contains(L.T("proprietário"), StringComparison.Ordinal) || Is(r.Driver, ProprietaryDrivers)) return L.T("Proprietário (do fabricante)");
+        if (r.Flags.Contains(L.T("fora da árvore do kernel"), StringComparison.Ordinal)) return L.T("Livre, instalado à parte do kernel");
+        return L.T("Livre (vem com o Linux)");
     }
 
     public static DriverDevice Describe(DriverRow r, GpuDriverStatus? gpu = null)
@@ -101,27 +101,27 @@ public static class DriverOverview
         if (nvidia)
         {
             if (r.Driver == "nouveau")
-                return D(DriverHealth.Attention, "DRIVER BÁSICO", "Usando o driver livre básico (nouveau): serve para a área de trabalho, mas jogos ficam lentos e a placa gasta mais energia. O driver oficial da NVIDIA resolve.", "usando o driver básico (nouveau)", DriverAction.OpenNvidiaTab);
+                return D(DriverHealth.Attention, L.T("DRIVER BÁSICO"), L.T("Usando o driver livre básico (nouveau): serve para a área de trabalho, mas jogos ficam lentos e a placa gasta mais energia. O driver oficial da NVIDIA resolve."), L.T("usando o driver básico (nouveau)"), DriverAction.OpenNvidiaTab);
             if (!HasDriver(r))
-                return D(DriverHealth.Attention, "SEM DRIVER", "Nenhum driver em uso: a placa NVIDIA está parada. Instale o driver oficial pela aba Driver NVIDIA.", "sem driver", DriverAction.OpenNvidiaTab);
+                return D(DriverHealth.Attention, L.T("SEM DRIVER"), L.T("Nenhum driver em uso: a placa NVIDIA está parada. Instale o driver oficial pela aba Driver NVIDIA."), L.T("sem driver"), DriverAction.OpenNvidiaTab);
             if (gpu?.UpdateAvailable == true)
-                return D(DriverHealth.Attention, "ATUALIZAÇÃO", $"Driver oficial da NVIDIA em uso ({gpu.Installed}); há uma versão mais nova para esta placa ({gpu.Latest}).", "há versão mais nova do driver", DriverAction.OpenNvidiaTab);
-            string version = gpu?.Installed is { Length: > 0 } v ? $" (versão {v})" : "";
-            return D(DriverHealth.Ok, "OK", $"Driver oficial da NVIDIA em uso{version}.", "ok", DriverAction.OpenNvidiaTab);
+                return D(DriverHealth.Attention, L.T("ATUALIZAÇÃO"), L.T($"Driver oficial da NVIDIA em uso ({gpu.Installed}); há uma versão mais nova para esta placa ({gpu.Latest})."), L.T("há versão mais nova do driver"), DriverAction.OpenNvidiaTab);
+            string version = gpu?.Installed is { Length: > 0 } v ? L.T($" (versão {v})") : "";
+            return D(DriverHealth.Ok, "OK", L.T($"Driver oficial da NVIDIA em uso{version}."), "ok", DriverAction.OpenNvidiaTab);
         }
         if (!HasDriver(r))
         {
             if (important)
-                return D(DriverHealth.Attention, "SEM DRIVER", "Nenhum driver em uso: esta peça provavelmente não funciona. Pode faltar o firmware (programa interno da peça) ou um driver do fabricante.", "sem driver", DriverAction.OpenDriverManager);
+                return D(DriverHealth.Attention, L.T("SEM DRIVER"), L.T("Nenhum driver em uso: esta peça provavelmente não funciona. Pode faltar o firmware (programa interno da peça) ou um driver do fabricante."), L.T("sem driver"), DriverAction.OpenDriverManager);
             if (c == DriverCategory.Printing)
-                return D(DriverHealth.Info, "PELO SISTEMA", "Sem driver do kernel, o que é normal: impressoras e scanners funcionam pelo sistema de impressão (CUPS) e de digitalização (SANE).", "sem driver do kernel (normal)");
-            return D(DriverHealth.Info, "SEM USO", "Nenhum driver em uso. Costuma ser normal para peças internas que o Linux não precisa usar; só investigue se algo não funciona.", "sem driver (normal)");
+                return D(DriverHealth.Info, L.T("PELO SISTEMA"), L.T("Sem driver do kernel, o que é normal: impressoras e scanners funcionam pelo sistema de impressão (CUPS) e de digitalização (SANE)."), L.T("sem driver do kernel (normal)"));
+            return D(DriverHealth.Info, L.T("SEM USO"), L.T("Nenhum driver em uso. Costuma ser normal para peças internas que o Linux não precisa usar; só investigue se algo não funciona."), L.T("sem driver (normal)"));
         }
         if (c == DriverCategory.Video)
-            return D(DriverHealth.Ok, "OK", $"Driver livre que já vem com o Linux ({r.Driver}, com o Mesa para 3D e jogos). Ele se atualiza junto com o sistema; não precisa instalar nada.", "ok");
-        if (license.StartsWith("Proprietário", StringComparison.Ordinal))
-            return D(DriverHealth.Ok, "OK", $"Funcionando com um driver do fabricante ({r.Driver}).", "ok");
-        return D(DriverHealth.Ok, "OK", $"Funcionando com o driver {r.Driver}, que já vem com o Linux.", "ok");
+            return D(DriverHealth.Ok, "OK", L.T($"Driver livre que já vem com o Linux ({r.Driver}, com o Mesa para 3D e jogos). Ele se atualiza junto com o sistema; não precisa instalar nada."), "ok");
+        if (license.StartsWith(L.T("Proprietário"), StringComparison.Ordinal))
+            return D(DriverHealth.Ok, "OK", L.T($"Funcionando com um driver do fabricante ({r.Driver})."), "ok");
+        return D(DriverHealth.Ok, "OK", L.T($"Funcionando com o driver {r.Driver}, que já vem com o Linux."), "ok");
     }
 
     public static IReadOnlyList<DriverCategoryView> Build(IReadOnlyList<DriverRow> rows, IReadOnlyList<GpuDriverStatus> gpus)
@@ -136,12 +136,12 @@ public static class DriverOverview
         var all = cards.SelectMany(c => c.Devices).ToList();
         var attention = cards.SelectMany(c => c.Devices.Where(d => d.Health == DriverHealth.Attention).Select(d => $"{c.Title}: {d.Row.Device} — {d.Short}.")).ToList();
         int unused = all.Count(d => d.Health == DriverHealth.Info);
-        string headline = all.Count == 0 ? "Nenhum dispositivo encontrado no sysfs."
-            : attention.Count == 0 ? $"Tudo certo: os {all.Count - unused} dispositivo(s) em uso têm driver funcionando."
-            : attention.Count == 1 ? "1 ponto precisa de atenção." : $"{attention.Count} pontos precisam de atenção.";
+        string headline = all.Count == 0 ? L.T("Nenhum dispositivo encontrado no sysfs.")
+            : attention.Count == 0 ? L.T($"Tudo certo: os {all.Count - unused} dispositivo(s) em uso têm driver funcionando.")
+            : attention.Count == 1 ? L.T("1 ponto precisa de atenção.") : L.T($"{attention.Count} pontos precisam de atenção.");
         var lines = new List<string>(attention);
         foreach (var c in cards.Where(c => c.Category != DriverCategory.Other && c.Devices.Count > 0 && c.Health != DriverHealth.Attention)) lines.Add($"{c.Title}: ok.");
-        if (unused > 0) lines.Add($"{unused} peça(s) sem driver em uso, o que costuma ser normal (detalhes nos cartões abaixo).");
+        if (unused > 0) lines.Add(L.T($"{unused} peça(s) sem driver em uso, o que costuma ser normal (detalhes nos cartões abaixo)."));
         return new(all.Count, attention.Count, unused, headline, lines);
     }
 }

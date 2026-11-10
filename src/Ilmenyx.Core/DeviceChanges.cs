@@ -20,12 +20,12 @@ public static class DeviceChanges
         var list = new List<ToastMessage>();
         var oldMounts = before.Mounts.ToDictionary(m => m.MountPoint, StringComparer.Ordinal);
         var newMounts = now.Mounts.ToDictionary(m => m.MountPoint, StringComparer.Ordinal);
-        foreach (var m in now.Mounts) if (!oldMounts.ContainsKey(m.MountPoint)) list.Add(new("Unidade conectada", m.Title));
-        foreach (var m in before.Mounts) if (!newMounts.ContainsKey(m.MountPoint)) list.Add(new("Unidade removida", $"{m.Title} pode ser desconectada."));
+        foreach (var m in now.Mounts) if (!oldMounts.ContainsKey(m.MountPoint)) list.Add(new(L.T("Unidade conectada"), m.Title));
+        foreach (var m in before.Mounts) if (!newMounts.ContainsKey(m.MountPoint)) list.Add(new(L.T("Unidade removida"), L.T($"{m.Title} pode ser desconectada.")));
         var oldUsb = before.Usb.Select(u => u.Id).ToHashSet(StringComparer.Ordinal);
         var newUsb = now.Usb.Select(u => u.Id).ToHashSet(StringComparer.Ordinal);
-        foreach (var u in now.Usb) if (!oldUsb.Contains(u.Id)) list.Add(new("Dispositivo USB conectado", u.Name));
-        foreach (var u in before.Usb) if (!newUsb.Contains(u.Id)) list.Add(new("Dispositivo USB desconectado", u.Name));
+        foreach (var u in now.Usb) if (!oldUsb.Contains(u.Id)) list.Add(new(L.T("Dispositivo USB conectado"), u.Name));
+        foreach (var u in before.Usb) if (!newUsb.Contains(u.Id)) list.Add(new(L.T("Dispositivo USB desconectado"), u.Name));
         return list.Take(MaxToasts).ToList();
     }
 }

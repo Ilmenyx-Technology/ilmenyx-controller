@@ -32,3 +32,5 @@
 /core.*
 .DS_Store
 Thumbs.db
+i18n-wrap-report.tsv
+i18n-missed.txt

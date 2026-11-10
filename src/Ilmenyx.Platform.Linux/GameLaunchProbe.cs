@@ -219,12 +219,12 @@ public static class GameUserFixRunner
 {
     public static async Task<(bool Ok, string Message)> RunAsync(IReadOnlyList<string> arguments, CancellationToken ct = default)
     {
-        if (!GameLaunchChecks.IsAllowedFix(arguments)) return (false, "Recusado: comando fora da lista permitida.");
-        if (BoundedProcess.FindSystem("flatpak") is null) return (false, "O Flatpak não está instalado.");
+        if (!GameLaunchChecks.IsAllowedFix(arguments)) return (false, L.T("Recusado: comando fora da lista permitida."));
+        if (BoundedProcess.FindSystem("flatpak") is null) return (false, L.T("O Flatpak não está instalado."));
         try
         {
             var (code, output) = await BoundedProcess.RunAsync("flatpak", arguments, TimeSpan.FromMinutes(2), 65536, ct);
-            return code == 0 ? (true, "Pronto.") : (false, "Falhou (código " + code + ")" + (output.Trim().Length > 0 ? ": " + output.Trim() : "."));
+            return code == 0 ? (true, "Pronto.") : (false, L.T("Falhou (código ") + code + ")" + (output.Trim().Length > 0 ? ": " + output.Trim() : "."));
         }
         catch (Exception e) when (e is IOException or TimeoutException or FileNotFoundException or System.ComponentModel.Win32Exception) { return (false, "Falhou: " + e.Message); }
     }

@@ -17,10 +17,10 @@ public sealed class SmartImportViewModel(Func<string, string, CancellationToken,
     public bool IsExporting { get; private set; }
     public bool CanImport => !disposed && !IsImporting && !IsExporting;
     public bool CanExport => !disposed && Report is not null && !IsImporting && !IsExporting;
-    public string Status { get; private set; } = "Nenhum relatório SMART importado. Nada é consultado no disco.";
+    public string Status { get; private set; } = L.T("Nenhum relatório SMART importado. Nada é consultado no disco.");
     public string Text => Report is { } r
-        ? $"{r.Diagnostic.Device} · {r.Diagnostic.Status}\nRelato passed: {SnapshotReport.Describe(r.Diagnostic.ReportedPassed)}\n" + (SmartMetricText.Lines(r.Diagnostic) is { Count: > 0 } m ? "Métricas brutas (sem veredito):\n" + string.Join("\n", m) + "\n" : "") + string.Join("\n", r.Limitations)
-        : "Sem relatório importado.";
+        ? L.T($"{r.Diagnostic.Device} · {r.Diagnostic.Status}\nRelato passed: {SnapshotReport.Describe(r.Diagnostic.ReportedPassed)}\n") + (SmartMetricText.Lines(r.Diagnostic) is { Count: > 0 } m ? L.T("Métricas brutas (sem veredito):\n") + string.Join("\n", m) + "\n" : "") + string.Join("\n", r.Limitations)
+        : L.T("Sem relatório importado.");
 
     public async Task ImportAsync(string device, string path, CancellationToken ct = default)
     {
@@ -32,11 +32,11 @@ public sealed class SmartImportViewModel(Func<string, string, CancellationToken,
             var report = await Task.Run(() => importer(device.Trim(), path.Trim(), linked.Token), linked.Token);
             if (disposed) return;
             Report = report;
-            Status = "Relatório histórico importado e filtrado; data original da coleta não confirmada.";
+            Status = L.T("Relatório histórico importado e filtrado; data original da coleta não confirmada.");
         }
-        catch (OperationCanceledException) { SetStatus("Importação cancelada; relatório anterior preservado."); }
+        catch (OperationCanceledException) { SetStatus(L.T("Importação cancelada; relatório anterior preservado.")); }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or TimeoutException or NotSupportedException)
-        { SetStatus("Importação recusada; relatório anterior preservado: " + e.Message); }
+        { SetStatus(L.T("Importação recusada; relatório anterior preservado: ") + e.Message); }
         finally { IsImporting = false; NotifyAll(); }
     }
 
@@ -51,15 +51,15 @@ public sealed class SmartImportViewModel(Func<string, string, CancellationToken,
             token.ThrowIfCancellationRequested();
             var path = await chooseDestination(html ? ".html" : ".json");
             token.ThrowIfCancellationRequested();
-            if (path is null) { SetStatus("Exportação cancelada."); return; }
-            if (!ReferenceEquals(selected, Report)) { SetStatus("O relatório mudou. Selecione novamente para exportar."); return; }
+            if (path is null) { SetStatus(L.T("Exportação cancelada.")); return; }
+            if (!ReferenceEquals(selected, Report)) { SetStatus(L.T("O relatório mudou. Selecione novamente para exportar.")); return; }
             if (html) await Task.Run(() => SmartImportHtmlReport.ExportAsync(selected, path, token), token);
             else await Task.Run(() => SnapshotReport.ExportAsync(selected, path, token), token);
-            SetStatus("Relatório SMART importado exportado para arquivo local.");
+            SetStatus(L.T("Relatório SMART importado exportado para arquivo local."));
         }
-        catch (OperationCanceledException) { SetStatus("Exportação cancelada."); }
+        catch (OperationCanceledException) { SetStatus(L.T("Exportação cancelada.")); }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
-        { SetStatus("Não foi possível exportar: " + e.Message); }
+        { SetStatus(L.T("Não foi possível exportar: ") + e.Message); }
         finally { IsExporting = false; NotifyAll(); }
     }
 

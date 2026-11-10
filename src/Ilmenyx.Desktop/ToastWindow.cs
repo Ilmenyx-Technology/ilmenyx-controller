@@ -6,6 +6,7 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Ilmenyx.Core;
 
 namespace Ilmenyx.Desktop;
 
@@ -20,7 +21,7 @@ public sealed class ToastWindow : Window
 
     public ToastWindow()
     {
-        Icon = AppIcon.Window; Title = "Ilmenyx Controller · Aviso"; WindowDecorations = WindowDecorations.None; Topmost = true; ShowInTaskbar = false; ShowActivated = false; CanResize = false; Focusable = false;
+        Icon = AppIcon.Window; Title = L.T("Ilmenyx Controller · Aviso"); WindowDecorations = WindowDecorations.None; Topmost = true; ShowInTaskbar = false; ShowActivated = false; CanResize = false; Focusable = false;
         Background = Brushes.Transparent; TransparencyLevelHint = [WindowTransparencyLevel.Transparent]; SizeToContent = SizeToContent.WidthAndHeight;
         Content = new Border { Background = Palette.Panel, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), Padding = new Thickness(16, 12), Child = new StackPanel { Spacing = 2, Children = { title, text } } };
         SizeChanged += (_, _) => Place();

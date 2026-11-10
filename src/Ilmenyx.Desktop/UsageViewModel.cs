@@ -3,6 +3,7 @@
 using System.ComponentModel;
 using System.Globalization;
 using Ilmenyx.Contracts;
+using Ilmenyx.Core;
 
 namespace Ilmenyx.Desktop;
 
@@ -26,21 +27,21 @@ public sealed class UsageViewModel(IUsageProvider provider, TimeSpan? interval =
     public IReadOnlyList<double> CpuSeries => cpu; public IReadOnlyList<double> MemorySeries => memory;
     public IReadOnlyList<double> TempSeries => temp; public IReadOnlyList<double> PowerSeries => power; public IReadOnlyList<double> DiskSeries => disk; public IReadOnlyList<double> NetSeries => net;
     public IReadOnlyList<ProcessRow> Rows { get; private set; } = [];
-    public string CpuLine { get; private set; } = "Aguardando amostras…";
+    public string CpuLine { get; private set; } = L.T("Aguardando amostras…");
     public string CpuModel { get; private set; } = "";
-    public string MemoryLine { get; private set; } = "Aguardando amostras…";
+    public string MemoryLine { get; private set; } = L.T("Aguardando amostras…");
     public string MemorySub { get; private set; } = "";
-    public string DiskLine { get; private set; } = "Aguardando amostras…";
-    public string NetLine { get; private set; } = "Aguardando amostras…";
+    public string DiskLine { get; private set; } = L.T("Aguardando amostras…");
+    public string NetLine { get; private set; } = L.T("Aguardando amostras…");
     public string NetSub { get; private set; } = "";
-    public string Status { get; private set; } = "Monitor pausado.";
+    public string Status { get; private set; } = L.T("Monitor pausado.");
     public string ProcessSummary { get; private set; } = "";
 
     public void Start(CancellationToken lifetime = default)
     {
         if (disposed || IsRunning) return;
         run = CancellationTokenSource.CreateLinkedTokenSource(lifetime, stop.Token);
-        IsRunning = true; Status = "Monitor ativo (1 s). Amostras só na memória; nada é gravado."; Notify(nameof(IsRunning)); Notify(nameof(Status));
+        IsRunning = true; Status = L.T("Monitor ativo (1 s). Amostras só na memória; nada é gravado."); Notify(nameof(IsRunning)); Notify(nameof(Status));
         var source = run;
         loop = LoopAsync(source);
     }
@@ -63,7 +64,7 @@ public sealed class UsageViewModel(IUsageProvider provider, TimeSpan? interval =
                 do { await SampleOnceAsync(source.Token); } while (await timer.WaitForNextTickAsync(source.Token));
             }
             catch (OperationCanceledException) when (source.IsCancellationRequested) { }
-            finally { run = null; IsRunning = false; if (!disposed) { Status = "Monitor pausado."; Notify(nameof(IsRunning)); Notify(nameof(Status)); } }
+            finally { run = null; IsRunning = false; if (!disposed) { Status = L.T("Monitor pausado."); Notify(nameof(IsRunning)); Notify(nameof(Status)); } }
         }
     }
 
@@ -76,7 +77,7 @@ public sealed class UsageViewModel(IUsageProvider provider, TimeSpan? interval =
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException)
-        { if (!disposed) { Status = "Leitura indisponível nesta amostra: " + e.Message; Notify(nameof(Status)); } }
+        { if (!disposed) { Status = L.T("Leitura indisponível nesta amostra: ") + e.Message; Notify(nameof(Status)); } }
     }
 
     private static void Push(List<double> list, double? value)
@@ -92,15 +93,15 @@ public sealed class UsageViewModel(IUsageProvider provider, TimeSpan? interval =
         Push(memory, s.MemoryTotal is > 0 && s.MemoryUsed is { } u ? 100.0 * u / s.MemoryTotal.Value : null);
         Push(disk, s.DiskReadBps is { } r && s.DiskWriteBps is { } w ? r + w : null);
         Push(net, s.NetRxBps is { } rx && s.NetTxBps is { } tx ? rx + tx : null);
-        CpuLine = $"{Pct(s.CpuPercent)} / {(s.CpuMhz is { } mhz ? mhz.ToString("0", CultureInfo.InvariantCulture) + " MHz" : "— MHz")} / {(s.CpuTempC is { } t ? t.ToString("0.0", CultureInfo.InvariantCulture) + " °C" : "temperatura indisponível")}";
-        CpuModel = s.CpuModel ?? "Modelo não informado";
+        CpuLine = $"{Pct(s.CpuPercent)} / {(s.CpuMhz is { } mhz ? mhz.ToString("0", CultureInfo.InvariantCulture) + " MHz" : "— MHz")} / {(s.CpuTempC is { } t ? t.ToString("0.0", CultureInfo.InvariantCulture) + " °C" : L.T("temperatura indisponível"))}";
+        CpuModel = s.CpuModel ?? L.T("Modelo não informado");
         MemoryLine = s.MemoryTotal is { } total && s.MemoryUsed is { } used
-            ? $"{Pct(100.0 * used / total)} · {Bytes(used)} de {Bytes(total)}" : "Memória indisponível";
+            ? L.T($"{Pct(100.0 * used / total)} · {Bytes(used)} de {Bytes(total)}") : L.T("Memória indisponível");
         MemorySub = s.MemoryTotal is { } t2 ? "Total " + Bytes(t2) : "";
-        DiskLine = s.DiskReadBps is { } dr && s.DiskWriteBps is { } dw ? $"{Rate(dr)} leitura / {Rate(dw)} escrita" : "Taxa de disco: aguardando 2ª amostra ou indisponível";
-        NetLine = s.NetRxBps is { } nr && s.NetTxBps is { } nt ? $"{Rate(nr)} recebido / {Rate(nt)} enviado" : "Taxa de rede: aguardando 2ª amostra ou indisponível";
-        NetSub = s.NetInterface ?? "Nenhuma interface de rede ativa";
-        ProcessSummary = $"{s.ProcessCount} processos visíveis · mostrando {Math.Min(s.Processes.Count, 40)}";
+        DiskLine = s.DiskReadBps is { } dr && s.DiskWriteBps is { } dw ? L.T($"{Rate(dr)} leitura / {Rate(dw)} escrita") : L.T("Taxa de disco: aguardando 2ª amostra ou indisponível");
+        NetLine = s.NetRxBps is { } nr && s.NetTxBps is { } nt ? L.T($"{Rate(nr)} recebido / {Rate(nt)} enviado") : L.T("Taxa de rede: aguardando 2ª amostra ou indisponível");
+        NetSub = s.NetInterface ?? L.T("Nenhuma interface de rede ativa");
+        ProcessSummary = L.T($"{s.ProcessCount} processos visíveis · mostrando {Math.Min(s.Processes.Count, 40)}");
         var ordered = SortByMemory ? s.Processes.OrderByDescending(p => p.ResidentBytes ?? -1) : s.Processes.OrderByDescending(p => p.CpuPercent ?? -1).ThenByDescending(p => p.ResidentBytes ?? -1);
         Rows = ordered.Take(40).Select(p => new ProcessRow(p.Name, Pct(p.CpuPercent), p.ResidentBytes is { } b ? Bytes(b) : "—")).ToArray();
         foreach (var name in new[] { nameof(Last), nameof(CpuLine), nameof(CpuModel), nameof(MemoryLine), nameof(MemorySub), nameof(DiskLine), nameof(NetLine), nameof(NetSub), nameof(ProcessSummary), nameof(Rows) }) Notify(name);

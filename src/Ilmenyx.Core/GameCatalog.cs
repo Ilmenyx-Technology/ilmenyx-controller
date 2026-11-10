@@ -44,42 +44,42 @@ public static class GameCatalog
     // Os nomes seguem a grafia das lojas; sessões medidas casam com eles pelo nome normalizado (FpsAccuracy.LatestSession).
     public static readonly GameInfo[] Games =
     {
-        new("Counter-Strike 2", "FPS competitivo", 340, 420),
+        new(L.T("Counter-Strike 2"), L.T("FPS competitivo"), 340, 420),
         // GpuExp 0,73: ajuste aos três níveis oficiais da Riot (30 FPS Intel HD 4000, 60 FPS GT 730, 144 FPS GTX 1050 Ti;
         // support.riotgames.com/en-us/valorant/support-tools/minimum-recommended-pc-specs, lido em 2026-11-08), supondo Alto/1080p.
-        new("Valorant", "FPS competitivo", 600, 650, 0, LightValorant),
-        new("Fortnite", "Battle royale", 160, 250),
+        new("Valorant", L.T("FPS competitivo"), 600, 650, 0, LightValorant),
+        new("Fortnite", L.T("Battle royale"), 160, 250),
         // GpuExp 0,55: a Riot recomenda Intel UHD 630 para Alto/1920x1080 (support.riotgames.com/en-us/league-of-legends/performance/
         // minimum-and-recommended-system-requirements-league-of-legends, lido em 2026-11-08); supondo "recomendado" = 60 FPS.
         // Antes (expoente 1) a 940MX dava 16–44 FPS no Baixo; o mantenedor observa > 100 FPS nesse hardware.
         new("League of Legends", "MOBA", 420, 480, 0, LightLol),
         new("Dota 2", "MOBA", 260, 280, 0, LightClass), // expoente da classe "leve" (sem fonte oficial com FPS para o jogo)
-        new("Apex Legends", "Battle royale", 220, 300),
-        new("PUBG: Battlegrounds", "Battle royale", 180, 220),
-        new("Call of Duty: Black Ops 6", "FPS", 140, 220),
-        new("Call of Duty: Warzone", "Battle royale", 130, 200),
+        new("Apex Legends", L.T("Battle royale"), 220, 300),
+        new(L.T("PUBG: Battlegrounds"), L.T("Battle royale"), 180, 220),
+        new(L.T("Call of Duty: Black Ops 6"), "FPS", 140, 220),
+        new(L.T("Call of Duty: Warzone"), L.T("Battle royale"), 130, 200),
         new("Battlefield 6", "FPS", 120, 170),
-        new("Rainbow Six Siege", "FPS tático", 350, 430),
-        new("Overwatch 2", "FPS heroico", 280, 380),
-        new("Marvel Rivals", "FPS heroico", 110, 160),
-        new("Rocket League", "Esporte", 400, 450, 0, LightClass), // idem; requisitos da Epic (GTX 760 / GTX 1060) não dizem FPS
-        new("EA Sports FC 25", "Esporte", 220, 260),
-        new("Minecraft", "Sandbox", 300, 340, 0, LightClass), // idem
-        new("GTA V", "Mundo aberto", 160, 190),
-        new("Red Dead Redemption 2", "Mundo aberto", 95, 160),
-        new("Cyberpunk 2077", "RPG mundo aberto", 95, 150),
-        new("The Witcher 3: Wild Hunt", "RPG", 120, 160),
-        new("Elden Ring", "RPG de ação", 110, 140, 60),
+        new("Rainbow Six Siege", L.T("FPS tático"), 350, 430),
+        new(L.T("Overwatch 2"), L.T("FPS heroico"), 280, 380),
+        new("Marvel Rivals", L.T("FPS heroico"), 110, 160),
+        new("Rocket League", L.T("Esporte"), 400, 450, 0, LightClass), // idem; requisitos da Epic (GTX 760 / GTX 1060) não dizem FPS
+        new("EA Sports FC 25", L.T("Esporte"), 220, 260),
+        new("Minecraft", L.T("Sandbox"), 300, 340, 0, LightClass), // idem
+        new("GTA V", L.T("Mundo aberto"), 160, 190),
+        new("Red Dead Redemption 2", L.T("Mundo aberto"), 95, 160),
+        new(L.T("Cyberpunk 2077"), L.T("RPG mundo aberto"), 95, 150),
+        new(L.T("The Witcher 3: Wild Hunt"), "RPG", 120, 160),
+        new(L.T("Elden Ring"), L.T("RPG de ação"), 110, 140, 60),
         new("Baldur's Gate 3", "RPG", 110, 120),
-        new("Hogwarts Legacy", "RPG de ação", 90, 120),
-        new("Starfield", "RPG espacial", 65, 90),
-        new("Black Myth: Wukong", "Ação", 70, 140),
-        new("Alan Wake 2", "Terror / ação", 60, 140),
-        new("God of War Ragnarök", "Ação", 110, 170),
-        new("Forza Horizon 5", "Corrida", 140, 200),
-        new("Helldivers 2", "Cooperativo", 90, 110),
-        new("Monster Hunter Wilds", "Ação", 60, 85),
-        new("Assassin's Creed Shadows", "Ação mundo aberto", 65, 110),
+        new(L.T("Hogwarts Legacy"), L.T("RPG de ação"), 90, 120),
+        new(L.T("Starfield"), L.T("RPG espacial"), 65, 90),
+        new("Black Myth: Wukong", L.T("Ação"), 70, 140),
+        new("Alan Wake 2", L.T("Terror / ação"), 60, 140),
+        new(L.T("God of War Ragnarök"), L.T("Ação"), 110, 170),
+        new(L.T("Forza Horizon 5"), L.T("Corrida"), 140, 200),
+        new(L.T("Helldivers 2"), L.T("Cooperativo"), 90, 110),
+        new("Monster Hunter Wilds", L.T("Ação"), 60, 85),
+        new("Assassin's Creed Shadows", L.T("Ação mundo aberto"), 65, 110),
         new("Borderlands 4", "Looter shooter", 55, 110),
     };
 
@@ -92,11 +92,11 @@ public static class GameCatalog
     // Método e números: docs/fps-estimativa.md, seção "Reajuste dos índices".
     private static readonly (string Key, double Index)[] GpuIndex =
     {
-        ("RTX 5090", 265), ("RTX 5080", 175), ("RTX 5070 Ti", 150), ("RTX 5070", 118), ("RTX 5060 Ti", 80), ("RTX 5060", 74),
-        ("RTX 4090", 210), ("RTX 4080 SUPER", 160), ("RTX 4080", 157), ("RTX 4070 Ti SUPER", 136), ("RTX 4070 Ti", 124),
-        ("RTX 4070 SUPER", 116), ("RTX 4070", 100), ("RTX 4060 Ti", 69), ("RTX 4060", 61),
-        ("RTX 3090 Ti", 109), ("RTX 3090", 101), ("RTX 3080 Ti", 99), ("RTX 3080", 91), ("RTX 3070 Ti", 75), ("RTX 3070", 70),
-        ("RTX 3060 Ti", 65), ("RTX 3060", 51), ("RTX 3050", 34), ("GTX 1660", 31), ("GTX 1650", 21),
+        (L.T("RTX 5090"), 265), (L.T("RTX 5080"), 175), (L.T("RTX 5070 Ti"), 150), (L.T("RTX 5070"), 118), (L.T("RTX 5060 Ti"), 80), (L.T("RTX 5060"), 74),
+        (L.T("RTX 4090"), 210), (L.T("RTX 4080 SUPER"), 160), (L.T("RTX 4080"), 157), (L.T("RTX 4070 Ti SUPER"), 136), (L.T("RTX 4070 Ti"), 124),
+        (L.T("RTX 4070 SUPER"), 116), (L.T("RTX 4070"), 100), (L.T("RTX 4060 Ti"), 69), (L.T("RTX 4060"), 61),
+        (L.T("RTX 3090 Ti"), 109), (L.T("RTX 3090"), 101), (L.T("RTX 3080 Ti"), 99), (L.T("RTX 3080"), 91), (L.T("RTX 3070 Ti"), 75), (L.T("RTX 3070"), 70),
+        (L.T("RTX 3060 Ti"), 65), (L.T("RTX 3060"), 51), (L.T("RTX 3050"), 34), (L.T("GTX 1660"), 31), (L.T("GTX 1650"), 21),
         ("RX 9070 XT", 133), ("RX 9070", 116), ("RX 7900 XTX", 170), ("RX 7900 XT", 150), ("RX 7900 GRE", 106),
         ("RX 7800 XT", 95), ("RX 7700 XT", 81), ("RX 7600 XT", 64), ("RX 7600", 62),
         ("RX 6950 XT", 101), ("RX 6800 XT", 90), ("RX 6700 XT", 66), ("RX 6600", 46),
@@ -104,17 +104,17 @@ public static class GameCatalog
         ("Radeon(TM) Graphics", 5.3), ("Radeon Graphics", 5.3),
         // Ilmenyx additions (2026-11-07): older desktop, laptop and integrated GPUs, so common Linux machines are not left out
         // (approximate relative gaming performance, same scale: RTX 4070 = 100).
-        ("RTX 2080 Ti", 75), ("RTX 2080 SUPER", 58), ("RTX 2080", 54), ("RTX 2070 SUPER", 52), ("RTX 2070", 45), ("RTX 2060 SUPER", 45), ("RTX 2060", 40),
-        ("GTX 1660 Ti", 35), ("GTX 1660 SUPER", 33), ("GTX 1080 Ti", 44), ("GTX 1080", 39), ("GTX 1070 Ti", 36), ("GTX 1070", 33),
-        ("GTX 1060", 24), ("GTX 1050 Ti", 14.1), ("GTX 1050", 11.7), ("GT 1030", 5.8), ("GTX 980 Ti", 30), ("GTX 980", 24), ("GTX 970", 22), ("GTX 960", 14.6),
-        ("RTX 4060 Laptop", 52), ("RTX 4050 Laptop", 45), ("RTX 3060 Laptop", 44), ("RTX 3050 Laptop", 24), ("RTX 3050 Ti Laptop", 30), ("GTX 1650 Ti", 22),
+        (L.T("RTX 2080 Ti"), 75), (L.T("RTX 2080 SUPER"), 58), (L.T("RTX 2080"), 54), (L.T("RTX 2070 SUPER"), 52), (L.T("RTX 2070"), 45), (L.T("RTX 2060 SUPER"), 45), (L.T("RTX 2060"), 40),
+        (L.T("GTX 1660 Ti"), 35), (L.T("GTX 1660 SUPER"), 33), (L.T("GTX 1080 Ti"), 44), (L.T("GTX 1080"), 39), (L.T("GTX 1070 Ti"), 36), (L.T("GTX 1070"), 33),
+        (L.T("GTX 1060"), 24), (L.T("GTX 1050 Ti"), 14.1), (L.T("GTX 1050"), 11.7), ("GT 1030", 5.8), (L.T("GTX 980 Ti"), 30), (L.T("GTX 980"), 24), (L.T("GTX 970"), 22), (L.T("GTX 960"), 14.6),
+        (L.T("RTX 4060 Laptop"), 52), (L.T("RTX 4050 Laptop"), 45), (L.T("RTX 3060 Laptop"), 44), (L.T("RTX 3050 Laptop"), 24), (L.T("RTX 3050 Ti Laptop"), 30), (L.T("GTX 1650 Ti"), 22),
         ("MX570", 14.9), ("MX550", 16.5), ("MX450", 9.4), ("MX350", 8.1), ("MX330", 6.1), ("MX250", 5.9), ("MX230", 4.1), ("MX150", 5.8), ("MX130", 3.7), ("MX110", 2.9),
-        ("940MX", 3.3), ("940M", 2.8), ("930MX", 2.9), ("930M", 2.9), ("920MX", 2.4), ("GTX 950M", 5.9), ("GTX 960M", 8.1), ("GTX 1050 Mobile", 11.1),
+        ("940MX", 3.3), ("940M", 2.8), ("930MX", 2.9), ("930M", 2.9), ("920MX", 2.4), (L.T("GTX 950M"), 5.9), (L.T("GTX 960M"), 8.1), (L.T("GTX 1050 Mobile"), 11.1),
         ("RX 6800", 79), ("RX 6750 XT", 69), ("RX 6650 XT", 55), ("RX 6600 XT", 51), ("RX 6500 XT", 29), ("RX 6400", 22),
         ("RX 5700 XT", 47), ("RX 5700", 43), ("RX 5600 XT", 39), ("RX 5500 XT", 26), ("RX 590", 25), ("RX 580", 24), ("RX 570", 25), ("RX 560", 12.5), ("RX 550", 8.7),
         ("Arc A750", 48), ("Arc A580", 44), ("Arc A380", 19.5), ("Iris Xe", 8.1), ("Iris Plus", 3.5), ("UHD Graphics 770", 2.7), ("UHD Graphics 630", 2), ("UHD Graphics 620", 1.4),
         ("HD Graphics 630", 2), ("HD Graphics 620", 1.4), ("HD Graphics 520", 1.1), ("UHD Graphics", 1.4),
-        ("Radeon 890M", 19.3), ("Radeon 880M", 14.7), ("Radeon 780M", 16), ("Radeon 760M", 12.7), ("Radeon 680M", 14), ("Radeon 660M", 8.9), ("Radeon 610M", 3.9), ("Mendocino", 3.9),
+        ("Radeon 890M", 19.3), ("Radeon 880M", 14.7), ("Radeon 780M", 16), ("Radeon 760M", 12.7), ("Radeon 680M", 14), ("Radeon 660M", 8.9), ("Radeon 610M", 3.9), (L.T("Mendocino"), 3.9),
         ("Vega 8", 6.9), ("Vega 7", 5.3), ("Vega 6", 4.7), ("Vega 3", 1.7), ("Steam Deck", 11.4), ("VanGogh", 11.4), ("Van Gogh", 11.4),
     };
 
@@ -135,7 +135,7 @@ public static class GameCatalog
         ("3900X", 67), ("3700X", 65), ("3600", 62), ("2700X", 54), ("2600", 50), ("1600", 45), ("5600G", 66), ("5700G", 70), ("5500", 70), ("4600G", 58),
         ("7945HX", 115), ("7940HS", 86), ("7840HS", 85), ("7840U", 78), ("7735HS", 74), ("7640HS", 76), ("7535HS", 66), ("6900HS", 74), ("6800H", 72),
         ("5900HX", 70), ("5800H", 66), ("5600H", 62), ("4800H", 58), ("4600H", 55), ("7730U", 52), ("7530U", 48), ("7520U", 34), ("7320U", 30),
-        ("5700U", 50), ("5500U", 45), ("4700U", 44), ("4500U", 40), ("3700U", 32), ("3500U", 30), ("Custom APU 0405", 40),
+        ("5700U", 50), ("5500U", 45), ("4700U", 44), ("4500U", 40), ("3700U", 32), ("3500U", 30), (L.T("Custom APU 0405"), 40),
     };
 
     public static double? GpuPerf(string gpuName) => GpuMatch(gpuName)?.Index;

@@ -18,21 +18,21 @@ public static class FpsCalibratorReal
     public static FpsCalibrator Create(Func<FpsContext?> context, Func<double?> cpuTemp, Func<double?> gpuTemp) => new(async (progress, ct) =>
     {
         var ctx = context();
-        progress.Report(("Procurando a GPU dos jogos…", 0.02));
+        progress.Report((L.T("Procurando a GPU dos jogos…"), 0.02));
         var devices = await Task.Run(() => VulkanDevices.List(), ct);
         var adapter = PickAdapter(devices.Adapters, ctx);
         double? score = null, fps = null; string? name = null, reason = null;
-        if (adapter is null) reason = devices.Error ?? "nenhuma GPU com Vulkan 1.3 (só renderização por CPU ou Vulkan antigo)";
+        if (adapter is null) reason = devices.Error ?? L.T("nenhuma GPU com Vulkan 1.3 (só renderização por CPU ou Vulkan antigo)");
         else
         {
-            progress.Report(($"Cena de GPU em {adapter.Name} ({FpsModels.SceneSeconds} s)…", 0.05));
+            progress.Report((L.T($"Cena de GPU em {adapter.Name} ({FpsModels.SceneSeconds} s)…"), 0.05));
             var scene = await new GpuScene().RunAsync(new GpuSceneOptions(adapter.Index, FpsModels.SceneWidth, FpsModels.SceneHeight, TimeSpan.FromSeconds(FpsModels.SceneSeconds),
-                FpsModels.SceneShadow, FpsModels.SceneTrees, true), ct, new Progress<GpuSceneProgress>(p => progress.Report(($"Cena de GPU · {p.Fps:0} FPS", 0.05 + 0.55 * p.Fraction))));
+                FpsModels.SceneShadow, FpsModels.SceneTrees, true), ct, new Progress<GpuSceneProgress>(p => progress.Report((L.T($"Cena de GPU · {p.Fps:0} FPS"), 0.05 + 0.55 * p.Fraction))));
             ct.ThrowIfCancellationRequested();
             if (scene.Status == GpuRunStatus.Completed && scene.Score is > 0) { score = scene.Score; fps = scene.AverageFps; name = scene.Adapter; }
-            else reason = scene.Reason ?? "a cena de GPU não terminou";
+            else reason = scene.Reason ?? L.T("a cena de GPU não terminou");
         }
-        progress.Report(($"Simulação de jogo na CPU, uma thread ({FpsModels.SimSeconds} s + 2 s de aquecimento)…", 0.62));
+        progress.Report((L.T($"Simulação de jogo na CPU, uma thread ({FpsModels.SimSeconds} s + 2 s de aquecimento)…"), 0.62));
         using var tick = new CancellationTokenSource();
         var started = DateTime.UtcNow;
         _ = Task.Run(async () =>
@@ -41,7 +41,7 @@ public static class FpsCalibratorReal
             {
                 try { await Task.Delay(500, tick.Token); } catch (OperationCanceledException) { break; }
                 double f = Math.Min(1, (DateTime.UtcNow - started).TotalSeconds / (FpsModels.SimSeconds + 2));
-                progress.Report(($"Simulação de jogo na CPU, uma thread ({FpsModels.SimSeconds} s + 2 s de aquecimento)…", 0.62 + 0.36 * f));
+                progress.Report((L.T($"Simulação de jogo na CPU, uma thread ({FpsModels.SimSeconds} s + 2 s de aquecimento)…"), 0.62 + 0.36 * f));
             }
         });
         GameSimBenchmarkResult sim;
@@ -52,8 +52,8 @@ public static class FpsCalibratorReal
         finally { tick.Cancel(); }
         ct.ThrowIfCancellationRequested();
         double? cpu = sim.Status == GameSimBenchmarkStatus.Completed && sim.AverageFps is > 0 ? sim.AverageFps : null;
-        if (cpu is null) reason = (reason is null ? "" : reason + "; ") + $"simulação de CPU não concluída ({sim.Status})";
-        progress.Report(("Concluído", 1));
+        if (cpu is null) reason = (reason is null ? "" : reason + "; ") + L.T($"simulação de CPU não concluída ({sim.Status})");
+        progress.Report((L.T("Concluído"), 1));
         return new FpsCalibrationMeasurement(score, fps, name, cpu, reason);
     }, cpuTemp, gpuTemp);
 
@@ -64,6 +64,6 @@ public static class FpsCalibratorReal
         uint vendor = 0, device = 0;
         if (ctx is not null) { uint.TryParse(ctx.GpuVendorId, System.Globalization.NumberStyles.HexNumber, null, out vendor); uint.TryParse(ctx.GpuDeviceId, System.Globalization.NumberStyles.HexNumber, null, out device); }
         return real.FirstOrDefault(a => vendor != 0 && a.VendorId == vendor && a.DeviceId == device)
-            ?? real.FirstOrDefault(a => a.Kind == "GPU dedicada") ?? real.FirstOrDefault();
+            ?? real.FirstOrDefault(a => a.Kind == L.T("GPU dedicada")) ?? real.FirstOrDefault();
     }
 }

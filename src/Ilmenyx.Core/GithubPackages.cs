@@ -33,7 +33,7 @@ public static partial class GithubPackages
 
     public static string Label(PackageFormat f) => f switch
     {
-        PackageFormat.Deb => "pacote .deb (apt)", PackageFormat.Rpm => "pacote .rpm (dnf/zypper)", PackageFormat.Pacman => "pacote do Arch (pacman)", _ => "AppImage (sem senha)",
+        PackageFormat.Deb => L.T("pacote .deb (apt)"), PackageFormat.Rpm => L.T("pacote .rpm (dnf/zypper)"), PackageFormat.Pacman => L.T("pacote do Arch (pacman)"), _ => L.T("AppImage (sem senha)"),
     };
 
     /// <summary>"photocraft-0.21.0-linux-x86_64.deb" for tag "v0.21.0".</summary>

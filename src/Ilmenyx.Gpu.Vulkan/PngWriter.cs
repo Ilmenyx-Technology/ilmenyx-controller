@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 using System.Buffers.Binary;
 using System.IO.Compression;
+using Ilmenyx.Core;
 
 namespace Ilmenyx.Gpu.Vulkan;
 
@@ -22,7 +23,7 @@ public static class PngWriter
     /// <summary>Encodes RGBA rows (width*height*4 bytes, top row first).</summary>
     public static byte[] Encode(ReadOnlySpan<byte> rgba, int width, int height)
     {
-        if (width <= 0 || height <= 0 || rgba.Length != width * height * 4) throw new ArgumentException("Dimensões não conferem com os dados.");
+        if (width <= 0 || height <= 0 || rgba.Length != width * height * 4) throw new ArgumentException(L.T("Dimensões não conferem com os dados."));
         using var png = new MemoryStream();
         png.Write([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
         Span<byte> header = stackalloc byte[13]; BinaryPrimitives.WriteUInt32BigEndian(header, (uint)width); BinaryPrimitives.WriteUInt32BigEndian(header[4..], (uint)height);

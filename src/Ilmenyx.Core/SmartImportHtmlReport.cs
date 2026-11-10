@@ -24,27 +24,27 @@ public static class SmartImportHtmlReport
         ct.ThrowIfCancellationRequested();
         var d = report.Diagnostic;
         var html = new StringBuilder(4096);
-        html.Append("""
+        html.Append($$$"""
             <!doctype html>
-            <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+            <html lang="{{{L.Current}}}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
             <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
-            <title>Ilmenyx — SMART importado</title><style>
+            <title>{{{L.T("Ilmenyx — SMART importado")}}}</title><style>
             *{box-sizing:border-box}body{margin:0;font:15px system-ui,sans-serif;line-height:1.5}main{max-width:1000px;margin:auto;padding:24px}
             p,dd,li{overflow-wrap:anywhere}dl{display:grid;grid-template-columns:minmax(150px,1fr) 3fr;gap:8px}dd{margin:0}
             footer{white-space:pre-wrap}@media(max-width:600px){main{padding:12px}dl{display:block}dd{margin-bottom:8px}}
-            </style></head><body><main><h1>Ilmenyx Controller</h1><p>by Ilmenyx Technology</p><h2>SMART importado — análise offline</h2>
-            <p>Relatório histórico fornecido pelo usuário. Nenhuma nova consulta ao disco. Origem e data original não confirmadas; não é garantia de saúde atual.</p><dl>
+            </style></head><body><main><h1>Ilmenyx Controller</h1><p>by Ilmenyx Technology</p><h2>{{{L.T("SMART importado — análise offline")}}}</h2>
+            <p>{{{L.T("Relatório histórico fornecido pelo usuário. Nenhuma nova consulta ao disco. Origem e data original não confirmadas; não é garantia de saúde atual.")}}}</p><dl>
             """);
-        Field("Formato HTML", FormatVersion); Field("Schema de importação", report.SchemaVersion); Field("Tipo de relatório", report.ReportKind);
-        Field("Análise UTC", Utc(report.ImportedAt)); Field("Registro da análise (DTO) UTC", Utc(d.CollectedAt));
-        Field("Schema de diagnóstico", d.SchemaVersion); Field("Dispositivo declarado", d.Device); Field("Estado", d.Status);
-        Field("Motivo", d.Reason ?? ""); Field("Código smartctl da entrada", d.ToolExitCode?.ToString(CultureInfo.InvariantCulture) ?? "Indisponível");
-        Field("reportedPassed — relato do firmware", d.ReportedPassed.Status == "available" && d.ReportedPassed.Value is { } value ? (value ? "true" : "false") : "Indisponível");
-        Field("Estado da leitura", d.ReportedPassed.Status); Field("Unidade", d.ReportedPassed.Unit); Field("Fonte declarada", d.ReportedPassed.Source);
-        Field("Motivo da leitura", d.ReportedPassed.Reason ?? "");
-        foreach (var metric in d.Metrics ?? []) { ct.ThrowIfCancellationRequested(); Field("Métrica bruta: " + metric.Name, SmartMetricText.Describe(metric) + " · fonte " + metric.Source); }
+        Field(L.T("Formato HTML"), FormatVersion); Field(L.T("Schema de importação"), report.SchemaVersion); Field(L.T("Tipo de relatório"), report.ReportKind);
+        Field(L.T("Análise UTC"), Utc(report.ImportedAt)); Field(L.T("Registro da análise (DTO) UTC"), Utc(d.CollectedAt));
+        Field(L.T("Schema de diagnóstico"), d.SchemaVersion); Field(L.T("Dispositivo declarado"), d.Device); Field(L.T("Estado"), d.Status);
+        Field(L.T("Motivo"), d.Reason ?? ""); Field(L.T("Código smartctl da entrada"), d.ToolExitCode?.ToString(CultureInfo.InvariantCulture) ?? L.T("Indisponível"));
+        Field(L.T("reportedPassed — relato do firmware"), d.ReportedPassed.Status == "available" && d.ReportedPassed.Value is { } value ? (value ? "true" : "false") : L.T("Indisponível"));
+        Field(L.T("Estado da leitura"), d.ReportedPassed.Status); Field(L.T("Unidade"), d.ReportedPassed.Unit); Field(L.T("Fonte declarada"), d.ReportedPassed.Source);
+        Field(L.T("Motivo da leitura"), d.ReportedPassed.Reason ?? "");
+        foreach (var metric in d.Metrics ?? []) { ct.ThrowIfCancellationRequested(); Field(L.T("Métrica bruta: ") + metric.Name, SmartMetricText.Describe(metric) + L.T(" · fonte ") + metric.Source); }
         html.Append("</dl>");
-        Limitations("Limitações da importação", report.Limitations); Limitations("Limitações do diagnóstico", d.Limitations);
+        Limitations(L.T("Limitações da importação"), report.Limitations); Limitations(L.T("Limitações do diagnóstico"), d.Limitations);
         html.Append("<footer><p>").Append(E(ProductIdentity.Attribution)).Append("</p><p>").Append(E(ProductIdentity.SharingNotice))
             .Append("</p></footer></main></body></html>\n");
         return html.ToString();

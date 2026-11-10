@@ -33,7 +33,7 @@ public static class ShaderCacheTweak
 
     /// <summary>The whole file the app writes (KEY=VALUE lines, environment.d syntax), starting with <see cref="Marker"/>.</summary>
     public static string FileContent() =>
-        Marker + " Vale a partir do próximo login.\n# Para desfazer: desligue a opção na página Otimiza do Ilmenyx ou apague este arquivo.\n" +
+        Marker + L.T(" Vale a partir do próximo login.\n# Para desfazer: desligue a opção na página Otimiza do Ilmenyx ou apague este arquivo.\n") +
         string.Join("", Variables.Select(v => $"{v.Key}={v.Value}\n"));
 
     /// <summary>True only for a file the app wrote itself (first line is the marker): any other file with the same name is never touched.</summary>
@@ -66,15 +66,15 @@ public static class ShaderCacheTweak
     public static GameTweak Describe(bool on, bool foreignFile, string? sessionValue, IReadOnlyList<(string Label, long? Bytes)> caches, string path)
     {
         var found = caches.Where(c => c.Bytes is not null).ToList();
-        string sizes = found.Count == 0 ? "Nenhum cache de shaders encontrado ainda." : "Tamanho atual: " + string.Join(" · ", found.Select(c => $"{c.Label} {SizeText(c.Bytes!.Value)}")) + ".";
-        string session = sessionValue is null ? "Nesta sessão o limite do Mesa é o padrão (1 GB)." : $"Nesta sessão: {MesaVariable}={sessionValue}.";
-        string state = foreignFile ? $"Já existe um arquivo {FileName} que não foi criado pelo Ilmenyx: ele não será alterado."
-            : on ? (sessionValue == MesaValue ? "Ligado e em uso nesta sessão." : "Ligado. Vale a partir do próximo login (saia da sessão e entre de novo).") : "Desligado.";
+        string sizes = found.Count == 0 ? L.T("Nenhum cache de shaders encontrado ainda.") : L.T("Tamanho atual: ") + string.Join(" · ", found.Select(c => $"{c.Label} {SizeText(c.Bytes!.Value)}")) + ".";
+        string session = sessionValue is null ? L.T("Nesta sessão o limite do Mesa é o padrão (1 GB).") : L.T($"Nesta sessão: {MesaVariable}={sessionValue}.");
+        string state = foreignFile ? L.T($"Já existe um arquivo {FileName} que não foi criado pelo Ilmenyx: ele não será alterado.")
+            : on ? (sessionValue == MesaValue ? L.T("Ligado e em uso nesta sessão.") : L.T("Ligado. Vale a partir do próximo login (saia da sessão e entre de novo).")) : "Desligado.";
         return new GameTweak
         {
-            Id = "shadercache", Title = "Cache de shaders maior", Badge = "SEM ROOT", Adjustable = !foreignFile, IsOn = on,
-            Description = "Aumenta para 10 GB o espaço em disco que os drivers de vídeo usam para guardar shaders já compilados (o padrão do Mesa, de AMD e Intel, é 1 GB). Com o limite cheio, o cache é apagado e o jogo volta a engasgar compilando shaders a cada sessão.",
-            Effect = $"Grava {path} ({MesaVariable}={MesaValue} e {NvidiaVariable}={NvidiaBytes}), só para o seu usuário. Vale a partir do próximo login e também nos jogos abertos pelo Ilmenyx. Usa mais espaço em disco, só conforme os jogos precisarem. Não troca o driver de vídeo. A Steam tem o seu próprio cache (shadercache), separado.\n{session}",
+            Id = "shadercache", Title = L.T("Cache de shaders maior"), Badge = L.T("SEM ROOT"), Adjustable = !foreignFile, IsOn = on,
+            Description = L.T("Aumenta para 10 GB o espaço em disco que os drivers de vídeo usam para guardar shaders já compilados (o padrão do Mesa, de AMD e Intel, é 1 GB). Com o limite cheio, o cache é apagado e o jogo volta a engasgar compilando shaders a cada sessão."),
+            Effect = L.T($"Grava {path} ({MesaVariable}={MesaValue} e {NvidiaVariable}={NvidiaBytes}), só para o seu usuário. Vale a partir do próximo login e também nos jogos abertos pelo Ilmenyx. Usa mais espaço em disco, só conforme os jogos precisarem. Não troca o driver de vídeo. A Steam tem o seu próprio cache (shadercache), separado.\n{session}"),
             Status = state + " " + sizes,
         };
     }
@@ -95,7 +95,7 @@ public sealed record ExtraChoice(string Id, string Label, IReadOnlyList<string> 
 public static partial class GameExtras
 {
     public const string WaylandId = "wayland", LowLatencyId = "lowlatency";
-    public const string WaylandLabel = "Proton nativo no Wayland (experimental)", LowLatencyLabel = "Baixa latência (experimental)";
+    public static readonly string WaylandLabel = L.T("Proton nativo no Wayland (experimental)"), LowLatencyLabel = L.T("Baixa latência (experimental)");
     public const string WaylandPiece = "PROTON_ENABLE_WAYLAND=1", LowLatencyPiece = "PROTON_ENABLE_NVAPI=1";
     public const int MinWaylandProton = 10;
 
@@ -117,23 +117,23 @@ public static partial class GameExtras
         return new(name, null, false, false);
     }
 
-    private const string OnlyWindows = "Só vale para jogos de Windows (rodando com o Proton).";
+    private static readonly string OnlyWindows = L.T("Só vale para jogos de Windows (rodando com o Proton).");
 
     private static string? WaylandBlocked(ExtrasContext c)
     {
         if (!c.WindowsGame) return OnlyWindows;
-        if (!c.WaylandSession) return "Fora de uso: a sessão atual não é Wayland (é X11). A opção só vale ao entrar numa sessão Wayland.";
-        if (c.Proton is not { } p) return "Fora de uso: não deu para saber qual Proton este jogo usa. Precisa de GE-Proton ou UMU-Proton 10 ou mais novo.";
-        if (p.Official) return $"Fora de uso: o jogo usa o Proton oficial da Valve ({p.Name}), que não documenta essa opção. Escolha GE-Proton 10 ou mais novo em Steam › Propriedades do jogo › Compatibilidade.";
-        if (!p.GeFamily || p.Major is null) return $"Fora de uso: não reconheci a versão do Proton ({p.Name}). Precisa de GE-Proton ou UMU-Proton 10 ou mais novo.";
-        if (p.Major < MinWaylandProton) return $"Fora de uso: precisa do GE-Proton/UMU-Proton 10 ou mais novo (este jogo usa {p.Name}).";
+        if (!c.WaylandSession) return L.T("Fora de uso: a sessão atual não é Wayland (é X11). A opção só vale ao entrar numa sessão Wayland.");
+        if (c.Proton is not { } p) return L.T("Fora de uso: não deu para saber qual Proton este jogo usa. Precisa de GE-Proton ou UMU-Proton 10 ou mais novo.");
+        if (p.Official) return L.T($"Fora de uso: o jogo usa o Proton oficial da Valve ({p.Name}), que não documenta essa opção. Escolha GE-Proton 10 ou mais novo em Steam › Propriedades do jogo › Compatibilidade.");
+        if (!p.GeFamily || p.Major is null) return L.T($"Fora de uso: não reconheci a versão do Proton ({p.Name}). Precisa de GE-Proton ou UMU-Proton 10 ou mais novo.");
+        if (p.Major < MinWaylandProton) return L.T($"Fora de uso: precisa do GE-Proton/UMU-Proton 10 ou mais novo (este jogo usa {p.Name}).");
         return null;
     }
 
     private static string? LowLatencyBlocked(ExtrasContext c)
     {
         if (!c.WindowsGame) return OnlyWindows;
-        if (!c.NvidiaProprietaryRenders) return "Fora de uso: só existe opção documentada para placas NVIDIA com o driver proprietário (NVIDIA Reflex pelo DXVK-NVAPI), e o jogo não roda numa delas. Para AMD e Intel o Proton não tem uma opção equivalente documentada, então nada é ligado.";
+        if (!c.NvidiaProprietaryRenders) return L.T("Fora de uso: só existe opção documentada para placas NVIDIA com o driver proprietário (NVIDIA Reflex pelo DXVK-NVAPI), e o jogo não roda numa delas. Para AMD e Intel o Proton não tem uma opção equivalente documentada, então nada é ligado.");
         return null;
     }
 
@@ -149,7 +149,7 @@ public static partial class GameExtras
         void Add(string id, string label, string piece, string? blocked)
         {
             string? conflict = blocked is null ? others.Select(o => LaunchOptionTriage.Conflict(piece, o)).FirstOrDefault(r => r is not null) : null;
-            result.Add(new(id, label, blocked is null && conflict is null ? [piece] : [], blocked ?? (conflict is null ? null : "Fora de uso: " + LowerFirst(conflict))));
+            result.Add(new(id, label, blocked is null && conflict is null ? [piece] : [], blocked ?? (conflict is null ? null : L.T("Fora de uso: ") + LowerFirst(conflict))));
         }
         if (p.ProtonWayland) Add(WaylandId, WaylandLabel, WaylandPiece, WaylandBlocked(context));
         if (p.LowLatency) Add(LowLatencyId, LowLatencyLabel, LowLatencyPiece, LowLatencyBlocked(context));
@@ -164,7 +164,7 @@ public static partial class GameExtras
 
     /// <summary>Per-option status line for the profile card ("ligado: VAR=1" or the reason it is out).</summary>
     public static string Summary(IReadOnlyList<ExtraChoice> choices) =>
-        string.Join("\n", choices.Select(c => c.Applies ? $"{c.Label}: entra como {string.Join(" ", c.Pieces)}." : $"{c.Label}: {c.Skipped}"));
+        string.Join("\n", choices.Select(c => c.Applies ? L.T($"{c.Label}: entra como {string.Join(" ", c.Pieces)}.") : $"{c.Label}: {c.Skipped}"));
 
     /// <summary>For the Compatibilidade page: the profile extras that would conflict with a recommended combination (pieces as reported).</summary>
     public static IReadOnlyList<(string Label, string Reason)> AgainstRecommended(GameProfile p, IEnumerable<string> recommended)

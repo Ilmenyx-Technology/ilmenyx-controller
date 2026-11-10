@@ -49,7 +49,7 @@ public sealed class StressTester : IStressEngine
     {
         if (Running) return;
         long plan = ram ? StressMemory.Plan(availableMemoryBytes, ramFraction, chunkLongs * 8L, Math.Min(StressMemory.MinimumBytes, chunkLongs * 8L)) : 0;
-        if (ram && plan == 0) throw new InvalidOperationException("Pouca memória disponível para o teste de RAM (é preciso sobrar pelo menos 1 GiB livre).");
+        if (ram && plan == 0) throw new InvalidOperationException(L.T("Pouca memória disponível para o teste de RAM (é preciso sobrar pelo menos 1 GiB livre)."));
         cts = new CancellationTokenSource(); var token = cts.Token;
         Interlocked.Exchange(ref memErrors, 0); Interlocked.Exchange(ref memPasses, 0); MemoryAllocatedBytes = 0;
         int cpuThreads = Environment.ProcessorCount;
@@ -145,11 +145,11 @@ public static class StressGuard
 {
     public static string? Check(StressLimits limits, bool cpuLoadRunning, double? cpuTemp, bool gpuLoadRunning, double? gpuTemp, long memoryErrors, bool gpuStopped, string? gpuError, TimeSpan elapsed)
     {
-        if (cpuLoadRunning && cpuTemp is { } t && t >= limits.CpuTempLimit) return $"ABORTADO: CPU a {t:0.#} °C atingiu o limite de {limits.CpuTempLimit:0} °C";
-        if (gpuLoadRunning && limits.GpuTempLimit is { } gl && gpuTemp is { } gt && gt >= gl) return $"ABORTADO: GPU a {gt:0.#} °C atingiu o limite de {gl:0} °C";
-        if (memoryErrors > 0) return $"ABORTADO: {memoryErrors} erros de memória detectados";
-        if (gpuLoadRunning && gpuStopped) return gpuError != null ? $"ABORTADO: falha na GPU ({gpuError})" : "Janela da GPU fechada pelo usuário";
-        if (limits.Duration > TimeSpan.Zero && elapsed >= limits.Duration) return "Concluído (tempo esgotado)";
+        if (cpuLoadRunning && cpuTemp is { } t && t >= limits.CpuTempLimit) return L.T($"ABORTADO: CPU a {t:0.#} °C atingiu o limite de {limits.CpuTempLimit:0} °C");
+        if (gpuLoadRunning && limits.GpuTempLimit is { } gl && gpuTemp is { } gt && gt >= gl) return L.T($"ABORTADO: GPU a {gt:0.#} °C atingiu o limite de {gl:0} °C");
+        if (memoryErrors > 0) return L.T($"ABORTADO: {memoryErrors} erros de memória detectados");
+        if (gpuLoadRunning && gpuStopped) return gpuError != null ? L.T($"ABORTADO: falha na GPU ({gpuError})") : L.T("Janela da GPU fechada pelo usuário");
+        if (limits.Duration > TimeSpan.Zero && elapsed >= limits.Duration) return L.T("Concluído (tempo esgotado)");
         return null;
     }
 
@@ -157,10 +157,10 @@ public static class StressGuard
     {
         limits = null;
         var ci = System.Globalization.CultureInfo.CurrentCulture;
-        if (!double.TryParse(cpuLimit, System.Globalization.NumberStyles.Float, ci, out double cpu) || cpu < 40 || cpu > 110) return "Limite da CPU deve estar entre 40 e 110 °C.";
+        if (!double.TryParse(cpuLimit, System.Globalization.NumberStyles.Float, ci, out double cpu) || cpu < 40 || cpu > 110) return L.T("Limite da CPU deve estar entre 40 e 110 °C.");
         double? g = null;
-        if (gpu) { if (!double.TryParse(gpuLimit, System.Globalization.NumberStyles.Float, ci, out double gv) || gv < 40 || gv > 100) return "Limite da GPU deve estar entre 40 e 100 °C."; g = gv; }
-        if (!double.TryParse(minutes, System.Globalization.NumberStyles.Float, ci, out double m) || m < 0 || m > 24 * 60) return "Duração inválida (0 a 1440 minutos; 0 = sem limite).";
+        if (gpu) { if (!double.TryParse(gpuLimit, System.Globalization.NumberStyles.Float, ci, out double gv) || gv < 40 || gv > 100) return L.T("Limite da GPU deve estar entre 40 e 100 °C."); g = gv; }
+        if (!double.TryParse(minutes, System.Globalization.NumberStyles.Float, ci, out double m) || m < 0 || m > 24 * 60) return L.T("Duração inválida (0 a 1440 minutos; 0 = sem limite).");
         limits = new(cpu, g, TimeSpan.FromMinutes(m));
         return null;
     }

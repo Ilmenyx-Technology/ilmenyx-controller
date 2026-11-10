@@ -26,10 +26,10 @@ public static class DriverTools
     {
         // Re-resolve an allowlisted system tool rather than accepting arbitrary commands.
         string name = Path.GetFileName(manager.Program);
-        if (name is not ("mintdrivers" or "software-properties-gtk")) throw new ArgumentException("Gerenciador não permitido.");
-        string path = BoundedProcess.FindSystem(name) ?? throw new FileNotFoundException("Gerenciador de drivers não encontrado.");
+        if (name is not ("mintdrivers" or "software-properties-gtk")) throw new ArgumentException(L.T("Gerenciador não permitido."));
+        string path = BoundedProcess.FindSystem(name) ?? throw new FileNotFoundException(L.T("Gerenciador de drivers não encontrado."));
         var start = HostSpawn.Start(path, name == "software-properties-gtk" ? ["--open-tab=4"] : [], redirect: false);
-        using var process = System.Diagnostics.Process.Start(start) ?? throw new IOException("Não foi possível abrir o gerenciador.");
+        using var process = System.Diagnostics.Process.Start(start) ?? throw new IOException(L.T("Não foi possível abrir o gerenciador."));
     }
 
     public const string NvidiaLatestUrl = "https://download.nvidia.com/XFree86/Linux-x86_64/latest.txt";
@@ -93,14 +93,14 @@ public static class DriverTools
     public static async Task<IReadOnlyList<FirmwareItem>> FwupdDevicesAsync(CancellationToken ct = default)
     {
         var (code, output) = await BoundedProcess.RunAsync("fwupdmgr", ["get-devices", "--json"], TimeSpan.FromSeconds(10), 1 << 20, ct);
-        if (code != 0) throw new IOException($"fwupdmgr retornou código {code}.");
+        if (code != 0) throw new IOException(L.T($"fwupdmgr retornou código {code}."));
         return ParseFwupd(output);
     }
 
     /// <summary>Opens an official page with the desktop's handler. Only https URLs; never a shell.</summary>
     public static async Task OpenUrlAsync(string url, CancellationToken ct = default)
     {
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps || url.Length > 512) throw new ArgumentException("Somente URLs https são abertas.");
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps || url.Length > 512) throw new ArgumentException(L.T("Somente URLs https são abertas."));
         await BoundedProcess.RunAsync("xdg-open", [uri.AbsoluteUri], TimeSpan.FromSeconds(5), 4096, ct);
     }
 }

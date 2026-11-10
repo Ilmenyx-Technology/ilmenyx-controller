@@ -4,6 +4,7 @@ using Ilmenyx.Contracts;
 using Ilmenyx.Core.Benchmarks;
 using Ilmenyx.Gpu.Vulkan;
 using Ilmenyx.Platform.Linux;
+using Ilmenyx.Core;
 
 namespace Ilmenyx.Desktop;
 
@@ -42,7 +43,7 @@ public sealed record GpuRtInfo(string? Reason, int AdapterIndex, string AdapterN
     public static GpuRtInfo Detect(VulkanDeviceList? devices = null)
     {
         var (adapter, why) = GpuRtSupport.Pick(devices ?? VulkanDevices.List());
-        return adapter is null ? new(why ?? "Ray tracing indisponível.", -1, "", false) : new(null, adapter.Index, adapter.Name, adapter.Kind == "GPU integrada", adapter.VendorId, adapter.DeviceId);
+        return adapter is null ? new(why ?? L.T("Ray tracing indisponível."), -1, "", false) : new(null, adapter.Index, adapter.Name, adapter.Kind == L.T("GPU integrada"), adapter.VendorId, adapter.DeviceId);
     }
 }
 
@@ -52,8 +53,8 @@ public sealed record GpuBenchInfo(string? UnavailableReason, string AdapterName,
     public static GpuBenchInfo Detect(VulkanDeviceList? devices = null)
     {
         devices ??= VulkanDevices.List();
-        var adapter = devices.Adapters.Where(a => !a.IsSoftware && a.SupportsVulkan13).OrderBy(a => a.Kind == "GPU dedicada" ? 0 : 1).FirstOrDefault();
-        if (adapter is null) return new(devices.Error ?? (devices.Adapters.Count == 0 ? "Nenhum adaptador Vulkan encontrado." : "Nenhum adaptador Vulkan 1.3 com GPU real (só renderização por CPU ou Vulkan antigo)."), "", false, false);
-        return new(null, adapter.Name, adapter.Kind == "GPU integrada", adapter.SupportsRayTracingPipeline);
+        var adapter = devices.Adapters.Where(a => !a.IsSoftware && a.SupportsVulkan13).OrderBy(a => a.Kind == L.T("GPU dedicada") ? 0 : 1).FirstOrDefault();
+        if (adapter is null) return new(devices.Error ?? (devices.Adapters.Count == 0 ? L.T("Nenhum adaptador Vulkan encontrado.") : L.T("Nenhum adaptador Vulkan 1.3 com GPU real (só renderização por CPU ou Vulkan antigo).")), "", false, false);
+        return new(null, adapter.Name, adapter.Kind == L.T("GPU integrada"), adapter.SupportsRayTracingPipeline);
     }
 }

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
+using Ilmenyx.Core;
 namespace Ilmenyx.Platform.Linux;
 
 public interface ILinuxFiles
@@ -20,7 +21,7 @@ public sealed class LinuxFiles : ILinuxFiles
         int count;
         while ((count = await reader.ReadAsync(buffer.AsMemory(), ct)) > 0)
         {
-            if (result.Length + count > MaxCharacters) throw new IOException("Fonte excede limite de 4 Mi caracteres.");
+            if (result.Length + count > MaxCharacters) throw new IOException(L.T("Fonte excede limite de 4 Mi caracteres."));
             result.Append(buffer, 0, count);
         }
         return result.ToString();

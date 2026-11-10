@@ -31,9 +31,9 @@ public sealed class CompatPage : StackPanel
     private readonly Func<Window?> owner;
     private readonly CancellationToken lifetime;
     private readonly TextBlock dbStatus = new() { Name = "CompatDbStatus", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap };
-    private readonly Button dbUpdate = UiKit.Primary("CompatDbUpdate", "Baixar base de relatos");
-    private readonly Button dbCancel = new() { Name = "CompatDbCancel", Content = "Cancelar", IsVisible = false };
-    private readonly TextBox search = new() { Name = "CompatSearch", PlaceholderText = "Buscar jogo pelo nome ou pelo ID da Steam (ex.: Elden Ring, 1245620)", MinWidth = 260, Padding = new Thickness(34, 7, 10, 7) };
+    private readonly Button dbUpdate = UiKit.Primary("CompatDbUpdate", L.T("Baixar base de relatos"));
+    private readonly Button dbCancel = new() { Name = "CompatDbCancel", Content = L.T("Cancelar"), IsVisible = false };
+    private readonly TextBox search = new() { Name = "CompatSearch", PlaceholderText = L.T("Buscar jogo pelo nome ou pelo ID da Steam (ex.: Elden Ring, 1245620)"), MinWidth = 260, Padding = new Thickness(34, 7, 10, 7) };
     private readonly WrapPanel results = new() { Name = "CompatResults", ItemSpacing = 6, LineSpacing = 6 };
     private readonly WrapPanel library = new() { Name = "CompatLibrary", ItemSpacing = 6, LineSpacing = 6 };
     private string? steamRoot; private bool steamRootRead;
@@ -47,22 +47,22 @@ public sealed class CompatPage : StackPanel
     public CompatPage(CompatServices services, Func<Window?> owner, CancellationToken lifetime)
     {
         this.services = services; this.owner = owner; this.lifetime = lifetime;
-        Children.Add(UiKit.PageHeader("Compatibilidade", "ProtonDB, Steam Deck e anti-cheat, com relatos de quem tem hardware parecido com o seu"));
+        Children.Add(UiKit.PageHeader(L.T("Compatibilidade"), L.T("ProtonDB, Steam Deck e anti-cheat, com relatos de quem tem hardware parecido com o seu")));
 
         search.TextChanged += (_, _) => _ = SearchAsync(search.Text ?? "");
         var icon = UiKit.Icon(Icons.Search, 15, Palette.Faint); icon.HorizontalAlignment = HorizontalAlignment.Left; icon.Margin = new Thickness(12, 0, 0, 0); icon.IsHitTestVisible = false;
-        Children.Add(UiKit.Card(new StackPanel { Spacing = 10, Children = { CardTitle(Icons.Games, "JOGO"), new Grid { Children = { search, icon } }, results, library } }));
+        Children.Add(UiKit.Card(new StackPanel { Spacing = 10, Children = { CardTitle(Icons.Games, L.T("JOGO")), new Grid { Children = { search, icon } }, results, library } }));
 
         dbUpdate.Click += async (_, _) => await UpdateDatabaseAsync();
         dbCancel.Click += (_, _) => updating?.Cancel();
         dbStatus.FontSize = 12.5;
         var dbActions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(16, 0, 0, 0), Children = { dbUpdate, dbCancel } };
-        var dbRow = new Grid { ColumnDefinitions = new("*,Auto"), Children = { new StackPanel { Spacing = 4, Children = { CardTitle(Icons.Report, "BASE DE RELATOS DO PROTONDB"), dbStatus } } } };
+        var dbRow = new Grid { ColumnDefinitions = new("*,Auto"), Children = { new StackPanel { Spacing = 4, Children = { CardTitle(Icons.Report, L.T("BASE DE RELATOS DO PROTONDB")), dbStatus } } } };
         Grid.SetColumn(dbActions, 1); dbRow.Children.Add(dbActions);
         Children.Add(UiKit.Card(new StackPanel { Spacing = 8, Children = { dbRow,
-            Faint("Arquivo mensal oficial do ProtonDB (github.com/bdefore/protondb-data), conferido pelo hash publicado pelo GitHub e transformado num índice local. Depois disso a busca e os relatos funcionam sem internet.") } }));
+            Faint(L.T("Arquivo mensal oficial do ProtonDB (github.com/bdefore/protondb-data), conferido pelo hash publicado pelo GitHub e transformado num índice local. Depois disso a busca e os relatos funcionam sem internet.")) } }));
         Children.Add(detail);
-        Children.Add(Faint(CompatDatabase.Attribution + " · Steam Deck: Valve · Anti-cheat: AreWeAntiCheatYet (MIT) · Imagens dos jogos: Steam (Valve) e os estúdios. O SteamDB não permite acesso automatizado: o app só abre a página dele quando você clica."));
+        Children.Add(Faint(CompatDatabase.Attribution + L.T(" · Steam Deck: Valve · Anti-cheat: AreWeAntiCheatYet (MIT) · Imagens dos jogos: Steam (Valve) e os estúdios. O SteamDB não permite acesso automatizado: o app só abre a página dele quando você clica.")));
         RefreshDbStatus();
         AttachedToVisualTree += async (_, _) => await LoadLibraryAsync();
     }
@@ -94,21 +94,21 @@ public sealed class CompatPage : StackPanel
         return steamRoot;
     }
 
-    private static string Count(int n, string one, string many) => n.ToString("N0", CultureInfo.GetCultureInfo("pt-BR")) + " " + (n == 1 ? one : many);
+    private static string Count(int n, string one, string many) => n.ToString("N0", CultureInfo.CurrentCulture) + " " + (n == 1 ? one : many);
 
     private void RefreshDbStatus()
     {
         var m = services.Db.ReadMeta();
         dbStatus.Text = m is null
-            ? "Ainda não baixada. Sem ela, a página mostra só as consultas online (nota do ProtonDB, Steam Deck e anti-cheat)."
-            : $"{Count(m.Apps, "jogo", "jogos")} · {Count(m.Reports, "relato", "relatos")} de {m.Oldest:MM/yyyy} a {m.Newest:dd/MM/yyyy} · arquivo {m.Source} · montada em {m.BuiltAt.ToLocalTime():dd/MM/yyyy}";
-        dbUpdate.Content = m is null ? "Baixar base de relatos" : "Atualizar base";
+            ? L.T("Ainda não baixada. Sem ela, a página mostra só as consultas online (nota do ProtonDB, Steam Deck e anti-cheat).")
+            : L.T($"{Count(m.Apps, "jogo", "jogos")} · {Count(m.Reports, "relato", "relatos")} de {m.Oldest:MM/yyyy} a {m.Newest:dd/MM/yyyy} · arquivo {m.Source} · montada em {m.BuiltAt.ToLocalTime():dd/MM/yyyy}");
+        dbUpdate.Content = m is null ? L.T("Baixar base de relatos") : L.T("Atualizar base");
     }
 
     private async Task UpdateDatabaseAsync()
     {
-        if (owner() is not { } w || !await ConfirmDialog.AskAsync(w, "Base de relatos",
-            "Baixar o arquivo de relatos mais recente do ProtonDB?\n\n• De: api.github.com e raw.githubusercontent.com (repositório bdefore/protondb-data)\n• Tamanho: cerca de 70 MB; vira um índice de ~30 MB em ~/.cache/ilmenyx/compat e o arquivo baixado é apagado\n• Licença dos dados: Open Database License (ODbL)\n• Nada sobre você ou seu PC é enviado.", "Baixar", "Cancelar")) return;
+        if (owner() is not { } w || !await ConfirmDialog.AskAsync(w, L.T("Base de relatos"),
+            L.T("Baixar o arquivo de relatos mais recente do ProtonDB?\n\n• De: api.github.com e raw.githubusercontent.com (repositório bdefore/protondb-data)\n• Tamanho: cerca de 70 MB; vira um índice de ~30 MB em ~/.cache/ilmenyx/compat e o arquivo baixado é apagado\n• Licença dos dados: Open Database License (ODbL)\n• Nada sobre você ou seu PC é enviado."), L.T("Baixar"), L.T("Cancelar"))) return;
         updating = CancellationTokenSource.CreateLinkedTokenSource(lifetime);
         dbUpdate.IsEnabled = false; dbCancel.IsVisible = true;
         try
@@ -118,8 +118,8 @@ public sealed class CompatPage : StackPanel
             await Task.Run(() => services.Online.UpdateDatabaseAsync(services.Db, progress, token, services.Hardware()));
             RefreshDbStatus(); if (ShownAppId is { } id) await ShowAsync(id, services.Db.Title(id) ?? id);
         }
-        catch (OperationCanceledException) { dbStatus.Text = "Download cancelado. A base anterior (se havia) continua valendo."; }
-        catch (Exception e) when (e is HttpRequestException or IOException or InvalidDataException or System.Text.Json.JsonException or UnauthorizedAccessException) { dbStatus.Text = "Não foi possível atualizar: " + e.Message + ". A base anterior (se havia) continua valendo."; }
+        catch (OperationCanceledException) { dbStatus.Text = L.T("Download cancelado. A base anterior (se havia) continua valendo."); }
+        catch (Exception e) when (e is HttpRequestException or IOException or InvalidDataException or System.Text.Json.JsonException or UnauthorizedAccessException) { dbStatus.Text = L.T("Não foi possível atualizar: ") + e.Message + L.T(". A base anterior (se havia) continua valendo."); }
         finally { dbUpdate.IsEnabled = true; dbCancel.IsVisible = false; updating?.Dispose(); updating = null; }
     }
 
@@ -130,8 +130,8 @@ public sealed class CompatPage : StackPanel
         {
             var games = (await services.Library(lifetime)).Where(g => g.Store == "Steam" && g.Id.All(char.IsAsciiDigit)).OrderBy(g => g.Name, StringComparer.OrdinalIgnoreCase).Take(40).ToList();
             steamIds = games.Select(g => g.Id).ToHashSet(StringComparer.Ordinal);
-            if (games.Count == 0) { library.Children.Add(new TextBlock { Text = "Nenhum jogo da Steam encontrado neste PC: use a busca.", Foreground = Palette.Faint, FontSize = 12 }); return; }
-            library.Children.Add(new TextBlock { Text = "Sua biblioteca:", Foreground = Palette.Faint, FontSize = 12, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 2, 0) });
+            if (games.Count == 0) { library.Children.Add(new TextBlock { Text = L.T("Nenhum jogo da Steam encontrado neste PC: use a busca."), Foreground = Palette.Faint, FontSize = 12 }); return; }
+            library.Children.Add(new TextBlock { Text = L.T("Sua biblioteca:"), Foreground = Palette.Faint, FontSize = 12, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 2, 0) });
             foreach (var g in games) library.Children.Add(GameButton(g.Id, g.Name, "CompatLib" + g.Id));
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
@@ -156,7 +156,7 @@ public sealed class CompatPage : StackPanel
         {
             bool isId = text.Trim().All(char.IsAsciiDigit) && text.Trim().Length <= 12;
             results.Children.Add(isId ? GameButton(text.Trim(), "Steam " + text.Trim(), "CompatHitId")
-                : new TextBlock { Text = services.Db.ReadMeta() is null ? "Sem a base local, busque pelo ID da Steam (número na URL da loja)." : "Nenhum jogo com esse nome na base.", Foreground = Palette.Faint, FontSize = 12 });
+                : new TextBlock { Text = services.Db.ReadMeta() is null ? L.T("Sem a base local, busque pelo ID da Steam (número na URL da loja).") : L.T("Nenhum jogo com esse nome na base."), Foreground = Palette.Faint, FontSize = 12 });
         }
     }
 
@@ -172,8 +172,8 @@ public sealed class CompatPage : StackPanel
 
         // Hero: the open game, with its identity and (after the online query) its verdicts as tags. Rebuilt when the artwork arrives.
         var tags = new List<(string? Name, string Text)> { (null, "Steam " + appId) };
-        if (steamIds.Contains(appId)) tags.Add((null, "instalado neste PC"));
-        if (reports.Count > 0) tags.Add((null, Count(reports.Count, "relato na base", "relatos na base")));
+        if (steamIds.Contains(appId)) tags.Add((null, L.T("instalado neste PC")));
+        if (reports.Count > 0) tags.Add((null, Count(reports.Count, L.T("relato na base"), L.T("relatos na base"))));
         var heroSlot = new Border { Margin = new Thickness(0, 4, 0, 12) };
         void RenderHero() => heroSlot.Child = Hero(appId, title, art, tags);
         RenderHero();
@@ -191,48 +191,48 @@ public sealed class CompatPage : StackPanel
         void Tile(int col, string label, string icon, string name, out TextBlock value, out TextBlock note)
         {
             value = new TextBlock { Name = name, Text = "—", FontSize = 22, TextWrapping = TextWrapping.Wrap };
-            note = new TextBlock { Text = "consulte online", Foreground = Palette.Faint };
+            note = new TextBlock { Text = L.T("consulte online"), Foreground = Palette.Faint };
             var t = UiKit.StatTile(label, value, note, icon, Palette.AccentText); Grid.SetColumn(t, col); tiles.Children.Add(t);
         }
-        Tile(0, "PROTONDB", Icons.Compat, "CompatTier", out var tierValue, out var tierNote); Tile(2, "STEAM DECK", Icons.Games, "CompatDeck", out var deckValue, out var deckNote); Tile(4, "ANTI-CHEAT", Icons.Blocked, "CompatAntiCheat", out var acValue, out var acNote);
+        Tile(0, L.T("PROTONDB"), Icons.Compat, "CompatTier", out var tierValue, out var tierNote); Tile(2, "STEAM DECK", Icons.Games, "CompatDeck", out var deckValue, out var deckNote); Tile(4, L.T("ANTI-CHEAT"), Icons.Blocked, "CompatAntiCheat", out var acValue, out var acNote);
         detail.Children.Add(tiles);
-        var query = UiKit.Primary("CompatOnlineQuery", "Consultar online"); var queryStatus = new TextBlock { Name = "CompatOnlineStatus", Foreground = Palette.Faint, FontSize = 12, VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap };
+        var query = UiKit.Primary("CompatOnlineQuery", L.T("Consultar online")); var queryStatus = new TextBlock { Name = "CompatOnlineStatus", Foreground = Palette.Faint, FontSize = 12, VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap };
         query.Click += async (_, _) =>
         {
             if (!onlineAllowed)
             {
-                if (owner() is not { } w || !await ConfirmDialog.AskAsync(w, "Consulta online", "Consultar a compatibilidade deste jogo?\n\n• www.protondb.com (nota e número de relatos)\n• store.steampowered.com (Steam Deck)\n• raw.githubusercontent.com (lista de anti-cheat do AreWeAntiCheatYet)\n• shared.akamai.steamstatic.com (imagem do jogo, da Steam)\n\nSó o ID do jogo é enviado. As respostas ficam guardadas por 7 dias e as imagens por 30 dias. Vale para esta sessão.", "Consultar", "Cancelar")) return;
+                if (owner() is not { } w || !await ConfirmDialog.AskAsync(w, L.T("Consulta online"), L.T("Consultar a compatibilidade deste jogo?\n\n• www.protondb.com (nota e número de relatos)\n• store.steampowered.com (Steam Deck)\n• raw.githubusercontent.com (lista de anti-cheat do AreWeAntiCheatYet)\n• shared.akamai.steamstatic.com (imagem do jogo, da Steam)\n\nSó o ID do jogo é enviado. As respostas ficam guardadas por 7 dias e as imagens por 30 dias. Vale para esta sessão."), L.T("Consultar"), L.T("Cancelar"))) return;
                 onlineAllowed = true; _ = FetchArtAsync();
             }
-            query.IsEnabled = false; queryStatus.Text = "Consultando…";
+            query.IsEnabled = false; queryStatus.Text = L.T("Consultando…");
             var errors = new List<string>();
-            try { var s = await services.Online.SummaryAsync(appId, lifetime); tierValue.Text = s is null ? "Sem relatos" : ProtonSummary.TierName(s.Tier); tierValue.Foreground = TierBrush(s?.Tier); tierNote.Text = s is null ? "ninguém relatou este jogo no ProtonDB" : $"{ProtonSummary.TierMeaning(s.Tier)} · {s.Total} relatos · confiança {ProtonSummary.ConfidenceName(s.Confidence)}" + (s.TrendingTier is { } tr && tr != s.Tier ? $" · tendência: {ProtonSummary.TierName(tr)}" : ""); }
+            try { var s = await services.Online.SummaryAsync(appId, lifetime); tierValue.Text = s is null ? L.T("Sem relatos") : ProtonSummary.TierName(s.Tier); tierValue.Foreground = TierBrush(s?.Tier); tierNote.Text = s is null ? L.T("ninguém relatou este jogo no ProtonDB") : L.T($"{ProtonSummary.TierMeaning(s.Tier)} · {s.Total} relatos · confiança {ProtonSummary.ConfidenceName(s.Confidence)}") + (s.TrendingTier is { } tr && tr != s.Tier ? L.T($" · tendência: {ProtonSummary.TierName(tr)}") : ""); }
             catch (Exception e) when (e is HttpRequestException or TaskCanceledException or IOException) { errors.Add("ProtonDB: " + e.Message); }
-            try { var d = await services.Online.DeckAsync(appId, lifetime); deckValue.Text = d?.Name ?? "—"; deckValue.Foreground = d?.Category switch { 3 => Palette.Success, 2 => Palette.Warn, 1 => Palette.Error, _ => Palette.Fg }; deckNote.Text = d is { Notes.Count: > 0 } ? string.Join(" · ", d.Notes.Take(3)) : "sem detalhes da Valve"; }
+            try { var d = await services.Online.DeckAsync(appId, lifetime); deckValue.Text = d?.Name ?? "—"; deckValue.Foreground = d?.Category switch { 3 => Palette.Success, 2 => Palette.Warn, 1 => Palette.Error, _ => Palette.Fg }; deckNote.Text = d is { Notes.Count: > 0 } ? string.Join(" · ", d.Notes.Take(3)) : L.T("sem detalhes da Valve"); }
             catch (Exception e) when (e is HttpRequestException or TaskCanceledException or IOException) { errors.Add("Steam: " + e.Message); }
             try
             {
                 var a = await services.Online.AntiCheatAsync(appId, lifetime);
-                acValue.Text = a is null ? "Não listado" : a.Status switch { "Supported" => "Suportado", "Running" => "Roda", "Planned" => "Planejado", "Broken" => "Quebrado", "Denied" => "Negado", _ => a.Status };
+                acValue.Text = a is null ? L.T("Não listado") : a.Status switch { "Supported" => L.T("Suportado"), "Running" => L.T("Roda"), "Planned" => L.T("Planejado"), "Broken" => L.T("Quebrado"), "Denied" => L.T("Negado"), _ => a.Status };
                 acValue.Foreground = a is null ? Palette.Muted : a.BlocksOnline ? Palette.Error : Palette.Success;
-                acNote.Text = a is null ? "o jogo não aparece na lista (comum em jogos sem anti-cheat online)" : a.StatusName + (a.AntiCheats.Count > 0 ? " · " + string.Join(", ", a.AntiCheats) : "");
+                acNote.Text = a is null ? L.T("o jogo não aparece na lista (comum em jogos sem anti-cheat online)") : a.StatusName + (a.AntiCheats.Count > 0 ? " · " + string.Join(", ", a.AntiCheats) : "");
             }
             catch (Exception e) when (e is HttpRequestException or TaskCanceledException or IOException) { errors.Add("Anti-cheat: " + e.Message); }
-            foreach (var (label, value) in new[] { ("ProtonDB", tierValue.Text), ("Deck", deckValue.Text), ("Anti-cheat", acValue.Text) })
+            foreach (var (label, value) in new[] { ("ProtonDB", tierValue.Text), ("Deck", deckValue.Text), (L.T("Anti-cheat"), acValue.Text) })
                 if (value is { Length: > 0 } v && v != "—" && !tags.Any(t => t.Name == "CompatHeroTag" + label)) tags.Add(("CompatHeroTag" + label, label + ": " + v));
             if (ShownAppId == appId) RenderHero();
-            queryStatus.Text = errors.Count == 0 ? "Consultado às " + DateTime.Now.ToString("HH:mm", CultureInfo.InvariantCulture) + " (respostas guardadas por 7 dias)." : string.Join(" · ", errors);
+            queryStatus.Text = errors.Count == 0 ? L.T("Consultado às ") + DateTime.Now.ToString("HH:mm", CultureInfo.InvariantCulture) + L.T(" (respostas guardadas por 7 dias).") : string.Join(" · ", errors);
             query.IsEnabled = true;
         };
         detail.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, Margin = new Thickness(0, 0, 0, 14), Children = { query, queryStatus } });
 
         var ranked = CompatMatcher.RankAll(reports, hw, DateTimeOffset.UtcNow);
-        int sameGpu = ranked.Count(x => x.Matches.Contains("mesma GPU") || x.Matches.Contains("mesmo chip") || x.Matches.Contains("GPU da mesma série"));
+        int sameGpu = ranked.Count(x => x.Matches.Contains(L.T("mesma GPU")) || x.Matches.Contains(L.T("mesmo chip")) || x.Matches.Contains(L.T("GPU da mesma série")));
         detail.Children.Add(UiKit.Card(new StackPanel { Spacing = 6, Children = {
-            CardTitle(Icons.System, "SUA MÁQUINA"), new TextBlock { Name = "CompatHardware", Text = $"{hw.GpuText} · {hw.Distro ?? "distro desconhecida"}" + (hw.NvidiaProprietary ? " · driver NVIDIA proprietário" : ""), TextWrapping = TextWrapping.Wrap },
+            CardTitle(Icons.System, L.T("SUA MÁQUINA")), new TextBlock { Name = "CompatHardware", Text = $"{hw.GpuText} · {hw.Distro ?? L.T("distro desconhecida")}" + (hw.NvidiaProprietary ? L.T(" · driver NVIDIA proprietário") : ""), TextWrapping = TextWrapping.Wrap },
             new TextBlock { Name = "CompatCounts", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, Text = reports.Count == 0
-                ? (services.Db.ReadMeta() is null ? "Baixe a base de relatos (acima) para ver o que funcionou para outras pessoas." : "Nenhum relato deste jogo na base local.")
-                : $"{Count(reports.Count, "relato recente", "relatos recentes")} na base · {reports.Count(r => r.Works)} {(reports.Count(r => r.Works) == 1 ? "conseguiu" : "conseguiram")} jogar · {sameGpu} com a mesma GPU, série ou chip que a sua" } } }));
+                ? (services.Db.ReadMeta() is null ? L.T("Baixe a base de relatos (acima) para ver o que funcionou para outras pessoas.") : L.T("Nenhum relato deste jogo na base local."))
+                : L.T($"{Count(reports.Count, L.T("relato recente"), L.T("relatos recentes"))} na base · {reports.Count(r => r.Works)} {(reports.Count(r => r.Works) == 1 ? L.T("conseguiu") : L.T("conseguiram"))} jogar · {sameGpu} com a mesma GPU, série ou chip que a sua") } } }));
         if (reports.Count == 0) return;
 
         var (options, protons) = CompatMatcher.Suggest(ranked, 30);
@@ -243,7 +243,7 @@ public sealed class CompatPage : StackPanel
         }
 
         var list = new StackPanel { Name = "CompatReports", Spacing = 0 };
-        detail.Children.Add(UiKit.SectionHeader("Relatos mais parecidos com a sua máquina", new TextBlock { Text = "ordenados por semelhança de hardware", Foreground = Palette.Faint, FontSize = 11.5, VerticalAlignment = VerticalAlignment.Center }));
+        detail.Children.Add(UiKit.SectionHeader(L.T("Relatos mais parecidos com a sua máquina"), new TextBlock { Text = L.T("ordenados por semelhança de hardware"), Foreground = Palette.Faint, FontSize = 11.5, VerticalAlignment = VerticalAlignment.Center }));
         int index = 0;
         foreach (var x in ranked.Take(12)) list.Children.Add(ReportCard(appId, x, index++));
         detail.Children.Add(list);
@@ -254,9 +254,9 @@ public sealed class CompatPage : StackPanel
     {
         bool onImage = art is not null;
         var links = new WrapPanel { ItemSpacing = 6, LineSpacing = 6, Margin = new Thickness(0, 12, 0, 0) };
-        foreach (var (label, url) in new[] { ("no ProtonDB", $"https://www.protondb.com/app/{appId}"), ("no SteamDB", $"https://steamdb.info/app/{appId}/"), ("na Loja Steam", $"https://store.steampowered.com/app/{appId}/") })
+        foreach (var (label, url) in new[] { (L.T("no ProtonDB"), $"https://www.protondb.com/app/{appId}"), (L.T("no SteamDB"), $"https://steamdb.info/app/{appId}/"), (L.T("na Loja Steam"), $"https://store.steampowered.com/app/{appId}/") })
         {
-            var b = onImage ? UiKit.Translucent("CompatLink" + label.Split(' ')[^1], "Abrir " + label) : new Button { Name = "CompatLink" + label.Split(' ')[^1], Content = "Abrir " + label, Background = Palette.Card };
+            var b = onImage ? UiKit.Translucent("CompatLink" + label.Split(' ')[^1], L.T("Abrir ") + label) : new Button { Name = "CompatLink" + label.Split(' ')[^1], Content = L.T("Abrir ") + label, Background = Palette.Card };
             b.FontSize = 11.5; b.Padding = new Thickness(12, 5);
             b.Click += async (_, _) => { try { await services.OpenUrl(url, lifetime); } catch (Exception e) when (e is ArgumentException or IOException or TimeoutException or FileNotFoundException) { } };
             links.Children.Add(b);
@@ -280,7 +280,7 @@ public sealed class CompatPage : StackPanel
                 layers.Children.Insert(1, mark);
             }
         }
-        ToolTip.SetTip(hero, onImage ? "Imagem do jogo: Steam (Valve) e o estúdio do jogo." : "Sem imagem: ela aparece se o jogo estiver na sua Steam ou depois de Consultar online.");
+        ToolTip.SetTip(hero, onImage ? L.T("Imagem do jogo: Steam (Valve) e o estúdio do jogo.") : L.T("Sem imagem: ela aparece se o jogo estiver na sua Steam ou depois de Consultar online."));
         return hero;
     }
 
@@ -295,50 +295,50 @@ public sealed class CompatPage : StackPanel
     private Border Worked(string appId, LaunchTriage t)
     {
         var box = new StackPanel { Spacing = 8, Children = {
-            new TextBlock { Text = "O que funcionou para quem tem hardware parecido", FontSize = 15, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap },
-            new TextBlock { Text = "Juntamos as opções que mais deram certo em PCs parecidos com o seu e tiramos as que brigam entre si ou que não servem para a sua placa de vídeo.", Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap } } };
-        box.Children.Add(OnFeature("COMBINAÇÃO RECOMENDADA"));
+            new TextBlock { Text = L.T("O que funcionou para quem tem hardware parecido"), FontSize = 15, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap },
+            new TextBlock { Text = L.T("Juntamos as opções que mais deram certo em PCs parecidos com o seu e tiramos as que brigam entre si ou que não servem para a sua placa de vídeo."), Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap } } };
+        box.Children.Add(OnFeature(L.T("COMBINAÇÃO RECOMENDADA")));
         if (t.Recommended.Count > 0 && t.CommandLine is { } line)
         {
             var chips = new WrapPanel { Name = "CompatRecommended" };
-            foreach (var o in t.Recommended) chips.Children.Add(UiKit.Tag($"{o.Option}  ·  {o.Count} de {o.Of}", Palette.Fg));
+            foreach (var o in t.Recommended) chips.Children.Add(UiKit.Tag(L.T($"{o.Option}  ·  {o.Count} de {o.Of}"), Palette.Fg));
             box.Children.Add(chips);
             box.Children.Add(new Border { Background = Palette.Hover, CornerRadius = new CornerRadius(IlmenyxTheme.ControlRadius), Padding = new Thickness(12, 9),
                 Child = new SelectableTextBlock { Name = "CompatRecommendedLine", Text = line, FontFamily = new FontFamily("monospace"), FontSize = 12, TextWrapping = TextWrapping.Wrap } });
-            box.Children.Add(Actions(appId, line, "Recommended", LaunchOptionSafety.Check(line), "Combinação montada pelo Ilmenyx a partir de relatos anônimos do ProtonDB, sem opções que conflitam entre si: revise antes."));
+            box.Children.Add(Actions(appId, line, "Recommended", LaunchOptionSafety.Check(line), L.T("Combinação montada pelo Ilmenyx a partir de relatos anônimos do ProtonDB, sem opções que conflitam entre si: revise antes.")));
             // Experimental options of this game's Jogos profile, judged by the same conflict table.
             if (services.Profile?.Invoke(appId) is { } prof && (prof.ProtonWayland || prof.LowLatency))
             {
                 var hits = GameExtras.AgainstRecommended(prof, t.Recommended.Select(o => o.Option));
                 box.Children.Add(new TextBlock { Name = "CompatExtrasNote", FontSize = 11.5, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap,
-                    Text = hits.Count == 0 ? "As opções experimentais ligadas no perfil deste jogo (página Jogos) combinam com esta recomendação."
-                        : "Não combinam com esta recomendação (desligue no perfil do jogo, na página Jogos, se for usá-la): " + string.Join(" ", hits.Select(h => $"{h.Label}: {h.Reason}")) });
+                    Text = hits.Count == 0 ? L.T("As opções experimentais ligadas no perfil deste jogo (página Jogos) combinam com esta recomendação.")
+                        : L.T("Não combinam com esta recomendação (desligue no perfil do jogo, na página Jogos, se for usá-la): ") + string.Join(" ", hits.Select(h => $"{h.Label}: {h.Reason}")) });
             }
         }
-        else box.Children.Add(new TextBlock { Name = "CompatRecommendedNone", Text = "Nenhuma opção de inicialização serve para este PC sem conflito; o jogo pode rodar sem nenhuma. Veja as alternativas e os relatos abaixo.", Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap });
+        else box.Children.Add(new TextBlock { Name = "CompatRecommendedNone", Text = L.T("Nenhuma opção de inicialização serve para este PC sem conflito; o jogo pode rodar sem nenhuma. Veja as alternativas e os relatos abaixo."), Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap });
         if (t.Proton is { } p)
         {
             var proton = new TextBlock { Name = "CompatRecommendedProton", TextWrapping = TextWrapping.Wrap, FontSize = 12.5 };
             proton.Inlines!.Add(new Avalonia.Controls.Documents.Run("Proton: ") { FontWeight = FontWeight.SemiBold });
-            proton.Inlines.Add(new Avalonia.Controls.Documents.Run($"{p.Option} ({p.Count} de {p.Of}) "));
-            proton.Inlines.Add(new Avalonia.Controls.Documents.Run("· escolha em Steam › Propriedades do jogo › Compatibilidade") { Foreground = Palette.Muted });
+            proton.Inlines.Add(new Avalonia.Controls.Documents.Run(L.T($"{p.Option} ({p.Count} de {p.Of}) ")));
+            proton.Inlines.Add(new Avalonia.Controls.Documents.Run(L.T("· escolha em Steam › Propriedades do jogo › Compatibilidade")) { Foreground = Palette.Muted });
             box.Children.Add(proton);
         }
         var alternatives = t.Alternatives.Concat(t.OtherProtons.Select(o => o.Option.Contains("Proton", StringComparison.OrdinalIgnoreCase) ? o : o with { Option = "Proton " + o.Option })).Take(10).ToList();
         if (alternatives.Count > 0)
         {
-            box.Children.Add(OnFeature("ALTERNATIVAS (NÃO COMBINAR COM AS ACIMA)"));
+            box.Children.Add(OnFeature(L.T("ALTERNATIVAS (NÃO COMBINAR COM AS ACIMA)")));
             var list = new StackPanel { Name = "CompatAlternatives", Spacing = 6 };
             foreach (var a in alternatives)
             {
                 var row = new Grid { ColumnDefinitions = new("Auto,*") };
-                var chip = UiKit.Tag($"{a.Option}  ·  {a.Count} de {a.Of}", Palette.Muted); chip.Margin = new Thickness(0, 0, 10, 0); chip.VerticalAlignment = VerticalAlignment.Top; chip.MaxWidth = 320;
+                var chip = UiKit.Tag(L.T($"{a.Option}  ·  {a.Count} de {a.Of}"), Palette.Muted); chip.Margin = new Thickness(0, 0, 10, 0); chip.VerticalAlignment = VerticalAlignment.Top; chip.MaxWidth = 320;
                 var why = new TextBlock { Text = a.Reason, Foreground = Palette.Muted, FontSize = 11.5, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center };
                 Grid.SetColumn(why, 1); row.Children.Add(chip); row.Children.Add(why); list.Children.Add(row);
             }
             box.Children.Add(list);
         }
-        box.Children.Add(new TextBlock { Text = "Contagem entre relatos que deram certo, com GPU parecida ou do mesmo fabricante. Ponto de partida para testar, não garantia.", Foreground = Palette.Muted, FontSize = 11.5, TextWrapping = TextWrapping.Wrap });
+        box.Children.Add(new TextBlock { Text = L.T("Contagem entre relatos que deram certo, com GPU parecida ou do mesmo fabricante. Ponto de partida para testar, não garantia."), Foreground = Palette.Muted, FontSize = 11.5, TextWrapping = TextWrapping.Wrap });
         var feature = UiKit.FeatureCard(box, "CompatWorked"); feature.Margin = new Thickness(0, 0, 0, 12);
         return feature;
     }
@@ -346,23 +346,23 @@ public sealed class CompatPage : StackPanel
     /// <summary>Copy / Aplicar na Steam (confirmation showing the current options, backup) / Desfazer for one launch line.</summary>
     private WrapPanel Actions(string appId, string lo, string suffix, LaunchOptionSafety.Verdict verdict, string source)
     {
-        var copy = new Button { Name = "CompatCopy" + suffix, Content = "Copiar", FontSize = 11, Padding = new Thickness(10, 4) };
-        var apply = UiKit.Primary("CompatApply" + suffix, "Aplicar na Steam", 12, 4); apply.FontSize = 11; apply.IsEnabled = verdict.Applicable;
-        var revert = new Button { Name = "CompatUndo" + suffix, Content = "Desfazer", FontSize = 11, Padding = new Thickness(10, 4), IsVisible = false };
+        var copy = new Button { Name = "CompatCopy" + suffix, Content = L.T("Copiar"), FontSize = 11, Padding = new Thickness(10, 4) };
+        var apply = UiKit.Primary("CompatApply" + suffix, L.T("Aplicar na Steam"), 12, 4); apply.FontSize = 11; apply.IsEnabled = verdict.Applicable;
+        var revert = new Button { Name = "CompatUndo" + suffix, Content = L.T("Desfazer"), FontSize = 11, Padding = new Thickness(10, 4), IsVisible = false };
         var status = new TextBlock { Name = "CompatStatus" + suffix, Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center, Text = verdict.Applicable ? "" : verdict.Reason ?? "" };
-        ToolTip.SetTip(apply, verdict.Applicable ? "Grava estas opções no jogo, no localconfig.vdf da Steam (com backup). A Steam precisa estar fechada." : verdict.Reason);
-        copy.Click += async (_, _) => { if (TopLevel.GetTopLevel(this)?.Clipboard is { } c) { await c.SetTextAsync(lo); status.Text = "Copiado. Cole em Steam › Propriedades do jogo › Opções de inicialização."; } };
+        ToolTip.SetTip(apply, verdict.Applicable ? L.T("Grava estas opções no jogo, no localconfig.vdf da Steam (com backup). A Steam precisa estar fechada.") : verdict.Reason);
+        copy.Click += async (_, _) => { if (TopLevel.GetTopLevel(this)?.Clipboard is { } c) { await c.SetTextAsync(lo); status.Text = L.T("Copiado. Cole em Steam › Propriedades do jogo › Opções de inicialização."); } };
         apply.Click += async (_, _) =>
         {
             string? current = services.GetLaunchOptions(appId);
-            if (owner() is not { } w || !await ConfirmDialog.AskAsync(w, "Aplicar na Steam", $"Gravar estas opções de inicialização no jogo?\n\n{lo}\n\nAtuais: {(string.IsNullOrWhiteSpace(current) ? "(nenhuma)" : current)}\n\n{source} A Steam precisa estar fechada; o localconfig.vdf ganha backup (.ilmenyx.bak) e você pode desfazer aqui.", "Aplicar", "Cancelar")) return;
+            if (owner() is not { } w || !await ConfirmDialog.AskAsync(w, L.T("Aplicar na Steam"), L.T($"Gravar estas opções de inicialização no jogo?\n\n{lo}\n\nAtuais: {(string.IsNullOrWhiteSpace(current) ? L.T("(nenhuma)") : current)}\n\n{source} A Steam precisa estar fechada; o localconfig.vdf ganha backup (.ilmenyx.bak) e você pode desfazer aqui."), L.T("Aplicar"), L.T("Cancelar"))) return;
             if (services.SetLaunchOptions(appId, lo) is { } error) { status.Text = error; return; }
-            undo[appId] = current; revert.IsVisible = true; status.Text = "Aplicado. Abra a Steam e inicie o jogo para testar.";
+            undo[appId] = current; revert.IsVisible = true; status.Text = L.T("Aplicado. Abra a Steam e inicie o jogo para testar.");
         };
         revert.Click += (_, _) =>
         {
             if (!undo.TryGetValue(appId, out var previous)) return;
-            status.Text = services.SetLaunchOptions(appId, previous ?? "") ?? "Opções anteriores restauradas."; if (status.Text == "Opções anteriores restauradas.") { undo.Remove(appId); revert.IsVisible = false; }
+            status.Text = services.SetLaunchOptions(appId, previous ?? "") ?? L.T("Opções anteriores restauradas."); if (status.Text == L.T("Opções anteriores restauradas.")) { undo.Remove(appId); revert.IsVisible = false; }
         };
         return new WrapPanel { ItemSpacing = 6, LineSpacing = 6, Children = { copy, apply, revert, status } };
     }
@@ -373,16 +373,16 @@ public sealed class CompatPage : StackPanel
     {
         var r = x.Report;
         var head = new WrapPanel { VerticalAlignment = VerticalAlignment.Center };
-        head.Children.Add(Pill(r.Works ? "FUNCIONA" : "NÃO FUNCIONA", r.Works ? Palette.Success : Palette.Error));
+        head.Children.Add(Pill(r.Works ? L.T("FUNCIONA") : L.T("NÃO FUNCIONA"), r.Works ? Palette.Success : Palette.Error));
         head.Children.Add(new TextBlock { Text = r.Date.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture), Foreground = Palette.Muted, FontSize = 12, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(2, 0, 10, 6) });
         foreach (var m in x.Matches) head.Children.Add(Pill(m, Palette.AccentText));
         var body = new StackPanel { Spacing = 6, Children = { head,
-            new TextBlock { Text = $"{r.Gpu ?? "GPU não informada"}", FontSize = 13.5, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap },
-            new TextBlock { Text = $"{r.Os ?? "distro não informada"} · Proton {(r.Proton.Length > 0 ? r.Proton : "padrão da Steam")}" + (r.Kernel is { } k ? " · kernel " + k : ""), Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap } } };
+            new TextBlock { Text = $"{r.Gpu ?? L.T("GPU não informada")}", FontSize = 13.5, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap },
+            new TextBlock { Text = $"{r.Os ?? L.T("distro não informada")} · Proton {(r.Proton.Length > 0 ? r.Proton : L.T("padrão da Steam"))}" + (r.Kernel is { } k ? " · kernel " + k : ""), Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap } } };
         foreach (var f in r.Faults)
         {
             var line = new TextBlock { TextWrapping = TextWrapping.Wrap, FontSize = 13 };
-            line.Inlines!.Add(new Avalonia.Controls.Documents.Run("Problema · " + CompatReport.FaultName(f)) { Foreground = Palette.Warn, FontWeight = FontWeight.SemiBold });
+            line.Inlines!.Add(new Avalonia.Controls.Documents.Run(L.T("Problema · ") + CompatReport.FaultName(f)) { Foreground = Palette.Warn, FontWeight = FontWeight.SemiBold });
             if (r.FaultNotes.TryGetValue(f, out var n)) line.Inlines.Add(new Avalonia.Controls.Documents.Run(" — " + n));
             body.Children.Add(line);
         }
@@ -394,7 +394,7 @@ public sealed class CompatPage : StackPanel
             var code = new Border { Background = Palette.Hover, CornerRadius = new CornerRadius(IlmenyxTheme.ControlRadius), Padding = new Thickness(12, 9), Margin = new Thickness(0, 4, 0, 2),
                 Child = new SelectableTextBlock { Name = "CompatOptions" + index, Text = lo, FontFamily = new FontFamily("monospace"), FontSize = 12, TextWrapping = TextWrapping.Wrap } };
             body.Children.Add(code);
-            body.Children.Add(Actions(appId, lo, index.ToString(CultureInfo.InvariantCulture), verdict, "Vieram de um relato anônimo do ProtonDB: revise antes."));
+            body.Children.Add(Actions(appId, lo, index.ToString(CultureInfo.InvariantCulture), verdict, L.T("Vieram de um relato anônimo do ProtonDB: revise antes.")));
         }
         return UiKit.Card(body);
     }

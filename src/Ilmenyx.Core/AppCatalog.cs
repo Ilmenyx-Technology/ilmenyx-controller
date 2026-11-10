@@ -16,7 +16,7 @@ public sealed class InstallableApp
     public string NativeBinary { get; init; } = "";
     public bool PreSelect { get; init; } = true;
     /// <summary>Group shown in the list ("Essenciais", "Jogos", "Periféricos", "Streaming").</summary>
-    public string Category { get; init; } = "Essenciais";
+    public string Category { get; init; } = L.T("Essenciais");
     /// <summary>License declared on Flathub (checked through flathub.org/api/v2/appstream on 2026-11-08), empty when not listed.</summary>
     public string License { get; init; } = "";
     /// <summary>What else the app needs on the system (root service, udev rule…), in plain pt-BR. Shown before installing.</summary>
@@ -48,54 +48,54 @@ public static partial class AppCatalog
     [GeneratedRegex("^[A-Za-z0-9][A-Za-z0-9._-]{2,119}\\z", RegexOptions.CultureInvariant)]
     private static partial Regex IdPattern();
     /// <summary>Order of the groups on the page.</summary>
-    public static readonly string[] Categories = ["Essenciais", "Criação e escritório", "Jogos", "Streaming", "Periféricos"];
+    public static readonly string[] Categories = [L.T("Essenciais"), L.T("Criação e escritório"), L.T("Jogos"), "Streaming", L.T("Periféricos")];
     public static bool ValidId(string id) => IdPattern().IsMatch(id) && id.Count(c => c == '.') >= 2;
 
     public static List<InstallableApp> Default() =>
     [
-        new() { Name = "Steam", Description = "Loja e biblioteca de jogos da Valve (com Proton para jogos de Windows).", FlatpakId = "com.valvesoftware.Steam", NativeBinary = "steam" },
-        new() { Name = "Google Chrome", Description = "Navegador do Google.", FlatpakId = "com.google.Chrome", NativeBinary = "google-chrome-stable" },
-        new() { Name = "Discord", Description = "Chat de voz e texto para jogar com os amigos.", FlatpakId = "com.discordapp.Discord", NativeBinary = "discord" },
-        new() { Name = "Flameshot", Description = "Captura de tela com anotações (equivalente ao Lightshot no Linux).", FlatpakId = "org.flameshot.Flameshot", NativeBinary = "flameshot" },
+        new() { Name = "Steam", Description = L.T("Loja e biblioteca de jogos da Valve (com Proton para jogos de Windows)."), FlatpakId = "com.valvesoftware.Steam", NativeBinary = "steam" },
+        new() { Name = "Google Chrome", Description = L.T("Navegador do Google."), FlatpakId = "com.google.Chrome", NativeBinary = "google-chrome-stable" },
+        new() { Name = "Discord", Description = L.T("Chat de voz e texto para jogar com os amigos."), FlatpakId = "com.discordapp.Discord", NativeBinary = "discord" },
+        new() { Name = "Flameshot", Description = L.T("Captura de tela com anotações (equivalente ao Lightshot no Linux)."), FlatpakId = "org.flameshot.Flameshot", NativeBinary = "flameshot" },
         // WinRAR has no Linux version; PeaZip (LGPL-3.0, 7-Zip engine) opens and extracts .rar, .zip and .7z on any distribution.
-        new() { Name = "PeaZip", Description = "Compactador de arquivos: abre e extrai RAR, ZIP e 7Z (no lugar do WinRAR).", FlatpakId = "io.github.peazip.PeaZip", NativeBinary = "peazip" },
-        new() { Name = "VLC", Description = "Player de vídeo e música que abre qualquer formato.", FlatpakId = "org.videolan.VLC", NativeBinary = "vlc" },
+        new() { Name = "PeaZip", Description = L.T("Compactador de arquivos: abre e extrai RAR, ZIP e 7Z (no lugar do WinRAR)."), FlatpakId = "io.github.peazip.PeaZip", NativeBinary = "peazip" },
+        new() { Name = "VLC", Description = L.T("Player de vídeo e música que abre qualquer formato."), FlatpakId = "org.videolan.VLC", NativeBinary = "vlc" },
         // ArtCraft (storytold, Apache-2.0, checked 2026-11-08): open-source Rust apps for office, photo and video work. Not on Flathub; each
         // release ships .deb, .rpm, Arch and AppImage packages with SHA256SUMS. Early alpha, so nothing is pre-selected.
-        Craft("ArtCraft Launcher", "Central que instala, atualiza e abre todos os apps ArtCraft.", "craft-launcher", "artcraft-launcher"),
-        Craft("WordCraft", "Editor de textos, alternativa ao Word.", "wordcraft", "wordcraft"),
-        Craft("GridCraft", "Planilhas, alternativa ao Excel.", "gridcraft", "gridcraft"),
-        Craft("DeckCraft", "Apresentações, alternativa ao PowerPoint.", "deckcraft", "deckcraft"),
-        Craft("PdfCraft", "Leitor e editor de PDF, alternativa ao Acrobat.", "pdfcraft", "pdfcraft"),
-        Craft("PhotoCraft", "Editor de imagens, alternativa ao Photoshop.", "photocraft", "photocraft"),
-        Craft("FilmCraft", "Editor de vídeo, alternativa ao Premiere.", "filmcraft", "filmcraft"),
-        new() { Name = "Lutris", Description = "Biblioteca de jogos de várias lojas e emuladores.", FlatpakId = "net.lutris.Lutris", NativeBinary = "lutris", PreSelect = false, Category = "Jogos" },
-        new() { Name = "Heroic Games Launcher", Description = "Cliente para jogos da Epic, GOG e Amazon.", FlatpakId = "com.heroicgameslauncher.hgl", NativeBinary = "heroic", PreSelect = false, Category = "Jogos" },
-        new() { Name = "ProtonUp-Qt", Description = "Gerencia versões do Proton-GE e do Wine para Steam e Lutris.", FlatpakId = "net.davidotek.pupgui2", NativeBinary = "protonup-qt", PreSelect = false, Category = "Jogos", License = "GPL-3.0" },
-        new() { Name = "OBS Studio", Description = "Gravação e transmissão de tela.", FlatpakId = "com.obsproject.Studio", NativeBinary = "obs", PreSelect = false },
+        Craft(L.T("ArtCraft Launcher"), L.T("Central que instala, atualiza e abre todos os apps ArtCraft."), "craft-launcher", "artcraft-launcher"),
+        Craft("WordCraft", L.T("Editor de textos, alternativa ao Word."), "wordcraft", "wordcraft"),
+        Craft("GridCraft", L.T("Planilhas, alternativa ao Excel."), "gridcraft", "gridcraft"),
+        Craft("DeckCraft", L.T("Apresentações, alternativa ao PowerPoint."), "deckcraft", "deckcraft"),
+        Craft("PdfCraft", L.T("Leitor e editor de PDF, alternativa ao Acrobat."), "pdfcraft", "pdfcraft"),
+        Craft("PhotoCraft", L.T("Editor de imagens, alternativa ao Photoshop."), "photocraft", "photocraft"),
+        Craft("FilmCraft", L.T("Editor de vídeo, alternativa ao Premiere."), "filmcraft", "filmcraft"),
+        new() { Name = "Lutris", Description = L.T("Biblioteca de jogos de várias lojas e emuladores."), FlatpakId = "net.lutris.Lutris", NativeBinary = "lutris", PreSelect = false, Category = L.T("Jogos") },
+        new() { Name = "Heroic Games Launcher", Description = L.T("Cliente para jogos da Epic, GOG e Amazon."), FlatpakId = "com.heroicgameslauncher.hgl", NativeBinary = "heroic", PreSelect = false, Category = L.T("Jogos") },
+        new() { Name = "ProtonUp-Qt", Description = L.T("Gerencia versões do Proton-GE e do Wine para Steam e Lutris."), FlatpakId = "net.davidotek.pupgui2", NativeBinary = "protonup-qt", PreSelect = false, Category = L.T("Jogos"), License = "GPL-3.0" },
+        new() { Name = "OBS Studio", Description = L.T("Gravação e transmissão de tela."), FlatpakId = "com.obsproject.Studio", NativeBinary = "obs", PreSelect = false },
         // Gaming extras (2026-11-08). Ids and licenses checked on flathub.org/api/v2/appstream/<id>; none is pre-selected.
-        new() { Name = "ProtonPlus", Description = "Instala e atualiza versões do Proton, Wine, DXVK e VKD3D para Steam, Lutris, Heroic e Bottles (alternativa ao ProtonUp-Qt).", FlatpakId = "com.vysp3r.ProtonPlus", NativeBinary = "protonplus", PreSelect = false, Category = "Jogos", License = "GPL-3.0-or-later" },
-        new() { Name = "LACT", Description = "Informações, monitoramento, limite de energia, ventoinha e overclock de placas AMD, NVIDIA e Intel.", FlatpakId = "io.github.ilya_zlobintsev.LACT", NativeBinary = "lact", PreSelect = false, Category = "Jogos", License = "MIT",
-            Caveat = "Para mudar clock, energia e ventoinha, o LACT usa um serviço do sistema (lactd) que roda como root. Na primeira vez que abrir, o próprio LACT oferece instalar esse serviço fora do Flatpak e pede a sua senha. Só para ver informações, dá para recusar. Placas NVIDIA precisam do driver proprietário. Para desfazer o serviço: sudo systemctl disable --now lactd e apague /etc/systemd/system/lactd.service." },
-        new() { Name = "Gamescope para a Steam Flatpak", Description = "Camada do Gamescope (o compositor do Steam Deck: escala, limite de FPS, HDR) para usar nas opções de inicialização da Steam instalada em Flatpak.", FlatpakId = "org.freedesktop.Platform.VulkanLayer.gamescope", RuntimeFor = "com.valvesoftware.Steam", PreSelect = false, Category = "Jogos", License = "BSD-2-Clause",
-            Caveat = "Só serve para a Steam em Flatpak. O Ilmenyx instala a versão igual à da base (runtime) da sua Steam; quando a Steam trocar de base, instale de novo. Com a Steam da distribuição, instale o pacote gamescope pelo sistema." },
-        new() { Name = "Sunshine", Description = "Transmite os jogos deste PC para outro aparelho com o app Moonlight (TV, celular, notebook).", FlatpakId = "dev.lizardbyte.app.Sunshine", NativeBinary = "sunshine", PreSelect = false, Category = "Streaming", License = "GPL-3.0-only",
-            Caveat = "Depois de instalar, rode uma vez no terminal: flatpak run --command=additional-install.sh dev.lizardbyte.app.Sunshine (passos extras do Flatpak, que podem pedir senha). A configuração abre no navegador com um certificado próprio: o aviso de \"não seguro\" é esperado." },
-        new() { Name = "GeForce NOW", Description = "Jogos na nuvem da NVIDIA. O app oficial para Linux não está no Flathub: a NVIDIA distribui pelo próprio site.", LinkUrl = "https://www.nvidia.com/en-us/geforce-now/download/", PreSelect = false, Category = "Streaming",
-            Caveat = "O Ilmenyx só abre a página oficial; nada é baixado pelo app. Os apps \"GeForce NOW\" do Flathub são de terceiros, não da NVIDIA." },
-        new() { Name = "Piper", Description = "Configura mouses gamer: DPI, perfis, botões e LEDs.", FlatpakId = "org.freedesktop.Piper", NativeBinary = "piper", PreSelect = false, Category = "Periféricos", License = "GPL-2.0-or-later",
-            Caveat = "Precisa do serviço ratbagd (pacote ratbagd ou libratbag da distribuição) instalado e rodando no sistema; sem ele o Piper não encontra o mouse. Exemplo: sudo apt install ratbagd." },
-        new() { Name = "Solaar", Description = "Gerencia teclados e mouses Logitech (receptor Unifying, Bolt, Lightspeed e Bluetooth): bateria, pareamento e ajustes.", FlatpakId = "io.github.pwr_solaar.solaar", NativeBinary = "solaar", PreSelect = false, Category = "Periféricos", License = "GPL-2.0-only",
-            Caveat = "Só Logitech. O Flatpak não instala a regra udev que libera o acesso ao receptor; sem ela o Solaar pode não ver o aparelho. O pacote solaar da distribuição já traz a regra; ou copie 42-logitech-unify-permissions.rules para /etc/udev/rules.d (precisa de root)." },
-        new() { Name = "input-remapper", Description = "Troca a função de teclas e botões de teclado, mouse e controle.", LinkUrl = "https://github.com/sezanzeb/input-remapper", NativeBinary = "input-remapper-gtk", PreSelect = false, Category = "Periféricos",
-            Caveat = "Não está no Flathub porque usa um serviço root. Instale pelo pacote input-remapper da sua distribuição; o Ilmenyx só abre a página do projeto." },
+        new() { Name = "ProtonPlus", Description = L.T("Instala e atualiza versões do Proton, Wine, DXVK e VKD3D para Steam, Lutris, Heroic e Bottles (alternativa ao ProtonUp-Qt)."), FlatpakId = "com.vysp3r.ProtonPlus", NativeBinary = "protonplus", PreSelect = false, Category = L.T("Jogos"), License = "GPL-3.0-or-later" },
+        new() { Name = "LACT", Description = L.T("Informações, monitoramento, limite de energia, ventoinha e overclock de placas AMD, NVIDIA e Intel."), FlatpakId = "io.github.ilya_zlobintsev.LACT", NativeBinary = "lact", PreSelect = false, Category = L.T("Jogos"), License = "MIT",
+            Caveat = L.T("Para mudar clock, energia e ventoinha, o LACT usa um serviço do sistema (lactd) que roda como root. Na primeira vez que abrir, o próprio LACT oferece instalar esse serviço fora do Flatpak e pede a sua senha. Só para ver informações, dá para recusar. Placas NVIDIA precisam do driver proprietário. Para desfazer o serviço: sudo systemctl disable --now lactd e apague /etc/systemd/system/lactd.service.") },
+        new() { Name = "Gamescope para a Steam Flatpak", Description = L.T("Camada do Gamescope (o compositor do Steam Deck: escala, limite de FPS, HDR) para usar nas opções de inicialização da Steam instalada em Flatpak."), FlatpakId = "org.freedesktop.Platform.VulkanLayer.gamescope", RuntimeFor = "com.valvesoftware.Steam", PreSelect = false, Category = L.T("Jogos"), License = L.T("BSD-2-Clause"),
+            Caveat = L.T("Só serve para a Steam em Flatpak. O Ilmenyx instala a versão igual à da base (runtime) da sua Steam; quando a Steam trocar de base, instale de novo. Com a Steam da distribuição, instale o pacote gamescope pelo sistema.") },
+        new() { Name = "Sunshine", Description = L.T("Transmite os jogos deste PC para outro aparelho com o app Moonlight (TV, celular, notebook)."), FlatpakId = "dev.lizardbyte.app.Sunshine", NativeBinary = "sunshine", PreSelect = false, Category = "Streaming", License = "GPL-3.0-only",
+            Caveat = L.T("Depois de instalar, rode uma vez no terminal: flatpak run --command=additional-install.sh dev.lizardbyte.app.Sunshine (passos extras do Flatpak, que podem pedir senha). A configuração abre no navegador com um certificado próprio: o aviso de \"não seguro\" é esperado.") },
+        new() { Name = "GeForce NOW", Description = L.T("Jogos na nuvem da NVIDIA. O app oficial para Linux não está no Flathub: a NVIDIA distribui pelo próprio site."), LinkUrl = "https://www.nvidia.com/en-us/geforce-now/download/", PreSelect = false, Category = "Streaming",
+            Caveat = L.T("O Ilmenyx só abre a página oficial; nada é baixado pelo app. Os apps \"GeForce NOW\" do Flathub são de terceiros, não da NVIDIA.") },
+        new() { Name = "Piper", Description = L.T("Configura mouses gamer: DPI, perfis, botões e LEDs."), FlatpakId = "org.freedesktop.Piper", NativeBinary = "piper", PreSelect = false, Category = L.T("Periféricos"), License = "GPL-2.0-or-later",
+            Caveat = L.T("Precisa do serviço ratbagd (pacote ratbagd ou libratbag da distribuição) instalado e rodando no sistema; sem ele o Piper não encontra o mouse. Exemplo: sudo apt install ratbagd.") },
+        new() { Name = "Solaar", Description = L.T("Gerencia teclados e mouses Logitech (receptor Unifying, Bolt, Lightspeed e Bluetooth): bateria, pareamento e ajustes."), FlatpakId = "io.github.pwr_solaar.solaar", NativeBinary = "solaar", PreSelect = false, Category = L.T("Periféricos"), License = "GPL-2.0-only",
+            Caveat = L.T("Só Logitech. O Flatpak não instala a regra udev que libera o acesso ao receptor; sem ela o Solaar pode não ver o aparelho. O pacote solaar da distribuição já traz a regra; ou copie 42-logitech-unify-permissions.rules para /etc/udev/rules.d (precisa de root).") },
+        new() { Name = "input-remapper", Description = L.T("Troca a função de teclas e botões de teclado, mouse e controle."), LinkUrl = "https://github.com/sezanzeb/input-remapper", NativeBinary = "input-remapper-gtk", PreSelect = false, Category = L.T("Periféricos"),
+            Caveat = L.T("Não está no Flathub porque usa um serviço root. Instale pelo pacote input-remapper da sua distribuição; o Ilmenyx só abre a página do projeto.") },
     ];
 
     private static InstallableApp Craft(string name, string description, string repo, string package) => new()
     {
         Name = name, Description = description, GithubRepo = "storytold/" + repo, PackageName = package, NativeBinary = package, PreSelect = false,
-        Category = "Criação e escritório", License = "Apache-2.0",
-        Caveat = "Em fase alfa: pode faltar recursos e ter falhas. Instala o pacote oficial da sua distribuição (pede a senha do sistema).",
+        Category = L.T("Criação e escritório"), License = "Apache-2.0",
+        Caveat = L.T("Em fase alfa: pode faltar recursos e ter falhas. Instala o pacote oficial da sua distribuição (pede a senha do sistema)."),
     };
 
     /// <summary>Application ids from <c>flatpak list --app --columns=application</c> (one per line).</summary>

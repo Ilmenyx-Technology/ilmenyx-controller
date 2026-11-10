@@ -31,10 +31,10 @@ public sealed partial class LinuxDriverInventory(string sysRoot = "/sys", string
     public static string Flags(string taint)
     {
         var f = new List<string>();
-        if (taint.Contains('P')) f.Add("proprietário");
-        if (taint.Contains('O')) f.Add("fora da árvore do kernel");
-        if (taint.Contains('E')) f.Add("sem assinatura");
-        return f.Count == 0 ? "módulo do kernel" : string.Join(", ", f);
+        if (taint.Contains('P')) f.Add(L.T("proprietário"));
+        if (taint.Contains('O')) f.Add(L.T("fora da árvore do kernel"));
+        if (taint.Contains('E')) f.Add(L.T("sem assinatura"));
+        return f.Count == 0 ? L.T("módulo do kernel") : string.Join(", ", f);
     }
 
     private string DriverName(string deviceDir)
@@ -71,7 +71,7 @@ public sealed partial class LinuxDriverInventory(string sysRoot = "/sys", string
                 string drv = DriverName(dir);
                 string version = drv.Length > 0 && Attr(Sys($"module/{drv}/version"), 64) is { Length: > 0 } v ? v : (drv.Length > 0 ? $"kernel {KernelRelease()}" : "—");
                 string taint = drv.Length > 0 ? Attr(Sys($"module/{drv}/taint"), 16) : "";
-                rows.Add(new(ids.Device(vendor, device) ?? $"Dispositivo PCI {vendor}:{device}", cls, ids.Vendor(vendor) ?? vendor, version, drv.Length > 0 ? drv : "sem driver", drv.Length > 0 ? Flags(taint) : "sem driver carregado",
+                rows.Add(new(ids.Device(vendor, device) ?? L.T($"Dispositivo PCI {vendor}:{device}"), cls, ids.Vendor(vendor) ?? vendor, version, drv.Length > 0 ? drv : L.T("sem driver"), drv.Length > 0 ? Flags(taint) : L.T("sem driver carregado"),
                     "PCI", Hex(vendor) + ":" + Hex(device), Attr(Path.Combine(dir, "class"), 16), IsWireless(dir)));
             }
         string usb = Sys("bus/usb/devices");
@@ -82,7 +82,7 @@ public sealed partial class LinuxDriverInventory(string sysRoot = "/sys", string
                 var drivers = Directory.EnumerateDirectories(dir, Path.GetFileName(dir) + ":*").Take(16).Select(DriverName).Where(d => d.Length > 0).Distinct().ToList();
                 var interfaces = Directory.EnumerateDirectories(dir, Path.GetFileName(dir) + ":*").Take(16).ToList();
                 string classes = string.Join(",", interfaces.Select(i => Attr(Path.Combine(i, "bInterfaceClass"), 4)).Where(c => c.Length > 0).Distinct());
-                rows.Add(new(product, "USB", Attr(Path.Combine(dir, "manufacturer"), 80) is { Length: > 0 } mf ? mf : "—", $"kernel {KernelRelease()}", drivers.Count > 0 ? string.Join(", ", drivers) : "sem driver", drivers.Count > 0 ? "módulo do kernel" : "sem driver carregado",
+                rows.Add(new(product, "USB", Attr(Path.Combine(dir, "manufacturer"), 80) is { Length: > 0 } mf ? mf : "—", $"kernel {KernelRelease()}", drivers.Count > 0 ? string.Join(", ", drivers) : L.T("sem driver"), drivers.Count > 0 ? L.T("módulo do kernel") : L.T("sem driver carregado"),
                     "USB", Hex(Attr(Path.Combine(dir, "idVendor"), 8)) + ":" + Hex(Attr(Path.Combine(dir, "idProduct"), 8)), classes, interfaces.Any(IsWireless)));
             }
         return rows.OrderBy(r => r.Class, StringComparer.Ordinal).ThenBy(r => r.Device, StringComparer.Ordinal).ToList();
@@ -100,7 +100,7 @@ public sealed partial class LinuxDriverInventory(string sysRoot = "/sys", string
         {
             if (!Attr(Path.Combine(dir, "class"), 16).StartsWith("0x03", StringComparison.Ordinal)) continue;
             string vendor = Attr(Path.Combine(dir, "vendor"), 8), device = Attr(Path.Combine(dir, "device"), 8), drv = DriverName(dir);
-            var g = new GpuDriverStatus { GpuName = ids.Device(vendor, device) ?? $"GPU {vendor}:{device}", Driver = drv.Length > 0 ? drv : "sem driver", DeviceId = Hex(device), PciId = Hex(vendor) + ":" + Hex(device) };
+            var g = new GpuDriverStatus { GpuName = ids.Device(vendor, device) ?? $"GPU {vendor}:{device}", Driver = drv.Length > 0 ? drv : L.T("sem driver"), DeviceId = Hex(device), PciId = Hex(vendor) + ":" + Hex(device) };
             switch (vendor.ToLowerInvariant().Replace("0x", ""))
             {
                 case "10de":
@@ -108,11 +108,11 @@ public sealed partial class LinuxDriverInventory(string sysRoot = "/sys", string
                     bool proprietary = drv.StartsWith("nvidia", StringComparison.Ordinal); // nouveau must not inherit the proprietary module's version
                     var m = NvrmVersion().Match(proprietary && File.Exists(Path.Combine(procRoot, "driver/nvidia/version")) ? Safe(Path.Combine(procRoot, "driver/nvidia/version")) : "");
                     g.Installed = m.Success ? m.Groups[1].Value : proprietary ? Attr(Sys("module/nvidia/version"), 64) : "";
-                    if (g.Installed.Length == 0) g.Message = drv == "nouveau" ? GpuTelemetrySensors.NouveauReason : "Driver proprietário NVIDIA não detectado.";
+                    if (g.Installed.Length == 0) g.Message = drv == "nouveau" ? GpuTelemetrySensors.NouveauReason : L.T("Driver proprietário NVIDIA não detectado.");
                     break;
-                case "1002": g.Vendor = "AMD"; g.OfficialPage = "https://www.amd.com/en/support/download/drivers.html"; g.Installed = $"{g.Driver} · kernel {KernelRelease()}"; g.Message = "Driver amdgpu/Mesa acompanha o kernel e as atualizações da sua distribuição."; break;
-                case "8086": g.Vendor = "Intel"; g.OfficialPage = "https://www.intel.com/content/www/us/en/download-center/home.html"; g.Installed = $"{g.Driver} · kernel {KernelRelease()}"; g.Message = "Driver i915/xe e Mesa acompanham o kernel e as atualizações da sua distribuição."; break;
-                default: g.Installed = $"{g.Driver} · kernel {KernelRelease()}"; g.Message = "Fabricante não reconhecido."; break;
+                case "1002": g.Vendor = "AMD"; g.OfficialPage = "https://www.amd.com/en/support/download/drivers.html"; g.Installed = $"{g.Driver} · kernel {KernelRelease()}"; g.Message = L.T("Driver amdgpu/Mesa acompanha o kernel e as atualizações da sua distribuição."); break;
+                case "8086": g.Vendor = "Intel"; g.OfficialPage = "https://www.intel.com/content/www/us/en/download-center/home.html"; g.Installed = $"{g.Driver} · kernel {KernelRelease()}"; g.Message = L.T("Driver i915/xe e Mesa acompanham o kernel e as atualizações da sua distribuição."); break;
+                default: g.Installed = $"{g.Driver} · kernel {KernelRelease()}"; g.Message = L.T("Fabricante não reconhecido."); break;
             }
             list.Add(g);
         }

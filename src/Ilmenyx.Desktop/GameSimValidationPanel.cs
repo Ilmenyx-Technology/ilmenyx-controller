@@ -5,6 +5,7 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Data;
 using Avalonia.Media;
+using Ilmenyx.Core;
 
 namespace Ilmenyx.Desktop;
 
@@ -13,10 +14,10 @@ public sealed class GameSimValidationPanel : Border
     public GameSimValidationPanel(GameSimValidationViewModel model, Func<string, Task<string?>> chooseDestination, CancellationToken lifetime)
     {
         DataContext = model; ValidationLook.Surface(this);
-        var start = new Button { Name = "ValidateSim", Content = "Validar simulação (reduzida)", Margin = new Thickness(0, 0, 8, 8) };
-        var cancel = new Button { Name = "CancelSim", Content = "Cancelar simulação", Margin = new Thickness(0, 0, 8, 8) };
-        var export = new Button { Name = "ExportSim", Content = "Exportar simulação JSON", Margin = new Thickness(0, 0, 8, 8) };
-        var exportHtml = new Button { Name = "ExportSimHtml", Content = "Exportar simulação HTML", Margin = new Thickness(0, 0, 8, 8) };
+        var start = new Button { Name = "ValidateSim", Content = L.T("Validar simulação (reduzida)"), Margin = new Thickness(0, 0, 8, 8) };
+        var cancel = new Button { Name = "CancelSim", Content = L.T("Cancelar simulação"), Margin = new Thickness(0, 0, 8, 8) };
+        var export = new Button { Name = "ExportSim", Content = L.T("Exportar simulação JSON"), Margin = new Thickness(0, 0, 8, 8) };
+        var exportHtml = new Button { Name = "ExportSimHtml", Content = L.T("Exportar simulação HTML"), Margin = new Thickness(0, 0, 8, 8) };
         start.Bind(IsEnabledProperty, new Binding(nameof(model.CanStart))); cancel.Bind(IsEnabledProperty, new Binding(nameof(model.CanCancel))); export.Bind(IsEnabledProperty, new Binding(nameof(model.CanExport)));
         exportHtml.Bind(IsEnabledProperty, new Binding(nameof(model.CanExport)));
         start.Click += async (_, _) => await model.StartAsync(lifetime);
@@ -30,13 +31,13 @@ public sealed class GameSimValidationPanel : Border
             try
             {
                 var path = await chooseDestination(html ? ".html" : ".json"); if (path is null) return;
-                if (!ReferenceEquals(selected, model.Report)) { model.SetStatus("O resultado mudou. Selecione novamente o relatório."); return; }
+                if (!ReferenceEquals(selected, model.Report)) { model.SetStatus(L.T("O resultado mudou. Selecione novamente o relatório.")); return; }
                 if (html) await model.ExportHtmlAsync(path, lifetime);
                 else await model.ExportAsync(path, lifetime);
             }
-            catch (OperationCanceledException) { model.SetStatus("Exportação cancelada."); }
+            catch (OperationCanceledException) { model.SetStatus(L.T("Exportação cancelada.")); }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or InvalidOperationException)
-            { model.SetStatus("Não foi possível selecionar destino: " + e.Message); }
+            { model.SetStatus(L.T("Não foi possível selecionar destino: ") + e.Message); }
             finally
             {
                 var button = html ? exportHtml : export;
@@ -47,7 +48,7 @@ public sealed class GameSimValidationPanel : Border
         var status = new TextBlock { Name = "SimStatus", TextWrapping = TextWrapping.Wrap, FontSize = 12.5 }; status.Bind(TextBlock.TextProperty, new Binding(nameof(model.Status)));
         var summary = new TextBlock { Name = "SimSummary", TextWrapping = TextWrapping.Wrap, FontSize = 12, Foreground = Palette.Muted }; summary.Bind(TextBlock.TextProperty, new Binding(nameof(model.Summary)));
         var preview = new GameSimPreview { Name = "SimPreview", Width = 220, Height = 220 };
-        AutomationProperties.SetName(preview, "Estado final da simulação reduzida; contagens e hash no resumo textual");
+        AutomationProperties.SetName(preview, L.T("Estado final da simulação reduzida; contagens e hash no resumo textual"));
         preview.Bind(GameSimPreview.StateProperty, new Binding(nameof(model.State)));
         preview.Bind(IsVisibleProperty, new Binding(nameof(model.HasState)));
         Child = new StackPanel
@@ -55,8 +56,8 @@ public sealed class GameSimValidationPanel : Border
             Spacing = 10,
             Children =
         {
-            ValidationLook.Title(Icons.Games, "VALIDAÇÃO REDUZIDA · GAMESIM"),
-            ValidationLook.Description("256 entidades · 16 passos fixos · 1 worker · sem aquecimento por tempo.\nSimulação sintética de física/IA. Não mede FPS de jogos, desempenho da GPU ou score."),
+            ValidationLook.Title(Icons.Games, L.T("VALIDAÇÃO REDUZIDA · GAMESIM")),
+            ValidationLook.Description(L.T("256 entidades · 16 passos fixos · 1 worker · sem aquecimento por tempo.\nSimulação sintética de física/IA. Não mede FPS de jogos, desempenho da GPU ou score.")),
             new WrapPanel { Children = { start, cancel, export, exportHtml } }, preview, status, summary
         }
         };

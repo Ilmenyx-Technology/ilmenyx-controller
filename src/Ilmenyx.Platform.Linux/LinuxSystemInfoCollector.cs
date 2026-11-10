@@ -29,19 +29,19 @@ public sealed class LinuxSystemInfoCollector(string procRoot = "/proc", string s
     public IReadOnlyList<InfoNode> Collect(MemoryInventory? ram, GpuSnapshot? gpus, PciIds? pciIds)
     {
         var roots = new List<InfoNode>();
-        Safe(roots, "Sistema operacional", Os);
-        Safe(roots, "Placa-mãe e BIOS", Board);
-        Safe(roots, "Processador", Cpu);
-        Safe(roots, "Memória RAM", n => { var r = Memory(ram); n.Children.AddRange(r.Children); n.Value = r.Value; });
-        Safe(roots, "Placa de vídeo", n => Gpu(n, gpus, pciIds ?? new PciIds()));
-        Safe(roots, "Armazenamento", Disks);
+        Safe(roots, L.T("Sistema operacional"), Os);
+        Safe(roots, L.T("Placa-mãe e BIOS"), Board);
+        Safe(roots, L.T("Processador"), Cpu);
+        Safe(roots, L.T("Memória RAM"), n => { var r = Memory(ram); n.Children.AddRange(r.Children); n.Value = r.Value; });
+        Safe(roots, L.T("Placa de vídeo"), n => Gpu(n, gpus, pciIds ?? new PciIds()));
+        Safe(roots, L.T("Armazenamento"), Disks);
         return roots;
     }
 
     private static void Safe(List<InfoNode> roots, string title, Action<InfoNode> fill)
     {
         var node = new InfoNode { Header = title };
-        try { fill(node); } catch (Exception e) when (e is IOException or UnauthorizedAccessException or FormatException or InvalidOperationException) { node.Add("Erro ao ler", e.Message); }
+        try { fill(node); } catch (Exception e) when (e is IOException or UnauthorizedAccessException or FormatException or InvalidOperationException) { node.Add(L.T("Erro ao ler"), e.Message); }
         roots.Add(node);
     }
 
@@ -49,52 +49,52 @@ public sealed class LinuxSystemInfoCollector(string procRoot = "/proc", string s
     {
         var os = Text(Path.Combine(etcRoot, "os-release")) ?? "";
         string? Field(string key) => os.Split('\n').Where(l => l.StartsWith(key + "=", StringComparison.Ordinal)).Select(l => l[(key.Length + 1)..].Trim().Trim('"')).FirstOrDefault();
-        n.Add("Nome", Field("PRETTY_NAME") ?? "—");
-        n.Add("Versão", Field("VERSION_ID") ?? Field("VERSION") ?? "(rolling)");
+        n.Add(L.T("Nome"), Field("PRETTY_NAME") ?? "—");
+        n.Add(L.T("Versão"), Field("VERSION_ID") ?? Field("VERSION") ?? "(rolling)");
         n.Add("Kernel", One(Proc("sys/kernel/osrelease")));
-        n.Add("Arquitetura", RuntimeInformation.OSArchitecture.ToString());
-        n.Add("Nome do computador (local; omitido dos relatórios)", Environment.MachineName);
+        n.Add(L.T("Arquitetura"), RuntimeInformation.OSArchitecture.ToString());
+        n.Add(L.T("Nome do computador (local; omitido dos relatórios)"), Environment.MachineName);
     }
 
     private void Board(InfoNode n)
     {
         string D(string f) => One(Sys("class/dmi/id/" + f));
-        var board = n.Add("Placa-mãe");
-        board.Add("Fabricante", D("board_vendor")); board.Add("Modelo", D("board_name")); board.Add("Versão", D("board_version"));
-        board.Add("Nº de série", "omitido por privacidade");
+        var board = n.Add(L.T("Placa-mãe"));
+        board.Add(L.T("Fabricante"), D("board_vendor")); board.Add(L.T("Modelo"), D("board_name")); board.Add(L.T("Versão"), D("board_version"));
+        board.Add(L.T("Nº de série"), L.T("omitido por privacidade"));
         var bios = n.Add("BIOS");
-        bios.Add("Fabricante", D("bios_vendor")); bios.Add("Versão", D("bios_version"));
+        bios.Add(L.T("Fabricante"), D("bios_vendor")); bios.Add(L.T("Versão"), D("bios_version"));
         string date = D("bios_date");
         bios.Add("Data", DateTime.TryParseExact(date, "MM/dd/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt) ? dt.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture) : date);
-        var system = n.Add("Sistema (fabricante do equipamento)");
-        system.Add("Fabricante", D("sys_vendor")); system.Add("Produto", D("product_name"));
+        var system = n.Add(L.T("Sistema (fabricante do equipamento)"));
+        system.Add(L.T("Fabricante"), D("sys_vendor")); system.Add(L.T("Produto"), D("product_name"));
     }
 
     private void Cpu(InfoNode n)
     {
-        string text = Text(Proc("cpuinfo")) ?? throw new IOException("/proc/cpuinfo indisponível.");
+        string text = Text(Proc("cpuinfo")) ?? throw new IOException(L.T("/proc/cpuinfo indisponível."));
         var blocks = text.Replace("\r", "").Split("\n\n", StringSplitOptions.RemoveEmptyEntries).Where(b => b.Contains("processor", StringComparison.Ordinal)).ToList();
-        if (blocks.Count == 0) throw new IOException("Nenhum processador listado.");
+        if (blocks.Count == 0) throw new IOException(L.T("Nenhum processador listado."));
         string Get(string block, string key) => block.Split('\n').Select(l => l.Split(':', 2)).Where(p => p.Length == 2 && p[0].Trim() == key).Select(p => p[1].Trim()).FirstOrDefault() ?? "";
         var first = blocks[0];
-        var cpu = n.Add(Get(first, "model name") is { Length: > 0 } name ? name : "Processador");
+        var cpu = n.Add(Get(first, "model name") is { Length: > 0 } name ? name : L.T("Processador"));
         string vendor = Get(first, "vendor_id");
-        cpu.Add("Fabricante", vendor switch { "GenuineIntel" => "Intel", "AuthenticAMD" => "AMD", "" => "—", _ => vendor });
+        cpu.Add(L.T("Fabricante"), vendor switch { "GenuineIntel" => "Intel", "AuthenticAMD" => "AMD", "" => "—", _ => vendor });
         var pairs = blocks.Select(b => (Get(b, "physical id"), Get(b, "core id"))).Where(p => p.Item2.Length > 0).Distinct().Count();
         int sockets = Math.Max(1, blocks.Select(b => Get(b, "physical id")).Where(s => s.Length > 0).Distinct().Count());
-        cpu.Add("Soquetes", sockets.ToString(CultureInfo.InvariantCulture));
-        cpu.Add("Núcleos físicos", pairs > 0 ? pairs.ToString(CultureInfo.InvariantCulture) : "—");
-        cpu.Add("Threads (lógicos)", blocks.Count.ToString(CultureInfo.InvariantCulture));
+        cpu.Add(L.T("Soquetes"), sockets.ToString(CultureInfo.InvariantCulture));
+        cpu.Add(L.T("Núcleos físicos"), pairs > 0 ? pairs.ToString(CultureInfo.InvariantCulture) : "—");
+        cpu.Add(L.T("Threads (lógicos)"), blocks.Count.ToString(CultureInfo.InvariantCulture));
         string max = One(Sys("devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq"));
-        cpu.Add("Clock máximo declarado", long.TryParse(max, NumberStyles.None, CultureInfo.InvariantCulture, out long khz) ? $"{khz / 1000} MHz" : "—");
+        cpu.Add(L.T("Clock máximo declarado"), long.TryParse(max, NumberStyles.None, CultureInfo.InvariantCulture, out long khz) ? $"{khz / 1000} MHz" : "—");
         foreach (int level in new[] { 1, 2, 3 })
             cpu.Add($"Cache L{level}", CacheOf(level));
         var flags = Get(first, "flags").Split(' ', StringSplitOptions.RemoveEmptyEntries).ToHashSet(StringComparer.Ordinal);
-        cpu.Add("Virtualização", flags.Contains("vmx") ? "Intel VT-x suportado" + KvmNote() : flags.Contains("svm") ? "AMD-V suportado" + KvmNote() : "Não anunciada nas flags (pode estar desligada na BIOS)");
+        cpu.Add(L.T("Virtualização"), flags.Contains("vmx") ? L.T("Intel VT-x suportado") + KvmNote() : flags.Contains("svm") ? L.T("AMD-V suportado") + KvmNote() : L.T("Não anunciada nas flags (pode estar desligada na BIOS)"));
         string[] wanted = ["sse4_2", "aes", "avx", "avx2", "avx512f", "fma"];
-        cpu.Add("Extensões relevantes", string.Join(" ", wanted.Where(flags.Contains)) is { Length: > 0 } list ? list : "—");
+        cpu.Add(L.T("Extensões relevantes"), string.Join(" ", wanted.Where(flags.Contains)) is { Length: > 0 } list ? list : "—");
     }
-    private string KvmNote() => File.Exists("/dev/kvm") && procRoot == "/proc" ? " · /dev/kvm presente" : "";
+    private string KvmNote() => File.Exists("/dev/kvm") && procRoot == "/proc" ? L.T(" · /dev/kvm presente") : "";
     private string CacheOf(int level)
     {
         try
@@ -123,19 +123,19 @@ public sealed class LinuxSystemInfoCollector(string procRoot = "/proc", string s
 
     private void Gpu(InfoNode n, GpuSnapshot? gpus, PciIds ids)
     {
-        if (gpus is null || gpus.Devices.Count == 0) { n.Add("Nenhuma GPU DRM/PCI identificada", gpus?.Reason ?? "Inventário não coletado."); return; }
+        if (gpus is null || gpus.Devices.Count == 0) { n.Add(L.T("Nenhuma GPU DRM/PCI identificada"), gpus?.Reason ?? L.T("Inventário não coletado.")); return; }
         foreach (var g in gpus.Devices)
         {
             string vendor = g.VendorId.Value ?? "", device = g.DeviceId.Value ?? "";
-            string title = ids.Device(vendor, device) ?? (ids.Vendor(vendor) is { } v ? $"{v} (dispositivo {device})" : $"Dispositivo PCI {vendor}:{device}");
+            string title = ids.Device(vendor, device) ?? (ids.Vendor(vendor) is { } v ? L.T($"{v} (dispositivo {device})") : L.T($"Dispositivo PCI {vendor}:{device}"));
             var node = n.Add(title);
-            node.Add("Entrada DRM", g.Device);
-            node.Add("Fabricante", ids.Vendor(vendor) ?? "não encontrado em pci.ids");
+            node.Add(L.T("Entrada DRM"), g.Device);
+            node.Add(L.T("Fabricante"), ids.Vendor(vendor) ?? L.T("não encontrado em pci.ids"));
             node.Add("ID PCI (vendor:device)", $"{vendor}:{device}");
-            node.Add("Classe PCI", g.PciClass.Value ?? "—");
-            node.Add("Driver do kernel", DriverOf(g.Device));
-            node.Add("Memória de vídeo", g.VramTotal.Value is { } vram ? RamInfoBuilder.Bytes(vram) : "indisponível (VRAM de iGPU não é inferida)");
-            node.Add("Saída/resolução (primeiro modo anunciado)", Output(g.Device));
+            node.Add(L.T("Classe PCI"), g.PciClass.Value ?? "—");
+            node.Add(L.T("Driver do kernel"), DriverOf(g.Device));
+            node.Add(L.T("Memória de vídeo"), g.VramTotal.Value is { } vram ? RamInfoBuilder.Bytes(vram) : L.T("indisponível (VRAM de iGPU não é inferida)"));
+            node.Add(L.T("Saída/resolução (primeiro modo anunciado)"), Output(g.Device));
         }
     }
     private string DriverOf(string card)
@@ -159,22 +159,22 @@ public sealed class LinuxSystemInfoCollector(string procRoot = "/proc", string s
     {
         n.Children.Clear();
         string root = Sys("block");
-        if (!Directory.Exists(root)) throw new IOException("/sys/block indisponível.");
+        if (!Directory.Exists(root)) throw new IOException(L.T("/sys/block indisponível."));
         foreach (var dir in Directory.EnumerateDirectories(root).OrderBy(p => p, StringComparer.Ordinal).Take(257))
         {
             string name = Path.GetFileName(dir);
             if (!System.Text.RegularExpressions.Regex.IsMatch(name, @"^(sd[a-z]+|vd[a-z]+|xvd[a-z]+|nvme[0-9]+n[0-9]+|mmcblk[0-9]+)$", System.Text.RegularExpressions.RegexOptions.CultureInvariant)) continue;
             string model = One(Path.Combine(dir, "device/model"));
             var disk = n.Add(model == "—" ? name : model);
-            disk.Add("Dispositivo", "/dev/" + name);
-            disk.Add("Capacidade", long.TryParse(One(Path.Combine(dir, "size")), NumberStyles.None, CultureInfo.InvariantCulture, out long sectors) && sectors <= long.MaxValue / 512 ? MountedDrives.Bytes(sectors * 512) : "—");
+            disk.Add(L.T("Dispositivo"), "/dev/" + name);
+            disk.Add(L.T("Capacidade"), long.TryParse(One(Path.Combine(dir, "size")), NumberStyles.None, CultureInfo.InvariantCulture, out long sectors) && sectors <= long.MaxValue / 512 ? MountedDrives.Bytes(sectors * 512) : "—");
             string resolved = new DirectoryInfo(dir).ResolveLinkTarget(true)?.FullName ?? "";
-            disk.Add("Interface", LinuxParsers.DiskBus(name, resolved).Value ?? "não identificada");
-            disk.Add("Tipo", LinuxParsers.DiskKindFor(name, Text(Path.Combine(dir, "queue/rotational")), "", LinuxParsers.DiskBus(name, resolved)).Value ?? "—");
+            disk.Add("Interface", LinuxParsers.DiskBus(name, resolved).Value ?? L.T("não identificada"));
+            disk.Add(L.T("Tipo"), LinuxParsers.DiskKindFor(name, Text(Path.Combine(dir, "queue/rotational")), "", LinuxParsers.DiskBus(name, resolved)).Value ?? "—");
             string fw = One(Path.Combine(dir, "device/firmware_rev")); if (fw == "—") fw = One(Path.Combine(dir, "device/rev"));
             disk.Add("Firmware", fw);
-            disk.Add("Nº de série", "omitido por privacidade");
+            disk.Add(L.T("Nº de série"), L.T("omitido por privacidade"));
         }
-        if (n.Children.Count == 0) n.Add("Nenhum disco físico visível", "Somente SATA/NVMe/virtio/MMC são listados.");
+        if (n.Children.Count == 0) n.Add(L.T("Nenhum disco físico visível"), L.T("Somente SATA/NVMe/virtio/MMC são listados."));
     }
 }

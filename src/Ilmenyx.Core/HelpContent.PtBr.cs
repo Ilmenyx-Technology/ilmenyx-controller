@@ -49,7 +49,7 @@ public static partial class HelpContent
                 [
                     "No menu lateral, as páginas ficam em grupos (Diagnóstico, Jogos, Desempenho, Maker e Ferramentas). Clique no nome do grupo para abrir ou fechar.",
                     "Na busca do topo, digite parte do nome de uma página ou de uma dúvida (ex.: temperatura) e escolha na lista.",
-                    "Os botões redondos do topo trocam o tema (escuro ou claro) e pausam ou retomam as leituras ao vivo.",
+                    "Os botões redondos do topo trocam o idioma e o tema (escuro ou claro) e pausam ou retomam as leituras ao vivo.",
                     "O botão \"?\" ao lado do título abre esta ajuda já na parte da página em que você está.",
                     "Para ver o passeio de novo, clique em Refazer o tour no topo desta página.",
                 ],
@@ -406,7 +406,7 @@ public static partial class HelpContent
                 "Instalar apps instala os essenciais e apps de jogos (Proton, LACT, Gamescope, Sunshine, mouses) pelo Flathub, só para o seu usuário e sem senha. Drivers mostra os drivers em uso e não instala nada; Driver NVIDIA instala, repara e atualiza o driver certo para a sua placa, sempre com a sua confirmação."),
             new("report", "report", ["report", "blocked", "tools"], "Relatório, Bloqueados e Requisitos",
                 "Relatório junta tudo o que o Ilmenyx lê num arquivo HTML ou JSON, sem números de série nem nomes, para guardar ou enviar a um técnico. Bloqueados (!) lista o que ainda não foi terminado ou testado e por quê. Requisitos e sobre confere o que o sistema precisa e mostra licenças e créditos."),
-            new("help", "help", ["search", "theme", "pagehelp", "help"], "Busca, tema e ajuda",
-                "Use a busca do topo para achar uma página ou uma dúvida (ex.: temperatura), e o botão redondo para trocar o tema. O botão \"?\" ao lado do título abre a ajuda da página atual. Esta Central de ajuda fica no fim do menu e tem o botão Refazer o tour."),
+            new("help", "help", ["search", "theme", "pagehelp", "help"], "Busca, idioma, tema e ajuda",
+                "Use a busca do topo para achar uma página ou uma dúvida (ex.: temperatura), e os botões redondos para trocar o idioma e o tema. O botão \"?\" ao lado do título abre a ajuda da página atual. Esta Central de ajuda fica no fim do menu e tem o botão Refazer o tour."),
         ]);
 }

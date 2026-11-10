@@ -24,40 +24,40 @@ public static class OcGuideBuilder
         string shortCpu = GameCatalog.ShortCpuName(cpuName);
         bool amd = cpuName.Contains("Ryzen", StringComparison.OrdinalIgnoreCase);
         string board = ((gigabyte ? "Gigabyte" : boardVendor.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "") + " " + boardName).Trim();
-        string pbo = gigabyte ? "Tweaker → Advanced CPU Settings → Precision Boost Overdrive  (ou Settings → AMD Overclocking)"
-            : asus ? "Advanced → AMD Overclocking → Precision Boost Overdrive  (ou AI Tweaker → PBO)"
-            : msi ? "OC → Advanced CPU Configuration → AMD Overclocking → Precision Boost Overdrive"
-            : "Advanced → AMD Overclocking → Precision Boost Overdrive";
-        string expo = gigabyte ? "Tweaker → Extreme Memory Profile (X.M.P.) → EXPO1"
-            : asus ? "AI Tweaker → Ai Overclock Tuner → EXPO I"
-            : msi ? "OC → A-XMP/EXPO → Profile 1"
-            : "procure EXPO / XMP no menu de memória";
+        string pbo = gigabyte ? L.T("Tweaker → Advanced CPU Settings → Precision Boost Overdrive  (ou Settings → AMD Overclocking)")
+            : asus ? L.T("Advanced → AMD Overclocking → Precision Boost Overdrive  (ou AI Tweaker → PBO)")
+            : msi ? L.T("OC → Advanced CPU Configuration → AMD Overclocking → Precision Boost Overdrive")
+            : L.T("Advanced → AMD Overclocking → Precision Boost Overdrive");
+        string expo = gigabyte ? L.T("Tweaker → Extreme Memory Profile (X.M.P.) → EXPO1")
+            : asus ? L.T("AI Tweaker → Ai Overclock Tuner → EXPO I")
+            : msi ? L.T("OC → A-XMP/EXPO → Profile 1")
+            : L.T("procure EXPO / XMP no menu de memória");
         if (notebook) return Notebook(board, shortCpu);
         var steps = new List<OcGuideStep>
         {
-            new("0", "Antes de começar", gigabyte ? "Save & Exit → Save Profiles" : "Save & Exit → Save Profile", "Salve o perfil atual da BIOS. Se o PC não ligar depois de um ajuste, espere 3 tentativas (muitas placas voltam sozinhas) ou limpe a CMOS (jumper CLR_CMOS na placa ou tirando a bateria por 1 minuto)."),
-            new("1", "Ative o perfil da memória (EXPO)", expo, "É o maior ganho em jogos para a maioria dos PCs: a RAM sai do padrão lento e vai para a velocidade da etiqueta. Teste: verificador \"CPU + RAM\" por 15 min (o teste de RAM acusa erro se o perfil não for estável).")
+            new("0", L.T("Antes de começar"), gigabyte ? "Save & Exit → Save Profiles" : "Save & Exit → Save Profile", L.T("Salve o perfil atual da BIOS. Se o PC não ligar depois de um ajuste, espere 3 tentativas (muitas placas voltam sozinhas) ou limpe a CMOS (jumper CLR_CMOS na placa ou tirando a bateria por 1 minuto).")),
+            new("1", L.T("Ative o perfil da memória (EXPO)"), expo, L.T("É o maior ganho em jogos para a maioria dos PCs: a RAM sai do padrão lento e vai para a velocidade da etiqueta. Teste: verificador \"CPU + RAM\" por 15 min (o teste de RAM acusa erro se o perfil não for estável)."))
         };
         if (amd)
         {
-            steps.Add(new("2", "Precision Boost Overdrive (PBO)", pbo, "Precision Boost Overdrive → Advanced. PBO Limits → Motherboard. Isso libera os limites de energia para o boost durar mais. Teste com o verificador."));
-            steps.Add(new("3", "Curve Optimizer (undervolt da CPU)", pbo + " → Curve Optimizer", "All Cores → Negative → 10. Teste. Se passar, tente 15, 20, 25… até falhar; volte 5 a partir de onde falhou. No " + shortCpu + " costuma ficar entre -15 e -30. Instabilidade de Curve Optimizer aparece muito em uso leve: use o PC normalmente por um dia e veja \"Erros de hardware recentes\" aqui — erro de hardware no log do kernel (MCE) = volte um passo."));
-            steps.Add(new("4", "Max CPU Boost Clock Override (opcional)", pbo, "Depois do Curve Optimizer estável: +100 MHz, teste; depois +200 MHz. Ganho pequeno; pode exigir reduzir o Curve Optimizer."));
-            steps.Add(new("5", "Alternativa fria: Eco Mode", pbo + " → Eco Mode", "Em vez de mais desempenho: limita a CPU a 65 W (ou 105 W). Perde ~5–10% em tarefas pesadas multi-core, quase nada em jogos, e roda bem mais frio e silencioso."));
+            steps.Add(new("2", L.T("Precision Boost Overdrive (PBO)"), pbo, L.T("Precision Boost Overdrive → Advanced. PBO Limits → Motherboard. Isso libera os limites de energia para o boost durar mais. Teste com o verificador.")));
+            steps.Add(new("3", L.T("Curve Optimizer (undervolt da CPU)"), pbo + " → Curve Optimizer", L.T("All Cores → Negative → 10. Teste. Se passar, tente 15, 20, 25… até falhar; volte 5 a partir de onde falhou. No ") + shortCpu + L.T(" costuma ficar entre -15 e -30. Instabilidade de Curve Optimizer aparece muito em uso leve: use o PC normalmente por um dia e veja \"Erros de hardware recentes\" aqui — erro de hardware no log do kernel (MCE) = volte um passo.")));
+            steps.Add(new("4", L.T("Max CPU Boost Clock Override (opcional)"), pbo, L.T("Depois do Curve Optimizer estável: +100 MHz, teste; depois +200 MHz. Ganho pequeno; pode exigir reduzir o Curve Optimizer.")));
+            steps.Add(new("5", L.T("Alternativa fria: Eco Mode"), pbo + L.T(" → Eco Mode"), L.T("Em vez de mais desempenho: limita a CPU a 65 W (ou 105 W). Perde ~5–10% em tarefas pesadas multi-core, quase nada em jogos, e roda bem mais frio e silencioso.")));
         }
         else
-            steps.Add(new("2", "Processador Intel", "Tweaker / Ai Tweaker / OC → CPU", "Para Intel, prefira undervolt (offset negativo de tensão) e limites de energia (PL1/PL2) em vez de aumentar multiplicadores. Teste cada passo com o verificador."));
-        return ("GUIA: OVERCLOCK NA BIOS · " + board.ToUpperInvariant() + " · " + shortCpu.ToUpperInvariant(),
-            "Faça uma mudança por vez e rode o verificador depois de cada uma. Os menus podem mudar um pouco com a versão da BIOS. Valores são pontos de partida seguros, não garantia: cada chip é diferente. O Ilmenyx não altera a BIOS.", steps);
+            steps.Add(new("2", L.T("Processador Intel"), L.T("Tweaker / Ai Tweaker / OC → CPU"), L.T("Para Intel, prefira undervolt (offset negativo de tensão) e limites de energia (PL1/PL2) em vez de aumentar multiplicadores. Teste cada passo com o verificador.")));
+        return (L.T("GUIA: OVERCLOCK NA BIOS · ") + board.ToUpperInvariant() + " · " + shortCpu.ToUpperInvariant(),
+            L.T("Faça uma mudança por vez e rode o verificador depois de cada uma. Os menus podem mudar um pouco com a versão da BIOS. Valores são pontos de partida seguros, não garantia: cada chip é diferente. O Ilmenyx não altera a BIOS."), steps);
     }
 
     private static (string, string, IReadOnlyList<OcGuideStep>) Notebook(string board, string shortCpu) =>
-        ("GUIA: BIOS DE NOTEBOOK · " + board.ToUpperInvariant() + " · " + shortCpu.ToUpperInvariant(),
-         "Em notebooks a BIOS do fabricante quase nunca tem perfil de memória (XMP/EXPO), multiplicador ou tensão: memória e processador já saem no limite do projeto de refrigeração. O Ilmenyx não altera a BIOS.",
+        (L.T("GUIA: BIOS DE NOTEBOOK · ") + board.ToUpperInvariant() + " · " + shortCpu.ToUpperInvariant(),
+         L.T("Em notebooks a BIOS do fabricante quase nunca tem perfil de memória (XMP/EXPO), multiplicador ou tensão: memória e processador já saem no limite do projeto de refrigeração. O Ilmenyx não altera a BIOS."),
          [
-             new("0", "Veja se a sua BIOS tem menu de desempenho", "Tecla ao ligar: F10 (HP), F2 (Dell, Lenovo, ASUS, Acer)", "Procure algo como Performance, Advanced ou Overclocking. Se não houver, não há o que ajustar na BIOS; isso é normal em notebook e não é defeito."),
-             new("1", "O que funciona em notebook", "Ilmenyx → Otimiza e Energia", "Perfil de energia Alto desempenho na tomada e saídas de ar livres (base elevada, ventoinhas limpas). Depois rode o verificador \"CPU + RAM\" por 15 min para ver se o notebook segura a temperatura. Notebooks gamer (ROG, TUF, Legion, Predator…) costumam ter um modo de desempenho no app ou na BIOS do fabricante."),
-             new("2", "Undervolt e limites de energia", "—", "Em notebooks costumam vir travados pelo fabricante (nos Intel desde a 10ª geração, por segurança; nos AMD só alguns modelos liberam). Se a BIOS não mostrar a opção, não force com ferramentas de terceiros."),
+             new("0", L.T("Veja se a sua BIOS tem menu de desempenho"), L.T("Tecla ao ligar: F10 (HP), F2 (Dell, Lenovo, ASUS, Acer)"), L.T("Procure algo como Performance, Advanced ou Overclocking. Se não houver, não há o que ajustar na BIOS; isso é normal em notebook e não é defeito.")),
+             new("1", L.T("O que funciona em notebook"), L.T("Ilmenyx → Otimiza e Energia"), L.T("Perfil de energia Alto desempenho na tomada e saídas de ar livres (base elevada, ventoinhas limpas). Depois rode o verificador \"CPU + RAM\" por 15 min para ver se o notebook segura a temperatura. Notebooks gamer (ROG, TUF, Legion, Predator…) costumam ter um modo de desempenho no app ou na BIOS do fabricante.")),
+             new("2", L.T("Undervolt e limites de energia"), "—", L.T("Em notebooks costumam vir travados pelo fabricante (nos Intel desde a 10ª geração, por segurança; nos AMD só alguns modelos liberam). Se a BIOS não mostrar a opção, não force com ferramentas de terceiros.")),
          ]);
 }
 
@@ -101,11 +101,11 @@ public sealed record OcCheckOptions(bool Cpu, TimeSpan Duration, string Label, d
 {
     public static readonly TimeSpan[] AllowedDurations = [TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(15), TimeSpan.FromMinutes(30), TimeSpan.FromMinutes(60)];
     public static string? Validate(OcCheckOptions o) =>
-        !o.Cpu && !o.Gpu ? "Escolha CPU + RAM, GPU ou os dois."
-        : !AllowedDurations.Contains(o.Duration) ? "Duração de 5, 15, 30 ou 60 minutos."
-        : o.CpuTempLimit is < 60 or > 105 ? "Limite de temperatura de 60 a 105 °C."
-        : o.Gpu && o.GpuTempLimit is < 60 or > 100 ? "Limite de temperatura da GPU de 60 a 100 °C."
-        : o.Label.Length > 80 ? "Descrição de até 80 caracteres." : null;
+        !o.Cpu && !o.Gpu ? L.T("Escolha CPU + RAM, GPU ou os dois.")
+        : !AllowedDurations.Contains(o.Duration) ? L.T("Duração de 5, 15, 30 ou 60 minutos.")
+        : o.CpuTempLimit is < 60 or > 105 ? L.T("Limite de temperatura de 60 a 105 °C.")
+        : o.Gpu && o.GpuTempLimit is < 60 or > 100 ? L.T("Limite de temperatura da GPU de 60 a 100 °C.")
+        : o.Label.Length > 80 ? L.T("Descrição de até 80 caracteres.") : null;
 }
 
 public enum OcCheckStatus { Completed, Cancelled, Unavailable }
@@ -127,12 +127,12 @@ public static class OcCheckRunner
         if (OcCheckOptions.Validate(options) is { } why)
             return new(OcCheckStatus.Unavailable, null, why, null, null, 0, 0, KernelHardwareErrors.Unavailable(why), TimeSpan.Zero, null);
         if (options.Gpu && gpuEngine is not { UnavailableReason: null })
-        { string g = gpuEngine?.UnavailableReason ?? "módulo de GPU indisponível"; return new(OcCheckStatus.Unavailable, null, "GPU indisponível: " + g, null, null, 0, 0, KernelHardwareErrors.Unavailable(g), TimeSpan.Zero, null); }
+        { string g = gpuEngine?.UnavailableReason ?? L.T("módulo de GPU indisponível"); return new(OcCheckStatus.Unavailable, null, L.T("GPU indisponível: ") + g, null, null, 0, 0, KernelHardwareErrors.Unavailable(g), TimeSpan.Zero, null); }
         var start = now(); double? score = null, gpuScore = null; double? maxTemp = null, maxGpuTemp = null; string? fail = null; bool cancelled = false, engineStarted = false, gpuStarted = false;
         try
         {
-            if (options.Cpu) { progress?.Report(("Medindo a nota da CPU (render multi-core)…", 0)); score = await measureCpuScore(ct); ct.ThrowIfCancellationRequested(); }
-            if (options.Gpu && measureGpuScore is not null) { progress?.Report(("Medindo a nota da GPU (cena de jogo)…", 0)); gpuScore = await measureGpuScore(ct); ct.ThrowIfCancellationRequested(); }
+            if (options.Cpu) { progress?.Report((L.T("Medindo a nota da CPU (render multi-core)…"), 0)); score = await measureCpuScore(ct); ct.ThrowIfCancellationRequested(); }
+            if (options.Gpu && measureGpuScore is not null) { progress?.Report((L.T("Medindo a nota da GPU (cena de jogo)…"), 0)); gpuScore = await measureGpuScore(ct); ct.ThrowIfCancellationRequested(); }
             if (options.Cpu)
             {
                 try { engine.Start(cpu: true, ram: true, 0.6, availableMemoryBytes); engineStarted = true; }
@@ -148,13 +148,13 @@ public static class OcCheckRunner
                 if (cpuNow is double t) maxTemp = Math.Max(maxTemp ?? t, t);
                 if (gpuNow is double gt) maxGpuTemp = Math.Max(maxGpuTemp ?? gt, gt);
                 var elapsed = now() - stressStart;
-                string cpuPart = "máx. CPU " + (maxTemp is double m ? m.ToString("0", CultureInfo.InvariantCulture) + " °C" : "—");
-                string gpuPart = options.Gpu ? " · máx. GPU " + (maxGpuTemp is double mg ? mg.ToString("0", CultureInfo.InvariantCulture) + " °C" : "—") : "";
-                progress?.Report(($"Stress {what} · {elapsed:mm\\:ss} de {options.Duration:mm\\:ss} · {cpuPart}{gpuPart}", Math.Min(1, elapsed / options.Duration)));
-                if (options.Cpu && cpuNow is double now1 && now1 >= options.CpuTempLimit) { fail = string.Create(CultureInfo.InvariantCulture, $"CPU chegou a {now1:0} °C (limite de segurança {options.CpuTempLimit:0} °C)"); break; }
-                if (options.Gpu && gpuNow is double gnow && gnow >= options.GpuTempLimit) { fail = string.Create(CultureInfo.InvariantCulture, $"GPU chegou a {gnow:0} °C (limite de segurança {options.GpuTempLimit:0} °C)"); break; }
-                if (options.Gpu && !gpuEngine!.Running) { fail = gpuEngine.Error is { } ge ? "a GPU falhou (" + ge + ")" : "o teste de GPU parou sozinho"; break; }
-                if (options.Cpu && engine.MemoryErrors > 0) { fail = $"{engine.MemoryErrors} erros de memória (RAM/EXPO instável)"; break; }
+                string cpuPart = L.T("máx. CPU ") + (maxTemp is double m ? m.ToString("0", CultureInfo.InvariantCulture) + " °C" : "—");
+                string gpuPart = options.Gpu ? L.T(" · máx. GPU ") + (maxGpuTemp is double mg ? mg.ToString("0", CultureInfo.InvariantCulture) + " °C" : "—") : "";
+                progress?.Report((L.T($"Stress {what} · {elapsed:mm\\:ss} de {options.Duration:mm\\:ss} · {cpuPart}{gpuPart}"), Math.Min(1, elapsed / options.Duration)));
+                if (options.Cpu && cpuNow is double now1 && now1 >= options.CpuTempLimit) { fail = L.T($"CPU chegou a {now1:0} °C (limite de segurança {options.CpuTempLimit:0} °C)"); break; }
+                if (options.Gpu && gpuNow is double gnow && gnow >= options.GpuTempLimit) { fail = L.T($"GPU chegou a {gnow:0} °C (limite de segurança {options.GpuTempLimit:0} °C)"); break; }
+                if (options.Gpu && !gpuEngine!.Running) { fail = gpuEngine.Error is { } ge ? L.T("a GPU falhou (") + ge + ")" : L.T("o teste de GPU parou sozinho"); break; }
+                if (options.Cpu && engine.MemoryErrors > 0) { fail = L.T($"{engine.MemoryErrors} erros de memória (RAM/EXPO instável)"); break; }
                 if (ticks % 5 == 0 && (await errorsSince(start)) is { Total: > 0 } e) { fail = Describe(e); break; }
             }
         }
@@ -164,9 +164,9 @@ public static class OcCheckRunner
         if (gpuStarted) gpuEngine!.Stop();
         var final = await SafeErrors(errorsSince, start);
         var elapsedTotal = now() - start;
-        if (cancelled) return new(OcCheckStatus.Cancelled, null, null, null, maxTemp, passes, errors, final, elapsedTotal, "Verificação cancelada: nenhum veredito é publicado.", null, maxGpuTemp);
+        if (cancelled) return new(OcCheckStatus.Cancelled, null, null, null, maxTemp, passes, errors, final, elapsedTotal, L.T("Verificação cancelada: nenhum veredito é publicado."), null, maxGpuTemp);
         if (fail is null && final.Total > 0) fail = Describe(final);
-        string? note = final.Error is not null ? "Log do kernel indisponível (" + final.Error + "): erros de hardware não foram verificados; o veredito considera só temperatura e erros de memória." : null;
+        string? note = final.Error is not null ? L.T("Log do kernel indisponível (") + final.Error + L.T("): erros de hardware não foram verificados; o veredito considera só temperatura e erros de memória.") : null;
         return new(OcCheckStatus.Completed, fail is null, fail, score, maxTemp, passes, errors, final, elapsedTotal, note, gpuScore, maxGpuTemp);
     }
 
@@ -177,7 +177,7 @@ public static class OcCheckRunner
     }
 
     private static string Describe(KernelHardwareErrors e) =>
-        $"o kernel registrou erros de hardware (CPU/MCE {e.Cpu}, memória/EDAC {e.Memory}, PCIe {e.Pcie}) e {e.Gpu} reinícios/travamentos de GPU";
+        L.T($"o kernel registrou erros de hardware (CPU/MCE {e.Cpu}, memória/EDAC {e.Memory}, PCIe {e.Pcie}) e {e.Gpu} reinícios/travamentos de GPU");
 }
 
 public sealed record NvidiaTuningState(int Index, string Name, double? PowerLimitW, double? PowerDefaultW, double? PowerMinW, double? PowerMaxW, uint? MaxClockMhz, uint? CurrentClockMhz);
@@ -213,16 +213,16 @@ public static class NvidiaTuning
     /// </summary>
     public static IReadOnlyList<string> Commands(NvidiaTuningState gpu, double? powerWatts, uint? clockCapMhz)
     {
-        if (clockCapMhz is { } cap && (cap < 300 || cap > (gpu.MaxClockMhz ?? 5000))) throw new ArgumentOutOfRangeException(nameof(clockCapMhz), "Teto de clock fora da faixa da placa.");
+        if (clockCapMhz is { } cap && (cap < 300 || cap > (gpu.MaxClockMhz ?? 5000))) throw new ArgumentOutOfRangeException(nameof(clockCapMhz), L.T("Teto de clock fora da faixa da placa."));
         string i = gpu.Index.ToString(CultureInfo.InvariantCulture);
         string clock = clockCapMhz is { } c ? $"sudo nvidia-smi -i {i} -lgc 210,{c.ToString(CultureInfo.InvariantCulture)}" : $"sudo nvidia-smi -i {i} -rgc";
         if (!SupportsPowerLimit(gpu))
         {
-            if (powerWatts is not null) throw new InvalidOperationException("Esta placa não permite ajustar o limite de energia (o driver informa N/A).");
+            if (powerWatts is not null) throw new InvalidOperationException(L.T("Esta placa não permite ajustar o limite de energia (o driver informa N/A)."));
             return [clock];
         }
-        if (powerWatts is not double w) throw new InvalidOperationException("Informe o limite de energia em watts.");
-        if (w < gpu.PowerMinW!.Value || w > gpu.PowerMaxW!.Value) throw new ArgumentOutOfRangeException(nameof(powerWatts), $"Limite de energia de {gpu.PowerMinW:0} a {gpu.PowerMaxW:0} W.");
+        if (powerWatts is not double w) throw new InvalidOperationException(L.T("Informe o limite de energia em watts."));
+        if (w < gpu.PowerMinW!.Value || w > gpu.PowerMaxW!.Value) throw new ArgumentOutOfRangeException(nameof(powerWatts), L.T($"Limite de energia de {gpu.PowerMinW:0} a {gpu.PowerMaxW:0} W."));
         return [$"sudo nvidia-smi -i {i} -pl {w.ToString("0", CultureInfo.InvariantCulture)}", clock];
     }
 

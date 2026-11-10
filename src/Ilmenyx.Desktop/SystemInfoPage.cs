@@ -26,7 +26,7 @@ public sealed class SystemInfoPage : Grid
     private readonly StackPanel importBox = new() { Name = "SysRamImport", IsVisible = false, Spacing = 8, Margin = new Thickness(0, 4, 0, 10) };
     private readonly TextBlock title = new() { Name = "SysInfoTitle", FontSize = 16, FontWeight = FontWeight.SemiBold, Margin = new Thickness(0, 0, 0, 6), TextWrapping = TextWrapping.Wrap };
     private readonly TextBlock sub = new() { Name = "SysStatus", Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0) };
-    private readonly TextBlock machine = new() { Name = "SysMachine", Text = "Este computador", FontSize = 26, FontWeight = FontWeight.Bold, TextWrapping = TextWrapping.Wrap };
+    private readonly TextBlock machine = new() { Name = "SysMachine", Text = L.T("Este computador"), FontSize = 26, FontWeight = FontWeight.Bold, TextWrapping = TextWrapping.Wrap };
     private readonly TextBlock machineSub = new() { Name = "SysMachineSub", FontSize = 13, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) };
     private readonly WrapPanel machineTags = new() { Name = "SysTags", Margin = new Thickness(0, 12, 0, 0) };
     private readonly Dictionary<string, Button> categoryButtons = new();
@@ -42,18 +42,18 @@ public sealed class SystemInfoPage : Grid
     public SystemInfoPage(DashboardViewModel hardware, Func<string, Task<string?>> destination, CancellationToken lifetime)
     {
         this.hardware = hardware; this.destination = destination; this.lifetime = lifetime;
-        var export = new Button { Name = "SysExportJson", Content = "Exportar JSON" };
-        var exportHtml = new Button { Name = "SysExportHtml", Content = "Exportar relatório HTML" };
-        var refresh = UiKit.Primary("SysRefresh", "Atualizar");
-        ToolTip.SetTip(exportHtml, "Salva um relatório com sistema, discos, GPU e sensores. Números de série são omitidos.");
+        var export = new Button { Name = "SysExportJson", Content = L.T("Exportar JSON") };
+        var exportHtml = new Button { Name = "SysExportHtml", Content = L.T("Exportar relatório HTML") };
+        var refresh = UiKit.Primary("SysRefresh", L.T("Atualizar"));
+        ToolTip.SetTip(exportHtml, L.T("Salva um relatório com sistema, discos, GPU e sensores. Números de série são omitidos."));
         var buttons = new WrapPanel { ItemSpacing = 8, LineSpacing = 6, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(16, 0, 0, 0), Children = { refresh, export, exportHtml } };
-        var header = UiKit.PageHeader("Sistema", "Hardware e software detectados", buttons);
+        var header = UiKit.PageHeader(L.T("Sistema"), L.T("Hardware e software detectados"), buttons);
         if (header.Children[0] is StackPanel { Children.Count: > 1 } headerText) headerText.Children[1].Name = "SysSub";
         refresh.Click += async (_, _) => { refresh.IsEnabled = false; try { await hardware.RefreshAsync(lifetime); await LoadAsync(); } finally { refresh.IsEnabled = true; } };
         export.Click += async (_, _) => await ExportAsync(false, export, exportHtml);
         exportHtml.Click += async (_, _) => await ExportAsync(true, export, exportHtml);
 
-        var heroText = new StackPanel { Children = { UiKit.Label("ESTE COMPUTADOR"), machine, machineSub, machineTags, sub } };
+        var heroText = new StackPanel { Children = { UiKit.Label(L.T("ESTE COMPUTADOR")), machine, machineSub, machineTags, sub } };
         heroText.Children[0].Margin = new Thickness(0, 0, 0, 6);
         var heroGrid = new Grid { ColumnDefinitions = new("*,Auto"), Children = { heroText } };
         var mark = UiKit.Icon(Icons.System, 84, Palette.Fg); mark.Opacity = 0.12; mark.VerticalAlignment = VerticalAlignment.Top; mark.Margin = new Thickness(16, 0, 0, 0);
@@ -99,10 +99,10 @@ public sealed class SystemInfoPage : Grid
         };
     }
 
-    private static string CategoryIcon(string header) => header.Split(' ')[0] switch
-    {
-        "Sistema" => Icons.System, "Placa-mãe" => Icons.Drivers, "Processador" => Icons.Cpu, "Memória" => Icons.Memory, "Placa" => Icons.Gpu, "Armazenamento" => Icons.Disks, _ => Icons.Overview,
-    };
+    // Headers arrive translated (LinuxSystemInfoCollector), so they are compared with the translated names.
+    private static string CategoryIcon(string header) =>
+        header == L.T("Sistema operacional") ? Icons.System : header == L.T("Placa-mãe e BIOS") ? Icons.Drivers : header == L.T("Processador") ? Icons.Cpu
+        : header == L.T("Memória RAM") ? Icons.Memory : header == L.T("Placa de vídeo") ? Icons.Gpu : header == L.T("Armazenamento") ? Icons.Disks : Icons.Overview;
 
     /// <summary>Narrow content: thinner category list and label column, drive cards in one column.</summary>
     private void Fit(double width)
@@ -130,18 +130,18 @@ public sealed class SystemInfoPage : Grid
             return null;
         }
         static string? Short(string? v) => v is null ? null : v.Length <= 40 ? v : v[..38].TrimEnd() + "…";
-        var board = Root("Placa-mãe"); var equipment = board?.Children.FirstOrDefault(c => c.Header.StartsWith("Sistema", StringComparison.Ordinal));
-        string? product = Leaf(equipment, "Produto")?.Split('_')[0], maker = Leaf(equipment, "Fabricante");
-        machine.Text = product is not null ? (maker is not null && !product.Contains(maker.Split(' ')[0], StringComparison.OrdinalIgnoreCase) ? maker.Split(' ')[0] + " " + product : product) : Leaf(board, "Modelo") ?? "Este computador";
-        var os = Root("Sistema operacional");
-        machineSub.Text = string.Join("  ·  ", new[] { Leaf(os, "Nome"), Leaf(os, "Kernel") is { } k ? "Linux " + k : null, Leaf(os, "Arquitetura") }.Where(t => t is not null));
-        var cpu = Root("Processador"); var gpu = Root("Placa de vídeo"); var disks = Root("Armazenamento");
+        var board = Root(L.T("Placa-mãe e BIOS")); var equipment = board?.Children.FirstOrDefault(c => c.Header == L.T("Sistema (fabricante do equipamento)"));
+        string? product = Leaf(equipment, L.T("Produto"))?.Split('_')[0], maker = Leaf(equipment, L.T("Fabricante"));
+        machine.Text = product is not null ? (maker is not null && !product.Contains(maker.Split(' ')[0], StringComparison.OrdinalIgnoreCase) ? maker.Split(' ')[0] + " " + product : product) : Leaf(board, L.T("Modelo")) ?? L.T("Este computador");
+        var os = Root(L.T("Sistema operacional"));
+        machineSub.Text = string.Join("  ·  ", new[] { Leaf(os, L.T("Nome")), Leaf(os, "Kernel") is { } k ? "Linux " + k : null, Leaf(os, L.T("Arquitetura")) }.Where(t => t is not null));
+        var cpu = Root(L.T("Processador")); var gpu = Root(L.T("Placa de vídeo")); var disks = Root(L.T("Armazenamento"));
         var tags = new[]
         {
-            Short(cpu?.Children.FirstOrDefault(c => c.IsGroup)?.Header), Leaf(cpu, "Threads (lógicos)") is { } th ? th + " threads" : null,
-            Leaf(Root("Memória"), "Total visível ao sistema") is { } mem ? mem + " de RAM" : null,
+            Short(cpu?.Children.FirstOrDefault(c => c.IsGroup)?.Header), Leaf(cpu, L.T("Threads (lógicos)")) is { } th ? th + " threads" : null,
+            Leaf(Root(L.T("Memória RAM")), L.T("Total visível ao sistema")) is { } mem ? mem + L.T(" de RAM") : null,
             Short(gpu?.Children.FirstOrDefault(c => c.IsGroup)?.Header),
-            disks?.Children.Count(c => c.IsGroup) is > 0 and var n ? $"{n} disco(s)" : null,
+            disks?.Children.Count(c => c.IsGroup) is > 0 and var n ? L.T($"{n} disco(s)") : null,
         };
         machineTags.Children.Clear();
         foreach (var t in tags) if (t is not null) machineTags.Children.Add(UiKit.Tag(t));
@@ -154,16 +154,16 @@ public sealed class SystemInfoPage : Grid
 
     public async Task LoadAsync()
     {
-        sub.Text = "Lendo /proc, /sys e /etc (somente leitura)…";
+        sub.Text = L.T("Lendo /proc, /sys e /etc (somente leitura)…");
         try
         {
             var gpus = hardware.Snapshot?.Gpus; var inventory = ram;
             nodes = await Task.Run(() => collector.Collect(inventory, gpus, pciIds), lifetime);
             CategoriesChanged(); FillHero();
             Show(selected is { Length: > 0 } && nodes.Any(n => n.Header == selected) ? selected : nodes[0].Header);
-            sub.Text = $"Leitura concluída em {DateTime.Now:T}. Números de série ficam de fora.";
+            sub.Text = L.T($"Leitura concluída em {DateTime.Now:T}. Números de série ficam de fora.");
         }
-        catch (OperationCanceledException) { sub.Text = "Leitura cancelada."; }
+        catch (OperationCanceledException) { sub.Text = L.T("Leitura cancelada."); }
     }
 
     public void Show(string header)
@@ -171,7 +171,7 @@ public sealed class SystemInfoPage : Grid
         var node = nodes.FirstOrDefault(n => n.Header == header); if (node is null) return;
         selected = header; title.Text = header; details.Children.Clear(); labelColumns.Clear();
         foreach (var (key, button) in categoryButtons) { bool on = key == header; button.Background = on ? Palette.Card : Brushes.Transparent; button.Foreground = on ? Palette.Fg : Palette.Muted; button.FontWeight = on ? FontWeight.SemiBold : FontWeight.Normal; if (button.Content is Grid { Children: [Avalonia.Controls.Shapes.Path icon, ..] }) icon.Fill = on ? Palette.AccentText : Palette.Faint; }
-        drives.IsVisible = header == "Armazenamento"; importBox.IsVisible = header == "Memória RAM";
+        drives.IsVisible = header == L.T("Armazenamento"); importBox.IsVisible = header == L.T("Memória RAM");
         if (drives.IsVisible) FillDrives(node);
         Render(details, node.Children, 0);
     }
@@ -201,8 +201,8 @@ public sealed class SystemInfoPage : Grid
         drives.Children.Clear();
         var cards = MountedDrives.Read(SafeMounts());
         var head = new Grid { Margin = new Thickness(0, 0, 0, 10) };
-        head.Children.Add(UiKit.Label("UNIDADES MONTADAS"));
-        head.Children.Add(new TextBlock { Name = "SysDrivesSummary", Text = cards.Count == 0 ? "nenhuma unidade legível" : $"{cards.Count} unidade(s)", Foreground = Palette.Muted, FontSize = 12, HorizontalAlignment = HorizontalAlignment.Right });
+        head.Children.Add(UiKit.Label(L.T("UNIDADES MONTADAS")));
+        head.Children.Add(new TextBlock { Name = "SysDrivesSummary", Text = cards.Count == 0 ? L.T("nenhuma unidade legível") : L.T($"{cards.Count} unidade(s)"), Foreground = Palette.Muted, FontSize = 12, HorizontalAlignment = HorizontalAlignment.Right });
         drives.Children.Add(head);
         var grid = driveGrid; grid.Children.Clear();
         foreach (var d in cards)
@@ -213,9 +213,9 @@ public sealed class SystemInfoPage : Grid
             grid.Children.Add(new Border { BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), Padding = new Thickness(16, 14), Margin = new Thickness(0, 0, 10, 10), Background = Palette.Card, Child = cell });
         }
         drives.Children.Add(grid);
-        var reread = new Button { Name = "SysRefreshDisks", Content = "Reler discos", FontSize = 12, Padding = new Thickness(12, 5), Margin = new Thickness(0, 6, 0, 8) };
-        reread.Click += (_, _) => { collector.Disks(storage); Show("Armazenamento"); };
-        drives.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, Children = { new TextBlock { Text = "DISCOS FÍSICOS", FontSize = 11, FontWeight = FontWeight.SemiBold, LetterSpacing = 0.6, Foreground = Palette.Faint, VerticalAlignment = VerticalAlignment.Center }, reread } });
+        var reread = new Button { Name = "SysRefreshDisks", Content = L.T("Reler discos"), FontSize = 12, Padding = new Thickness(12, 5), Margin = new Thickness(0, 6, 0, 8) };
+        reread.Click += (_, _) => { collector.Disks(storage); Show(L.T("Armazenamento")); };
+        drives.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, Children = { new TextBlock { Text = L.T("DISCOS FÍSICOS"), FontSize = 11, FontWeight = FontWeight.SemiBold, LetterSpacing = 0.6, Foreground = Palette.Faint, VerticalAlignment = VerticalAlignment.Center }, reread } });
     }
 
     private static string SafeMounts()
@@ -225,10 +225,10 @@ public sealed class SystemInfoPage : Grid
 
     private void BuildImportBox()
     {
-        var path = new TextBox { Name = "SysDmiPath", PlaceholderText = "/pasta/dmidecode-memoria.txt" };
-        var label = new TextBlock { Text = "Importar `sudo dmidecode -t memory > arquivo.txt` (caminho completo; o Ilmenyx não executa dmidecode)", TextWrapping = TextWrapping.Wrap, Foreground = Palette.Muted };
-        AutomationProperties.SetName(path, "Caminho do arquivo com a saída do dmidecode"); AutomationProperties.SetLabeledBy(path, label);
-        var import = new Button { Name = "SysImportDmi", Content = "Importar módulos de RAM" };
+        var path = new TextBox { Name = "SysDmiPath", PlaceholderText = L.T("/pasta/dmidecode-memoria.txt") };
+        var label = new TextBlock { Text = L.T("Importar `sudo dmidecode -t memory > arquivo.txt` (caminho completo; o Ilmenyx não executa dmidecode)"), TextWrapping = TextWrapping.Wrap, Foreground = Palette.Muted };
+        AutomationProperties.SetName(path, L.T("Caminho do arquivo com a saída do dmidecode")); AutomationProperties.SetLabeledBy(path, label);
+        var import = new Button { Name = "SysImportDmi", Content = L.T("Importar módulos de RAM") };
         var status = new TextBlock { Name = "SysImportStatus", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap };
         import.Click += async (_, _) =>
         {
@@ -237,12 +237,12 @@ public sealed class SystemInfoPage : Grid
             {
                 string text = await SafeFileReader.ReadTextAsync(path.Text ?? "", DmiDecodeParser.MaxCharacters, lifetime);
                 var inventory = DmiDecodeParser.Parse(text);
-                if (inventory.Modules.Count == 0) { status.Text = "Nenhum módulo de memória encontrado no arquivo; inventário anterior preservado."; return; }
-                ram = inventory; status.Text = $"{inventory.Modules.Count} módulo(s) importado(s); números de série ignorados.";
+                if (inventory.Modules.Count == 0) { status.Text = L.T("Nenhum módulo de memória encontrado no arquivo; inventário anterior preservado."); return; }
+                ram = inventory; status.Text = L.T($"{inventory.Modules.Count} módulo(s) importado(s); números de série ignorados.");
                 await LoadAsync();
             }
-            catch (OperationCanceledException) { status.Text = "Importação cancelada."; }
-            catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or TimeoutException) { status.Text = "Importação recusada: " + e.Message; }
+            catch (OperationCanceledException) { status.Text = L.T("Importação cancelada."); }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or TimeoutException) { status.Text = L.T("Importação recusada: ") + e.Message; }
             finally { import.IsEnabled = true; if (IsEffectivelyVisible && !lifetime.IsCancellationRequested) import.Focus(); }
         };
         importBox.Children.Add(label); importBox.Children.Add(path); importBox.Children.Add(import); importBox.Children.Add(status);
@@ -250,7 +250,7 @@ public sealed class SystemInfoPage : Grid
 
     private async Task ExportAsync(bool html, Button export, Button exportHtml)
     {
-        if (hardware.Snapshot is not { } snapshot) { sub.Text = "Atualize os dados antes de exportar."; return; }
+        if (hardware.Snapshot is not { } snapshot) { sub.Text = L.T("Atualize os dados antes de exportar."); return; }
         export.IsEnabled = false; exportHtml.IsEnabled = false;
         try
         {
@@ -259,10 +259,10 @@ public sealed class SystemInfoPage : Grid
             if (path is null) return;
             if (html) await Task.Run(() => HardwareHtmlReport.ExportAsync(snapshot, path, lifetime), lifetime);
             else await SnapshotReport.ExportAsync(snapshot, path, lifetime);
-            sub.Text = "Snapshot exportado para arquivo local.";
+            sub.Text = L.T("Snapshot exportado para arquivo local.");
         }
-        catch (OperationCanceledException) { sub.Text = "Exportação cancelada."; }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException or NotSupportedException or ArgumentException) { sub.Text = "Não foi possível exportar. Escolha um nome novo: " + e.Message; }
+        catch (OperationCanceledException) { sub.Text = L.T("Exportação cancelada."); }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or NotSupportedException or ArgumentException) { sub.Text = L.T("Não foi possível exportar. Escolha um nome novo: ") + e.Message; }
         finally { export.IsEnabled = true; exportHtml.IsEnabled = true; if (IsEffectivelyVisible && !lifetime.IsCancellationRequested) (html ? exportHtml : export).Focus(); }
     }
 }

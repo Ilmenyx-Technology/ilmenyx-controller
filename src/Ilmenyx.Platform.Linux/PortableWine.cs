@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 using System.Security.Cryptography;
+using Ilmenyx.Core;
 
 namespace Ilmenyx.Platform.Linux;
 
@@ -26,6 +27,6 @@ public static class PortableWine
     {
         if (IsInstalled(root)) return;
         await RunnerDownload.FetchAsync(http, Url, Size, HashAlgorithmName.SHA256, Sha256, Folder(root), "Wine " + Version, progress, ct, stripTopFolder: true);
-        if (!IsInstalled(root)) throw new IOException("O Wine " + Version + " foi extraído, mas não tem bin/wine e bin/wineserver.");
+        if (!IsInstalled(root)) throw new IOException("O Wine " + Version + L.T(" foi extraído, mas não tem bin/wine e bin/wineserver."));
     }
 }

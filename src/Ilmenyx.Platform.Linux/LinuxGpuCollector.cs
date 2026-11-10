@@ -137,7 +137,7 @@ public sealed class LinuxGpuCollector(string sysRoot = "/sys", string procRoot =
     private static bool AmdApu(string dir, string vendor, string device, string name, string driver)
     {
         if (vendor != "1002") return false;
-        if (GpuSpecDb.Find(vendor, device, name) is { } spec) return spec.MemType.StartsWith("Memória do sistema", StringComparison.Ordinal);
+        if (GpuSpecDb.Find(vendor, device, name) is { } spec) return spec.MemType.StartsWith(L.T("Memória do sistema"), StringComparison.Ordinal);
         if (driver != "amdgpu") return false;
         try
         {
@@ -231,7 +231,7 @@ public sealed class LinuxGpuCollector(string sysRoot = "/sys", string procRoot =
                 vbios = s.GetValueOrDefault("vbios_version") ?? vbios; cap = s.GetValueOrDefault("compute_cap"); driverVersion = s.GetValueOrDefault("driver_version") ?? "";
             }
             if (driverVersion.Length == 0)
-                driverVersion = vendor == "10de" && drv.StartsWith("nvidia", StringComparison.Ordinal) && Attr(Sys("module/nvidia/version"), 64) is { Length: > 0 } nv ? nv : drv.Length > 0 ? $"módulo {drv} · kernel {kernel}" : "";
+                driverVersion = vendor == "10de" && drv.StartsWith("nvidia", StringComparison.Ordinal) && Attr(Sys("module/nvidia/version"), 64) is { Length: > 0 } nv ? nv : drv.Length > 0 ? L.T($"módulo {drv} · kernel {kernel}") : "";
             bool integrated = vendor == "8086" || AmdApu(dir, vendor, device, name, drv);
             var raw = new GpuRaw(name, vendor, device, subV, subD, rev, address, drv, driverVersion, vbios, vram, gtt, integrated, maxGen, maxW, curGen, curW,
                 maxCore, maxMem, maxVideo, plim, pdef, pmin, pmax, cap, cuda, Apis(vendor), drv.Length > 0 ? LinuxDriverInventory.Flags(taint) : "");

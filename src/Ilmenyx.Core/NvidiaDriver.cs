@@ -22,7 +22,7 @@ public static class NvidiaGenerations
     /// <summary>PCI device id ranges (inclusive) of NVIDIA GPU chips, from the public PCI id lists. Ids outside every range are Unknown.</summary>
     private static readonly (int From, int To, NvidiaGeneration Generation, string Chip)[] Ranges =
     [
-        (0x0040, 0x06BF, NvidiaGeneration.Tesla, "NV4x/G8x/G9x"), (0x06E0, 0x06FF, NvidiaGeneration.Tesla, "G98"), (0x07E0, 0x087F, NvidiaGeneration.Tesla, "MCP7x"),
+        (0x0040, 0x06BF, NvidiaGeneration.Tesla, "NV4x/G8x/G9x"), (0x06E0, 0x06FF, NvidiaGeneration.Tesla, "G98"), (0x07E0, 0x087F, NvidiaGeneration.Tesla, L.T("MCP7x")),
         (0x0A20, 0x0AFF, NvidiaGeneration.Tesla, "GT21x"), (0x0CA0, 0x0CBF, NvidiaGeneration.Tesla, "GT215"), (0x10C0, 0x10DF, NvidiaGeneration.Tesla, "GT218"),
         (0x06C0, 0x06DF, NvidiaGeneration.Fermi, "GF100"), (0x0DC0, 0x0DFF, NvidiaGeneration.Fermi, "GF106/GF108"), (0x0E20, 0x0E3F, NvidiaGeneration.Fermi, "GF104"),
         (0x1040, 0x107F, NvidiaGeneration.Fermi, "GF119"), (0x1080, 0x109F, NvidiaGeneration.Fermi, "GF110"), (0x1140, 0x117F, NvidiaGeneration.Fermi, "GF117"),
@@ -49,24 +49,24 @@ public static class NvidiaGenerations
     public const string CurrentBranch = "595";
     /// <summary>The 590+ series dropped Maxwell, Pascal and Volta: 580 is the last branch that supports them.</summary>
     public const string LegacyMaxwellBranch = "580";
-    private const string LegacyNote = "Ramo 580 (legado): o último da NVIDIA que suporta Maxwell, Pascal e Volta — a série 590+ removeu essas placas. Módulos proprietários.";
-    private const string CurrentNote = "Ramo atual 595 com os módulos \"open\" do kernel, recomendados pela NVIDIA a partir da Turing (RTX 20/GTX 16).";
+    private static readonly string LegacyNote = L.T("Ramo 580 (legado): o último da NVIDIA que suporta Maxwell, Pascal e Volta — a série 590+ removeu essas placas. Módulos proprietários.");
+    private static readonly string CurrentNote = L.T("Ramo atual 595 com os módulos \"open\" do kernel, recomendados pela NVIDIA a partir da Turing (RTX 20/GTX 16).");
 
     /// <summary>The branch table shown in the tab and in docs/driver-nvidia.md. Only branches listed here can reach a script.</summary>
     public static readonly IReadOnlyList<NvidiaBranchSupport> Table =
     [
-        new(NvidiaGeneration.Tesla, null, false, NvidiaOpenModules.Unsupported, "Sem driver NVIDIA suportado (o último, 340, acabou em 2019 e não compila nos kernels atuais). Use o nouveau, que já vem no kernel."),
-        new(NvidiaGeneration.Fermi, null, false, NvidiaOpenModules.Unsupported, "Sem driver NVIDIA suportado (o último, 390, acabou em 2022 e não compila nos kernels atuais). Use o nouveau, que já vem no kernel."),
-        new(NvidiaGeneration.Kepler, "470", true, NvidiaOpenModules.Unsupported, "Driver legado 470: fim do suporte da NVIDIA em 2024 (só correções da distribuição). Pode deixar de compilar em kernels novos."),
+        new(NvidiaGeneration.Tesla, null, false, NvidiaOpenModules.Unsupported, L.T("Sem driver NVIDIA suportado (o último, 340, acabou em 2019 e não compila nos kernels atuais). Use o nouveau, que já vem no kernel.")),
+        new(NvidiaGeneration.Fermi, null, false, NvidiaOpenModules.Unsupported, L.T("Sem driver NVIDIA suportado (o último, 390, acabou em 2022 e não compila nos kernels atuais). Use o nouveau, que já vem no kernel.")),
+        new(NvidiaGeneration.Kepler, "470", true, NvidiaOpenModules.Unsupported, L.T("Driver legado 470: fim do suporte da NVIDIA em 2024 (só correções da distribuição). Pode deixar de compilar em kernels novos.")),
         new(NvidiaGeneration.Maxwell, "580", true, NvidiaOpenModules.Unsupported, LegacyNote),
         new(NvidiaGeneration.Pascal, "580", true, NvidiaOpenModules.Unsupported, LegacyNote),
         new(NvidiaGeneration.Volta, "580", true, NvidiaOpenModules.Unsupported, LegacyNote),
         new(NvidiaGeneration.Turing, CurrentBranch, false, NvidiaOpenModules.Optional, CurrentNote),
         new(NvidiaGeneration.Ampere, CurrentBranch, false, NvidiaOpenModules.Optional, CurrentNote),
-        new(NvidiaGeneration.Hopper, CurrentBranch, false, NvidiaOpenModules.Optional, CurrentNote + " (GPU de data center)"),
+        new(NvidiaGeneration.Hopper, CurrentBranch, false, NvidiaOpenModules.Optional, CurrentNote + L.T(" (GPU de data center)")),
         new(NvidiaGeneration.Ada, CurrentBranch, false, NvidiaOpenModules.Optional, CurrentNote),
-        new(NvidiaGeneration.Blackwell, CurrentBranch, false, NvidiaOpenModules.Required, $"Ramo atual {CurrentBranch} com os módulos \"open\" do kernel: a Blackwell só funciona com eles."),
-        new(NvidiaGeneration.Unknown, null, false, NvidiaOpenModules.Unsupported, "Modelo fora da tabela do Ilmenyx: não instalamos nada automaticamente. Consulte o gerenciador de drivers da sua distribuição."),
+        new(NvidiaGeneration.Blackwell, CurrentBranch, false, NvidiaOpenModules.Required, L.T($"Ramo atual {CurrentBranch} com os módulos \"open\" do kernel: a Blackwell só funciona com eles.")),
+        new(NvidiaGeneration.Unknown, null, false, NvidiaOpenModules.Unsupported, L.T("Modelo fora da tabela do Ilmenyx: não instalamos nada automaticamente. Consulte o gerenciador de drivers da sua distribuição.")),
     ];
 
     public static IReadOnlySet<string> Branches { get; } = Table.Where(t => t.Branch is not null).Select(t => t.Branch!).ToHashSet(StringComparer.Ordinal);
@@ -102,7 +102,7 @@ public static class NvidiaGenerations
         return text;
     }
 
-    public static string Name(NvidiaGeneration g) => g switch { NvidiaGeneration.Unknown => "geração desconhecida", NvidiaGeneration.Tesla => "Tesla ou anterior", _ => g.ToString() };
+    public static string Name(NvidiaGeneration g) => g switch { NvidiaGeneration.Unknown => L.T("geração desconhecida"), NvidiaGeneration.Tesla => L.T("Tesla ou anterior"), _ => g.ToString() };
 }
 
 public enum DistroFamily { Ubuntu, Debian, Fedora, Arch, OpenSuse, Other }
@@ -146,9 +146,9 @@ public sealed record DpkgPackage(string Status, string Name, string Version)
 
     public string StatusText => Current switch
     {
-        'i' => "instalado", 'c' => "só configuração", 'U' => "desempacotado, não configurado", 'F' => "configuração falhou", 'H' => "instalação pela metade",
-        'W' => "aguardando gatilhos", 't' => "gatilhos pendentes", _ => "não instalado",
-    } + (Status.Length >= 3 && Status[2] == 'R' ? " (reinstalação exigida)" : "");
+        'i' => "instalado", 'c' => L.T("só configuração"), 'U' => L.T("desempacotado, não configurado"), 'F' => L.T("configuração falhou"), 'H' => L.T("instalação pela metade"),
+        'W' => L.T("aguardando gatilhos"), 't' => L.T("gatilhos pendentes"), _ => L.T("não instalado"),
+    } + (Status.Length >= 3 && Status[2] == 'R' ? L.T(" (reinstalação exigida)") : "");
 
     /// <summary>
     /// Parses `dpkg-query -W -f='${db:Status-Abbrev}|${binary:Package}|${Version}\n'` (preferred) or `dpkg -l`. The architecture suffix
@@ -202,7 +202,7 @@ public sealed record AptSimulation(IReadOnlyList<AptAction> Actions, IReadOnlyLi
             else if (line.StartsWith("E:", StringComparison.Ordinal)) errors.Add(line[2..].Trim());
             else if (line.Contains(" upgraded, ", StringComparison.Ordinal) && line.Contains("newly installed", StringComparison.Ordinal)) summary = line.Trim();
         }
-        if (exitCode != 0 && errors.Count == 0) errors.Add("apt-get -s terminou com código " + exitCode + ".");
+        if (exitCode != 0 && errors.Count == 0) errors.Add(L.T("apt-get -s terminou com código ") + exitCode + ".");
         return new AptSimulation(actions, errors, summary, exitCode, output);
     }
 }
@@ -263,7 +263,7 @@ public static class NvidiaProbeText
 /// <summary>Kernel headers of one kernel: present (the build directory exists) and complete (the files a module build needs).</summary>
 public sealed record KernelHeaders(string Kernel, bool Present, IReadOnlyList<string> Missing)
 {
-    public static readonly IReadOnlyList<string> RequiredFiles = ["Makefile", "scripts/module.lds", "tools/objtool/objtool"];
+    public static readonly IReadOnlyList<string> RequiredFiles = [L.T("Makefile"), "scripts/module.lds", "tools/objtool/objtool"];
     public bool Complete => Present && Missing.Count == 0;
 }
 
@@ -301,7 +301,7 @@ public sealed record NvidiaDiagnosis
     public bool Hybrid => Gpus.Count > 0 && OtherGpus.Count > 0;
     public KernelHeaders? RunningHeaders => Kernels.FirstOrDefault(k => k.Kernel == RunningKernel);
     public NvidiaGpu? Primary => Gpus.OrderByDescending(g => g.Generation).FirstOrDefault();
-    public string KernelDriver => Primary?.KernelDriver is { Length: > 0 } d ? d : "nenhum";
+    public string KernelDriver => Primary?.KernelDriver is { Length: > 0 } d ? d : L.T("nenhum");
     public IEnumerable<DpkgPackage> NvidiaPackages => Packages.Where(p => NvidiaScripts.IsNvidiaPackage(p.Name));
     public IEnumerable<DpkgPackage> BrokenPackages => Packages.Where(p => p.Broken);
 

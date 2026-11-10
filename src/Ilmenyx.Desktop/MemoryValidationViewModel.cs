@@ -17,33 +17,33 @@ public sealed class MemoryValidationViewModel(IHardwareInfoProvider hardware, IM
     public bool CanCancel => !disposed && IsRunning && active is { IsCancellationRequested: false };
     public bool CanExport => !disposed && !IsRunning && !IsExporting && Report is not null;
     public MemoryValidationReport? Report { get; private set; }
-    public string Status { get; private set; } = "Pronto. Validação pequena; não mede desempenho da RAM.";
+    public string Status { get; private set; } = L.T("Pronto. Validação pequena; não mede desempenho da RAM.");
     public string Summary => Report is { } report
-        ? $"{Label(report.Validation.Status)} · {report.Validation.CompletedTraversalSteps}/{report.Validation.RequestedTraversalSteps} passos · sem score\nSoma leitura/cópia: {report.Validation.ReadSum?.ToString() ?? "indisponível"}/{report.Validation.CopySum?.ToString() ?? "indisponível"}\nSHA256 cópia: {report.Validation.CopySha256 ?? "indisponível"}"
-        : "Nenhuma validação executada. Sem latência, GB/s ou score de RAM.";
+        ? L.T($"{Label(report.Validation.Status)} · {report.Validation.CompletedTraversalSteps}/{report.Validation.RequestedTraversalSteps} passos · sem score\nSoma leitura/cópia: {report.Validation.ReadSum?.ToString() ?? L.T("indisponível")}/{report.Validation.CopySum?.ToString() ?? L.T("indisponível")}\nSHA256 cópia: {report.Validation.CopySha256 ?? L.T("indisponível")}")
+        : L.T("Nenhuma validação executada. Sem latência, GB/s ou score de RAM.");
     public async Task StartAsync(CancellationToken lifetime = default)
     {
         if (!CanStart) return;
         using var stop = CancellationTokenSource.CreateLinkedTokenSource(lifetime); active = stop;
-        IsRunning = true; Report = null; Status = "Coletando contexto de hardware…"; NotifyAll();
+        IsRunning = true; Report = null; Status = L.T("Coletando contexto de hardware…"); NotifyAll();
         try
         {
             var snapshot = await Task.Run(() => hardware.CollectAsync(stop.Token), stop.Token);
-            stop.Token.ThrowIfCancellationRequested(); SetStatus("Validando cadeia, soma e cópia em buffers pequenos…");
+            stop.Token.ThrowIfCancellationRequested(); SetStatus(L.T("Validando cadeia, soma e cópia em buffers pequenos…"));
             var result = await runner.RunAsync(new(), stop.Token);
             if (disposed) return;
             Report = new("1.0", snapshot, result);
-            SetStatus(Label(result.Status) + ". Correção de algoritmos; sem medição de desempenho.");
+            SetStatus(Label(result.Status) + L.T(". Correção de algoritmos; sem medição de desempenho."));
         }
-        catch (OperationCanceledException) { SetStatus(stop.IsCancellationRequested ? "Validação cancelada." : "Coleta de hardware atingiu timeout."); }
+        catch (OperationCanceledException) { SetStatus(stop.IsCancellationRequested ? L.T("Validação cancelada.") : L.T("Coleta de hardware atingiu timeout.")); }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or AggregateException)
-        { SetStatus("Validação indisponível: " + e.Message); }
+        { SetStatus(L.T("Validação indisponível: ") + e.Message); }
         finally { active = null; IsRunning = false; NotifyAll(); }
     }
     public void Cancel()
     {
         if (!CanCancel || active is not { } stop) return;
-        SetStatus("Cancelando validação…"); NotifyAll();
+        SetStatus(L.T("Cancelando validação…")); NotifyAll();
         // Cancellation can complete an awaited runner synchronously. Publish the request first,
         // so its final cancelled status is never overwritten by a late "cancelling" message.
         stop.Cancel();
@@ -58,17 +58,17 @@ public sealed class MemoryValidationViewModel(IHardwareInfoProvider hardware, IM
         {
             if (html) await Task.Run(() => ValidationHtmlReport.ExportAsync(report, path, ct), ct);
             else await SnapshotReport.ExportAsync(report, path, ct);
-            SetStatus("Validação de memória exportada para arquivo local.");
+            SetStatus(L.T("Validação de memória exportada para arquivo local."));
         }
-        catch (OperationCanceledException) { SetStatus("Exportação cancelada."); }
+        catch (OperationCanceledException) { SetStatus(L.T("Exportação cancelada.")); }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
-        { SetStatus("Não foi possível exportar. Escolha um arquivo novo: " + e.Message); }
+        { SetStatus(L.T("Não foi possível exportar. Escolha um arquivo novo: ") + e.Message); }
         finally { IsExporting = false; NotifyAll(); }
     }
     public void SetStatus(string status) { if (!disposed) { Status = status; Notify(nameof(Status)); } }
     public void Dispose() { if (disposed) return; disposed = true; active?.Cancel(); }
     private static string Label(MemoryValidationStatus state) => state switch
-    { MemoryValidationStatus.Completed => "Concluída", MemoryValidationStatus.Cancelled => "Cancelada", MemoryValidationStatus.TimedOut => "Timeout", _ => "Estado desconhecido" };
+    { MemoryValidationStatus.Completed => L.T("Concluída"), MemoryValidationStatus.Cancelled => L.T("Cancelada"), MemoryValidationStatus.TimedOut => "Timeout", _ => L.T("Estado desconhecido") };
     private void Notify(string name) { if (!disposed) PropertyChanged?.Invoke(this, new(name)); }
     private void NotifyAll()
     {

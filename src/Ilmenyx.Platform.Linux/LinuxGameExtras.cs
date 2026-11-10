@@ -29,7 +29,7 @@ public sealed class LinuxShaderCache(string? home = null, string? configHome = n
     /// <summary>Writes the file atomically (mode 0644). Null on success, otherwise the reason. Refuses to overwrite a file the app did not write.</summary>
     public string? Apply()
     {
-        if (ForeignFile) return $"Já existe {ConfigPath}, criado por outra pessoa ou programa; não foi alterado.";
+        if (ForeignFile) return L.T($"Já existe {ConfigPath}, criado por outra pessoa ou programa; não foi alterado.");
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
@@ -43,16 +43,16 @@ public sealed class LinuxShaderCache(string? home = null, string? configHome = n
             finally { if (File.Exists(tmp)) File.Delete(tmp); }
             return null;
         }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return "Não consegui gravar: " + e.Message; }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return L.T("Não consegui gravar: ") + e.Message; }
     }
 
     /// <summary>Deletes the file when it is the app's own. Null on success (also when there was nothing to undo).</summary>
     public string? Undo()
     {
         if (!File.Exists(ConfigPath)) return null;
-        if (!IsOn) return $"{ConfigPath} não foi criado pelo Ilmenyx; não foi apagado.";
+        if (!IsOn) return L.T($"{ConfigPath} não foi criado pelo Ilmenyx; não foi apagado.");
         try { File.Delete(ConfigPath); return null; }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return "Não consegui apagar: " + e.Message; }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return L.T("Não consegui apagar: ") + e.Message; }
     }
 
     /// <summary>Shader cache folders that exist, with their size (null = not found). Bounded walk: at most <paramref name="maxFiles"/> files each.</summary>

@@ -19,7 +19,8 @@ Todo texto visível do tour, das boas-vindas e da Central está em `src/Ilmenyx.
 
 - `HelpContent.cs` — modelo (`HelpLanguage`, `HelpSection`, `HelpFaq`, `TourStep`, `HelpGroup`), chaves da interface
   (`HelpKeys`) e a escolha do idioma (`HelpContent.For(código)`, com recuo para pt-BR).
-- `HelpContent.PtBr.cs` — o conjunto de referência em português.
+- `HelpContent.PtBr.cs` — o conjunto de referência em português; `HelpContent.En.cs` e `HelpContent.Es.cs` — inglês e espanhol,
+  com os mesmos ids e a mesma ordem.
 
 As telas (`WelcomeTourDialog`, `HelpCenterPage`, `ShellTour.cs`) não têm texto próprio: só usam `HelpKeys` e os registros.
 
@@ -31,12 +32,11 @@ um termo técnico em uma linha. Passos do tour: no máximo 3 frases (o teste con
 Ao registrar `pages["chave"]` no shell, acrescente `S("chave", "grupo", ...)` em `HelpContent.PtBr.cs`
 (e nos outros idiomas). O teste `EveryRegisteredPageHasExactlyOneHelpSectionAndNoOrphans` falha até isso ser feito.
 
-### Novo idioma (en, es)
-1. Copie `HelpContent.PtBr.cs` para `HelpContent.En.cs`, renomeie o método para `En()` e o código para `"en"`; traduza os textos.
-   Mantenha iguais os identificadores: chaves de `Ui`, `Id` dos grupos/perguntas/passos, `Key` das seções, `PageKey` e `Highlights`.
-2. Registre em `sets` de `HelpContent.cs`: `["en"] = En`.
-3. `EveryLanguageSetHasExactlyTheReferenceEntries` compara todas as entradas com o pt-BR (falta/sobra aparece na mensagem).
-4. Falta só decidir de onde vem o idioma ativo (hoje o shell usa `HelpContent.For()`, ou seja, pt-BR).
+### Idiomas
+O conjunto usado é o do idioma da interface (`HelpContent.For()` segue `L.Current`; ver `docs/idiomas.md`). Ao mudar uma frase em
+`HelpContent.PtBr.cs`, mude também em `HelpContent.En.cs` e `HelpContent.Es.cs`. Para um idioma novo, copie um deles, renomeie o
+método e o código, traduza e registre em `sets` de `HelpContent.cs`; `EveryLanguageSetHasExactlyTheReferenceEntries` compara
+todas as entradas com o pt-BR (falta/sobra aparece na mensagem).
 
 ## Automação e testes
 

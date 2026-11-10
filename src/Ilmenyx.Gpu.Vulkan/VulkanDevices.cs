@@ -4,13 +4,14 @@
 using System.Runtime.InteropServices;
 using Silk.NET.Core.Native;
 using Silk.NET.Vulkan;
+using Ilmenyx.Core;
 
 namespace Ilmenyx.Gpu.Vulkan;
 
 public sealed record VulkanAdapter(int Index, string Name, string Kind, uint VendorId, uint DeviceId, string ApiVersion, ulong DeviceLocalBytes,
     bool IsSoftware, bool SupportsVulkan13, bool SupportsRayTracingPipeline, bool SupportsRayQuery = false)
 {
-    public string Description => $"{Name} · {Kind} · Vulkan {ApiVersion}" + (IsSoftware ? " · renderização por CPU" : "");
+    public string Description => $"{Name} · {Kind} · Vulkan {ApiVersion}" + (IsSoftware ? L.T(" · renderização por CPU") : "");
 }
 
 public sealed record VulkanDeviceList(IReadOnlyList<VulkanAdapter> Adapters, string? Error);
@@ -39,7 +40,7 @@ public static unsafe class VulkanDevices
             var app = new ApplicationInfo { SType = StructureType.ApplicationInfo, ApiVersion = Vk.Version13 };
             var info = new InstanceCreateInfo { SType = StructureType.InstanceCreateInfo, PApplicationInfo = &app };
             var result = vk.CreateInstance(in info, null, out instance);
-            if (result != Result.Success) return new([], $"Não foi possível criar a instância Vulkan ({result}). Instale o driver Vulkan da sua GPU (mesa-vulkan-* ou nvidia).");
+            if (result != Result.Success) return new([], L.T($"Não foi possível criar a instância Vulkan ({result}). Instale o driver Vulkan da sua GPU (mesa-vulkan-* ou nvidia)."));
             created = true;
             uint count = 0;
             vk.EnumeratePhysicalDevices(instance, ref count, null);
@@ -63,7 +64,7 @@ public static unsafe class VulkanDevices
                 bool rt = names.Contains("VK_KHR_ray_tracing_pipeline");
                 // Inline ray tracing (the RT benchmark): extensions present AND the features really enabled by the driver.
                 bool rayQuery = props.ApiVersion >= Vk.Version13 && VulkanContext.RayQueryExtensions.All(names.Contains) && RayQueryFeatures(vk, devices[i]);
-                string kind = props.DeviceType switch { PhysicalDeviceType.DiscreteGpu => "GPU dedicada", PhysicalDeviceType.IntegratedGpu => "GPU integrada", PhysicalDeviceType.VirtualGpu => "GPU virtual", PhysicalDeviceType.Cpu => "CPU (software)", _ => "outro" };
+                string kind = props.DeviceType switch { PhysicalDeviceType.DiscreteGpu => L.T("GPU dedicada"), PhysicalDeviceType.IntegratedGpu => L.T("GPU integrada"), PhysicalDeviceType.VirtualGpu => "GPU virtual", PhysicalDeviceType.Cpu => "CPU (software)", _ => "outro" };
                 list.Add(new(i, Marshal.PtrToStringUTF8((nint)props.DeviceName) ?? "?", kind, props.VendorID, props.DeviceID, VersionText(props.ApiVersion), local,
                     props.DeviceType == PhysicalDeviceType.Cpu, props.ApiVersion >= Vk.Version13, rt, rayQuery));
             }
@@ -71,7 +72,7 @@ public static unsafe class VulkanDevices
         }
         catch (Exception e) when (e is DllNotFoundException or FileNotFoundException or EntryPointNotFoundException or Silk.NET.Core.Loader.SymbolLoadingException)
         {
-            return new([], "A biblioteca Vulkan (libvulkan.so.1) não foi encontrada. Instale o loader e o driver Vulkan da sua distribuição.");
+            return new([], L.T("A biblioteca Vulkan (libvulkan.so.1) não foi encontrada. Instale o loader e o driver Vulkan da sua distribuição."));
         }
         finally
         {

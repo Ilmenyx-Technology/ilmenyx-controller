@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 using System.Diagnostics;
+using Ilmenyx.Core;
 
 namespace Ilmenyx.Platform.Linux;
 
@@ -30,19 +31,19 @@ public static class FastExec
     /// <summary>Command and environment for one run. Throws when the installer or the destination is not acceptable, or umu is missing.</summary>
     public static FastExecPlan Plan(string installer, string destination, Func<string, string?> find, string? tempRoot = null, string? id = null, bool geProton = false, string? protonPath = null, string? wineBin = null)
     {
-        if (!LinuxGameLibrary.IsWindowsExe(installer)) throw new ArgumentException("Escolha o instalador do Windows (arquivo .exe).");
-        if (!Path.IsPathFullyQualified(destination)) throw new ArgumentException("Escolha a pasta onde o jogo vai ficar.");
+        if (!LinuxGameLibrary.IsWindowsExe(installer)) throw new ArgumentException(L.T("Escolha o instalador do Windows (arquivo .exe)."));
+        if (!Path.IsPathFullyQualified(destination)) throw new ArgumentException(L.T("Escolha a pasta onde o jogo vai ficar."));
         string dest = Path.GetFullPath(destination).TrimEnd('/');
         string home = Path.GetFullPath(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)).TrimEnd('/');
         if (dest.Length == 0 || dest == home || dest is "/" or "/usr" or "/etc" or "/bin" or "/boot" or "/proc" or "/sys" or "/dev" or "/var" || dest.StartsWith("/proc/", StringComparison.Ordinal) || dest.StartsWith("/sys/", StringComparison.Ordinal) || dest.StartsWith("/dev/", StringComparison.Ordinal))
-            throw new ArgumentException("Escolha uma pasta própria para os jogos (por exemplo ~/Jogos), não a pasta pessoal inteira nem uma pasta do sistema.");
+            throw new ArgumentException(L.T("Escolha uma pasta própria para os jogos (por exemplo ~/Jogos), não a pasta pessoal inteira nem uma pasta do sistema."));
         string runId = id ?? Guid.NewGuid().ToString("N")[..12];
         string prefix = Path.Combine(tempRoot ?? TempRoot(), PrefixPrefix + runId);
         string staged = Path.Combine(prefix, "drive_c", "Instalador", Path.GetFileName(installer));
         // The installer opens already pointing at C:\Jogos\<game> when it accepts a folder on its command line (Inno Setup, NSIS).
         string[] extra = InstallerDefaults.DirArguments(installer) is { } dirArg ? [dirArg] : [];
         if (wineBin is { Length: > 0 }) return PlainWinePlan(wineBin, staged, extra, prefix, dest, installer, Path.Combine(LogFolder(tempRoot), "wine-" + runId + ".log"));
-        string umu = find("umu-run") ?? throw new InvalidOperationException("O umu-launcher (Proton fora da Steam) não foi encontrado.");
+        string umu = find("umu-run") ?? throw new InvalidOperationException(L.T("O umu-launcher (Proton fora da Steam) não foi encontrado."));
         return new(umu, [staged, .. extra], [
             new("WINEPREFIX", prefix), new("GAMEID", "umu-default"), new("STORE", "none"),
             new("WINEDLLOVERRIDES", "winemenubuilder.exe=d"), // no menu entries, icons or file associations from the installer
@@ -132,7 +133,7 @@ public static class FastExec
         bool broad = full == home || full == "/" || BroadFolders.Any(b => full == Path.Combine(home, b));
         var files = new DirectoryInfo(source).EnumerateFiles("*", new EnumerationOptions { RecurseSubdirectories = !broad, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.System })
             .Where(f => f.LinkTarget is null).ToList();
-        if (files.Count > 20000) throw new IOException("A pasta do instalador tem arquivos demais; coloque o instalador numa pasta só dele.");
+        if (files.Count > 20000) throw new IOException(L.T("A pasta do instalador tem arquivos demais; coloque o instalador numa pasta só dele."));
         Directory.CreateDirectory(target);
         bool linked = TryLink(files[0].FullName, Path.Combine(target, ".ilmenyx-linktest"));
         if (linked) File.Delete(Path.Combine(target, ".ilmenyx-linktest"));
@@ -140,7 +141,7 @@ public static class FastExec
         {
             long need = files.Sum(f => f.Length);
             var drive = new DriveInfo(target);
-            if (drive.AvailableFreeSpace < need + (1L << 30)) throw new IOException($"Sem espaço para copiar o instalador para dentro do Windows temporário (precisa de {need / 1e9:0.0} GB livres).");
+            if (drive.AvailableFreeSpace < need + (1L << 30)) throw new IOException(L.T($"Sem espaço para copiar o instalador para dentro do Windows temporário (precisa de {need / 1e9:0.0} GB livres)."));
         }
         foreach (var f in files)
         {
@@ -164,7 +165,7 @@ public static class FastExec
     public static async Task<int> RunAsync(FastExecPlan plan, CancellationToken ct)
     {
         var psi = HostSpawn.Start(plan.Program, plan.Arguments, plan.Environment.ToDictionary(e => e.Key, e => e.Value), Path.GetDirectoryName(plan.Staged.Length > 0 ? plan.Staged : plan.Arguments[0]), redirect: false);
-        using var process = Process.Start(psi) ?? throw new IOException("Não foi possível iniciar o instalador.");
+        using var process = Process.Start(psi) ?? throw new IOException(L.T("Não foi possível iniciar o instalador."));
         try { await process.WaitForExitAsync(ct); }
         catch (OperationCanceledException)
         {

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 using System.Text.RegularExpressions;
+using Ilmenyx.Core;
 
 namespace Ilmenyx.Platform.Linux;
 
@@ -44,7 +45,7 @@ public sealed partial class DiagnosticSysfsFiles : IDiagnosticSysfsFiles
         .Select(Path.GetFileName).OfType<string>().Where(d => ValidDevice(area, d)).Take(65).ToArray();
     public async Task<string> ReadAsync(SysfsArea area, string device, string attribute, CancellationToken ct)
     {
-        if (!ValidDevice(area, device) || !ValidAttribute(area, attribute)) throw new IOException("Caminho sysfs não permitido.");
+        if (!ValidDevice(area, device) || !ValidAttribute(area, attribute)) throw new IOException(L.T("Caminho sysfs não permitido."));
         return await ReadBoundedAsync(Path.Combine(Root(area), device, attribute), ct);
     }
     internal static async Task<string> ReadBoundedAsync(string path, CancellationToken ct)
@@ -55,7 +56,7 @@ public sealed partial class DiagnosticSysfsFiles : IDiagnosticSysfsFiles
         while ((count = await reader.ReadAsync(buffer.AsMemory(length), ct)) > 0)
         {
             length += count;
-            if (length > 4096) throw new IOException("Atributo sysfs excede 4096 caracteres.");
+            if (length > 4096) throw new IOException(L.T("Atributo sysfs excede 4096 caracteres."));
         }
         return new string(buffer, 0, length);
     }
