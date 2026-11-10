@@ -129,7 +129,9 @@ Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes qu
   12,5 % no ajuste e 18,7 % -> 14,8 % na validação cruzada (5 partes). SceneK 0,0229 -> 0,0186 (a calibração da Iris Xe passa de 9,3
   para 7,6, contra 8,1 na tabela); modelo por especificações β 0,799, erro médio 6,4 %. Testes atualizados (1324 aprovados); um assert
   do CpuPerf que estava escondido dentro de um comentário voltou a rodar. Limites: degrau RX 7900 GRE/XT; CS2 na Iris Xe continua
-  otimista (17–43 contra 14,8). Detalhes: docs/fps-estimativa.md, seção 0.5. Falta: o dono ver a página de FPS e aprovar o merge.
+  otimista (17–43 contra 14,8). Detalhes: docs/fps-estimativa.md, seção 0.5. Merge aprovado pelo dono (PR #12, main 8efd2b9).
+  Tela real deste PC depois do merge (calibrado, GPU 7,59 / CPU 40, 1080p Alto): CS2 16–40, Valorant 56–144, Fortnite 8–22,
+  LoL 57–147; print enviado ao dono.
 - [ ] **IDEIA FUTURA do dono (2026-11-09): base comunitária de FPS**. Usuários que aceitarem enviam diagnóstico e FPS médio dos jogos
   para a Estimativa de FPS ficar mais real. Análise pronta (infraestrutura, LGPD, abuso, massa crítica): `docs/fps-estimativa-metodos.md`,
   método (e). Antes de começar: decidir servidor e custo, termo de consentimento, PRIVACY.md e o formato da sessão a enviar.
