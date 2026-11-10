@@ -166,14 +166,63 @@ public static class FastExec
         var psi = HostSpawn.Start(plan.Program, plan.Arguments, plan.Environment.ToDictionary(e => e.Key, e => e.Value), Path.GetDirectoryName(plan.Staged.Length > 0 ? plan.Staged : plan.Arguments[0]), redirect: false);
         using var process = Process.Start(psi) ?? throw new IOException("Não foi possível iniciar o instalador.");
         try { await process.WaitForExitAsync(ct); }
-        catch (OperationCanceledException) { try { process.Kill(entireProcessTree: true); } catch (InvalidOperationException) { } throw; }
-        return process.ExitCode;
+        catch (OperationCanceledException)
+        {
+            try { process.Kill(entireProcessTree: true); } catch (InvalidOperationException) { }
+            await StopPrefixAsync(plan.TempPrefix);
+            throw;
+        }
+        int code = process.ExitCode;
+        await StopPrefixAsync(plan.TempPrefix); // wineserver lingers a few seconds; the prefix is about to be moved from and deleted
+        return code;
+    }
+
+    /// <summary>
+    /// Own processes of this temporary Windows, found by WINEPREFIX in their environment: wineserver and the Windows services detach from
+    /// the installer's process tree, so killing the tree left them running on an already deleted prefix (owner's cancel test, 2026-11-10).
+    /// </summary>
+    public static IReadOnlyList<int> PrefixProcesses(string prefix, string procRoot = "/proc")
+    {
+        var pids = new List<int>(); string wanted = "WINEPREFIX=" + prefix.TrimEnd('/');
+        IEnumerable<string> dirs;
+        try { dirs = Directory.EnumerateDirectories(procRoot).Where(d => Path.GetFileName(d).All(char.IsAsciiDigit)).Take(8192).ToList(); }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return pids; }
+        foreach (var d in dirs)
+        {
+            try
+            {
+                using var s = new FileStream(Path.Combine(d, "environ"), FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 1, false);
+                var b = new byte[65536]; int n = s.Read(b, 0, b.Length);
+                if (System.Text.Encoding.UTF8.GetString(b, 0, n).Split('\0').Any(e => e.TrimEnd('/') == wanted) && int.TryParse(Path.GetFileName(d), out int pid)) pids.Add(pid);
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException) { } // other users' processes, or gone
+        }
+        return pids;
+    }
+
+    /// <summary>Ends every process of the temporary Windows (it holds no user data: the game is moved out or the run was cancelled).</summary>
+    public static async Task StopPrefixAsync(string prefix, string procRoot = "/proc")
+    {
+        if (HostSpawn.InFlatpak) return; // the sandbox /proc does not list host processes; the host's wineserver times out on its own
+        for (int round = 0; round < 3; round++)
+        {
+            var pids = PrefixProcesses(prefix, procRoot);
+            if (pids.Count == 0) return;
+            foreach (int pid in pids) { try { using var p = Process.GetProcessById(pid); p.Kill(); } catch (Exception e) when (e is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception) { } }
+            await Task.Delay(500);
+        }
     }
 
     private static readonly string[] NotGames = ["unins", "setup", "install", "redist", "vcredist", "vc_redist", "dxsetup", "dxwebsetup", "dotnet", "ndp", "crash", "report", "update", "physx", "directx", "oalinst", "ue4prereq", "uninstall", "helper", "cef", "quicksfv", "unarc"];
 
-    /// <summary>Game executables the installer created in the destination after <paramref name="since"/>, likeliest first (larger, shallower, not an uninstaller/redistributable).</summary>
-    public static IReadOnlyList<string> NewExecutables(string destination, DateTime sinceUtc, int maxDepth = 6)
+    /// <summary>Game executables the installer created in the destination after <paramref name="sinceUtc"/>, likeliest first (larger, shallower, not an uninstaller/redistributable).</summary>
+    public static IReadOnlyList<string> NewExecutables(string destination, DateTime sinceUtc, int maxDepth = 6) => Executables([destination], sinceUtc, maxDepth);
+
+    /// <summary>Game executables in the folders Ilmenyx just moved out of the temporary Windows. No date filter: installers often keep the
+    /// files' original dates (NSIS: OpenTTD's openttd.exe was dated months before the install).</summary>
+    public static IReadOnlyList<string> ExecutablesIn(IEnumerable<string> folders, int maxDepth = 6) => Executables(folders, null, maxDepth);
+
+    private static IReadOnlyList<string> Executables(IEnumerable<string> roots, DateTime? sinceUtc, int maxDepth)
     {
         var found = new List<(string Path, long Size, int Depth)>();
         void Walk(string dir, int depth)
@@ -187,7 +236,7 @@ public static class FastExec
                 try
                 {
                     var info = new FileInfo(f);
-                    if (info.LinkTarget is not null || (info.LastWriteTimeUtc < sinceUtc && info.CreationTimeUtc < sinceUtc)) continue;
+                    if (info.LinkTarget is not null || sinceUtc is { } t && info.LastWriteTimeUtc < t && info.CreationTimeUtc < t) continue;
                     string name = Path.GetFileNameWithoutExtension(f).ToLowerInvariant();
                     if (NotGames.Any(n => name.StartsWith(n, StringComparison.Ordinal) || name.Contains(n, StringComparison.Ordinal))) continue;
                     found.Add((f, info.Length, depth));
@@ -196,7 +245,7 @@ public static class FastExec
             }
             foreach (var sub in dirs) { try { if (new DirectoryInfo(sub).LinkTarget is null) Walk(sub, depth + 1); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { } }
         }
-        if (Directory.Exists(destination)) Walk(destination, 0);
+        foreach (var root in roots) if (Directory.Exists(root)) Walk(root, 0);
         return found.OrderByDescending(f => f.Size).ThenBy(f => f.Depth).Select(f => f.Path).Take(12).ToList();
     }
 

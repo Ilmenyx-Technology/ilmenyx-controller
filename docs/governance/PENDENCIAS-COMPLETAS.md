@@ -107,6 +107,16 @@ Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes qu
 - [x] **Sessão limitada por vsync/limite do jogo**: média até 3 % abaixo de um limite usual (30, 60, 75, 120, 144…) e no máximo 5 % das
   amostras acima dele = "limitado a N FPS". Fica salva como medida, mas não ajusta a estimativa (é só um piso). Conferido com os 3 logs
   reais do SuperTuxKart a 60 Hz. Falta: o dono ver a mensagem numa sessão nova.
+- [~] **Calibração neste PC** (Iris Xe, 09/11 22:54): página mostra "PC calibrado" com índices GPU 9,34 / CPU 40, driver e kernel. Sem jogo
+  do catálogo instalado aqui; comparação com Notebookcheck (1080p Alto): Valorant 58–144 vs 112 e Fortnite 10–24 vs 21,2 dentro; CS2 17–41
+  vs 14,8 um pouco abaixo (estimativa otimista). Faixas largas: reforça "reajustar índices de GPU" (17% -> 12%). Comparação com jogo
+  real medido fica para quando houver um jogo do catálogo instalado.
+- [x] **Instalar jogo de Windows no Arch** (OpenTTD 15.3 oficial, NSIS, SHA-256 conferido): Proton padrão instalou em C:\Jogos\openttd,
+  moveu para ~/Jogos/openttd, apagou o Windows temporário e ofereceu ADICIONAR (openttd.exe). VALIDADO pelo dono.
+  Corrigido no teste: (1) Cancelar deixava wineserver/serviços do Wine rodando num prefixo já apagado: agora todos os processos com aquele
+  WINEPREFIX são encerrados no cancelar e no fim; (2) a lista ADICIONAR ficava vazia porque o NSIS mantém a data original dos arquivos:
+  agora procura nas pastas movidas; (3) nome da pasta sem versão/plataforma ("openttd-15.3-windows-win64" -> "openttd").
+- [x] **Botão Cancelar do instalador** (modo Soda, com o instalador aberto): nenhum processo do Wine sobrou. VALIDADO.
 - [ ] **IDEIA FUTURA do dono (2026-11-09): base comunitária de FPS**. Usuários que aceitarem enviam diagnóstico e FPS médio dos jogos
   para a Estimativa de FPS ficar mais real. Análise pronta (infraestrutura, LGPD, abuso, massa crítica): `docs/fps-estimativa-metodos.md`,
   método (e). Antes de começar: decidir servidor e custo, termo de consentimento, PRIVACY.md e o formato da sessão a enviar.

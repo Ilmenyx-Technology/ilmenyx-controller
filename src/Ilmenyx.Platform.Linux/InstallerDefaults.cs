@@ -52,8 +52,14 @@ public static class InstallerDefaults
         string[] generic = ["downloads", "transferências", "desktop", "área de trabalho", "documentos", "documents", "tmp", "temp", "instalador", "installer", "setup"];
         if (!generic.Contains(folder.ToLowerInvariant()) && Clean(folder) is { } fromFolder) return fromFolder;
         string file = Path.GetFileNameWithoutExtension(installer);
-        return file.ToLowerInvariant() is "setup" or "install" or "installer" or "autorun" ? null : Clean(file.Replace("setup", "", StringComparison.OrdinalIgnoreCase));
+        if (file.ToLowerInvariant() is "setup" or "install" or "installer" or "autorun") return null;
+        // "openttd-15.3-windows-win64" → "openttd": version and platform words say nothing about the game.
+        var words = file.Split(['-', '_', ' ', '.'], StringSplitOptions.RemoveEmptyEntries).Where(w => !FileNoise.Contains(w.ToLowerInvariant()) && !VersionWord.IsMatch(w));
+        return Clean(string.Join(' ', words));
     }
+
+    private static readonly HashSet<string> FileNoise = ["setup", "install", "installer", "windows", "win", "win32", "win64", "x64", "x86", "x86_64", "amd64", "arm64", "64bit", "32bit", "portable", "offline", "release", "final"];
+    private static readonly System.Text.RegularExpressions.Regex VersionWord = new(@"^v?\d+[a-z]?$|^(rc|beta|alpha|build)\d*$", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 
     /// <summary>The command-line argument that pre-fills the install folder, or null when the engine has none or no name is known.</summary>
     public static string? DirArguments(string installer)

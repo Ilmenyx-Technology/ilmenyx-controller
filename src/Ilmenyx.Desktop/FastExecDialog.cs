@@ -132,12 +132,12 @@ public sealed class FastExecDialog : Window
             catch (OperationCanceledException) { status.Text = "Instalação cancelada."; }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception) { status.Foreground = Palette.Warn; status.Text = "Não consegui executar: " + e.Message; }
             // The game was installed inside the temporary Windows (C:\Jogos): move it out before deleting the rest.
-            bool keep = false;
+            bool keep = false; IReadOnlyList<string> moved = [];
             if (finished)
             {
                 try
                 {
-                    var moved = await Task.Run(() => FastExec.MoveToDestination(plan, name => Avalonia.Threading.Dispatcher.UIThread.Post(() => status.Text = $"Movendo \"{name}\" para {plan.Destination}…")));
+                    moved = await Task.Run(() => FastExec.MoveToDestination(plan, name => Avalonia.Threading.Dispatcher.UIThread.Post(() => status.Text = $"Movendo \"{name}\" para {plan.Destination}…")));
                     status.Text = moved.Count > 0 ? $"Instalador finalizado. {moved.Count} pasta(s) movida(s) para {plan.Destination}." : "Instalador finalizado.";
                 }
                 catch (Exception e) when (e is IOException or UnauthorizedAccessException)
@@ -151,7 +151,7 @@ public sealed class FastExecDialog : Window
             start.IsEnabled = true; installer.IsEnabled = destination.IsEnabled = pickInstaller.IsEnabled = pickDestination.IsEnabled = true;
             if (keep) return;
             ToolTip.SetTip(status, "O Windows temporário foi apagado; só ficou o jogo, em " + plan.Destination + ".");
-            var found = FastExec.NewExecutables(plan.Destination, since);
+            var found = moved.Count > 0 ? FastExec.ExecutablesIn(moved) : FastExec.NewExecutables(plan.Destination, since);
             if (found.Count == 0) { results.Children.Add(new TextBlock { Text = "Nenhum jogo novo encontrado nessa pasta. Adicione o .exe pela página Jogos.", Foreground = Palette.Faint, FontSize = 12, TextWrapping = TextWrapping.Wrap }); return; }
             results.Children.Add(new TextBlock { Text = "Adicione o executável principal à biblioteca:", FontSize = 12, Foreground = Palette.Muted });
             int i = 0;
