@@ -55,10 +55,8 @@ Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes qu
   Traduções aprovadas pelo dono, sem revisão de falante nativo (decisão de 2026-11-10).
 - [ ] **Passe de otimização antes do lançamento público**: medir quanto o próprio Ilmenyx usa de CPU/RAM/GPU/disco/energia parado,
   monitorando e em cada página; achar e reduzir gargalos.
-- [ ] Próxima release (v0.31): incluir o umu-launcher e anexar os fontes GPL dele e do python-xlib (`scripts/fetch-gpl-sources.sh`
-  já faz) + assinar tudo (`scripts/sign-release.sh`).
-
-## 4. Decisões e tarefas de governança (você)
+- [x] **Release v0.31.0** (pré-release, 2026-11-10): AppImage, Flatpak e pacote em pasta com umu-launcher; fontes GPL do
+  OpenRGB, umu-launcher e python-xlib anexadas; tudo assinado com a subchave nova. https://github.com/Ilmenyx-Technology/ilmenyx/releases/tag/v0.31.0
 - [ ] **Busca de marca manual** em 3 bases que bloquearam robôs: WIPO Global Brand Database, TMview, EUIPO (termos ilmenyx, ilmen*,
   "ilmenyx controller", "ilmenyx technology"; classes 9, 42, 41). Passo a passo: `docs/legal/BUSCA-MARCA-2026-11-07.md`, seção 4.
 - [ ] **Depositar a marca ILMENYX no INPI** (recomendado: pessoa física, classes 9 e 42, R$ 880 no total). "Ilmenyx Technology":
@@ -138,7 +136,7 @@ Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes qu
   método (e). Antes de começar: decidir servidor e custo, termo de consentimento, PRIVACY.md e o formato da sessão a enviar.
 - [x] Logotipo: fica só "Ilmenyx" (decidido em 2026-11-10). O logotipo é a marca; "Ilmenyx Controller" é o nome do produto e já
   aparece no título da janela, no Sobre e no doctor. Uma marca curta funciona em ícone, favicon e tamanhos pequenos.
-- [ ] Chave GPG com UID antigo "Bismuth Technology": rodar `bash scripts/gpg-nova-maquina.sh /caminho/da/pasta-da-chave` no seu
-  terminal (acrescenta o UID "Ilmenyx Technology", cria a subchave de assinatura deste PC e tira a chave principal daqui).
+- [x] Chave GPG: UID "Ilmenyx Technology (Ilmenyx releases)" como principal e subchave de assinatura deste PC (352B5911C8CC0433),
+  feitos pelo dono com `scripts/gpg-nova-maquina.sh` em 2026-11-10; a chave principal voltou a ficar só no pendrive.
 - [x] Busca de marca para "Ilmenyx Controller" e "Ilmenyx Technology": coberta pela busca de 2026-11-07 (radical ILMENYX no INPI e
   ilmen* no USPTO, sem resultado; "Controller" e "Technology" são genéricos). Falta só a busca manual internacional da seção 4.
