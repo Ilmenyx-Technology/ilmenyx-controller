@@ -95,5 +95,12 @@ Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes qu
 - [x] **Jogos nativos** (atalhos de menu com categoria Game: pacote, Flatpak): "Linux" / "Linux · Flatpak", abertos pelo Ilmenyx. Lojas,
   ferramentas (Steam, Lutris, Bottles, ProtonPlus), emuladores e atalhos steam:// ficam de fora. Imagem: captura AppStream (Flathub/metainfo,
   baixada uma vez para ~/.cache/ilmenyx/art-native) ou o ícone. VALIDADO pelo dono: Hytale (ícone) e SuperTuxKart (captura). "1 jogo" no singular.
+- [x] **Aviso de GPU por fabricante**: "AMD dedicada não testada" / "NVIDIA só numa 940MX" aparecem só se o PC tiver AMD/NVIDIA;
+  num PC só Intel, nenhum aviso. VALIDADO pelo dono.
+- [x] **Carga da GPU Intel** (i915/xe não têm gpu_busy_percent): tempo por motor dos programas do usuário (DRM fdinfo), sem senha;
+  varredura de /proc a cada 10 s. Não conta processos do sistema (compositor). VALIDADO pelo dono.
+- [ ] **IDEIA FUTURA do dono (2026-11-09): base comunitária de FPS**. Usuários que aceitarem enviam diagnóstico e FPS médio dos jogos
+  para a Estimativa de FPS ficar mais real. Análise pronta (infraestrutura, LGPD, abuso, massa crítica): `docs/fps-estimativa-metodos.md`,
+  método (e). Antes de começar: decidir servidor e custo, termo de consentimento, PRIVACY.md e o formato da sessão a enviar.
 - [ ] Logotipo ainda mostra só "Ilmenyx" (decisão de identidade do dono). Chave GPG com UID antigo "Bismuth Technology": acrescentar UID novo.
 - [ ] Busca de marca para "Ilmenyx Controller" e "Ilmenyx Technology" (a de 2026-11-07 cobriu Ilmenyx e Bismuth Technology).

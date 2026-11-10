@@ -238,7 +238,8 @@ public sealed partial class ShellWindow
         open.Click += (_, _) => Select("bench");
         var openValidations = new Button { Name = "OpenValidations", Content = "Validações reduzidas", Background = Brushes.Transparent, Foreground = Palette.Fg, FontSize = 12, Padding = new Thickness(10, 8) };
         openValidations.Click += (_, _) => Select("validate");
-        var notice = new Border { HorizontalAlignment = HorizontalAlignment.Left, Background = Palette.WarnBg, CornerRadius = new CornerRadius(IlmenyxTheme.Pill), Padding = new Thickness(11, 4), Child = new TextBlock { Name = "OverviewGpuNotice", Text = ValidationNotices.AmdNvidia, Foreground = Palette.Warn, TextWrapping = TextWrapping.Wrap, FontSize = 11, FontWeight = FontWeight.Medium } };
+        string? gpuNotice = ValidationNotices.For(DrmGpuInfoProvider.Vendors());
+        var notice = new Border { IsVisible = gpuNotice is not null, HorizontalAlignment = HorizontalAlignment.Left, Background = Palette.WarnBg, CornerRadius = new CornerRadius(IlmenyxTheme.Pill), Padding = new Thickness(11, 4), Child = new TextBlock { Name = "OverviewGpuNotice", Text = gpuNotice ?? "", Foreground = Palette.Warn, TextWrapping = TextWrapping.Wrap, FontSize = 11, FontWeight = FontWeight.Medium } };
         var memoryRow = Wrapped("OverviewMemory", "—", 12.5, Palette.Fg); var procRow = Wrapped("OverviewProcesses", "—", 12.5, Palette.Fg);
         var cpuName = new TextBlock { Name = "OverviewCpuName", Text = "—", FontSize = 13, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap };
         usage.Updated += () => { memoryRow.Text = usage.MemoryLine; procRow.Text = usage.ProcessSummary; cpuName.Text = usage.CpuModel; };

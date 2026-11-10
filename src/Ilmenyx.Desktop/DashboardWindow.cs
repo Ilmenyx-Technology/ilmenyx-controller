@@ -69,6 +69,7 @@ public sealed class DashboardWindow : Window
         }
         stack.Children.Add(cards);
         var gpuSummary = new TextBlock { Name = "GpuSummary", TextWrapping = TextWrapping.Wrap, FontSize = 15 };
+        string? gpuNotice = ValidationNotices.For(DrmGpuInfoProvider.Vendors());
         gpuSummary.Bind(TextBlock.TextProperty, new Binding(nameof(vm.Gpus)));
         stack.Children.Add(new Border
         {
@@ -84,13 +85,13 @@ public sealed class DashboardWindow : Window
                     gpuSummary,
                     new Border
                     {
-                        HorizontalAlignment = HorizontalAlignment.Left,
+                        IsVisible = gpuNotice is not null, HorizontalAlignment = HorizontalAlignment.Left,
                         Background = Palette.WarnBg, CornerRadius = new CornerRadius(IlmenyxTheme.ControlRadius),
                         Padding = new Thickness(10, 6),
                         Child = new TextBlock
                         {
                             Name = "GpuValidationNotice",
-                            Text = ValidationNotices.AmdNvidia,
+                            Text = gpuNotice ?? "",
                             Foreground = Palette.Warn, TextWrapping = TextWrapping.Wrap, FontSize = 13
                         }
                     }

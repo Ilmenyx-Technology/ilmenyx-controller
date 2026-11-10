@@ -266,6 +266,7 @@ public sealed class LinuxGpuCollector(string sysRoot = "/sys", string procRoot =
         }
         double? Milli(string file) => hw.Length > 0 && Num(Path.Combine(hw, file)) is { } v and > -40000 and < 200000 ? v / 1000.0 : null;
         double? load = Num(Path.Combine(dir, "gpu_busy_percent")) is { } b and >= 0 and <= 100 ? b : null;
+        load ??= DrmClientUsage.Sample(raw.PciAddress, procRoot); // Intel i915/xe: no gpu_busy_percent, but per-client engine time
         ulong? used = Num(Path.Combine(dir, "mem_info_vram_used")) is { } vu and >= 0 ? (ulong)vu : null, total = Num(Path.Combine(dir, "mem_info_vram_total")) is { } vtt and > 0 ? (ulong)vtt : null;
         double? power = hw.Length > 0 && (Num(Path.Combine(hw, "power1_average")) ?? Num(Path.Combine(hw, "power1_input"))) is { } pw and >= 0 ? pw / 1_000_000.0 : null;
         double? fanRpm = hw.Length > 0 && Num(Path.Combine(hw, "fan1_input")) is { } fr and >= 0 ? fr : null;

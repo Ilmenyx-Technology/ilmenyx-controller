@@ -11,7 +11,21 @@ public static class ValidationNotices
 {
     // 2026-11-06: an AMD APU (Radeon 610M) was validated on real hardware; dedicated AMD/NVIDIA GPUs were not (maintainer decision to keep the notice).
     // 2026-11-07: NVIDIA validated on one real dedicated GPU (GeForce 940MX, driver 580, laptop); dedicated AMD still untested.
-    public const string AmdNvidia = "GPU AMD dedicada não testada · NVIDIA validada só numa GeForce 940MX";
+    // 2026-11-09: shown only for the vendors present; an Intel-only PC (the development machine) gets no notice.
+    public const string Amd = "GPU AMD dedicada não testada", Nvidia = "NVIDIA validada só numa GeForce 940MX";
+    public const string AmdNvidia = Amd + " · " + Nvidia;
+
+    /// <summary>Notice for the GPUs of this PC by PCI vendor ID ("0x1002" AMD, "0x10de" NVIDIA); null when neither is present.
+    /// With no vendor known the full notice stays, since nothing proves the GPU was validated.</summary>
+    public static string? For(IEnumerable<string?> vendorIds)
+    {
+        var ids = vendorIds.OfType<string>().Select(v => v.Trim().ToLowerInvariant()).ToList();
+        if (ids.Count == 0) return AmdNvidia;
+        var parts = new List<string>();
+        if (ids.Contains("0x1002")) parts.Add(Amd);
+        if (ids.Contains("0x10de")) parts.Add(Nvidia);
+        return parts.Count == 0 ? null : string.Join(" · ", parts);
+    }
 }
 
 /// <summary>Standalone, passive HTML. All data is encoded as text; no untrusted attributes or markup.</summary>
@@ -67,7 +81,8 @@ public static class HardwareHtmlReport
             }
         else AddReading("Dispositivos de bloco", Reading<string>.Missing("devices", snapshot.Disks.Source, snapshot.Disks.Reason ?? "Nenhum dispositivo informado."));
         EndTable();
-        html.Append("<section><h2>GPU · DRM/PCI</h2><p class=\"notice\">").Append(E(ValidationNotices.AmdNvidia)).Append("</p>");
+        html.Append("<section><h2>GPU · DRM/PCI</h2>");
+        if (ValidationNotices.For(snapshot.Gpus?.Devices.Select(g => g.VendorId.Value) ?? []) is { } gpuNotice) html.Append("<p class=\"notice\">").Append(E(gpuNotice)).Append("</p>");
         if (snapshot.Gpus is { } gpus)
         {
             MetadataParagraph("Estado do inventário", gpus.Status); MetadataParagraph("Coleta UTC", gpus.CollectedAt.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture));

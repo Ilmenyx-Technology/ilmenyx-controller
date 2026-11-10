@@ -139,4 +139,14 @@ public class HtmlReportTests
         Assert.Throws<ArgumentException>(() => CliArguments.Parse(["sensors", "--html", "--json"]));
         Assert.Throws<ArgumentException>(() => CliArguments.Parse(["capabilities", "--html"]));
     }
+
+    [Fact]
+    public void GpuValidationNoticeOnlyForTheVendorsPresent()
+    {
+        Assert.Null(ValidationNotices.For(["0x8086"])); // Intel only: validated on the development machine
+        Assert.Equal(ValidationNotices.Nvidia, ValidationNotices.For(["0x8086", "0x10DE"]));
+        Assert.Equal(ValidationNotices.Amd, ValidationNotices.For(["0x1002\n"]));
+        Assert.Equal(ValidationNotices.AmdNvidia, ValidationNotices.For(["0x1002", "0x10de"]));
+        Assert.Equal(ValidationNotices.AmdNvidia, ValidationNotices.For([])); // nothing known: keep the whole notice
+    }
 }
