@@ -33,8 +33,8 @@ public sealed class FastExecDialog : Window
         var installer = new TextBox { Name = "FxInstaller", PlaceholderText = "/caminho/do/setup.exe" };
         var destination = new TextBox { Name = "FxDestination", Text = FastExec.DefaultDestination() };
         AutomationProperties.SetName(installer, "Instalador do Windows"); AutomationProperties.SetName(destination, "Pasta onde o jogo vai ficar");
-        var pickInstaller = new Button { Name = "FxPickInstaller", Content = "PROCURAR…", FontSize = 12, Padding = new Thickness(14, 6) };
-        var pickDestination = new Button { Name = "FxPickDestination", Content = "PROCURAR…", FontSize = 12, Padding = new Thickness(14, 6) };
+        var pickInstaller = new Button { Name = "FxPickInstaller", Content = "Procurar…", FontSize = 12, Padding = new Thickness(14, 6) };
+        var pickDestination = new Button { Name = "FxPickDestination", Content = "Procurar…", FontSize = 12, Padding = new Thickness(14, 6) };
         pickInstaller.Click += async (_, _) =>
         {
             var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions { Title = "Escolha o instalador do Windows", AllowMultiple = false,
@@ -82,7 +82,7 @@ public sealed class FastExecDialog : Window
         var progress = new ProgressBar { Name = "FxProgress", Height = 4, MinHeight = 4, Minimum = 0, Maximum = 1, IsVisible = false, HorizontalAlignment = HorizontalAlignment.Stretch };
         void Busy(bool on, double? value = null) { progress.IsVisible = on; progress.IsIndeterminate = on && value is null; if (value is { } v) progress.Value = v; }
         var results = new StackPanel { Name = "FxResults", Spacing = 6 };
-        var start = UiKit.Primary("FxStart", "EXECUTAR INSTALADOR");
+        var start = UiKit.Primary("FxStart", "Executar instalador");
         var close = new Button { Name = "FxClose", Content = "Fechar", IsCancel = true, Padding = new Thickness(18, 8) };
         close.Click += (_, _) => { if (running is not null) running.Cancel(); else Close(); };
 
@@ -167,7 +167,7 @@ public sealed class FastExecDialog : Window
             int i = 0;
             foreach (var exe in found.Take(5))
             {
-                var add = new Button { Name = "FxAdd" + i++, Content = "ADICIONAR", FontSize = 11, Padding = new Thickness(12, 5) };
+                var add = new Button { Name = "FxAdd" + i++, Content = "Adicionar", FontSize = 11, Padding = new Thickness(12, 5) };
                 var row = new DockPanel { Children = { add, new TextBlock { Text = Path.GetRelativePath(plan.Destination, exe), FontSize = 12, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis } } };
                 DockPanel.SetDock(add, Dock.Right);
                 add.Click += async (_, _) => { add.IsEnabled = false; add.Content = await addToLibrary(exe) ? "ADICIONADO" : "JÁ ESTAVA"; };

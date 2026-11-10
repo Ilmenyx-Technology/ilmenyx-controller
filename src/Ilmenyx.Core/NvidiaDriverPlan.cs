@@ -248,7 +248,7 @@ public static class NvidiaPlanner
         steps.Add("Conferir no final (dkms status e arquivo do módulo) e pedir para você reiniciar.");
         string title = kind == NvidiaActionKind.Update ? (fromBranch is null ? $"Atualizar o driver NVIDIA {branch}" : $"Atualizar para o ramo {branch}") : $"Instalar o driver NVIDIA {branch}";
         string script = NvidiaScripts.Apt(["install", .. pkgs], NvidiaScripts.GuardInstall(d.RunningKernel), d.RunningKernel, true, d.Hybrid && d.PrimeSelectAvailable, "concluído. Reinicie o computador para usar o driver NVIDIA.");
-        return new NvidiaAction(kind, title, kind == NvidiaActionKind.Update ? "ATUALIZAR" : "INSTALAR", steps, CommonRisks(d, support), script, ["install", .. pkgs], purge, tested);
+        return new NvidiaAction(kind, title, kind == NvidiaActionKind.Update ? "Atualizar" : "Instalar", steps, CommonRisks(d, support), script, ["install", .. pkgs], purge, tested);
     }
 
     private static NvidiaAction UbuntuRepair(NvidiaDiagnosis d, string branch, bool open, bool tested)
@@ -296,12 +296,12 @@ public static class NvidiaPlanner
     {
         string k = d.RunningKernel;
         if (d.Primary!.Generation == NvidiaGeneration.Kepler)
-            return new NvidiaAction(NvidiaActionKind.Install, "Instalar o driver NVIDIA (Debian)", "INSTALAR", ["Debian: o driver legado 470 tem pacotes próprios (nvidia-tesla-470-driver) que mudam entre versões do Debian."], [], "", null, [], false,
+            return new NvidiaAction(NvidiaActionKind.Install, "Instalar o driver NVIDIA (Debian)", "Instalar", ["Debian: o driver legado 470 tem pacotes próprios (nvidia-tesla-470-driver) que mudam entre versões do Debian."], [], "", null, [], false,
                 "Debian com placa Kepler: sem plano automático. Veja https://wiki.debian.org/NvidiaGraphicsDrivers.");
         string[] pkgs = ["nvidia-kernel-dkms", "nvidia-driver", "firmware-misc-nonfree", "linux-headers-" + k];
         var steps = new List<string> { "Debian: instala nvidia-driver (a versão que o Debian publica, não necessariamente a 580) com DKMS e os cabeçalhos do kernel em uso.", "Requer os componentes \"contrib non-free non-free-firmware\" habilitados no sources.list; senão a simulação falha e nada é feito." };
         var risks = CommonRisks(d, d.Primary.Support); risks.Insert(0, "NÃO TESTADO: plano documentado para Debian, nunca executado de verdade.");
-        return new NvidiaAction(NvidiaActionKind.Install, "Instalar o driver NVIDIA (Debian)", "INSTALAR", steps, risks,
+        return new NvidiaAction(NvidiaActionKind.Install, "Instalar o driver NVIDIA (Debian)", "Instalar", steps, risks,
             NvidiaScripts.Apt(["install", .. pkgs], NvidiaScripts.GuardInstall(k), k, true, false, "concluído. Reinicie o computador."), ["install", .. pkgs], [], false);
     }
 
@@ -329,7 +329,7 @@ public static class NvidiaPlanner
                     "akmods --force --kernels \"$K\"",
                     "if find \"/lib/modules/$K\" -name 'nvidia.ko*' 2>/dev/null | grep -q .; then echo 'OK: módulo nvidia presente.'; else echo 'ATENÇÃO: módulo nvidia não encontrado.'; exit 4; fi",
                     "echo '== Ilmenyx: concluído. Reinicie o computador.'") + "\n";
-                return new NvidiaAction(NvidiaActionKind.Install, $"Instalar o driver NVIDIA ({akmod}, RPM Fusion)", "INSTALAR",
+                return new NvidiaAction(NvidiaActionKind.Install, $"Instalar o driver NVIDIA ({akmod}, RPM Fusion)", "Instalar",
                     [$"Habilitar o RPM Fusion (free e nonfree) se ainda não estiver.", $"Instalar {akmod} e {cuda} com kernel-devel do kernel em uso ({k}).", "Forçar o akmods a montar o módulo agora e conferir o arquivo do módulo.", turingPlus ? "Placas Turing ou mais novas seguem o ramo atual do RPM Fusion (hoje mais novo que o 580)." : "Os nomes dos pacotes legados do RPM Fusion podem mudar: se o dnf não os achar, nada é instalado."],
                     risks, script, null, [], false);
             }
@@ -337,7 +337,7 @@ public static class NvidiaPlanner
             {
                 string? headers = ArchHeaders(k);
                 if (!turingPlus || headers is null)
-                    return new NvidiaAction(NvidiaActionKind.Install, "Instalar o driver NVIDIA (Arch)", "INSTALAR", [], risks, "", null, [], false,
+                    return new NvidiaAction(NvidiaActionKind.Install, "Instalar o driver NVIDIA (Arch)", "Instalar", [], risks, "", null, [], false,
                         !turingPlus ? $"Arch e derivadas: placas {NvidiaGenerations.Name(gen)} usam o driver {gpu.Support.Branch} do AUR (nvidia-{gpu.Support.Branch}xx-dkms), que o Ilmenyx não instala. Use um assistente do AUR (yay/paru)." : $"Não reconhecemos o pacote de cabeçalhos do kernel {k}. Instale nvidia-open-dkms e os cabeçalhos do seu kernel pelo pacman.");
                 string script = string.Join('\n',
                     "set -eu",
@@ -347,14 +347,14 @@ public static class NvidiaPlanner
                     $"dkms status -k {NvidiaScripts.Quote(k)} || true",
                     $"if find /usr/lib/modules/{NvidiaScripts.Quote(k)} -name 'nvidia.ko*' 2>/dev/null | grep -q .; then echo 'OK: módulo nvidia presente.'; else echo 'ATENÇÃO: módulo nvidia não encontrado.'; exit 4; fi",
                     "echo '== Ilmenyx: concluído. Reinicie o computador.'") + "\n";
-                return new NvidiaAction(NvidiaActionKind.Install, "Instalar o driver NVIDIA (nvidia-open-dkms)", "INSTALAR",
+                return new NvidiaAction(NvidiaActionKind.Install, "Instalar o driver NVIDIA (nvidia-open-dkms)", "Instalar",
                     [$"Instalar nvidia-open-dkms, nvidia-utils e {headers} (cabeçalhos do kernel em uso, {k}).", "O DKMS monta o módulo; conferimos o arquivo no final.", "Placas Turing ou mais novas seguem o ramo atual do Arch (hoje mais novo que o 580)."],
                     risks, script, null, [], false);
             }
             case DistroFamily.OpenSuse:
             {
                 if (!turingPlus)
-                    return new NvidiaAction(NvidiaActionKind.Install, "Instalar o driver NVIDIA (openSUSE)", "INSTALAR", [], risks, "", null, [], false,
+                    return new NvidiaAction(NvidiaActionKind.Install, "Instalar o driver NVIDIA (openSUSE)", "Instalar", [], risks, "", null, [], false,
                         "openSUSE com placa anterior à Turing: os pacotes do ramo legado mudam com o repositório da NVIDIA. Use o YaST (Software → Repositórios → NVIDIA).");
                 string script = string.Join('\n',
                     "set -eu",
@@ -362,7 +362,7 @@ public static class NvidiaPlanner
                     "echo '== Ilmenyx 1/1: zypper install nvidia-open-driver-G06-signed-kmp-default nvidia-video-G06 nvidia-gl-G06 nvidia-compute-utils-G06'",
                     "zypper --non-interactive install --auto-agree-with-licenses nvidia-open-driver-G06-signed-kmp-default nvidia-video-G06 nvidia-gl-G06 nvidia-compute-utils-G06",
                     "echo '== Ilmenyx: concluído. Reinicie o computador.'") + "\n";
-                return new NvidiaAction(NvidiaActionKind.Install, "Instalar o driver NVIDIA (G06 open, openSUSE)", "INSTALAR",
+                return new NvidiaAction(NvidiaActionKind.Install, "Instalar o driver NVIDIA (G06 open, openSUSE)", "Instalar",
                     ["Conferir que o repositório da NVIDIA está configurado (senão, nada é feito).", "Instalar os módulos \"open\" assinados (G06) e o driver de espaço do usuário."], risks, script, null, [], false);
             }
             default: return null;

@@ -412,7 +412,7 @@ public sealed class UiSmokeApp : Application
         if (!Find<TextBlock>(shell, "OverviewValue").Text!.Contains('%')) throw new InvalidOperationException("Overview CPU load not shown.");
         if (Find<TextBlock>(shell, "SideVersion").Text!.Length < 4) throw new InvalidOperationException("Sidebar version missing.");
         await Task.Delay(3500); Capture(shell, "shell-overview.png");
-        var chips = shell.GetVisualDescendants().OfType<Button>().Where(b => b.Content?.ToString() is "Temperatura" or "15 MIN").ToList();
+        var chips = shell.GetVisualDescendants().OfType<Button>().Where(b => b.Content?.ToString() is "Temperatura" or "15 min").ToList();
         foreach (var chip in chips) chip.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await Until(() => Find<TextBlock>(shell, "OverviewValue").Text!.Contains("°C") || Find<TextBlock>(shell, "OverviewValue").Text == "—");
         // CPU power (RAPL): enabled only when this user can read the package counter (e.g. after 'Liberar sensores da CPU'); otherwise disabled.
@@ -611,7 +611,7 @@ public sealed class UiSmokeApp : Application
         host = new Window { Width = 900, Height = 600, Content = new ScrollViewer { Content = page } }; host.Show();
         await Until(() => page.Entries.Count == 2);
         Click(host, "BtnStartupScan");
-        if (host.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "StartupRemove_sysapp.desktop")) throw new InvalidOperationException("System entries must not offer REMOVER.");
+        if (host.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "StartupRemove_sysapp.desktop")) throw new InvalidOperationException("System entries must not offer Remover.");
         // Unknown system entry: the warning dialog comes first; declining keeps it enabled and writes nothing.
         var toggle = Find<CheckBox>(host, "StartupToggle_sysapp.desktop"); toggle.IsChecked = false; toggle.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
@@ -666,8 +666,8 @@ public sealed class UiSmokeApp : Application
         host = new Window { Width = 1100, Height = 800, Content = page }; host.Show();
         await Until(() => page.Games.Count == 1);
         Click(host, "BtnAddExe"); Find<TextBox>(host, "LAddPath").Text = "relative/path"; Click(host, "BtnAddExeConfirm");
-        await Until(() => Find<TextBlock>(host, "LAddStatus").Text!.Contains("PROCURAR"));
-        if (!Find<Button>(host, "BtnAddExeBrowse").IsVisible) throw new InvalidOperationException("The add box must offer a file chooser (PROCURAR…).");
+        await Until(() => Find<TextBlock>(host, "LAddStatus").Text!.Contains("Procurar"));
+        if (!Find<Button>(host, "BtnAddExeBrowse").IsVisible) throw new InvalidOperationException("The add box must offer a file chooser (Procurar…).");
         Find<TextBox>(host, "LAddPath").Text = manual; Click(host, "BtnAddExeConfirm");
         await Until(() => page.Games.Count == 2 && page.Profile is not null && host.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "LTitle" && t.Text == "manualgame"));
         // A Windows game added by hand: named after its folder, Steam ID found by name (fixture search), executable path shown, removable.
@@ -682,7 +682,7 @@ public sealed class UiSmokeApp : Application
         Click(host, "BtnRenameGame");
         await Until(() => Find<TextBlock>(host, "LTitle").Text == "Silksong (teste)" && Ilmenyx.Core.IlmenyxSettings.Load(settingsPath).CustomGames.Any(c => c.Exe == winExe && c.Name == "Silksong (teste)"));
         if (page.Profile!.ProtonGameId != "1234567") throw new InvalidOperationException("Renaming must keep the game's profile.");
-        if (!Find<Button>(host, "BtnRemoveGame").IsVisible) throw new InvalidOperationException("A hand-added game must offer REMOVER.");
+        if (!Find<Button>(host, "BtnRemoveGame").IsVisible) throw new InvalidOperationException("A hand-added game must offer Remover.");
         Click(host, "BtnRemoveGame");
         await Until(() => page.Games.Count == 2 && Ilmenyx.Core.IlmenyxSettings.Load(settingsPath).CustomGames.All(c => c.Exe != winExe));
         if (!File.Exists(winExe)) throw new InvalidOperationException("Removing from the library must never delete the game's files.");
@@ -711,14 +711,14 @@ public sealed class UiSmokeApp : Application
         Find<TextBox>(host, "LHelperPath").Text = "/bin/true -q"; Click(host, "BtnAddHelper");
         await Until(() => Find<StackPanel>(host, "LHelpers").Children.Count == 1);
         Click(host, "BtnPlay");
-        await Until(() => launched == "Steam:100|full" && Find<TextBlock>(host, "LStatus").Text == "stub launched" && Find<Button>(host, "BtnPlay").Content!.ToString() == "JOGAR");
+        await Until(() => launched == "Steam:100|full" && Find<TextBlock>(host, "LStatus").Text == "stub launched" && Find<Button>(host, "BtnPlay").Content!.ToString() == "Jogar");
         if (Ilmenyx.Core.IlmenyxSettings.Load(settingsPath).FpsSessions is not [{ Game: "Game One", AvgFps: 61.5 }]) throw new InvalidOperationException("Measured session returned by the launch was not kept in the settings.");
         host.Close();
         // The real shell page reads the real libraries (Steam, Lutris, Heroic) without launching, writing or closing anything.
         Find<Button>(shell, "Navlauncher").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await Until(() => shell.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "LGameCount" && !t.Text!.StartsWith("Procurando")));
         await Task.Delay(200); Capture(shell, "shell-launcher.png");
-        Console.WriteLine("PASS launcher page: library scan, manual executable validation, Windows game named by folder with Steam ID found and path shown, removal keeps files, Esc/← BIBLIOTECA return to the full library, profile persistence, Steam launch options with backup, helper, stubbed launch; real library read-only");
+        Console.WriteLine("PASS launcher page: library scan, manual executable validation, Windows game named by folder with Steam ID found and path shown, removal keeps files, Esc/← Biblioteca return to the full library, profile persistence, Steam launch options with backup, helper, stubbed launch; real library read-only");
     }
     private sealed class FakeStress : Ilmenyx.Core.IStressEngine
     {
@@ -750,9 +750,9 @@ public sealed class UiSmokeApp : Application
         if (engine.Starts != 0) throw new InvalidOperationException("Declined confirmation still started the load.");
         Click(host, "BtnStress"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
         var d2 = desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible); Click(d2, "ConfirmYes"); await Until(() => !d2.IsVisible);
-        await Until(() => engine.Running && page.StatusText == "Rodando" && Find<Button>(host, "BtnStress").Content!.ToString() == "PARAR");
+        await Until(() => engine.Running && page.StatusText == "Rodando" && Find<Button>(host, "BtnStress").Content!.ToString() == "Parar");
         provider.Temp = 95; await usage.SampleOnceAsync(CancellationToken.None); page.Tick();
-        await Until(() => !engine.Running && page.StatusText == "Abortado" && Find<Button>(host, "BtnStress").Content!.ToString() == "INICIAR");
+        await Until(() => !engine.Running && page.StatusText == "Abortado" && Find<Button>(host, "BtnStress").Content!.ToString() == "Iniciar");
         if (!host.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text?.Contains("ABORTADO: CPU a 95") == true)) throw new InvalidOperationException("Abort reason not logged.");
         // Time limit through the real one-second timer.
         provider.Temp = 60; await usage.SampleOnceAsync(CancellationToken.None); Find<TextBox>(host, "TxtDuration").Text = 0.02.ToString(System.Globalization.CultureInfo.CurrentCulture);
@@ -767,7 +767,7 @@ public sealed class UiSmokeApp : Application
         host.Close();
         await StressGpuAsync(desktop);
         Find<Button>(shell, "Navstress").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        await Until(() => shell.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnStress" && b.Content?.ToString() == "INICIAR"));
+        await Until(() => shell.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnStress" && b.Content?.ToString() == "Iniciar"));
         Console.WriteLine("PASS stress page: invalid limits refused, declined confirmation keeps the load off, CPU temperature abort, timed completion, no-sensor warning; GPU box disabled without an engine, GPU path covered by StressGpuAsync; no real load generated");
     }
     private sealed class FakeGpuStress : Ilmenyx.Core.IGpuStressEngine
@@ -791,7 +791,7 @@ public sealed class UiSmokeApp : Application
         Click(host, "BtnOcCheck"); var dialog = await ConfirmAsync(desktop);
         if (!Find<TextBlock>(dialog, "ConfirmText").Text!.Contains("Fake GPU")) throw new InvalidOperationException("GPU verification must name the adapter.");
         Click(dialog, "ConfirmYes");
-        await Until(() => Find<TextBlock>(host, "OcVerdict").Text == "ESTÁVEL" && Find<Button>(host, "BtnOcCheck").Content!.ToString() == "INICIAR VERIFICAÇÃO");
+        await Until(() => Find<TextBlock>(host, "OcVerdict").Text == "ESTÁVEL" && Find<Button>(host, "BtnOcCheck").Content!.ToString() == "Iniciar verificação");
         if (engine.Starts != 0 || gpu.Starts != 1 || gpu.Stops != 1 || !Find<TextBlock>(host, "OcResult").Text!.Contains("Nota GPU (cena): 480")) throw new InvalidOperationException("GPU-only verification must use only the GPU engine and show its score.");
         host.Close();
         Console.WriteLine("PASS oc GPU: GPU target appears only with a usable GPU engine, GPU-only verification never starts the CPU engine and publishes the GPU score (fake engines)");
@@ -845,11 +845,11 @@ public sealed class UiSmokeApp : Application
         Click(dialog, "ConfirmNo"); await Until(() => !dialog.IsVisible); if (probe.Calls != 0) throw new InvalidOperationException("Declined confirmation still used the network.");
         Click(host, "BtnNetTest"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
         Click(desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible), "ConfirmYes");
-        await Until(() => page.LastResult is not null && Find<StackPanel>(host, "NetCards").Children.Count == 1 && Find<Button>(host, "BtnNetTest").Content!.ToString() == "TESTAR");
+        await Until(() => page.LastResult is not null && Find<StackPanel>(host, "NetCards").Children.Count == 1 && Find<Button>(host, "BtnNetTest").Content!.ToString() == "Testar");
         if (page.LastResult!.VerdictText != "ESTÁVEL") throw new InvalidOperationException("Healthy fake network should be ESTÁVEL.");
         host.Close();
         Find<Button>(shell, "Navnet").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        await Until(() => shell.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnNetTest" && b.Content?.ToString() == "TESTAR"));
+        await Until(() => shell.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnNetTest" && b.Content?.ToString() == "Testar"));
         Console.WriteLine("PASS network page: confirmation lists endpoints, declined test uses no network, fake probe yields the verdict card; real probe never clicked");
     }
     [System.Runtime.Versioning.SupportedOSPlatform("linux")]
@@ -918,18 +918,18 @@ public sealed class UiSmokeApp : Application
         if (!Find<TextBlock>(dialog, "ConfirmText").Text!.Contains("100% da CPU") || !Find<TextBlock>(dialog, "ConfirmText").Text!.Contains("95")) throw new InvalidOperationException("CPU confirmation must state the full load and the temperature limit.");
         Click(dialog, "ConfirmNo"); await Until(() => !dialog.IsVisible); if (cpuCalls != 0) throw new InvalidOperationException("Declined confirmation still ran the CPU test.");
         Click(host, "BtnBench"); Click(await Confirm(), "ConfirmYes");
-        await Until(() => Find<TextBlock>(host, "BenchHeadline").Text!.Contains("pts") && Find<Button>(host, "BtnBench").Content!.ToString() == "INICIAR");
+        await Until(() => Find<TextBlock>(host, "BenchHeadline").Text!.Contains("pts") && Find<Button>(host, "BtnBench").Content!.ToString() == "Iniciar");
         if (cpuCalls != 2 || !Find<TextBlock>(host, "BenchResultText").Text!.Contains("não é comparável") || !Find<TextBlock>(host, "BenchResultText").Text!.Contains("6.0x")) throw new InvalidOperationException("CPU result must show both runs, the ratio and the non-comparability note.");
         if (!Find<Image>(host, "BenchImage").IsVisible) throw new InvalidOperationException("Render image must be shown after the CPU test.");
         // Cancellation publishes no value.
-        hang = true; Chip("BenchModePanel", "SINGLE"); Click(host, "BtnBench"); Click(await Confirm(), "ConfirmYes");
-        await Until(() => Find<Button>(host, "BtnBench").Content!.ToString() == "PARAR");
-        Click(host, "BtnBench"); await Until(() => Find<Button>(host, "BtnBench").Content!.ToString() == "INICIAR");
+        hang = true; Chip("BenchModePanel", "Single"); Click(host, "BtnBench"); Click(await Confirm(), "ConfirmYes");
+        await Until(() => Find<Button>(host, "BtnBench").Content!.ToString() == "Parar");
+        Click(host, "BtnBench"); await Until(() => Find<Button>(host, "BtnBench").Content!.ToString() == "Iniciar");
         if (!Find<TextBlock>(host, "BenchStatus").Text!.Contains("Cancelado") || Find<TextBlock>(host, "BenchHeadline").Text != "—") throw new InvalidOperationException("Stopped test must publish nothing.");
         // Temperature guard cuts a running test.
-        Click(host, "BtnBench"); Click(await Confirm(), "ConfirmYes"); await Until(() => Find<Button>(host, "BtnBench").Content!.ToString() == "PARAR");
+        Click(host, "BtnBench"); Click(await Confirm(), "ConfirmYes"); await Until(() => Find<Button>(host, "BtnBench").Content!.ToString() == "Parar");
         provider.Temp = 99; await usage.SampleOnceAsync(CancellationToken.None); page.Tick();
-        await Until(() => Find<Button>(host, "BtnBench").Content!.ToString() == "INICIAR"); provider.Temp = 60; await usage.SampleOnceAsync(CancellationToken.None);
+        await Until(() => Find<Button>(host, "BtnBench").Content!.ToString() == "Iniciar"); provider.Temp = 60; await usage.SampleOnceAsync(CancellationToken.None);
         if (!Find<TextBlock>(host, "BenchStatus").Text!.Contains("ABORTADO")) throw new InvalidOperationException("Temperature guard must abort and say why.");
         hang = false;
         // Memory.
@@ -944,8 +944,8 @@ public sealed class UiSmokeApp : Application
         Click(host, "BtnBench"); dialog = await Confirm();
         if (!Find<TextBlock>(dialog, "ConfirmText").Text!.Contains("Fake GPU") || !Find<TextBlock>(dialog, "ConfirmText").Text!.Contains("1920×1080")) throw new InvalidOperationException("GPU confirmation must name the adapter and workload.");
         Click(dialog, "ConfirmNo"); await Until(() => !dialog.IsVisible); if (gpuCalls != 0) throw new InvalidOperationException("Declined confirmation ran the GPU scene.");
-        hang = true; Click(host, "BtnBench"); Click(await Confirm(), "ConfirmYes"); await Until(() => Find<Button>(host, "BtnBench").Content!.ToString() == "PARAR");
-        gpuTemp = 99; page.Tick(); await Until(() => Find<Button>(host, "BtnBench").Content!.ToString() == "INICIAR");
+        hang = true; Click(host, "BtnBench"); Click(await Confirm(), "ConfirmYes"); await Until(() => Find<Button>(host, "BtnBench").Content!.ToString() == "Parar");
+        gpuTemp = 99; page.Tick(); await Until(() => Find<Button>(host, "BtnBench").Content!.ToString() == "Iniciar");
         if (!Find<TextBlock>(host, "BenchStatus").Text!.Contains("ABORTADO: GPU a 99")) throw new InvalidOperationException("Discrete GPU temperature must abort the run.");
         gpuTemp = 50; hang = false; Click(host, "BtnBench"); Click(await Confirm(), "ConfirmYes");
         await Until(() => Find<TextBlock>(host, "BenchHeadline").Text == "50 FPS" && gpuCalls == 2);
@@ -962,11 +962,11 @@ public sealed class UiSmokeApp : Application
         // Ray tracing tile (fake engine): enabled after the adapter check, confirmation names adapter/preset/resolution, hot GPU aborts, a run publishes score and reliability.
         await Until(() => Find<Button>(host, "BenchRtTile").IsEnabled);
         Chip("BenchKindPanel", "RAY TRACING"); await Until(() => host.GetVisualDescendants().OfType<StackPanel>().Any(p => p.Name == "BenchRtPreset"));
-        Chip("BenchRtPreset", "NORMAL"); Click(host, "BtnBench"); dialog = await Confirm();
+        Chip("BenchRtPreset", "Normal"); Click(host, "BtnBench"); dialog = await Confirm();
         if (!Find<TextBlock>(dialog, "ConfirmText").Text!.Contains("Fake RT GPU") || !Find<TextBlock>(dialog, "ConfirmText").Text!.Contains("Normal a 2560×1440")) throw new InvalidOperationException("RT confirmation must name the adapter, preset and resolution.");
         Click(dialog, "ConfirmNo"); await Until(() => !dialog.IsVisible); if (rtCalls != 0) throw new InvalidOperationException("Declined confirmation ran the RT test.");
-        hang = true; Click(host, "BtnBench"); Click(await Confirm(), "ConfirmYes"); await Until(() => Find<Button>(host, "BtnBench").Content!.ToString() == "PARAR");
-        gpuTemp = 99; page.Tick(); await Until(() => Find<Button>(host, "BtnBench").Content!.ToString() == "INICIAR");
+        hang = true; Click(host, "BtnBench"); Click(await Confirm(), "ConfirmYes"); await Until(() => Find<Button>(host, "BtnBench").Content!.ToString() == "Parar");
+        gpuTemp = 99; page.Tick(); await Until(() => Find<Button>(host, "BtnBench").Content!.ToString() == "Iniciar");
         if (!Find<TextBlock>(host, "BenchStatus").Text!.Contains("ABORTADO: GPU a 99") || Find<TextBlock>(host, "BenchHeadline").Text != "—") throw new InvalidOperationException("Hot GPU must abort the RT run and publish nothing.");
         gpuTemp = 50; hang = false; Click(host, "BtnBench"); Click(await Confirm(), "ConfirmYes");
         await Until(() => Find<TextBlock>(host, "BenchHeadline").Text == "201 pts" && rtCalls == 2);
@@ -980,7 +980,7 @@ public sealed class UiSmokeApp : Application
         host2.Close();
         host.Close();
         Find<Button>(shell, "Navbench").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        await Until(() => shell.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnBench" && b.Content?.ToString() == "INICIAR"));
+        await Until(() => shell.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnBench" && b.Content?.ToString() == "Iniciar"));
         await Task.Delay(300); Capture(shell, "shell-bench.png");
         Console.WriteLine("PASS bench page: every test needs a visible confirmation, declined/stopped/aborted runs publish nothing, temperature guard cuts the run, ray tracing tile disabled with the reason when unsupported, tmpfs folders refused, results kept in the local history; real load never started");
     }
@@ -1008,11 +1008,11 @@ public sealed class UiSmokeApp : Application
         if (!Find<TextBlock>(dialog, "ConfirmText").Text!.Contains("15 min")) throw new InvalidOperationException("Confirmation must state the duration.");
         Click(dialog, "ConfirmNo"); await Until(() => !dialog.IsVisible); if (engine.Starts != 0) throw new InvalidOperationException("Declined confirmation still started stress.");
         Click(host, "BtnOcCheck"); Click(await ConfirmAsync(desktop), "ConfirmYes");
-        await Until(() => Find<TextBlock>(host, "OcVerdict").Text == "ESTÁVEL" && Find<Button>(host, "BtnOcCheck").Content!.ToString() == "INICIAR VERIFICAÇÃO");
+        await Until(() => Find<TextBlock>(host, "OcVerdict").Text == "ESTÁVEL" && Find<Button>(host, "BtnOcCheck").Content!.ToString() == "Iniciar verificação");
         if (engine.Starts != 1 || engine.Stops != 1 || !Find<TextBlock>(host, "OcResult").Text!.Contains("5,400")) throw new InvalidOperationException("Stable run must start and stop the engine once and show the score.");
         errors = new Ilmenyx.Core.KernelHardwareErrors(1, 0, 0, 0, "mce: fixture", null);
         Click(host, "BtnOcCheck"); Click(await ConfirmAsync(desktop), "ConfirmYes");
-        await Until(() => Find<TextBlock>(host, "OcVerdict").Text == "INSTÁVEL" && Find<Button>(host, "BtnOcCheck").Content!.ToString() == "INICIAR VERIFICAÇÃO");
+        await Until(() => Find<TextBlock>(host, "OcVerdict").Text == "INSTÁVEL" && Find<Button>(host, "BtnOcCheck").Content!.ToString() == "Iniciar verificação");
         if (!Find<TextBlock>(host, "OcVerdictWhy").Text!.Contains("MCE")) throw new InvalidOperationException("Kernel errors must explain the unstable verdict.");
         if (IlmenyxSettings.Load(Path.Combine(root, "cfg/settings.json")).BenchRuns.Count(r => r.Kind == "OC") != 2) throw new InvalidOperationException("Both verdicts must be kept in the local history.");
         host.Close();
@@ -1069,15 +1069,15 @@ public sealed class UiSmokeApp : Application
         await Until(() => !page.SavePending && page.SaveCount >= 1 && File.Exists(config) && Find<TextBlock>(host, "OvSaved").Opacity > 0.5);
         if (page.SaveCount != 1) throw new InvalidOperationException($"Quick successive changes must be written once (debounced), got {page.SaveCount} saves.");
         if (IlmenyxSettings.Load(settingsPath).OverlayItems is not { } saved || !saved.SequenceEqual(["fps", "frametime", "low1"])) throw new InvalidOperationException("Selection must be persisted.");
-        Click(host, "BtnOverlayToggle"); await Until(() => desktop.Windows.OfType<OverlayWindow>().Any(w => w.IsVisible) && Find<Button>(host, "BtnOverlayToggle").Content!.ToString() == "OCULTAR OVERLAY");
+        Click(host, "BtnOverlayToggle"); await Until(() => desktop.Windows.OfType<OverlayWindow>().Any(w => w.IsVisible) && Find<Button>(host, "BtnOverlayToggle").Content!.ToString() == "Ocultar overlay");
         var overlay = desktop.Windows.OfType<OverlayWindow>().Single(w => w.IsVisible);
         await Until(() => overlay.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text!.StartsWith("144 FPS")));
-        Click(host, "BtnOverlayToggle"); await Until(() => !overlay.IsVisible && Find<Button>(host, "BtnOverlayToggle").Content!.ToString() == "MOSTRAR OVERLAY");
+        Click(host, "BtnOverlayToggle"); await Until(() => !overlay.IsVisible && Find<Button>(host, "BtnOverlayToggle").Content!.ToString() == "Mostrar overlay");
         string text = File.ReadAllText(config);
         if (!text.Contains("position=top-left") || !text.Contains("fps_metrics=avg,0.01") || !text.Contains($"output_folder={logs}") || !Find<TextBox>(host, "OvLaunchOption").Text!.EndsWith("mangohud %command%")) throw new InvalidOperationException("Generated MangoHud config and launch option must follow the selection.");
         if (File.GetUnixFileMode(config) != (UnixFileMode.UserRead | UnixFileMode.UserWrite)) throw new InvalidOperationException("Config must be user-only.");
         // Corner change: saved by itself into the same file, without any button.
-        Find<StackPanel>(host, "OvCornerPanel").Children.OfType<Button>().Single(b => b.Content?.ToString() == "INFERIOR DIR.").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Find<StackPanel>(host, "OvCornerPanel").Children.OfType<Button>().Single(b => b.Content?.ToString() == "Inferior dir.").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await Until(() => !page.SavePending && page.SaveCount == 2 && File.ReadAllText(config).Contains("position=bottom-right"));
         if (IlmenyxSettings.Load(settingsPath).OverlayCorner != "bottom-right") throw new InvalidOperationException("Corner must be persisted automatically.");
         await Task.Delay(200); Capture(host, "overlay-autosave.png");
@@ -1127,7 +1127,7 @@ public sealed class UiSmokeApp : Application
         await page.TickAsync(); await Task.Delay(60); await page.TickAsync();
         await Until(() => server.Snapshot().Any(p => p.Type == 1050));
         var fxPanel = host.GetVisualDescendants().OfType<StackPanel>().Single(p => p.Name == "LightFxPanel");
-        fxPanel.Children.OfType<Button>().Single(b => b.Content!.ToString() == "APAGAR").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        fxPanel.Children.OfType<Button>().Single(b => b.Content!.ToString() == "Apagar").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await Task.Delay(60); await page.TickAsync();
         await Until(() => server.Snapshot().Where(p => p.Type == 1050).Any(p => p.Payload[6..].All(x => x == 0)));
         Click(host, "BtnLightRun"); await Until(() => !page.IsControlling && server.Snapshot().Count(p => p.Type == 1101) == 2);
@@ -2076,7 +2076,7 @@ public sealed class UiSmokeApp : Application
         if (!Find<TextBlock>(host, "StartupAdvice_blueman.desktop").Text!.StartsWith("Pode desativar se não usa Bluetooth")) throw new InvalidOperationException("Optional advice missing.");
         if (Find<TextBlock>(host, "StartupAdvice_vendor-tray.desktop").Text != "Desconhecido: pesquise antes de desativar.") throw new InvalidOperationException("Unknown advice missing.");
         if (!Find<TextBlock>(host, "StartupAdvice_steam.desktop").Text!.StartsWith("Do usuário")) throw new InvalidOperationException("User advice missing.");
-        if (host.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "StartupRemove_vendor-tray.desktop" || b.Name == "StartupRemove_cinnamon-settings-daemon-power.desktop")) throw new InvalidOperationException("System entries must not offer REMOVER.");
+        if (host.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "StartupRemove_vendor-tray.desktop" || b.Name == "StartupRemove_cinnamon-settings-daemon-power.desktop")) throw new InvalidOperationException("System entries must not offer Remover.");
         var power = Find<CheckBox>(host, "StartupToggle_cinnamon-settings-daemon-power.desktop"); power.IsChecked = false; power.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
         var warn = desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible);
@@ -2170,7 +2170,7 @@ public sealed class UiSmokeApp : Application
         // 1. Not calibrated: warning at the top, primary button, every estimate greyed and labelled provisional.
         var page = await Open(FakeCalibrator(() => 50), () => ctx);
         if (page.Gate != Ilmenyx.Core.FpsGate.Uncalibrated || !Find<TextBlock>(host!, "FpsGateTitle").Text!.StartsWith("As estimativas ainda não são confiáveis", StringComparison.Ordinal)) throw new InvalidOperationException("Uncalibrated gate must warn at the top.");
-        if (Find<Button>(host!, "BtnFpsCalibrate").Content?.ToString() != "CALIBRAR AGORA (≈1 min)" || !Find<Button>(host!, "BtnFpsCalibrate").IsEffectivelyVisible) throw new InvalidOperationException("CALIBRAR AGORA button missing.");
+        if (Find<Button>(host!, "BtnFpsCalibrate").Content?.ToString() != "Calibrar agora (≈1 min)" || !Find<Button>(host!, "BtnFpsCalibrate").IsEffectivelyVisible) throw new InvalidOperationException("Calibrar agora button missing.");
         if (page.Rows.Where(r => !r.IsMeasured).Any(r => !r.IsProvisional) || Basis("League of Legends").Text != "provisório — calibre o PC") throw new InvalidOperationException("Estimates must be provisional before calibration.");
         await Task.Delay(300); Capture(host!, "fps-gate-uncalibrated.png");
         // 2. Too hot already: refused before any load. 3. Hot during the run: aborted at 90 °C, nothing saved.
@@ -2215,7 +2215,7 @@ public sealed class UiSmokeApp : Application
         await Task.Delay(300); Capture(host!, "fps-gate-specs-light.png");
         host!.Close();
         if (Palette.IsLight != light0) { Click(shell, "ToggleTheme"); await Until(() => Palette.IsLight == light0); }
-        Console.WriteLine("PASS fps calibration gate: provisional greyed cards + CALIBRAR AGORA before calibration, hot PC refused, 90 °C abort saves nothing, fake calibration saved with driver fingerprint, basis per card, personal factor from 3 sessions at the same preset, LoL Baixo ≥ 100, stale after driver change, spec fallback for unknown GPU");
+        Console.WriteLine("PASS fps calibration gate: provisional greyed cards + Calibrar agora before calibration, hot PC refused, 90 °C abort saves nothing, fake calibration saved with driver fingerprint, basis per card, personal factor from 3 sessions at the same preset, LoL Baixo ≥ 100, stale after driver change, spec fallback for unknown GPU");
     }
 
     /// <summary>"Jogo não abre?" checklist and the ZRAM card of Otimiza (2026-11-08). Real pages are only read and captured; every click that would
@@ -2362,7 +2362,7 @@ public sealed class UiSmokeApp : Application
         await Until(() => File.Exists(cache.ConfigPath));
         Click(host, "BtnTweaksRestore"); await Until(() => !File.Exists(cache.ConfigPath) && Find<TextBlock>(host, "OptResult").Text!.Contains("cache de shaders"));
         host.Close();
-        Console.WriteLine("PASS shader cache: off by default with measured cache size, explained confirmation (next login, disk, no driver switch), declined = no file, user environment.d file written, toggle off and RESTAURAR ORIGINAIS delete it (fixture home)");
+        Console.WriteLine("PASS shader cache: off by default with measured cache size, explained confirmation (next login, disk, no driver switch), declined = no file, user environment.d file written, toggle off and Restaurar originais delete it (fixture home)");
 
         // 2) Instalar apps: gaming apps with license/caveats; the Gamescope layer follows the Steam Flatpak runtime branch; link-only items open a page.
         var calls = new List<string>(); var opened = new List<string>();

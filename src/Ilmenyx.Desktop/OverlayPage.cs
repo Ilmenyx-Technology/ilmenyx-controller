@@ -28,7 +28,7 @@ public sealed class OverlayPage : StackPanel
     private readonly StackPanel items = new() { Name = "OvItemsPanel", Spacing = 2 };
     private readonly TextBlock preview = new() { Name = "OverlayPreview", FontFamily = IlmenyxTheme.Mono, FontSize = 12, TextWrapping = TextWrapping.Wrap, Foreground = Palette.Fg };
     private readonly Border previewBox = new() { Background = Palette.Glass, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.ControlRadius), Padding = new Thickness(10, 8), Margin = new Thickness(12), MaxWidth = 260 };
-    private readonly Button toggle = UiKit.Primary("BtnOverlayToggle", "MOSTRAR OVERLAY", 22, 11);
+    private readonly Button toggle = UiKit.Primary("BtnOverlayToggle", "Mostrar overlay", 22, 11);
     private readonly TextBlock mangoState = new() { Name = "MangoState", TextWrapping = TextWrapping.Wrap, Foreground = Palette.Muted };
     private readonly TextBox launch = new() { Name = "OvLaunchOption", IsReadOnly = true, TextWrapping = TextWrapping.Wrap, FontFamily = IlmenyxTheme.Mono };
     private readonly TextBlock saved = new() { Name = "OvSaved", Text = "✓ Salvo", FontSize = 12, FontWeight = FontWeight.SemiBold, Foreground = Palette.Success, Opacity = 0, VerticalAlignment = VerticalAlignment.Center };
@@ -60,7 +60,7 @@ public sealed class OverlayPage : StackPanel
             var b = new Button { Name = name, Content = text, FontSize = 11, Padding = new Thickness(13, 5), Margin = new Thickness(6, 0, 0, 0), CornerRadius = new CornerRadius(IlmenyxTheme.Pill), Background = Palette.Card, Foreground = Palette.Muted, BorderBrush = Palette.Line, BorderThickness = new Thickness(1) };
             b.Click += (_, _) => { show = keys(); Changed(); BuildItems(); }; return b;
         }
-        corners = new("OvCornerPanel", [("SUPERIOR ESQ.", "top-left"), ("SUPERIOR DIR.", "top-right"), ("INFERIOR ESQ.", "bottom-left"), ("INFERIOR DIR.", "bottom-right")], settings.OverlayCorner, c => { settings.OverlayCorner = c; Changed(); });
+        corners = new("OvCornerPanel", [("Superior esq.", "top-left"), ("Superior dir.", "top-right"), ("Inferior esq.", "bottom-left"), ("Inferior dir.", "bottom-right")], settings.OverlayCorner, c => { settings.OverlayCorner = c; Changed(); });
         scales = new("OvScalePanel", [("80%", 0.8), ("100%", 1.0), ("125%", 1.25), ("150%", 1.5)], NearestScale(settings.OverlayScale), v => { settings.OverlayScale = v; Changed(); });
         toggle.Click += (_, _) => ToggleWindow();
 
@@ -78,7 +78,7 @@ public sealed class OverlayPage : StackPanel
         Children.Add(BenchPage.Themed(UiKit.Hero(heroGrid, height: double.NaN, name: "OverlayHero")));
         Children.Add(new TextBlock { Text = "É uma janela comum do Ilmenyx, sem injeção em jogos. Se fica acima de um jogo em tela cheia, e se os cliques passam por ela, depende do gerenciador de janelas (no Wayland o compositor decide). Para o jogo, use o MangoHud abaixo. FPS só aparece para jogos iniciados com a configuração do MangoHud do Ilmenyx (abaixo).", FontSize = 11, Foreground = Palette.Faint, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(2, 10, 2, 0) });
 
-        var presets = new StackPanel { Orientation = Orientation.Horizontal, Children = { Preset("OvPresetDefault", "PADRÃO", OverlayMetrics.Defaults), Preset("OvPresetMin", "MÍNIMO", OverlayMetrics.Minimal), Preset("OvPresetAll", "TUDO", OverlayMetrics.Everything) } };
+        var presets = new StackPanel { Orientation = Orientation.Horizontal, Children = { Preset("OvPresetDefault", "Padrão", OverlayMetrics.Defaults), Preset("OvPresetMin", "Mínimo", OverlayMetrics.Minimal), Preset("OvPresetAll", "Tudo", OverlayMetrics.Everything) } };
         Children.Add(UiKit.SectionHeader("O que mostrar", presets));
         Children.Add(UiKit.Card(items));
         Children.Add(UiKit.SectionHeader("Posição e tamanho", saved));
@@ -186,10 +186,10 @@ public sealed class OverlayPage : StackPanel
 
     private void ToggleWindow()
     {
-        if (window is { IsVisible: true }) { window.Close(); window = null; toggle.Content = "MOSTRAR OVERLAY"; return; }
+        if (window is { IsVisible: true }) { window.Close(); window = null; toggle.Content = "Mostrar overlay"; return; }
         window = new OverlayWindow { Corner = settings.OverlayCorner }; window.SetScale(settings.OverlayScale);
-        window.Closed += (_, _) => { window = null; toggle.Content = "MOSTRAR OVERLAY"; };
-        window.Show(); toggle.Content = "OCULTAR OVERLAY"; _ = TickAsync();
+        window.Closed += (_, _) => { window = null; toggle.Content = "Mostrar overlay"; };
+        window.Show(); toggle.Content = "Ocultar overlay"; _ = TickAsync();
     }
 
     public async Task TickAsync()

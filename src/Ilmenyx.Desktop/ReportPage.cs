@@ -16,7 +16,7 @@ public sealed class ReportPage : StackPanel
     private readonly Func<CancellationToken, Task<ReportData>> gather;
     private readonly Func<string, Task<string?>> destination;
     private readonly CancellationToken lifetime;
-    private readonly Button html = UiKit.Primary("BtnReportHtml", "EXPORTAR HTML", 22, 11), json = new() { Name = "BtnReportJson", Content = "EXPORTAR JSON", Padding = new Thickness(22, 11) };
+    private readonly Button html = UiKit.Primary("BtnReportHtml", "Exportar HTML", 22, 11), json = new() { Name = "BtnReportJson", Content = "Exportar JSON", Padding = new Thickness(22, 11) };
     private readonly TextBlock status = new() { Name = "ReportStatus", TextWrapping = TextWrapping.Wrap, Foreground = Palette.Muted, FontSize = 12.5 };
     private bool busy;
     public ReportData? LastData { get; private set; }

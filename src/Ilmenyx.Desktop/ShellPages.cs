@@ -164,7 +164,7 @@ public sealed partial class ShellWindow
         return new OcServices(new StressTester(), () => usage.Last is { MemoryTotal: > 0, MemoryUsed: { } u } l ? l.MemoryTotal!.Value - u : LinuxMemoryInfo.AvailableBytes(),
             async ct => (await new Ilmenyx.Core.Benchmarks.CpuBenchmarkRunner().RunAsync(new Ilmenyx.Contracts.CpuBenchmarkOptions { Profile = Ilmenyx.Contracts.CpuWorkloadProfile.Full, Threads = Environment.ProcessorCount, AllowCpuLoad = true, Timeout = TimeSpan.FromMinutes(5) }, ct)).Result.ExperimentalScore,
             (since, ct) => kernel.ErrorsSinceAsync(since, ct), () => LinuxKernelLog.Board(), LinuxKernelLog.NvidiaStateAsync, () => usage.Last?.CpuModel ?? "",
-            gpu, async ct => (await new Ilmenyx.Gpu.Vulkan.GpuScene().RunAsync(new Ilmenyx.Gpu.Vulkan.GpuSceneOptions(0, 1920, 1080, TimeSpan.FromSeconds(30), 4096, 40_000, true), ct)).Score, GpuTemperatureCache());
+            gpu, async ct => (await new Ilmenyx.Gpu.Vulkan.GpuScene().RunAsync(new Ilmenyx.Gpu.Vulkan.GpuSceneOptions(0, 1920, 1080, TimeSpan.FromSeconds(30), 4096, 40_000, true), ct)).Score, GpuTemperatureCache(), () => LinuxKernelLog.IsNotebook());
     }
 
     private static Border CardBox(Control child, Thickness? padding = null) => new()
@@ -218,7 +218,7 @@ public sealed partial class ShellWindow
                 : watts ? (usage.Last?.CpuPowerW is { } w ? w.ToString("0.0", CultureInfo.InvariantCulture) + " W" : "—") : UsageViewModel.Pct(usage.Last?.CpuPercent);
         }
         usage.Updated += Refresh;
-        var ranges = Chips("DashRange", [("1 MIN", 60), ("5 MIN", 300), ("15 MIN", 900)], 300, v => { range = v; Refresh(); });
+        var ranges = Chips("DashRange", [("1 min", 60), ("5 min", 300), ("15 min", 900)], 300, v => { range = v; Refresh(); });
         var metrics = Chips("DashMetric", [("Temperatura", "temp"), ("Carga", "load")], "load", v => { metric = v; Refresh(); });
         // CPU power (RAPL): enabled once a sample arrives; otherwise the tooltip says why (absent counter or root-only file).
         var power = new Button { Name = "DashMetricPower", Content = "Consumo", FontSize = 11, Padding = new Thickness(13, 5), CornerRadius = new CornerRadius(IlmenyxTheme.Pill), IsEnabled = false, BorderBrush = Palette.Line, BorderThickness = new Thickness(1) };
@@ -234,7 +234,7 @@ public sealed partial class ShellWindow
         var chartCard = CardBox(new StackPanel { Children = { top, chips, chart, legend } }, new Thickness(22, 18));
 
         // Featured row (reference composition): a cinematic hero of this PC and, beside it, the performance highlight card with two small tiles.
-        var open = UiKit.Translucent("OpenBench", "ABRIR BENCHMARK");
+        var open = UiKit.Translucent("OpenBench", "Abrir Benchmark");
         open.Click += (_, _) => Select("bench");
         var openValidations = new Button { Name = "OpenValidations", Content = "Validações reduzidas", Background = Brushes.Transparent, Foreground = Palette.Fg, FontSize = 12, Padding = new Thickness(10, 8) };
         openValidations.Click += (_, _) => Select("validate");
@@ -404,7 +404,7 @@ public sealed partial class ShellWindow
         // Health checklist, recent events and occupancy rings.
         var healthList = new StackPanel { Name = "OverviewHealth", Spacing = 6 };
         var healthStatus = new TextBlock { Name = "OverviewHealthStatus", FontSize = 11, Foreground = Palette.Faint };
-        var refreshHealth = new Button { Name = "BtnHealthRefresh", Content = "VERIFICAR AGORA", Padding = new Thickness(12, 4), FontSize = 11 };
+        var refreshHealth = new Button { Name = "BtnHealthRefresh", Content = "Verificar agora", Padding = new Thickness(12, 4), FontSize = 11 };
         refreshHealth.Click += async (_, _) => await RefreshHealthAsync();
         var eventsList = new StackPanel { Name = "OverviewEvents", Spacing = 4 };
         var rings = new WrapPanel { Name = "OverviewRings" };
@@ -544,7 +544,7 @@ public sealed partial class ShellWindow
         {
             var g = grants[i];
             var status = new TextBlock { Name = "GrantStatus" + i, FontSize = 12, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center };
-            var undo = new Button { Name = "GrantUndo" + i, Content = "DESFAZER", FontSize = 12, Padding = new Thickness(14, 7), IsEnabled = PrivilegedFix.Available };
+            var undo = new Button { Name = "GrantUndo" + i, Content = "Desfazer", FontSize = 12, Padding = new Thickness(14, 7), IsEnabled = PrivilegedFix.Available };
             if (!PrivilegedFix.Available) status.Text = "O pedido de senha do sistema (pkexec/polkit) não está instalado.";
             undo.Click += async (_, _) =>
             {

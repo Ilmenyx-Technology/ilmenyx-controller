@@ -33,7 +33,7 @@ public class BlockedFeaturesTests : IDisposable
         Assert.Equal(BlockedState.TestAvailable, BlockedCatalog.All.Single(f => f.Id == "rt-bench").State(None with { RayTracingGpu = true }));
         Assert.Equal(BlockedState.Blocked, BlockedCatalog.All.Single(f => f.Id == "gpu-amd").State(None with { RayTracingGpu = true }));
         Assert.Equal(1, BlockedCatalog.AvailableCount(None with { AmdGpu = true, AmdDedicatedGpu = true }));
-        Assert.Equal(BlockedState.TestAvailable, BlockedCatalog.All.Single(f => f.Id == "game-fps").State(None with { GameLibrary = true }));
+        Assert.DoesNotContain(BlockedCatalog.All, f => f.Id == "game-fps"); // validated with SuperTuxKart on 2026-11-10: see docs/bloqueados-removidos.md
     }
 
     [Fact]

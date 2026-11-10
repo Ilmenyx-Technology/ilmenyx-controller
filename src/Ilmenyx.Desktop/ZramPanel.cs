@@ -29,7 +29,7 @@ public sealed class ZramPanel : StackPanel
     private readonly TextBlock result = new() { Name = "ZramResult", FontSize = 12, TextWrapping = TextWrapping.Wrap, IsVisible = false };
     private readonly SelectableTextBlock log = new() { Name = "ZramLog", FontFamily = IlmenyxTheme.Mono, FontSize = 11, TextWrapping = TextWrapping.Wrap, Foreground = Palette.Muted };
     private readonly ScrollViewer logScroll;
-    private readonly Button refresh = new() { Name = "BtnZramRefresh", Content = "VERIFICAR", Padding = new Thickness(10, 4), FontSize = 11, HorizontalAlignment = HorizontalAlignment.Right };
+    private readonly Button refresh = new() { Name = "BtnZramRefresh", Content = "Verificar", Padding = new Thickness(10, 4), FontSize = 11, HorizontalAlignment = HorizontalAlignment.Right };
     private bool busy;
     public ZramPlan? Plan { get; private set; }
 
@@ -76,8 +76,8 @@ public sealed class ZramPanel : StackPanel
             scripts.Children.Add(new SelectableTextBlock { Name = "ZramScript" + a.Kind, Text = a.Script, FontFamily = IlmenyxTheme.Mono, FontSize = 11, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap });
         }
         scripts.IsVisible = false;
-        var show = new Button { Name = "BtnZramScript", Content = "VER O SCRIPT", FontSize = 11.5, Background = Brushes.Transparent, Foreground = Palette.AccentText };
-        show.Click += (_, _) => { scripts.IsVisible = !scripts.IsVisible; show.Content = scripts.IsVisible ? "ESCONDER O SCRIPT" : "VER O SCRIPT"; };
+        var show = new Button { Name = "BtnZramScript", Content = "Ver o script", FontSize = 11.5, Background = Brushes.Transparent, Foreground = Palette.AccentText };
+        show.Click += (_, _) => { scripts.IsVisible = !scripts.IsVisible; show.Content = scripts.IsVisible ? "Esconder o script" : "Ver o script"; };
         row.Children.Add(show);
         if (plan.Actions.Any(a => !a.Tested)) row.Children.Add(UiKit.Tag("NÃO TESTADO", Palette.Warn));
         actions.Children.Add(row); actions.Children.Add(scripts);
@@ -93,7 +93,7 @@ public sealed class ZramPanel : StackPanel
     {
         if (busy || services.RunPrivileged is not { } runner || owner() is not { } window) return;
         string message = string.Join("\n", a.Steps.Select(s => "• " + s)) + (a.Risks.Count > 0 ? "\n\nRiscos:\n" + string.Join("\n", a.Risks.Select(r => "! " + r)) : "") +
-            "\n\nO sistema vai pedir a sua senha (o Ilmenyx não a vê). O script exato está em \"VER O SCRIPT\"." + (a.Tested ? "" : "\n\nNÃO TESTADO nesta distribuição.");
+            "\n\nO sistema vai pedir a sua senha (o Ilmenyx não a vê). O script exato está em \"Ver o script\"." + (a.Tested ? "" : "\n\nNÃO TESTADO nesta distribuição.");
         if (!await ConfirmDialog.AskAsync(window, a.Title + "?", message, a.Button, "Cancelar")) { result.Text = "Cancelado: nada foi feito."; result.Foreground = Palette.Muted; result.IsVisible = true; return; }
         busy = true; refresh.IsEnabled = false;
         foreach (var b in actions.GetLogicalDescendantsOfType()) b.IsEnabled = false;

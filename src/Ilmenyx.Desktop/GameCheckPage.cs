@@ -26,7 +26,7 @@ public sealed class GameCheckPage : StackPanel
     private readonly GameCheckServices services;
     private readonly Func<Window?> owner;
     private readonly CancellationToken lifetime;
-    private readonly TextBlock status = new() { Name = "GcStatus", Text = "Clique em VERIFICAR.", Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 10) };
+    private readonly TextBlock status = new() { Name = "GcStatus", Text = "Clique em Verificar.", Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 10) };
     private readonly TextBlock summary = new() { Name = "GcSummary", FontSize = 15, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap };
     private readonly TextBlock distro = new() { Name = "GcDistro", FontSize = 12, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap };
     private readonly StackPanel list = new() { Name = "GcList", Spacing = 12 };
@@ -37,7 +37,7 @@ public sealed class GameCheckPage : StackPanel
     public GameCheckPage(GameCheckServices services, Func<Window?> owner, CancellationToken lifetime)
     {
         this.services = services; this.owner = owner; this.lifetime = lifetime;
-        scan = UiKit.Primary("BtnGcScan", "VERIFICAR");
+        scan = UiKit.Primary("BtnGcScan", "Verificar");
         scan.Click += async (_, _) => await RefreshAsync();
         Children.Add(UiKit.PageHeader("Por que o jogo não abre?", "Confere, sem mudar nada, os motivos mais comuns para a Steam, o Proton, o Flatpak ou um jogo não abrirem neste Linux. Cada item explica o que foi achado e mostra o comando exato.", scan));
         Children.Add(status);
@@ -90,7 +90,7 @@ public sealed class GameCheckPage : StackPanel
                 AddFix(actions, fixStatus, c, c.Fixes[i], i);
         if (c.LinkPage is { } page && services.OpenPage is { } open)
         {
-            var link = new Button { Name = "GcLink_" + c.Id, Content = c.LinkLabel ?? "ABRIR", FontSize = 12, Padding = new Thickness(14, 7) };
+            var link = new Button { Name = "GcLink_" + c.Id, Content = c.LinkLabel ?? "Abrir", FontSize = 12, Padding = new Thickness(14, 7) };
             link.Click += (_, _) => open(page);
             actions.Children.Add(link);
         }
@@ -105,7 +105,7 @@ public sealed class GameCheckPage : StackPanel
             {
                 var box = new TextBox { Name = $"GcCmd_{c.Id}_{k}", Text = command, IsReadOnly = true, TextWrapping = TextWrapping.Wrap, FontFamily = IlmenyxTheme.Mono, FontSize = 11.5 };
                 AutomationProperties.SetName(box, label);
-                var copy = new Button { Name = $"GcCopy_{c.Id}_{k}", Content = "COPIAR", FontSize = 11, Padding = new Thickness(10, 4), VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(8, 0, 0, 0) };
+                var copy = new Button { Name = $"GcCopy_{c.Id}_{k}", Content = "Copiar", FontSize = 11, Padding = new Thickness(10, 4), VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(8, 0, 0, 0) };
                 AutomationProperties.SetName(copy, "Copiar: " + label);
                 string text = command;
                 copy.Click += async (_, _) => { if (TopLevel.GetTopLevel(this)?.Clipboard is { } cb) { await cb.SetTextAsync(text); fixStatus.Text = "Comando copiado. Cole no terminal e confira antes de executar."; fixStatus.Foreground = Palette.Muted; fixStatus.IsVisible = true; } };
@@ -113,8 +113,8 @@ public sealed class GameCheckPage : StackPanel
                 commands.Children.Add(new StackPanel { Spacing = 3, Children = { new TextBlock { Text = label, FontSize = 11.5, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap }, row } });
                 k++;
             }
-            var toggle = new Button { Name = "GcShowCommands_" + c.Id, Content = commands.IsVisible ? "ESCONDER COMANDOS" : "VER COMANDOS", FontSize = 11.5, Background = Brushes.Transparent, Foreground = Palette.AccentText, Padding = new Thickness(0, 4), HorizontalAlignment = HorizontalAlignment.Left };
-            toggle.Click += (_, _) => { commands.IsVisible = !commands.IsVisible; toggle.Content = commands.IsVisible ? "ESCONDER COMANDOS" : "VER COMANDOS"; };
+            var toggle = new Button { Name = "GcShowCommands_" + c.Id, Content = commands.IsVisible ? "Esconder comandos" : "Ver comandos", FontSize = 11.5, Background = Brushes.Transparent, Foreground = Palette.AccentText, Padding = new Thickness(0, 4), HorizontalAlignment = HorizontalAlignment.Left };
+            toggle.Click += (_, _) => { commands.IsVisible = !commands.IsVisible; toggle.Content = commands.IsVisible ? "Esconder comandos" : "Ver comandos"; };
             body.Children.Add(toggle);
             body.Children.Add(commands);
         }
@@ -126,14 +126,14 @@ public sealed class GameCheckPage : StackPanel
     private void AddFix(WrapPanel actions, TextBlock fixStatus, GameCheck c, UserFix fix, int index)
     {
         var apply = UiKit.Primary($"GcFix_{c.Id}_{index}", fix.Button);
-        var undo = new Button { Name = $"GcUndo_{c.Id}_{index}", Content = fix.UndoButton ?? "DESFAZER", FontSize = 12, Padding = new Thickness(14, 7), IsVisible = false };
+        var undo = new Button { Name = $"GcUndo_{c.Id}_{index}", Content = fix.UndoButton ?? "Desfazer", FontSize = 12, Padding = new Thickness(14, 7), IsVisible = false };
         apply.Click += async (_, _) =>
         {
             if (owner() is not { } window || services.RunUserFix is not { } runner) return;
             if (!await ConfirmDialog.AskAsync(window, c.Title, fix.Confirm, "Continuar", "Cancelar")) { fixStatus.Text = "Cancelado: nada foi feito."; fixStatus.Foreground = Palette.Muted; fixStatus.IsVisible = true; return; }
             apply.IsEnabled = false; fixStatus.Text = "Aplicando…"; fixStatus.IsVisible = true;
             var (ok, message) = await runner(fix.Arguments, lifetime);
-            fixStatus.Text = ok ? "Pronto. Clique em VERIFICAR para conferir." + (c.Id == "steamdrives" ? " Feche e abra a Steam." : "") : message;
+            fixStatus.Text = ok ? "Pronto. Clique em Verificar para conferir." + (c.Id == "steamdrives" ? " Feche e abra a Steam." : "") : message;
             fixStatus.Foreground = ok ? Palette.Success : Palette.Warn;
             apply.IsEnabled = !ok; undo.IsVisible = ok && fix.UndoArguments is not null;
         };

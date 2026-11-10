@@ -37,7 +37,7 @@ public sealed class BottleneckPage : StackPanel
     private readonly TextBlock liveAdvice = new() { Name = "BnLiveAdvice", TextWrapping = TextWrapping.Wrap, Foreground = Palette.Muted, FontSize = 13, MaxWidth = 620, HorizontalAlignment = HorizontalAlignment.Left, MaxLines = 3, TextTrimming = TextTrimming.CharacterEllipsis };
     private readonly TextBlock sessionStatus = new() { Name = "BnSessionStatus", Foreground = Palette.Muted, Margin = new Thickness(0, 14, 0, 0), TextWrapping = TextWrapping.Wrap };
     private readonly StackPanel result = new() { Name = "BnResult", IsVisible = false, Margin = new Thickness(0, 16, 0, 0) };
-    private readonly Button start = UiKit.Primary("BtnBnSession", "INICIAR ANÁLISE", 18, 9);
+    private readonly Button start = UiKit.Primary("BtnBnSession", "Iniciar análise", 18, 9);
     public BottleneckSession? Session => session;
     public Limiter? LiveLimiter { get; private set; }
 
@@ -209,14 +209,14 @@ public sealed class BottleneckPage : StackPanel
 
     public void StartSession(TimeSpan duration)
     {
-        session = new BottleneckSession(duration); result.IsVisible = false; start.Content = "PARAR ANÁLISE";
+        session = new BottleneckSession(duration); result.IsVisible = false; start.Content = "Parar análise";
         sessionStatus.Text = "Análise iniciada. Abra o jogo e jogue normalmente."; StartPolling();
     }
 
     private void Finish()
     {
         if (session is not { } s) return;
-        start.Content = "INICIAR ANÁLISE";
+        start.Content = "Iniciar análise";
         if (s.Count == 0 || s.Main is not { } main) { sessionStatus.Text = "Nenhuma amostra coletada."; session = null; return; }
         result.Children.Clear();
         var caption = UiKit.Label("DIAGNÓSTICO DA SESSÃO"); caption.Foreground = Palette.Muted; result.Children.Add(caption);

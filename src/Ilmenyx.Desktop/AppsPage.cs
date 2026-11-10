@@ -22,8 +22,8 @@ public sealed class AppsPage : StackPanel
     private readonly List<InstallableApp> apps = AppCatalog.Default();
     private readonly StackPanel list = new() { Name = "AppsList" };
     private readonly TextBlock status = new() { Name = "AppsStatus", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 16) };
-    private readonly Button install = UiKit.Primary("BtnAppsInstall", "INSTALAR SELECIONADOS");
-    private readonly Button flathub = new() { Name = "BtnAppsFlathub", Content = "ADICIONAR FLATHUB (SOMENTE PARA O SEU USUÁRIO)", IsVisible = false, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 14, 0, 0) };
+    private readonly Button install = UiKit.Primary("BtnAppsInstall", "Instalar selecionados");
+    private readonly Button flathub = new() { Name = "BtnAppsFlathub", Content = "Adicionar Flathub (somente para o seu usuário)", IsVisible = false, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 14, 0, 0) };
     private readonly Border progress = new() { Name = "AppsProgress", Background = Palette.Accent, HorizontalAlignment = HorizontalAlignment.Left, Height = 3 };
     private readonly Grid track = new() { Height = 3, Margin = new Thickness(0, 0, 0, 8), Background = Palette.Line };
     private bool busy, stopRequested; private double fraction;
@@ -45,13 +45,13 @@ public sealed class AppsPage : StackPanel
         Grid.SetRow(install, 1); install.Margin = new Thickness(0, 10, 0, 0);
         header.Children.Add(install);
         track.Children.Add(progress); track.SizeChanged += (_, _) => progress.Width = track.Bounds.Width * fraction;
-        var all = new Button { Name = "BtnAppsAll", Content = "MARCAR TODOS", Padding = new Thickness(10, 4), FontSize = 11 }; var none = new Button { Name = "BtnAppsNone", Content = "DESMARCAR", Padding = new Thickness(10, 4), FontSize = 11 };
+        var all = new Button { Name = "BtnAppsAll", Content = "Marcar todos", Padding = new Thickness(10, 4), FontSize = 11 }; var none = new Button { Name = "BtnAppsNone", Content = "Desmarcar", Padding = new Thickness(10, 4), FontSize = 11 };
         all.Click += (_, _) => { if (busy) return; foreach (var a in apps) a.Selected = !a.Installed && a.Unavailable is null && !a.LinkOnly; Rebuild(); }; none.Click += (_, _) => { if (busy) return; foreach (var a in apps) a.Selected = false; Rebuild(); };
         flathub.Click += async (_, _) => await AddFlathubAsync();
         var head = new Grid(); head.Children.Add(UiKit.Label("APPS")); head.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right, Children = { all, none } });
         Children.Add(header); Children.Add(track); Children.Add(status);
         Children.Add(UiKit.Card(new StackPanel { Children = { head, new Border { Height = 8 }, list, flathub } }));
-        Children.Add(new TextBlock { Text = "Nada é instalado sem clicar em INSTALAR SELECIONADOS e confirmar a lista. Flathub: só para o seu usuário, sem senha. ArtCraft: pacote oficial da sua distribuição, com a senha do sistema.", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 8) });
+        Children.Add(new TextBlock { Text = "Nada é instalado sem clicar em Instalar selecionados e confirmar a lista. Flathub: só para o seu usuário, sem senha. ArtCraft: pacote oficial da sua distribuição, com a senha do sistema.", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 8) });
         Loaded += async (_, _) => await RefreshAsync();
     }
 
@@ -65,12 +65,12 @@ public sealed class AppsPage : StackPanel
         bool hasFlathub = flatpakAvailable && await installer.HasFlathubAsync(lifetime);
         // Flathub apps need Flatpak and the Flathub remote; apps from a GitHub release (ArtCraft) use the distribution's own packages.
         string? flatpakMissing = !flatpakAvailable ? "Precisa do Flatpak: " + LinuxAppInstaller.FlatpakInstallHint(Distro().Id, Distro().IdLike) + "."
-            : !hasFlathub ? "Precisa do repositório Flathub (botão ADICIONAR FLATHUB abaixo)." : null;
+            : !hasFlathub ? "Precisa do repositório Flathub (botão Adicionar Flathub abaixo)." : null;
         if (flatpakMissing is not null) foreach (var a in apps.Where(a => a.FlatpakId.Length > 0 && !a.Installed)) a.Unavailable = flatpakMissing;
         foreach (var a in apps) a.Selected = a.PreSelect && !a.Installed && a.Unavailable is null;
         flathub.IsVisible = flatpakAvailable && !hasFlathub; install.IsEnabled = true;
         int total = apps.Count(a => !a.LinkOnly);
-        status.Text = $"{apps.Count(a => a.Installed && !a.LinkOnly)} de {total} já instalados." + (flatpakMissing is null ? " Marque o que quer e clique em INSTALAR SELECIONADOS." : " Apps do Flathub indisponíveis por enquanto.");
+        status.Text = $"{apps.Count(a => a.Installed && !a.LinkOnly)} de {total} já instalados." + (flatpakMissing is null ? " Marque o que quer e clique em Instalar selecionados." : " Apps do Flathub indisponíveis por enquanto.");
         ToolTip.SetTip(status, flatpakMissing);
         Rebuild();
     }
@@ -99,7 +99,7 @@ public sealed class AppsPage : StackPanel
         if (app.Unavailable is not null && !app.LinkOnly && !app.Installed) body.Children.Add(new TextBlock { Name = "AppUnavailable_" + key, Text = app.Unavailable, Foreground = Palette.Muted, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 0) });
         if (app.LinkOnly)
         {
-            var open = new Button { Name = "AppLink_" + key, Content = "ABRIR PÁGINA OFICIAL", FontSize = 11, Padding = new Thickness(10, 4), Margin = new Thickness(0, 6, 0, 0), HorizontalAlignment = HorizontalAlignment.Left };
+            var open = new Button { Name = "AppLink_" + key, Content = "Abrir página oficial", FontSize = 11, Padding = new Thickness(10, 4), Margin = new Thickness(0, 6, 0, 0), HorizontalAlignment = HorizontalAlignment.Left };
             ToolTip.SetTip(open, app.LinkUrl);
             open.Click += async (_, _) => { try { await openUrl(app.LinkUrl, lifetime); app.Status = "Página aberta no navegador: " + app.LinkUrl; } catch (Exception e) when (e is IOException or FileNotFoundException or TimeoutException or System.ComponentModel.Win32Exception) { app.Status = "Não consegui abrir o navegador. Endereço: " + app.LinkUrl; } Rebuild(); };
             body.Children.Add(open);
@@ -131,7 +131,7 @@ public sealed class AppsPage : StackPanel
         string where = chosen.All(a => a.FromGithub) ? "" : chosen.Any(a => a.FromGithub) ? " (Flathub para o seu usuário; ArtCraft pelo pacote da sua distribuição)" : " do Flathub para o seu usuário";
         string password = asksPassword ? "\n\nO sistema vai pedir a sua senha para cada app ArtCraft (instalação para todo o sistema). Cada pacote é conferido pela soma SHA-256 oficial antes." : "";
         if (!await ConfirmDialog.AskAsync(window, "Instalar apps", $"Baixar e instalar {chosen.Count} app(s){where}?\n\n{names}\n\nPode levar vários minutos e baixar centenas de MB.{password}{extra}", "Instalar", "Cancelar")) return;
-        busy = true; stopRequested = false; install.Content = "PARAR"; Rebuild();
+        busy = true; stopRequested = false; install.Content = "Parar"; Rebuild();
         foreach (var a in chosen) a.Status = "Na fila.";
         int ok = 0, done = 0; var failed = new List<string>(); SetProgress(0);
         try
@@ -151,6 +151,6 @@ public sealed class AppsPage : StackPanel
             }
             status.Text = $"{ok} de {chosen.Count} instalados." + (failed.Count > 0 ? $" Falharam: {string.Join(", ", failed)}." : "") + (stopRequested ? " Parado pelo usuário." : "");
         }
-        finally { busy = false; install.IsEnabled = true; install.Content = "INSTALAR SELECIONADOS"; Rebuild(); }
+        finally { busy = false; install.IsEnabled = true; install.Content = "Instalar selecionados"; Rebuild(); }
     }
 }

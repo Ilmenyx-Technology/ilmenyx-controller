@@ -46,7 +46,7 @@ public sealed class PermissionsOnboardingDialog : Window
         list.Children.Add(new TextBlock { Text = "Tudo continua valendo depois de reiniciar o PC. Se preferir agora não, dá para liberar depois pelo botão \"Liberar sensores da CPU\" no menu lateral, e também desfazer por lá.",
             FontSize = 11.5, Foreground = Palette.Faint, TextWrapping = TextWrapping.Wrap });
         var status = new TextBlock { Name = "OnboardStatus", FontSize = 12, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center };
-        var apply = UiKit.Primary("OnboardApply", "LIBERAR COM UMA SENHA");
+        var apply = UiKit.Primary("OnboardApply", "Liberar com uma senha");
         var skip = new Button { Name = "OnboardSkip", Content = "Agora não", IsCancel = true, Padding = new Thickness(18, 8) };
         void Refresh() => apply.IsEnabled = boxes.Any(b => b.Box.IsChecked == true);
         foreach (var (box, _) in boxes) box.IsCheckedChanged += (_, _) => Refresh();

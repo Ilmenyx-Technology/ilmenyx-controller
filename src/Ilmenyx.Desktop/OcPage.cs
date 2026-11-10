@@ -17,7 +17,7 @@ namespace Ilmenyx.Desktop;
 public sealed record OcServices(IStressEngine Engine, Func<long> AvailableMemory, Func<CancellationToken, Task<double?>> CpuScore,
     Func<DateTimeOffset, CancellationToken, Task<KernelHardwareErrors>> Errors, Func<(string Vendor, string Name)> Board,
     Func<CancellationToken, Task<IReadOnlyList<NvidiaTuningState>>> Nvidia, Func<string> CpuName,
-    IGpuStressEngine? Gpu = null, Func<CancellationToken, Task<double?>>? GpuScore = null, Func<double?>? GpuTemp = null);
+    IGpuStressEngine? Gpu = null, Func<CancellationToken, Task<double?>>? GpuScore = null, Func<double?>? GpuTemp = null, Func<bool>? Notebook = null);
 
 /// <summary>
 /// Overclock helper. Nothing here changes hardware: GPU limits are validated and printed as commands for the user's terminal,
@@ -37,10 +37,10 @@ public sealed class OcPage : StackPanel
     private readonly TextBox power = new() { Name = "OcPower", Width = 90 };
     private readonly TextBox commands = new() { Name = "OcCommands", IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, FontFamily = new FontFamily("monospace"), IsVisible = false };
     private readonly TextBlock gpuResult = new() { Name = "OcGpuResult", TextWrapping = TextWrapping.Wrap, FontSize = 12, Foreground = Palette.Muted };
-    private readonly Button gen = new() { Name = "BtnOcCommands", Content = "GERAR COMANDOS" }, reset = new() { Name = "BtnOcResetCommands", Content = "COMANDOS DE RESTAURAÇÃO" };
+    private readonly Button gen = new() { Name = "BtnOcCommands", Content = "Gerar comandos" }, reset = new() { Name = "BtnOcResetCommands", Content = "Comandos de restauração" };
     private readonly TextBox label = new() { Name = "OcLabel", PlaceholderText = "ex.: Curve Optimizer -15", Width = 280, MaxLength = 80 };
     private readonly TextBox tempLimit = new() { Name = "OcTempLimit", Text = "95", Width = 80 };
-    private readonly Button start = UiKit.Primary("BtnOcCheck", "INICIAR VERIFICAÇÃO", 22, 11);
+    private readonly Button start = UiKit.Primary("BtnOcCheck", "Iniciar verificação", 22, 11);
     private readonly TextBlock hint = new() { Name = "OcHint", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, FontSize = 12 };
     private readonly TextBlock status = new() { Name = "OcStatus", Text = "Parado", FontSize = 26, FontWeight = FontWeight.Bold, TextWrapping = TextWrapping.Wrap };
     private readonly ProgressBar bar = new() { Name = "OcProgress", Minimum = 0, Maximum = 1, Height = 6, MinHeight = 6, Margin = new Thickness(0, 12, 0, 0) };
@@ -159,7 +159,7 @@ public sealed class OcPage : StackPanel
             ToolTip.SetTip(gpuChip, "Teste de GPU indisponível: " + (services.Gpu?.UnavailableReason ?? "módulo Vulkan não carregado") + ".");
             target.Panel.Children.Add(gpuChip);
         }
-        var dur = new UiKit.ChipGroup<int>("OcDurPanel", [("5 MIN", 5), ("15 MIN", 15), ("30 MIN", 30), ("60 MIN", 60)], 15, m => duration = TimeSpan.FromMinutes(m));
+        var dur = new UiKit.ChipGroup<int>("OcDurPanel", [("5 min", 5), ("15 min", 15), ("30 min", 30), ("60 min", 60)], 15, m => duration = TimeSpan.FromMinutes(m));
         AutomationProperties.SetName(label, "Descrição da configuração testada"); AutomationProperties.SetName(tempLimit, "Limite de temperatura da CPU");
         label.HorizontalAlignment = tempLimit.HorizontalAlignment = power.HorizontalAlignment = HorizontalAlignment.Left;
         start.Click += async (_, _) => { if (cts is not null) cts.Cancel(); else await StartAsync(); };
@@ -185,7 +185,7 @@ public sealed class OcPage : StackPanel
     /// <summary>Recent kernel errors and the local history side by side (two equal columns, still readable at the 640 px minimum).</summary>
     private void BuildRecentAndHistory()
     {
-        var refresh = new Button { Name = "BtnOcRefreshErrors", Content = "ATUALIZAR", FontSize = 11.5, Padding = new Thickness(12, 5), Background = Palette.Card, Foreground = Palette.Muted, CornerRadius = new CornerRadius(IlmenyxTheme.ControlRadius), Margin = new Thickness(0, 4, 0, 0) };
+        var refresh = new Button { Name = "BtnOcRefreshErrors", Content = "Atualizar", FontSize = 11.5, Padding = new Thickness(12, 5), Background = Palette.Card, Foreground = Palette.Muted, CornerRadius = new CornerRadius(IlmenyxTheme.ControlRadius), Margin = new Thickness(0, 4, 0, 0) };
         refresh.Click += async (_, _) => await RefreshRecentAsync();
         recent.FontSize = 13;
         var errors = UiKit.Card(new StackPanel { Spacing = 6, Children = { UiKit.Label("ERROS DE HARDWARE RECENTES (LOG DO KERNEL · 7 DIAS)"), recent, new TextBlock { Text = "Leitura somente do journal (journalctl -k). Conta linhas de MCE, EDAC, PCIe AER e reinícios de GPU; não prova a causa.", FontSize = 11, Foreground = Palette.Faint, TextWrapping = TextWrapping.Wrap }, refresh } }, new Thickness(0, 0, 6, 0));
@@ -225,7 +225,7 @@ public sealed class OcPage : StackPanel
     private void BuildGuide()
     {
         var (vendor, name) = services.Board();
-        var (title, intro, steps) = OcGuideBuilder.Build(vendor, name, services.CpuName());
+        var (title, intro, steps) = OcGuideBuilder.Build(vendor, name, services.CpuName(), services.Notebook?.Invoke() ?? false);
         guideTitle.Text = title; guideIntro.Text = intro;
         foreach (var s in steps)
             guide.Children.Add(new Border { BorderBrush = Palette.Line, BorderThickness = new Thickness(0, 1, 0, 0), Padding = new Thickness(0, 8), Child = new StackPanel { Spacing = 2, Children = {
@@ -257,12 +257,12 @@ public sealed class OcPage : StackPanel
     private async Task RunAsync(OcCheckOptions options, long available)
     {
         cts = CancellationTokenSource.CreateLinkedTokenSource(lifetime);
-        start.Content = "CANCELAR"; foreach (var c in Controls) c.IsEnabled = false; label.IsEnabled = tempLimit.IsEnabled = false; verdictCard.IsVisible = false;
+        start.Content = "Cancelar"; foreach (var c in Controls) c.IsEnabled = false; label.IsEnabled = tempLimit.IsEnabled = false; verdictCard.IsVisible = false;
         var progress = new Progress<(string Status, double Fraction)>(p => { status.Text = p.Status; bar.Value = p.Fraction; });
         var kernel = new Func<DateTimeOffset, Task<KernelHardwareErrors>>(since => services.Errors(since, cts?.Token ?? CancellationToken.None));
         OcCheckResult result;
         try { result = await OcCheckRunner.RunAsync(options, services.Engine, available, services.CpuScore, () => usage.Last?.CpuTempC, kernel, delay, now, cts.Token, progress, services.Gpu, services.GpuScore, services.GpuTemp); }
-        finally { cts.Dispose(); cts = null; start.Content = "INICIAR VERIFICAÇÃO"; foreach (var c in Controls) c.IsEnabled = true; Controls[1].IsEnabled = true; label.IsEnabled = tempLimit.IsEnabled = true; bar.Value = 0; }
+        finally { cts.Dispose(); cts = null; start.Content = "Iniciar verificação"; foreach (var c in Controls) c.IsEnabled = true; Controls[1].IsEnabled = true; label.IsEnabled = tempLimit.IsEnabled = true; bar.Value = 0; }
         if (result.Status == OcCheckStatus.Cancelled) { status.Text = "Verificação cancelada: nenhum veredito é publicado."; return; }
         if (result.Status == OcCheckStatus.Unavailable) { status.Text = "Não executada: " + result.FailureReason; return; }
         bool stable = result.Stable == true;

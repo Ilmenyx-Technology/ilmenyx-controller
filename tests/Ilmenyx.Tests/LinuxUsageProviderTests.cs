@@ -107,4 +107,14 @@ public sealed class LinuxUsageProviderTests : IDisposable
         using var cts = new CancellationTokenSource(); cts.Cancel();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Provider().SampleAsync(cts.Token));
     }
+
+    [Theory]
+    // Real cut names on the owner's PC (2026-11-10) and their cmdline.
+    [InlineData("org_kde_powerde", "/usr/lib/org_kde_powerdevil\0", "org_kde_powerdevil")]
+    [InlineData("xdg-desktop-por", "/usr/lib/xdg-desktop-portal-kde\0--verbose\0", "xdg-desktop-portal-kde")]
+    [InlineData("next-server (v1", "next-server (v16.0.1)\0\0", "next-server (v16.0.1)")]
+    [InlineData("python3.14-thre", "/usr/bin/python3\0app.py\0", "python3.14-thre")] // argv[0] is not the comm: kept
+    [InlineData("kworker/u16:2-e", "", "kworker/u16:2-e")]
+    public void CutProcessNamesComeBackFromTheCommandLine(string comm, string cmdline, string expected) =>
+        Assert.Equal(expected, LinuxUsageProvider.FullName(comm, cmdline));
 }

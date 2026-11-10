@@ -33,7 +33,7 @@ public sealed class NvidiaDriverPage : StackPanel
     private readonly NvidiaDriverServices services;
     private readonly Func<Window?> owner;
     private readonly CancellationToken lifetime;
-    private readonly TextBlock status = new() { Name = "NvStatus", Text = "Clique em VERIFICAR.", Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12) };
+    private readonly TextBlock status = new() { Name = "NvStatus", Text = "Clique em Verificar.", Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12) };
     private readonly TextBlock gpuName = new() { Name = "NvGpuName", Text = "—", FontSize = 24, FontWeight = FontWeight.Bold, TextWrapping = TextWrapping.Wrap };
     private readonly TextBlock stateText = new() { Name = "NvState", Text = "Verificando…", FontSize = 15, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap };
     private readonly TextBlock summary = new() { Name = "NvSummary", FontSize = 12.5, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, MaxWidth = 760, HorizontalAlignment = HorizontalAlignment.Left };
@@ -60,7 +60,7 @@ public sealed class NvidiaDriverPage : StackPanel
     public NvidiaDriverPage(NvidiaDriverServices services, Func<Window?> owner, CancellationToken lifetime)
     {
         this.services = services; this.owner = owner; this.lifetime = lifetime; Spacing = 0;
-        scan = UiKit.Primary("BtnNvScan", "VERIFICAR");
+        scan = UiKit.Primary("BtnNvScan", "Verificar");
         scan.Click += async (_, _) => await RefreshAsync();
         Children.Add(UiKit.PageHeader("Driver NVIDIA", "Instala, verifica, repara e atualiza o driver NVIDIA certo para esta placa e este sistema. Tudo é simulado antes; nada muda sem o seu clique e a senha do sistema.", scan));
         Children.Add(status);
@@ -86,7 +86,7 @@ public sealed class NvidiaDriverPage : StackPanel
         tiles.SizeChanged += (_, _) => Flow(cells);
         Children.Add(tiles);
 
-        var rebootButton = UiKit.Primary("BtnNvReboot", "COMO REINICIAR");
+        var rebootButton = UiKit.Primary("BtnNvReboot", "Como reiniciar");
         rebootButton.Click += (_, _) =>
         {
             rebootHelp.Text = "Salve o que estiver aberto e reinicie pelo menu do sistema (Menu → Sair → Reiniciar). O Ilmenyx não reinicia o computador sozinho. Depois do boot, abra esta aba: ela mostra \"Funcionando\" quando o nvidia-smi responder.";
@@ -199,8 +199,8 @@ public sealed class NvidiaDriverPage : StackPanel
         run.IsEnabled = a.Blocked is null && a.Script.Length > 0 && services.RunPrivileged is not null && !busy;
         if (services.RunPrivileged is null && a.Blocked is null) ToolTip.SetTip(run, "O pedido de senha do sistema (pkexec/polkit) não está instalado.");
         run.Click += async (_, _) => await RunAsync(a);
-        var show = new Button { Name = "BtnNvScript" + key, Content = "VER O SCRIPT", FontSize = 11.5, Background = Brushes.Transparent, Foreground = Palette.AccentText, IsVisible = a.Script.Length > 0 };
-        show.Click += (_, _) => { script.IsVisible = !script.IsVisible; show.Content = script.IsVisible ? "ESCONDER O SCRIPT" : "VER O SCRIPT"; };
+        var show = new Button { Name = "BtnNvScript" + key, Content = "Ver o script", FontSize = 11.5, Background = Brushes.Transparent, Foreground = Palette.AccentText, IsVisible = a.Script.Length > 0 };
+        show.Click += (_, _) => { script.IsVisible = !script.IsVisible; show.Content = script.IsVisible ? "Esconder o script" : "Ver o script"; };
         body.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, Margin = new Thickness(0, 8, 0, 0), Children = { run, show } });
         body.Children.Add(script);
         var card = UiKit.Card(body, new Thickness(0));
@@ -250,7 +250,7 @@ public sealed class NvidiaDriverPage : StackPanel
             if (owner() is not { } window) return;
             string message = string.Join("\n", a.Steps.Select(s => "• " + s)) + simulated +
                 (a.Risks.Count > 0 ? "\n\nRiscos:\n" + string.Join("\n", a.Risks.Select(r => "! " + r)) : "") +
-                "\n\nO sistema vai pedir a sua senha (o Ilmenyx não a vê). O script exato está em \"VER O SCRIPT\"." + (a.Tested ? "" : "\n\nNÃO TESTADO nesta distribuição.");
+                "\n\nO sistema vai pedir a sua senha (o Ilmenyx não a vê). O script exato está em \"Ver o script\"." + (a.Tested ? "" : "\n\nNÃO TESTADO nesta distribuição.");
             if (!await ConfirmDialog.AskAsync(window, a.Title + "?", message, a.Button, "Cancelar")) { status.Text = "Cancelado: nada foi feito."; Log("Cancelado pelo usuário."); return; }
             status.Text = "Executando (pode levar alguns minutos; não desligue o computador)…";
             Log("$ pkexec /bin/sh -c <script fixo: " + a.Title + ">");

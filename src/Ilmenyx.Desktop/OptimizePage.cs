@@ -36,7 +36,7 @@ public sealed class OptimizePage : StackPanel
     private readonly TextBlock result = new() { Name = "OptResult", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0) };
     private readonly StackPanel appList = new() { Name = "OptApps" };
     private readonly StackPanel tweakList = new() { Name = "OptTweaks" };
-    private readonly Button optimize = UiKit.Primary("BtnOptimize", "OTIMIZA", 30, 14);
+    private readonly Button optimize = UiKit.Primary("BtnOptimize", "Otimiza", 30, 14);
     private IReadOnlyList<BackgroundApp> apps = [];
     public IReadOnlyList<BackgroundApp> Apps => apps;
     public IlmenyxSettings Settings => settings;
@@ -54,10 +54,10 @@ public sealed class OptimizePage : StackPanel
         Grid.SetColumn(optimize, 1); optimize.VerticalAlignment = VerticalAlignment.Center; optimize.Margin = new Thickness(24, 0, 0, 0); ram.Children.Add(info); ram.Children.Add(optimize);
         var memoryCard = UiKit.FeatureCard(ram);
         memoryCard.Margin = new Thickness(0, 0, 0, 14); Children.Add(memoryCard);
-        var refresh = new Button { Name = "BtnOptRefresh", Content = "ATUALIZAR", Padding = new Thickness(10, 4), FontSize = 11, HorizontalAlignment = HorizontalAlignment.Right };
+        var refresh = new Button { Name = "BtnOptRefresh", Content = "Atualizar", Padding = new Thickness(10, 4), FontSize = 11, HorizontalAlignment = HorizontalAlignment.Right };
         refresh.Click += async (_, _) => await RefreshAppsAsync();
         var left = UiKit.Card(new StackPanel { Children = { UiKit.SectionHeader("PROGRAMAS PARA FECHAR", refresh), new Border { Height = 8 }, appList, new TextBlock { Text = "Só aparecem aplicativos instalados (entradas .desktop) e auxiliares sugeridos, do seu usuário. Fechar envia SIGTERM (como fechar a janela); nada é forçado nem encerrado à força.", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0) } } }, new Thickness(0, 0, 8, 14));
-        var restore = new Button { Name = "BtnTweaksRestore", Content = "RESTAURAR ORIGINAIS", Padding = new Thickness(10, 4), FontSize = 11, HorizontalAlignment = HorizontalAlignment.Right };
+        var restore = new Button { Name = "BtnTweaksRestore", Content = "Restaurar originais", Padding = new Thickness(10, 4), FontSize = 11, HorizontalAlignment = HorizontalAlignment.Right };
         restore.Click += async (_, _) => await RestoreAsync();
         var right = UiKit.Card(new StackPanel { Children = { UiKit.SectionHeader("AJUSTES DO SISTEMA PARA JOGOS", restore), new Border { Height = 8 }, tweakList } }, new Thickness(8, 0, 0, 14));
         var columns = new Grid { ColumnDefinitions = new("*,*"), RowDefinitions = new("Auto,Auto") }; columns.Children.Add(left); columns.Children.Add(right);

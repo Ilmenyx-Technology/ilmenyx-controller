@@ -205,7 +205,7 @@ public class GpuRtTests
     [Fact]
     public void CliParsesEveryOptionWithinItsLimits()
     {
-        var (req, err) = GpuRtCommand.Parse("gpu-rt", Flags("--allow-gpu-load", "--adapter", "1", "--preset", "NORMAL", "--resolution", "4K", "--warmup-seconds", "0", "--pass-seconds", "60", "--passes", "5", "--temp-limit", "85.5", "--json"));
+        var (req, err) = GpuRtCommand.Parse("gpu-rt", Flags("--allow-gpu-load", "--adapter", "1", "--preset", "Normal", "--resolution", "4K", "--warmup-seconds", "0", "--pass-seconds", "60", "--passes", "5", "--temp-limit", "85.5", "--json"));
         Assert.Null(err);
         Assert.Equal(1, req!.Adapter); Assert.Equal("normal", req.Options.Preset); Assert.Equal(3840, req.Options.Width);
         Assert.Equal(TimeSpan.Zero, req.Options.EffectiveWarmup); Assert.Equal(5, req.Options.Passes); Assert.Equal(85.5, req.TempLimit); Assert.True(req.Json);

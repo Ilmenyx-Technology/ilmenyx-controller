@@ -22,7 +22,7 @@ public sealed class MakerPortsPage : StackPanel
     public MakerPortsPage(CancellationToken lifetime)
     {
         this.lifetime = lifetime; Spacing = 4;
-        var scan = new Button { Name = "BtnMakerPortScan", Content = "ATUALIZAR", Background = Palette.Accent, Foreground = Palette.OnAccent, FontWeight = FontWeight.Bold, Padding = new Thickness(20, 9), HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top };
+        var scan = new Button { Name = "BtnMakerPortScan", Content = "Atualizar", Background = Palette.Accent, Foreground = Palette.OnAccent, FontWeight = FontWeight.Bold, Padding = new Thickness(20, 9), HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top };
         scan.Click += async (_, _) => await ScanAsync();
         var header = UiKit.PageHeader("Maker · Portas", trailing: scan);
         Children.Add(header);
@@ -37,7 +37,7 @@ public sealed class MakerPortsPage : StackPanel
         try
         {
             Rows = await ports.ReadAsync(lifetime); list.Children.Clear();
-            if (Rows.Count == 0) { list.Children.Add(new Border { Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), Padding = new Thickness(22, 18), Child = new TextBlock { Name = "MakerPortEmpty", Text = "Nenhuma placa serial USB (ttyUSB*/ttyACM*) conectada. Conecte a placa e clique em ATUALIZAR.", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap } }); }
+            if (Rows.Count == 0) { list.Children.Add(new Border { Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), Padding = new Thickness(22, 18), Child = new TextBlock { Name = "MakerPortEmpty", Text = "Nenhuma placa serial USB (ttyUSB*/ttyACM*) conectada. Conecte a placa e clique em Atualizar.", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap } }); }
             foreach (var r in Rows) list.Children.Add(Card(r));
             int bad = Rows.Count(r => !r.Diagnosis.Ok);
             status.Text = Rows.Count == 0 ? "Nenhum dispositivo serial" : bad == 0 ? $"{Rows.Count} dispositivo(s) · tudo funcionando · lido às {DateTime.Now:HH:mm:ss}" : $"{Rows.Count} dispositivo(s) · {bad} com problema · lido às {DateTime.Now:HH:mm:ss}";
@@ -67,7 +67,7 @@ public sealed class MakerDriversPage : StackPanel
     public MakerDriversPage(CancellationToken lifetime)
     {
         this.lifetime = lifetime; Spacing = 4;
-        var scan = new Button { Name = "BtnMakerDrvScan", Content = "VERIFICAR", Background = Palette.Accent, Foreground = Palette.OnAccent, FontWeight = FontWeight.Bold, Padding = new Thickness(20, 9), HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top };
+        var scan = new Button { Name = "BtnMakerDrvScan", Content = "Verificar", Background = Palette.Accent, Foreground = Palette.OnAccent, FontWeight = FontWeight.Bold, Padding = new Thickness(20, 9), HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top };
         scan.Click += (_, _) => Scan();
         var header = UiKit.PageHeader("Maker · Drivers seriais", trailing: scan);
         Children.Add(header);
@@ -91,7 +91,7 @@ public sealed class MakerDriversPage : StackPanel
         {
             string module = chip.Modules[0]; var (available, loaded) = ports.ModuleState(module);
             string state = loaded ? "CARREGADO" : available ? "DISPONÍVEL (não carregado)" : "AUSENTE NO KERNEL";
-            var page = new Button { Name = "BtnMakerChipPage_" + module, Content = "ABRIR PÁGINA OFICIAL", Margin = new Thickness(0, 6, 0, 0), HorizontalAlignment = HorizontalAlignment.Left };
+            var page = new Button { Name = "BtnMakerChipPage_" + module, Content = "Abrir página oficial", Margin = new Thickness(0, 6, 0, 0), HorizontalAlignment = HorizontalAlignment.Left };
             page.Click += async (_, _) => { try { await DriverTools.OpenUrlAsync(chip.OfficialUrl, lifetime); status.Text = "Página aberta: " + chip.OfficialUrl; } catch (Exception ex) when (ex is ArgumentException or FileNotFoundException or IOException or TimeoutException) { status.Text = "Não foi possível abrir (" + ex.Message + "): " + chip.OfficialUrl; } };
             var head = new StackPanel { Spacing = 4 }; head.Children.Add(new TextBlock { Text = chip.Name, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap }); head.Children.Add(new TextBlock { Name = "MakerChipState_" + module, Text = state, FontSize = 11, FontWeight = FontWeight.Medium, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap });
             chips.Children.Add(new Border { BorderBrush = Palette.Line, BorderThickness = new Thickness(0, 1, 0, 0), Padding = new Thickness(0, 10, 0, 4), Child = new StackPanel { Children = { head, new TextBlock { Text = $"VID {string.Join("/", chip.Vids)} · módulo {module}", Foreground = Palette.Muted, FontSize = 12 }, page } } });

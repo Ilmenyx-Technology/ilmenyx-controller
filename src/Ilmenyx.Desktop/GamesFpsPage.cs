@@ -64,8 +64,8 @@ public sealed class GamesFpsPage : Grid
     private PersonalFactor? personalGpu, personalCpu;
     private readonly TextBlock gateTitle = new() { Name = "FpsGateTitle", FontWeight = FontWeight.SemiBold, FontSize = 14, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center };
     private readonly TextBlock gateText = new() { Name = "FpsGateText", FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) };
-    private readonly Button calibrate = UiKit.Primary("BtnFpsCalibrate", "CALIBRAR AGORA (≈1 min)", 18, 9);
-    private readonly Button cancelCal = new() { Name = "BtnFpsCalibrateCancel", Content = "CANCELAR", Padding = new Thickness(16, 8), FontSize = 12.5, IsVisible = false };
+    private readonly Button calibrate = UiKit.Primary("BtnFpsCalibrate", "Calibrar agora (≈1 min)", 18, 9);
+    private readonly Button cancelCal = new() { Name = "BtnFpsCalibrateCancel", Content = "Cancelar", Padding = new Thickness(16, 8), FontSize = 12.5, IsVisible = false };
     private readonly ProgressBar gateProgress = new() { Name = "FpsGateProgress", Minimum = 0, Maximum = 1, Height = 6, MinHeight = 6, Margin = new Thickness(0, 10, 0, 0), IsVisible = false };
     private readonly Border gateCard;
     private readonly PathIconHolder gateIcon = new();
@@ -275,7 +275,7 @@ public sealed class GamesFpsPage : Grid
                     + (c.Driver.Length > 0 ? $" · driver {c.Driver} {c.DriverVersion}".TrimEnd() : "")
                     + ". Os índices são da escala do Ilmenyx (RTX 4070 = 100, Ryzen 7 7700X = 100). Se trocar a GPU, o driver ou a CPU, o Ilmenyx pede uma nova calibração."
                     + (CalibrationMessage is { } m0 ? " " + m0 : "");
-                calibrate.Content = "RECALIBRAR (≈1 min)";
+                calibrate.Content = "Recalibrar (≈1 min)";
                 break;
             default:
                 bool stale = Gate == FpsGate.Stale;
@@ -286,7 +286,7 @@ public sealed class GamesFpsPage : Grid
                     + $"Leva cerca de 1 minuto, esquenta o PC por pouco tempo e para sozinha se a CPU ou a GPU chegar a {FpsModels.AbortTempC:0} °C. Nada é enviado pela internet. "
                     + "Até calibrar, os números dos cartões ficam cinza e marcados \"provisório\"." + (CalibrationMessage is { } m1 ? " " + m1 : "")
                     + (calibrator is null ? " (Calibração indisponível neste sistema.)" : "");
-                calibrate.Content = "CALIBRAR AGORA (≈1 min)";
+                calibrate.Content = "Calibrar agora (≈1 min)";
                 break;
         }
     }

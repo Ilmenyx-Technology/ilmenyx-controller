@@ -31,7 +31,7 @@ public sealed class DiskHealthPage : StackPanel
     public DiskHealthPage(SmartImportViewModel smartImport, Func<string, Task<string?>> destination, CancellationToken lifetime)
     {
         this.smartImport = smartImport; this.lifetime = lifetime;
-        var refresh = UiKit.Primary("BtnDiskRefresh", "ATUALIZAR");
+        var refresh = UiKit.Primary("BtnDiskRefresh", "Atualizar");
         refresh.Click += async (_, _) => await RefreshAsync();
         Children.Add(UiKit.PageHeader("Discos", "Saúde, desgaste e temperatura de cada disco", refresh));
         // Dominant element: the overall verdict, coloured by the worst disk.

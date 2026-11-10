@@ -30,7 +30,7 @@ public sealed class SensorHelpDialog : Window
             if (fix.Apply is { } script && run is not null)
             {
                 var applyStatus = new TextBlock { Name = "SensorFixStatus" + fixIndex, FontSize = 12, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center };
-                var apply = UiKit.Primary("SensorFixApply" + fixIndex, fix.ApplyLabel ?? "CORRIGIR");
+                var apply = UiKit.Primary("SensorFixApply" + fixIndex, fix.ApplyLabel ?? "Corrigir");
                 var undo = new Button { Name = "SensorFixUndo" + fixIndex, Content = "Desfazer", FontSize = 12, Padding = new Thickness(14, 7), IsVisible = false };
                 apply.Click += async (_, _) =>
                 {

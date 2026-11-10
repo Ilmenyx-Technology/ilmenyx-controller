@@ -16,7 +16,7 @@ public sealed class NetworkPage : StackPanel
     private readonly UsageViewModel usage;
     private readonly Func<Window?> owner;
     private readonly CancellationToken lifetime;
-    private readonly Button test = UiKit.Primary("BtnNetTest", "TESTAR", 22, 9);
+    private readonly Button test = UiKit.Primary("BtnNetTest", "Testar", 22, 9);
     private readonly Border progress = new() { Name = "NetProgress", Background = Palette.Accent, HorizontalAlignment = HorizontalAlignment.Left, Height = 4, CornerRadius = new CornerRadius(2) };
     private readonly Grid track = new() { Height = 4, Margin = new Thickness(0, 10, 0, 10) };
     private readonly TextBlock status = new() { Name = "NetStatus", Text = "Pronto. O teste leva cerca de 30 segundos.", Foreground = Palette.Muted, FontSize = 12.5, TextWrapping = TextWrapping.Wrap };
@@ -50,7 +50,7 @@ public sealed class NetworkPage : StackPanel
     {
         if (running is not null || owner() is not { } window) return;
         if (!await ConfirmDialog.AskAsync(window, "Teste de rede", $"Este teste usa a internet: {NetworkEndpoints.Description}.\n\nPode levar cerca de 30 segundos e consumir bastante dados em conexões rápidas ou limitadas. Iniciar agora?", "Iniciar teste", "Cancelar")) return;
-        running = CancellationTokenSource.CreateLinkedTokenSource(lifetime); test.Content = "CANCELAR"; cards.Children.Clear(); SetProgress(0);
+        running = CancellationTokenSource.CreateLinkedTokenSource(lifetime); test.Content = "Cancelar"; cards.Children.Clear(); SetProgress(0);
         try
         {
             var card = await NetworkTestRunner.RunAsync(probe, (text, f) => Avalonia.Threading.Dispatcher.UIThread.Post(() => { status.Text = text; SetProgress(f); }), running.Token);
@@ -59,6 +59,6 @@ public sealed class NetworkPage : StackPanel
         }
         catch (OperationCanceledException) { status.Text = "Teste cancelado."; SetProgress(0); }
         catch (Exception e) when (e is IOException or System.Net.Http.HttpRequestException or System.Net.Sockets.SocketException or InvalidOperationException) { status.Text = "Falhou: " + e.Message; SetProgress(0); }
-        finally { running?.Dispose(); running = null; test.Content = "TESTAR"; }
+        finally { running?.Dispose(); running = null; test.Content = "Testar"; }
     }
 }

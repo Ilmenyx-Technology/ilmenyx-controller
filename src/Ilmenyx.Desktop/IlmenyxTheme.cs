@@ -29,6 +29,13 @@ public static class IlmenyxTheme
         var theme = new FluentTheme();
         theme.Palettes[ThemeVariant.Light] = new ColorPaletteResources { Accent = Color.Parse("#255EE9") };
         theme.Palettes[ThemeVariant.Dark] = new ColorPaletteResources { Accent = Color.Parse("#A4C1FB") };
+        // Expanders (driver details, help questions): Fluent's dark header is near black, darker than the card around it.
+        // Same surface as the cards with a thin line; the shared brushes follow the theme switch (Palette.Apply).
+        foreach (var (key, brush) in new (string, IBrush)[] {
+            ("ExpanderHeaderBackground", Palette.Card), ("ExpanderHeaderBackgroundPointerOver", Palette.Hover), ("ExpanderHeaderBackgroundPressed", Palette.Hover),
+            ("ExpanderHeaderBorderBrush", Palette.Line), ("ExpanderHeaderBorderBrushPointerOver", Palette.Line), ("ExpanderHeaderBorderBrushPressed", Palette.Line),
+            ("ExpanderContentBackground", Palette.Card), ("ExpanderContentBorderBrush", Palette.Line) })
+            theme.Resources[key] = brush;
         // Style setters outrank the Fluent control themes, but local values (accent buttons, chips) still win.
         theme.Add(new Style(x => x.OfType<Button>())
         {
