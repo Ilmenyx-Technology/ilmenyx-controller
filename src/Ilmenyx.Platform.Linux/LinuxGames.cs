@@ -47,6 +47,64 @@ public sealed class LinuxGameLibrary(string? home = null, Func<IReadOnlyList<str
             }
     }
 
+    /// <summary>Store label of the "non-Steam games" added to Steam: Steam opens them, so they are not <see cref="LibGame.IsSteam"/> (no app ID).</summary>
+    public const string NonSteamStore = "Steam (não Steam)";
+
+    /// <summary>"Non-Steam games" from shortcuts.vdf of every Steam user on this PC; hidden ones are left out. Steam opens them by game ID.</summary>
+    public IEnumerable<LibGame> NonSteam()
+    {
+        var seen = new HashSet<uint>();
+        foreach (var steam in SteamRoots())
+        {
+            string userdata = Path.Combine(steam, "userdata");
+            if (!Directory.Exists(userdata)) continue;
+            foreach (var user in Directory.EnumerateDirectories(userdata).OrderBy(d => d, StringComparer.Ordinal).Take(16).ToList())
+            {
+                string f = Path.Combine(user, "config", "shortcuts.vdf");
+                if (!File.Exists(f) || new FileInfo(f).Length > SteamShortcuts.MaxBytes) continue;
+                foreach (var s in SteamShortcuts.Parse(File.ReadAllBytes(f)))
+                    if (!s.Hidden && seen.Add(s.AppId))
+                        yield return new LibGame(NonSteamStore, s.AppId.ToString(System.Globalization.CultureInfo.InvariantCulture), s.Name, s.StartDir, null, s.LaunchUri);
+            }
+        }
+    }
+
+    /// <summary>Menu-entry folders in XDG order (user first, so a user's own entry overrides the system one), with Flatpak exports.</summary>
+    public IReadOnlyList<(string Dir, bool Flatpak)> ApplicationDirs()
+    {
+        bool realHome = home == Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        string dataHome = realHome && Environment.GetEnvironmentVariable("XDG_DATA_HOME") is { Length: > 0 } x ? x : Path.Combine(home, ".local/share");
+        var dirs = new List<(string, bool)> { (Path.Combine(dataHome, "applications"), false), (Path.Combine(dataHome, "flatpak/exports/share/applications"), true) };
+        if (!realHome) return dirs; // another home (tests, fixtures): never the system's own entries
+        foreach (var d in (Environment.GetEnvironmentVariable("XDG_DATA_DIRS") is { Length: > 0 } s ? s : "/usr/local/share:/usr/share").Split(':', StringSplitOptions.RemoveEmptyEntries))
+            if (Path.IsPathFullyQualified(d)) dirs.Add((Path.Combine(d, "applications"), d.Contains("/flatpak/exports/", StringComparison.Ordinal)));
+        dirs.Add(("/var/lib/flatpak/exports/share/applications", true));
+        return dirs.DistinctBy(d => d.Item1).ToList();
+    }
+
+    /// <summary>Games installed on Linux outside the stores, from the menu entries (<see cref="NativeGames"/>). Read-only.</summary>
+    public IEnumerable<LibGame> Native(IReadOnlyList<(string Dir, bool Flatpak)>? dirs = null)
+    {
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var (dir, flatpak) in dirs ?? ApplicationDirs())
+        {
+            if (!Directory.Exists(dir)) continue;
+            List<string> files; try { files = Directory.EnumerateFiles(dir, "*.desktop").OrderBy(f => f, StringComparer.Ordinal).Take(4096).ToList(); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { continue; }
+            foreach (var f in files)
+            {
+                string id = Path.GetFileNameWithoutExtension(f);
+                if (!seen.Add(id)) continue; // XDG: the first folder with this ID wins, even if that entry is hidden
+                NativeGame? n;
+                try { n = new FileInfo(f).Length <= NativeGames.MaxBytes ? NativeGames.FromEntry(id, File.ReadAllText(f), flatpak) : null; }
+                catch (Exception e) when (e is IOException or UnauthorizedAccessException) { continue; }
+                if (n is null) continue;
+                string? program = Path.IsPathFullyQualified(n.Program) ? n.Program : BoundedProcess.FindSystem(n.Program);
+                if (program is null || !IsRunnableFile(program)) continue; // uninstalled leftovers stay out
+                yield return new LibGame("Linux", id, n.Name, "", program, null, NativeGames.JoinArguments(n.Arguments), n.Kind, n.Icon);
+            }
+        }
+    }
+
     public static LibGame? ParseManifest(string acf, string steamapps)
     {
         try
@@ -149,6 +207,8 @@ public sealed class LinuxGameLibrary(string? home = null, Func<IReadOnlyList<str
     {
         var all = new List<LibGame>();
         try { all.AddRange(Steam()); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+        try { all.AddRange(NonSteam()); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+        try { all.AddRange(Native()); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
         all.AddRange(Heroic()); all.AddRange(await LutrisAsync(ct));
         foreach (var c in custom)
             if (IsRunnableFile(c.Exe) || IsWindowsExe(c.Exe)) all.Add(new("Manual", c.Exe, string.IsNullOrWhiteSpace(c.Name) ? Path.GetFileNameWithoutExtension(c.Exe) : c.Name, Path.GetDirectoryName(c.Exe) ?? "", c.Exe, null, c.Args));

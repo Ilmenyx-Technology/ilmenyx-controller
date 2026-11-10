@@ -56,10 +56,12 @@ public sealed class CustomGame
     public string Args { get; set; } = "";
 }
 
-public sealed record LibGame(string Store, string Id, string Name, string InstallDir, string? ExePath = null, string? LaunchUri = null, string Args = "")
+/// <param name="Kind">What the game is, when the store name alone says too little (e.g. "Linux · Flatpak").</param>
+/// <param name="Icon">Icon name of the menu entry (Linux games), for the library when there is no artwork.</param>
+public sealed record LibGame(string Store, string Id, string Name, string InstallDir, string? ExePath = null, string? LaunchUri = null, string Args = "", string? Kind = null, string? Icon = null)
 {
     public string Key => Store + ":" + Id;
-    public string Subtitle => IsWindowsManual ? "Windows · Proton" : Store;
+    public string Subtitle => Kind ?? (IsWindowsManual ? "Windows · Proton" : Store);
     /// <summary>A manually added Windows program (.exe): Ilmenyx runs it with Proton (umu-launcher).</summary>
     public bool IsWindowsManual => Store == "Manual" && (ExePath ?? Id).EndsWith(".exe", StringComparison.OrdinalIgnoreCase);
     public bool IsSteam => Store == "Steam";

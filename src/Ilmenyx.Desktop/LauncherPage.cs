@@ -87,6 +87,7 @@ public sealed class LauncherPage : Grid
     private Border hero = null!;
     private bool heroArt;
     private readonly string? steamRoot;
+    private readonly NativeArtFinder nativeArt = new();
     private int columns = 2;
     private Grid? leftPane;
     private bool narrowWindow;
@@ -340,7 +341,7 @@ public sealed class LauncherPage : Grid
     {
         heroTags.Children.Clear();
         if (current is not { } g || profile is not { } p) return;
-        var tags = new List<string> { g.Store };
+        var tags = new List<string> { g.Kind ?? g.Store };
         if (p.HighPerfPlan) tags.Add("Alto desempenho");
         if (p.GpuHigh && multiGpu) tags.Add("GPU dedicada");
         if (p.GameMode && chkGameMode.IsEnabled) tags.Add("GameMode");
@@ -372,7 +373,7 @@ public sealed class LauncherPage : Grid
         {
             games = await library.ScanAsync(settings.CustomGames.ToList(), lifetime);
             Filter();
-            count.Text = games.Count == 0 ? "Nenhum jogo encontrado. Use + ADICIONAR EXECUTÁVEL para incluir um à mão." : $"{games.Count} jogos · {string.Join(" · ", games.GroupBy(g => g.Store).Select(x => $"{x.Key} {x.Count()}"))}";
+            count.Text = games.Count == 0 ? "Nenhum jogo encontrado. Use + ADICIONAR EXECUTÁVEL para incluir um à mão." : $"{games.Count} {(games.Count == 1 ? "jogo" : "jogos")} · {string.Join(" · ", games.GroupBy(g => g.Kind ?? g.Store).Select(x => $"{x.Key} {x.Count()}"))}";
         }
         catch (OperationCanceledException) { count.Text = "Busca cancelada."; }
     }
@@ -388,7 +389,7 @@ public sealed class LauncherPage : Grid
         foreach (var g in shown)
         {
             var item = Tile(g, g.Key == big, g.Key == keep);
-            AutomationProperties.SetName(item, g.Name + " (" + g.Store + ")");
+            AutomationProperties.SetName(item, g.Name + " (" + g.Subtitle + ")");
             var game = g; item.Click += (_, _) => { Select(game); FocusTile(game); };
             if (g.Key == big || columns == 1) { list.Children.Add(item); row = null; continue; }
             if (row is null || col >= columns) { row = new Grid { ColumnDefinitions = new(string.Join(",8,", Enumerable.Repeat("*", columns))), Margin = new Thickness(0, 0, 0, 8) }; list.Children.Add(row); col = 0; }
@@ -406,7 +407,7 @@ public sealed class LauncherPage : Grid
             Spacing = 2,
             Children =
             {
-                GameArt.Cover(art, g.Name, current is null ? 118 : large ? (columns == 1 ? 104 : 128) : (columns == 1 ? 0 : 68)),
+                GameArt.Cover(art, g.Name, appIcon: art is null && g.Icon is not null ? GameArt.FromFile(nativeArt.Icon(g.Icon), false) : null, height: current is null ? 118 : large ? (columns == 1 ? 104 : 128) : (columns == 1 ? 0 : 68)),
                 new TextBlock { Text = g.Name, FontSize = large ? 13.5 : 12.5, FontWeight = FontWeight.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(2, 6, 2, 0), Foreground = selected ? Palette.AccentText : Palette.Fg },
                 new TextBlock { Text = g.Subtitle, FontSize = 11, Foreground = Palette.Faint, Margin = new Thickness(2, 0, 2, 0) },
             },
@@ -449,7 +450,7 @@ public sealed class LauncherPage : Grid
         ApplyLayout(force: true);
         if (!settings.GameProfiles.TryGetValue(SettingsKey(g), out var p)) { p = new GameProfile(); settings.GameProfiles[SettingsKey(g)] = p; }
         loading = true; profile = p;
-        title.Text = g.Name; sub.Text = $"{g.Store} · {g.InstallDir}";
+        title.Text = g.Name; sub.Text = g.InstallDir.Length > 0 ? $"{g.Subtitle} · {g.InstallDir}" : g.ExePath is { } exe ? $"{g.Subtitle} · {exe} {g.Args}".TrimEnd() : g.Subtitle;
         var art = ArtFor(g, hero: true); heroArt = art is not null;
         if (art is null && g.IsWindowsManual && p.ProtonGameId is { Length: > 0 } artId) FetchArtLater(g, artId);
         hero.Background = art is null ? UiKit.HeroBrush() : new ImageBrush { Source = art, Stretch = Stretch.UniformToFill };
@@ -565,6 +566,11 @@ public sealed class LauncherPage : Grid
     private Bitmap? ArtFor(LibGame g, bool hero)
     {
         if (g.IsSteam) return GameArt.Steam(steamRoot, g.Id, hero);
+        if (g.Store == "Linux")
+        {
+            if (nativeArt.Cached(g.Id) is { } shot) return GameArt.FromFile(shot, hero);
+            FetchNativeArtLater(g); return null;
+        }
         if (!g.IsWindowsManual || !settings.GameProfiles.TryGetValue(SettingsKey(g), out var gp) || gp.ProtonGameId is not { Length: > 0 } id) return null;
         return GameArt.Steam(steamRoot, id, hero) ?? GameArt.FromFile(ArtCache.CachedArt(id), hero);
     }
@@ -583,6 +589,20 @@ public sealed class LauncherPage : Grid
             string? file = null;
             try { file = await (FetchArt ?? ((i, ct) => ArtCache.ArtAsync(i, ct)))(id, lifetime); }
             catch (Exception e) when (e is HttpRequestException or TaskCanceledException or IOException or UnauthorizedAccessException) { }
+            if (file is null) return;
+            Avalonia.Threading.Dispatcher.UIThread.Post(() => { Filter(); if (current?.Key == g.Key) Select(current); });
+        });
+    }
+
+    /// <summary>Once per game and session: the AppStream screenshot of a Linux game (catalog read and download off the UI thread), then repaints.</summary>
+    private void FetchNativeArtLater(LibGame g)
+    {
+        if (!artTried.Add(g.Key)) return;
+        _ = Task.Run(async () =>
+        {
+            string? file = null;
+            try { file = await nativeArt.ScreenshotAsync(g.Id, g.Kind == "Linux · Flatpak", lifetime); }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException or TaskCanceledException) { }
             if (file is null) return;
             Avalonia.Threading.Dispatcher.UIThread.Post(() => { Filter(); if (current?.Key == g.Key) Select(current); });
         });
@@ -769,11 +789,17 @@ internal static class GameArt
     }
 
     /// <summary>Cover surface: the artwork cropped to fill, or the brand gradient with the game's initials and the games icon.</summary>
-    public static Border Cover(Bitmap? art, string name, double height)
+    /// <param name="appIcon">Shown centered when there is no artwork (Linux games without a screenshot), instead of the initials.</param>
+    public static Border Cover(Bitmap? art, string name, double height, Bitmap? appIcon = null)
     {
         var b = new Border { Height = height, CornerRadius = new CornerRadius(IlmenyxTheme.ControlRadius + 2), ClipToBounds = true };
         if (art is not null) { b.Background = new ImageBrush { Source = art, Stretch = Stretch.UniformToFill }; return b; }
         b.Background = UiKit.HeroBrush();
+        if (appIcon is not null)
+        {
+            b.Child = new Image { Source = appIcon, Height = Math.Max(16, height * 0.62), Stretch = Stretch.Uniform, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+            return b;
+        }
         var icon = UiKit.Icon(Icons.Games, Math.Max(18, height * 0.42), Palette.Fg);
         icon.Opacity = 0.10; icon.HorizontalAlignment = HorizontalAlignment.Right; icon.VerticalAlignment = VerticalAlignment.Bottom; icon.Margin = new Thickness(0, 0, 10, 6);
         b.Child = new Grid

@@ -90,5 +90,10 @@ Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes qu
 - [x] **Tela de permissões na 1ª execução com senha real: VALIDADA** (22:49, consumo da CPU liberado; regra udev criada).
 - [x] **Desfazer depois**: antes só existia logo após liberar. Novo card "PERMISSÕES DADAS PELO ILMENYX" em Requisitos e sobre, com
   DESFAZER; desfazer fecha todas as zonas RAPL. VALIDADO pelo dono: regra removida e leitura negada ao usuário. Testes 1288.
+- [x] **ZRAM já ligada pela distribuição** (CachyOS, zram-generator padrão): "ZRAM já está ativo", sem LIGAR/DESFAZER. VALIDADO pelo dono.
+- [x] **Jogos não Steam** (shortcuts.vdf binário): aparecem como "Steam (não Steam)" e abrem pela Steam; somem quando saem da Steam (testado com arquivo real).
+- [x] **Jogos nativos** (atalhos de menu com categoria Game: pacote, Flatpak): "Linux" / "Linux · Flatpak", abertos pelo Ilmenyx. Lojas,
+  ferramentas (Steam, Lutris, Bottles, ProtonPlus), emuladores e atalhos steam:// ficam de fora. Imagem: captura AppStream (Flathub/metainfo,
+  baixada uma vez para ~/.cache/ilmenyx/art-native) ou o ícone. VALIDADO pelo dono: Hytale (ícone) e SuperTuxKart (captura). "1 jogo" no singular.
 - [ ] Logotipo ainda mostra só "Ilmenyx" (decisão de identidade do dono). Chave GPG com UID antigo "Bismuth Technology": acrescentar UID novo.
 - [ ] Busca de marca para "Ilmenyx Controller" e "Ilmenyx Technology" (a de 2026-11-07 cobriu Ilmenyx e Bismuth Technology).
