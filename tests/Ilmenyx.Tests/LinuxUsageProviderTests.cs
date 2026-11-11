@@ -91,7 +91,7 @@ public sealed class LinuxUsageProviderTests : IDisposable
     public void ParseStatReadsUtimeStimeStartAndRss(string text)
     {
         var s = LinuxUsageProvider.ParseStat(text);
-        Assert.NotNull(s); Assert.Equal(10, s!.Value.ticks); Assert.Equal(9, s.Value.start); Assert.Equal(3, s.Value.rssPages);
+        Assert.NotNull(s); Assert.Equal(10, s!.Value.ticks); Assert.Equal(9, s.Value.start); Assert.Equal(3, s.Value.rssPages); Assert.Equal(1, s.Value.ppid);
     }
 
     [Theory]
