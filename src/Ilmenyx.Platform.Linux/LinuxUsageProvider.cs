@@ -54,9 +54,11 @@ public sealed partial class LinuxUsageProvider(string procRoot = "/proc", string
         var memory = Memory(meminfo);
         var (read, write) = Disk(diskstats, now);
         var (rx, tx, iface) = Net(netdev, now);
+        var interfaces = Interfaces(netdev, now);
+        var (swapTotal, swapUsed) = Swap(meminfo);
         var (processes, count) = await Processes(now, Math.Max(1, logical), ct);
         return new(DateTimeOffset.UtcNow, Field(cpuinfo, "model name"), cpu, AverageMhz(cpuinfo), Temperature(),
-            memory.total, memory.used, read, write, rx, tx, iface, count, processes, maxCore, busiest, MaxMhz(cpuinfo), rapl.Sample(now));
+            memory.total, memory.used, read, write, rx, tx, iface, count, processes, maxCore, busiest, MaxMhz(cpuinfo), rapl.Sample(now), swapTotal, swapUsed, interfaces);
     }
 
     // The sampler runs off the UI thread (UsageViewModel), so the lean synchronous read is safe here.
@@ -164,6 +166,64 @@ public sealed partial class LinuxUsageProvider(string procRoot = "/proc", string
             rate = ((rx - b.Rx) / (now - b.At), (tx - b.Tx) / (now - b.At));
         netBefore = (now, rx, tx);
         return (rate.Item1, rate.Item2, name);
+    }
+
+    /// <summary>Swap from /proc/meminfo (SwapTotal, SwapFree); zram counts as swap. Null when the system has none.</summary>
+    internal static (long? Total, long? Used) Swap(string meminfo)
+    {
+        long? Kb(string key)
+        {
+            foreach (var line in meminfo.Split('\n'))
+            {
+                if (!line.StartsWith(key + ":", StringComparison.Ordinal)) continue;
+                var p = line[(key.Length + 1)..].Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (p.Length == 2 && p[1] == "kB" && Num(p[0]) is { } n && n <= long.MaxValue / 1024) return n * 1024;
+            }
+            return null;
+        }
+        long? total = Kb("SwapTotal"), free = Kb("SwapFree");
+        return total is > 0 && free is { } f && f <= total ? (total, total - f) : (null, null);
+    }
+
+    private readonly Dictionary<string, (double At, long Rx, long Tx)> ifaceBefore = new(StringComparer.Ordinal);
+    private (double At, Dictionary<string, string[]> Map) addresses = (-100, []);
+
+    /// <summary>Each active interface (same filter as the total), with its own rates and IP addresses.</summary>
+    private IReadOnlyList<NetInterfaceUsage> Interfaces(string netdev, double now)
+    {
+        if (now - addresses.At >= 10) addresses = (now, Addresses());
+        var list = new List<NetInterfaceUsage>();
+        foreach (var line in netdev.Split('\n').Skip(2))
+        {
+            int colon = line.IndexOf(':');
+            if (colon < 0) continue;
+            string iface = line[..colon].Trim();
+            var p = line[(colon + 1)..].Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (iface.Length == 0 || IgnoredInterface().IsMatch(iface) || p.Length < 9 || Num(p[0]) is not { } r || Num(p[8]) is not { } t) continue;
+            double? rxRate = null, txRate = null;
+            if (ifaceBefore.TryGetValue(iface, out var b) && now > b.At && r >= b.Rx && t >= b.Tx) { rxRate = (r - b.Rx) / (now - b.At); txRate = (t - b.Tx) / (now - b.At); }
+            ifaceBefore[iface] = (now, r, t);
+            var ips = addresses.Map.TryGetValue(iface, out var a) ? a : [];
+            // Interfaces that are down and never moved a byte (unused Ethernet ports, idle tunnels) stay out of the list.
+            if (ips.Length == 0 && r == 0 && t == 0) continue;
+            list.Add(new(iface, rxRate, txRate, ips, Directory.Exists(Path.Combine(sysRoot, "class/net", iface, "wireless"))));
+        }
+        return list;
+    }
+
+    private static Dictionary<string, string[]> Addresses()
+    {
+        var map = new Dictionary<string, string[]>(StringComparer.Ordinal);
+        try
+        {
+            foreach (var n in System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces())
+                map[n.Name] = n.GetIPProperties().UnicastAddresses
+                    .Where(u => !u.Address.IsIPv6LinkLocal)
+                    .OrderBy(u => u.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork ? 0 : 1)
+                    .Select(u => u.Address.ToString()).ToArray();
+        }
+        catch (Exception e) when (e is System.Net.NetworkInformation.NetworkInformationException or PlatformNotSupportedException) { }
+        return map;
     }
 
     internal static string? Field(string text, string key)
