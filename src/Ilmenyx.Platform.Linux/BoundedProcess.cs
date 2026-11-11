@@ -24,6 +24,13 @@ public static class BoundedProcess
 
     public static async Task<(int ExitCode, string Output)> RunAsync(string program, IReadOnlyList<string> arguments, TimeSpan timeout, int maxCharacters = 65536, CancellationToken ct = default)
     {
+        var (code, output, _) = await RunWithErrorsAsync(program, arguments, timeout, maxCharacters, ct);
+        return (code, output);
+    }
+
+    /// <summary>Same as <see cref="RunAsync"/>, also returning standard error (udisks, polkit and most tools explain failures there).</summary>
+    public static async Task<(int ExitCode, string Output, string Errors)> RunWithErrorsAsync(string program, IReadOnlyList<string> arguments, TimeSpan timeout, int maxCharacters = 65536, CancellationToken ct = default)
+    {
         string path = Find(program) ?? throw new FileNotFoundException(L.T($"{program} não encontrado nos diretórios padrão."));
         var start = HostSpawn.Start(path, arguments, new Dictionary<string, string> { ["LC_ALL"] = "C" });
         using var process = new Process { StartInfo = start };
@@ -39,7 +46,7 @@ public static class BoundedProcess
             }
             var output = Bounded(process.StandardOutput); var errors = Bounded(process.StandardError);
             await Task.WhenAll(output, errors, process.WaitForExitAsync(stop.Token));
-            return (process.ExitCode, await output);
+            return (process.ExitCode, await output, await errors);
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested) { throw new TimeoutException(L.T($"{program} excedeu {timeout.TotalSeconds:0} s.")); }
         finally
