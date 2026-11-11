@@ -12,6 +12,9 @@ public sealed class PciIds
     private readonly Dictionary<string, string> devices = new(StringComparer.Ordinal);
     public bool IsEmpty => vendors.Count == 0;
 
+    // The system file parsed once (~18 MB of garbage and ~17 ms per parse; 14 places ask for it). Re-read only if it changes.
+    private static (string Path, DateTime Written, long Length, PciIds Ids)? cached;
+
     public static PciIds Load(IEnumerable<string>? paths = null)
     {
         foreach (var path in paths ?? CandidatePaths.Select(HostSpawn.HostPath))
@@ -20,7 +23,11 @@ public sealed class PciIds
             {
                 var info = new FileInfo(path);
                 if (!info.Exists || info.Length is 0 or > 16 << 20) continue;
-                return Parse(File.ReadAllText(path));
+                if (paths is not null) return Parse(File.ReadAllText(path));
+                if (cached is { } c && c.Path == path && c.Written == info.LastWriteTimeUtc && c.Length == info.Length) return c.Ids;
+                var ids = Parse(File.ReadAllText(path));
+                cached = (path, info.LastWriteTimeUtc, info.Length, ids);
+                return ids;
             }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
         }

@@ -71,7 +71,7 @@ public sealed class OptimizePage : StackPanel
         Children.Add(columns);
         if (zram is not null) { Zram = new ZramPanel(zram, owner, lifetime) { Name = "OptZram" }; Children.Add(UiKit.Card(Zram)); }
         Loaded += async (_, _) => { await RefreshAppsAsync(); await RefreshTweaksAsync(); };
-        usage.Updated += UpdateRam; UpdateRam();
+        usage.Updated += UiKit.OnScreen(this, UpdateRam); UpdateRam();
     }
 
     private void UpdateRam()

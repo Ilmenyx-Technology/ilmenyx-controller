@@ -26,6 +26,33 @@ public sealed class LinuxFiles : ILinuxFiles
         }
         return result.ToString();
     }
+    /// <summary>
+    /// Lean synchronous read of a small kernel file (/proc, /sys): no async handle and one pooled buffer, instead of the ~32 KB that
+    /// <see cref="ReadAsync"/> allocates per file. It blocks the caller, so use it only off the UI thread (the usage sampler reads
+    /// ~300 files per second this way). Same 4 Mi limit.
+    /// </summary>
+    public static string ReadSmall(string path)
+    {
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, bufferSize: 0);
+        byte[] buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(4096);
+        int total = 0;
+        try
+        {
+            int count;
+            while ((count = stream.Read(buffer, total, buffer.Length - total)) > 0)
+            {
+                total += count;
+                if (total > MaxCharacters) throw new IOException(L.T("Fonte excede limite de 4 Mi caracteres."));
+                if (total < buffer.Length) continue;
+                byte[] bigger = System.Buffers.ArrayPool<byte>.Shared.Rent(buffer.Length * 2);
+                Buffer.BlockCopy(buffer, 0, bigger, 0, total);
+                System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
+                buffer = bigger;
+            }
+            return System.Text.Encoding.UTF8.GetString(buffer, 0, total);
+        }
+        finally { System.Buffers.ArrayPool<byte>.Shared.Return(buffer); }
+    }
     public string? ResolveLink(string path)
     {
         try { return new FileInfo(path).ResolveLinkTarget(true)?.FullName ?? new DirectoryInfo(path).ResolveLinkTarget(true)?.FullName; }
