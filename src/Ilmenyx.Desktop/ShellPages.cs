@@ -464,7 +464,19 @@ public sealed partial class ShellWindow
         var eventsCard = CardBox(new StackPanel { Spacing = 10, Children = { Label(L.T("EVENTOS RECENTES")), eventsList } }, new Thickness(22, 18));
         Grid.SetColumn(eventsCard, 2); lower.Children.Add(healthCard); lower.Children.Add(eventsCard);
         var ringCard = CardBox(new StackPanel { Spacing = 8, Children = { Label(L.T("OCUPAÇÃO")), rings } }, new Thickness(22, 18)); ringCard.Margin = new Thickness(0, 14, 0, 0);
-        var content = new StackPanel { Margin = new Thickness(0, 0, 8, 12), Children = { row1, UiKit.SectionHeader(L.T("Atividade")), chartCard, UiKit.SectionHeader(L.T("Componentes")), components, lower, ringCard } };
+        var full = new StackPanel { Name = "OverviewFull", Children = { row1, UiKit.SectionHeader(L.T("Atividade")), chartCard, UiKit.SectionHeader(L.T("Componentes")), components, lower, ringCard } };
+        // Simple mode ("Seu PC agora") is the first screen for whoever only wants to know whether the PC is fine; the full view is one click away.
+        bool simpleOn = IlmenyxSettings.Load(IlmenyxSettings.DefaultPath()).SimpleOverview ?? true;
+        var simple = new SimpleOverview(usage, k => { if (pages.ContainsKey(k)) Select(k); }, () => this, canOpen: pages.ContainsKey) { IsVisible = simpleOn };
+        full.IsVisible = !simpleOn;
+        var modeSwitch = new ToggleSwitch { Name = "OverviewSimpleToggle", IsChecked = simpleOn, OnContent = L.T("Modo simples"), OffContent = L.T("Modo simples"), FontSize = 12.5, HorizontalAlignment = HorizontalAlignment.Right };
+        Avalonia.Automation.AutomationProperties.SetName(modeSwitch, L.T("Modo simples"));
+        modeSwitch.IsCheckedChanged += (_, _) =>
+        {
+            bool on = modeSwitch.IsChecked == true; simple.IsVisible = on; full.IsVisible = !on;
+            try { IlmenyxSettings.Update(IlmenyxSettings.DefaultPath(), st => st.SimpleOverview = on); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+        };
+        var content = new StackPanel { Margin = new Thickness(0, 0, 8, 12), Spacing = 6, Children = { modeSwitch, simple, full } };
         var scroll = Scroll("OverviewScroll", content);
         scroll.AttachedToVisualTree += (_, _) => overviewRefresh?.Invoke();
         var refreshTimer = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(20) };
