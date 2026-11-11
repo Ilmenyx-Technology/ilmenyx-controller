@@ -47,7 +47,7 @@ Corresponding source (GPL-2.0 section 3): the exact source of this build (commit
 is published next to the binaries in every Ilmenyx release on GitHub, as OpenRGB-1.1-source.tar.gz
 (SHA-256 8b919ad446de7f0415e2271a1881f94cd4f14e384a3c59acfcb3f540125f0107). Upstream: https://codeberg.org/OpenRGB/OpenRGB
 Written offer, valid for at least three years from the release date: anyone may ask for a copy of that source, at no charge
-beyond the cost of the medium, by writing to meirafhenrique@gmail.com.
+beyond the cost of the medium, by writing to ilmenyx.technology@gmail.com.
 TEXT
 cat > "$cache/out/mangohud/SOURCE.txt" <<TEXT
 MangoHud $MANGOHUD_VERSION (MIT), unmodified official release libraries (64-bit), bundled by Ilmenyx.
@@ -73,7 +73,7 @@ Corresponding source: published next to the binaries in every Ilmenyx release on
 (tag 1.4.4, commit cf3d1b107147480c447ffbfb3f789dc74335074c) and python-xlib-0.33.tar.gz (PyPI sdist).
 Upstream: https://github.com/Open-Wine-Components/umu-launcher
 Written offer, valid for at least three years from the release date: anyone may ask for a copy of that source, at no charge
-beyond the cost of the medium, by writing to meirafhenrique@gmail.com.
+beyond the cost of the medium, by writing to ilmenyx.technology@gmail.com.
 TEXT
 rm -rf -- "$cache/work"
 echo "Componentes prontos em $cache/out"
