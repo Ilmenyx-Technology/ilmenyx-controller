@@ -10,6 +10,6 @@ Comment[pt_BR]=Diagnóstico, monitoramento e benchmarking de hardware para Linux
 Exec=Ilmenyx.Desktop
 Icon=io.github.ilmenyx_technology.IlmenyxController
 Terminal=false
-Categories=System;Monitor;
+Categories=System;Monitor;Utility;
 Keywords=hardware;benchmark;sensors;cpu;gpu;monitor;diagnostics;
 StartupWMClass=io.github.ilmenyx_technology.IlmenyxController

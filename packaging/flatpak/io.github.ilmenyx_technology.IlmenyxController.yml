@@ -36,7 +36,7 @@ modules:
       - install -Dm644 linux/io.github.ilmenyx_technology.IlmenyxController.desktop /app/share/applications/io.github.ilmenyx_technology.IlmenyxController.desktop
       - sed -i 's|^Exec=.*|Exec=ilmenyx-desktop|' /app/share/applications/io.github.ilmenyx_technology.IlmenyxController.desktop
       - install -Dm644 linux/io.github.ilmenyx_technology.IlmenyxController.metainfo.xml /app/share/metainfo/io.github.ilmenyx_technology.IlmenyxController.metainfo.xml
-      - cp -r linux/hicolor /app/share/icons/
+      - install -d /app/share/icons && cp -r linux/hicolor /app/share/icons/hicolor
     sources:
       - type: dir
         path: bundle
