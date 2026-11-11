@@ -508,7 +508,7 @@ public sealed partial class ShellWindow
 
     private Control GpuPage() => new GpuInfoPage(stop.Token) { Margin = new Thickness(0, 4, 0, 0) };
 
-    private Control DisksPage() => Scroll("DisksScroll", new DiskHealthPage(smartImport, Destination("smart-import"), stop.Token) { Margin = new Thickness(0, 4, 8, 12) });
+    private Control DisksPage() => Scroll("DisksScroll", new DiskHealthPage(() => this, stop.Token) { Margin = new Thickness(0, 4, 8, 12) });
 
     private Control EnergyPage() => Scroll("EnergyScroll", new Ilmenyx.Desktop.EnergyPage(sensors, stop.Token) { Margin = new Thickness(0, 4, 8, 12) });
 

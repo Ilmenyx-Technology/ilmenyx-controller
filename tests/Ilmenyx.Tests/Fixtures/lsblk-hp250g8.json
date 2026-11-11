@@ -1,0 +1,228 @@
+{
+   "blockdevices": [
+      {
+         "name": "sda",
+         "path": "/dev/sda",
+         "size": 500107862016,
+         "type": "disk",
+         "fstype": null,
+         "mountpoints": [],
+         "label": null,
+         "tran": "sata",
+         "model": "TOSHIBA MQ01ABD050",
+         "rm": false,
+         "hotplug": false,
+         "fsused": null,
+         "fsavail": null,
+         "parttypename": null,
+         "ro": false,
+         "rota": true,
+         "children": [
+            {
+               "name": "sda1",
+               "path": "/dev/sda1",
+               "size": 351272960000,
+               "type": "part",
+               "fstype": "ext4",
+               "mountpoints": [
+                   "/mnt/HDD"
+               ],
+               "label": "HDD",
+               "tran": null,
+               "model": null,
+               "rm": false,
+               "hotplug": false,
+               "fsused": 58024574976,
+               "fsavail": 269008203776,
+               "parttypename": "Linux filesystem",
+               "ro": false,
+               "rota": true
+            },{
+               "name": "sda2",
+               "path": "/dev/sda2",
+               "size": 148832780288,
+               "type": "part",
+               "fstype": "ntfs",
+               "mountpoints": [],
+               "label": "HDD",
+               "tran": null,
+               "model": null,
+               "rm": false,
+               "hotplug": false,
+               "fsused": null,
+               "fsavail": null,
+               "parttypename": "Microsoft basic data",
+               "ro": false,
+               "rota": true
+            }
+         ]
+      },{
+         "name": "sdb",
+         "path": "/dev/sdb",
+         "size": 61991813632,
+         "type": "disk",
+         "fstype": null,
+         "mountpoints": [],
+         "label": null,
+         "tran": "usb",
+         "model": "DataTraveler 3.0",
+         "rm": true,
+         "hotplug": true,
+         "fsused": null,
+         "fsavail": null,
+         "parttypename": null,
+         "ro": false,
+         "rota": true,
+         "children": [
+            {
+               "name": "sdb1",
+               "path": "/dev/sdb1",
+               "size": 61957210112,
+               "type": "part",
+               "fstype": "exfat",
+               "mountpoints": [
+                   "/run/media/user/Ventoy"
+               ],
+               "label": "Ventoy",
+               "tran": null,
+               "model": null,
+               "rm": true,
+               "hotplug": true,
+               "fsused": 49711677440,
+               "fsavail": 12243566592,
+               "parttypename": "HPFS/NTFS/exFAT",
+               "ro": false,
+               "rota": true
+            },{
+               "name": "sdb2",
+               "path": "/dev/sdb2",
+               "size": 33554432,
+               "type": "part",
+               "fstype": "vfat",
+               "mountpoints": [],
+               "label": "VTOYEFI",
+               "tran": null,
+               "model": null,
+               "rm": true,
+               "hotplug": true,
+               "fsused": null,
+               "fsavail": null,
+               "parttypename": "EFI (FAT-12/16/32)",
+               "ro": false,
+               "rota": true
+            }
+         ]
+      },{
+         "name": "zram0",
+         "path": "/dev/zram0",
+         "size": 16420700160,
+         "type": "disk",
+         "fstype": "swap",
+         "mountpoints": [
+             "[SWAP]"
+         ],
+         "label": "zram0",
+         "tran": null,
+         "model": null,
+         "rm": false,
+         "hotplug": false,
+         "fsused": null,
+         "fsavail": null,
+         "parttypename": null,
+         "ro": false,
+         "rota": false
+      },{
+         "name": "nvme0n1",
+         "path": "/dev/nvme0n1",
+         "size": 256060514304,
+         "type": "disk",
+         "fstype": null,
+         "mountpoints": [],
+         "label": null,
+         "tran": "nvme",
+         "model": "SSSTC CL1-8D256-HP",
+         "rm": false,
+         "hotplug": false,
+         "fsused": null,
+         "fsavail": null,
+         "parttypename": null,
+         "ro": false,
+         "rota": false,
+         "children": [
+            {
+               "name": "nvme0n1p1",
+               "path": "/dev/nvme0n1p1",
+               "size": 536870912,
+               "type": "part",
+               "fstype": "vfat",
+               "mountpoints": [
+                   "/boot/efi"
+               ],
+               "label": null,
+               "tran": "nvme",
+               "model": null,
+               "rm": false,
+               "hotplug": false,
+               "fsused": 27590656,
+               "fsavail": 508215296,
+               "parttypename": "EFI System",
+               "ro": false,
+               "rota": false
+            },{
+               "name": "nvme0n1p2",
+               "path": "/dev/nvme0n1p2",
+               "size": 182120873984,
+               "type": "part",
+               "fstype": "btrfs",
+               "mountpoints": [
+                   "/var/cache", "/var/tmp", "/srv", "/var/log", "/root", "/home", "/"
+               ],
+               "label": null,
+               "tran": "nvme",
+               "model": null,
+               "rm": false,
+               "hotplug": false,
+               "fsused": 142290083840,
+               "fsavail": 37008908288,
+               "parttypename": "Linux filesystem",
+               "ro": false,
+               "rota": false
+            },{
+               "name": "nvme0n1p3",
+               "path": "/dev/nvme0n1p3",
+               "size": 16777216,
+               "type": "part",
+               "fstype": null,
+               "mountpoints": [],
+               "label": null,
+               "tran": "nvme",
+               "model": null,
+               "rm": false,
+               "hotplug": false,
+               "fsused": null,
+               "fsavail": null,
+               "parttypename": "Microsoft reserved",
+               "ro": false,
+               "rota": false
+            },{
+               "name": "nvme0n1p4",
+               "path": "/dev/nvme0n1p4",
+               "size": 73383542784,
+               "type": "part",
+               "fstype": "ntfs",
+               "mountpoints": [],
+               "label": null,
+               "tran": "nvme",
+               "model": null,
+               "rm": false,
+               "hotplug": false,
+               "fsused": null,
+               "fsavail": null,
+               "parttypename": "Microsoft basic data",
+               "ro": false,
+               "rota": false
+            }
+         ]
+      }
+   ]
+}

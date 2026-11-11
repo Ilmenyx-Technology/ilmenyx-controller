@@ -472,18 +472,23 @@ public sealed class UiSmokeApp : Application
         var smartable = verdicts.Select(v => v.Name!["Verdict_".Length..]).FirstOrDefault(n => System.Text.RegularExpressions.Regex.IsMatch(n, "^(sd[a-z]+|nvme[0-9]+n[0-9]+)$"));
         if (smartable is not null)
         {
+            // Read-only SMART query: without the permission it fails closed and the page explains the fix (no sudo command in the title).
             Click(shell, "SmartQuery_" + smartable);
-            await Until(() => Find<TextBlock>(shell, "DiskHealthStatus").Text!.Contains("indisponível") || Find<TextBlock>(shell, "DiskHealthStatus").Text!.Contains("lido"));
-            string fixture = smartable.StartsWith("nvme")
-                ? "{\"smartctl\":{\"exit_status\":0},\"device\":{\"name\":\"/dev/" + smartable + "\"},\"smart_status\":{\"passed\":true},\"temperature\":{\"current\":40},\"nvme_smart_health_information_log\":{\"percentage_used\":3,\"media_errors\":2}}"
-                : "{\"smartctl\":{\"exit_status\":0},\"device\":{\"name\":\"/dev/" + smartable + "\"},\"smart_status\":{\"passed\":true},\"temperature\":{\"current\":35},\"ata_smart_attributes\":{\"table\":[{\"id\":197,\"raw\":{\"value\":1}}]}}";
-            var smartFile = Path.Combine(Program.OutputDirectory, "disk-smart-fixture.json"); File.WriteAllText(smartFile, fixture);
-            Find<TextBox>(shell, "SmartImportDevice").Text = smartable; Find<TextBox>(shell, "SmartImportPath").Text = smartFile; Click(shell, "ImportSmart");
-            await Until(() => Find<StackPanel>(shell, "DiskCards").GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "Verdict_" + smartable && t.Text == "ATENÇÃO"));
+            await Until(() => Find<TextBlock>(shell, "DiskHealthStatus").Text!.Contains("não foi lida") || Find<TextBlock>(shell, "DiskHealthStatus").Text!.Contains("lida"));
+            if (Find<TextBlock>(shell, "DiskHealthStatus").Text!.Contains("sudo")) throw new InvalidOperationException("Disk status still asks for a sudo command.");
+            if (!SmartAccess.Installed && SmartAccess.SmartctlPresent && !Find<Button>(shell, "BtnSmartGrant").IsEffectivelyVisible) throw new InvalidOperationException("SMART permission button missing.");
             await Task.Delay(200); Capture(shell, "shell-disks.png");
-            Console.WriteLine("PASS disks page: verdict cards, bounded SMART query without privilege, offline SMART import raises the verdict with raw metrics");
+            Console.WriteLine("PASS disks page: verdict per disk, bounded SMART query without privilege, plain-words banner with the one-time permission");
         }
-        else Console.WriteLine("SKIP disks SMART import: no sd*/nvme* disk visible in this environment");
+        else Console.WriteLine("SKIP disks SMART query: no sd*/nvme* disk visible in this environment");
+        // Partitions tab: real lsblk map; the system disk shows no format or unmount for its system partitions.
+        Click(shell, "DiskTabParts");
+        await Until(() => shell.GetVisualDescendants().OfType<Border>().Any(b => b.Name?.StartsWith("PartCard_", StringComparison.Ordinal) == true && b.IsEffectivelyVisible));
+        if (shell.GetVisualDescendants().OfType<Button>().Any(b => b.IsEffectivelyVisible && (b.Name?.StartsWith("BtnFormatPart_nvme0n1p2", StringComparison.Ordinal) == true || b.Name == "BtnUnmount_nvme0n1p2")))
+            throw new InvalidOperationException("System partition offered format/unmount.");
+        await Task.Delay(200); Capture(shell, "shell-disks-partitions.png");
+        Click(shell, "DiskTabHealth");
+        Console.WriteLine("PASS disks partitions: map per disk from lsblk, system partitions locked");
         Find<Button>(shell, "Navenergy").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await Until(() => shell.GetVisualDescendants().OfType<StackPanel>().Any(p => p.Name == "EnergyCards" && p.Children.Count > 0));
         if (!shell.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "Verdict_energia" && t.Text == "EM USO")) throw new InvalidOperationException("Energy card missing.");
