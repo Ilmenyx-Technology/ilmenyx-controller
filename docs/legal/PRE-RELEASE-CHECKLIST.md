@@ -18,7 +18,7 @@ não equivalem a conformidade legal. Publicação permanece sem autorização ne
 | [ ] Linux real/distros/hardware/CI/Windows | CachyOS, CLI/UI testáveis; Sem_teste.md | NÃO TESTADO para matriz restante | Provisionar VMs/hardware; CI não criado nesta tarefa |
 | [x] Manual de Marca e assets | `docs/branding/kit/` (manual PDF e assets), 2026-11-07 | APROVADO pelo mantenedor (ícone e cores) | — |
 | [~] Checksums/assinatura/SBOM rastreável | SHA-256 e assinatura GPG em cada arquivo das releases (`docs/assinatura-gpg.md`); chave com o nome Ilmenyx Technology desde a v0.31.0 | FEITO exceto SBOM | SBOM formal ainda não gerado |
-| [x] Org/push/tags/releases | github.com/Ilmenyx-Technology/ilmenyx-controller **público** desde 2026-11-10, com o perfil da organização; pré-releases v0.30.0 a v0.33.0 assinadas | FEITO | Busca de marca internacional (WIPO/TMview/EUIPO) segue pendente, a cargo do mantenedor |
+| [x] Org/push/tags/releases | github.com/Ilmenyx-Technology/ilmenyx-controller **público** desde 2026-11-10, com o perfil da organização; pré-releases v0.30.0 a v0.33.1 assinadas | FEITO | Busca de marca internacional (WIPO/TMview/EUIPO) segue pendente, a cargo do mantenedor |
 
 Referências institucionais consultadas em 2026-10-21:
 [INPI guia](https://www.gov.br/inpi/pt-br/servicos/marcas/guia-basico),

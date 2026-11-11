@@ -1,6 +1,6 @@
 # O que ainda falta testar
 
-Estado em **2026-11-11, versão 0.33.0**. Esta lista diz o que o Ilmenyx Controller **ainda não conferiu em hardware ou sistema real**, por
+Estado em **2026-11-11, versão 0.33.1**. Esta lista diz o que o Ilmenyx Controller **ainda não conferiu em hardware ou sistema real**, por
 que, e como testar. Um item só sai daqui com evidência real (comando, ambiente, data), guardada em `docs/evidencias/`. Fixture, build e
 smoke com serviços falsos ajudam, mas não contam como teste do caminho real.
 
