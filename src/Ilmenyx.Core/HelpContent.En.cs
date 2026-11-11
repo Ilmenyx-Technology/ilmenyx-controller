@@ -390,7 +390,7 @@ public static partial class HelpContent
                 ],
                 Q("tray", "How do I keep Ilmenyx in the notification area?", "Check \"When minimized, go to the notification area\" in Preferences. When you minimize, the window disappears and an icon stays near the clock; click it to come back or use its menu to pause the readings or quit. GNOME needs the AppIndicator extension; without a notification area, the window just minimizes."),
                 Q("tempalert", "Will the hot CPU alert go off all the time?", "No. One-second spikes to 70–80 °C are normal when the processor boosts. The alert only appears if the CPU stays above the chosen limit for 20 seconds in a row, and then it waits 10 minutes and for the CPU to cool down before alerting again."),
-                Q("updates", "How does Ilmenyx know a new version is out?", "If you allow it, it checks the project's releases page on GitHub once a day. No data from your PC is sent. When there's a new version, a notification arrives and the version in the corner of the sidebar becomes a link to the download page.")),
+                Q("updates", "How does Ilmenyx know a new version is out?", "If you allow it, it checks the project's releases page on GitHub once a day. No data from your PC is sent. When there's a new version, a notification arrives and the version in the corner of the sidebar becomes a button: Update now downloads the new version, checks its GPG signature and installs it (AppImage and Flatpak); then just restart. The folder package opens the download page.")),
         ],
         [
             new("overview", "dash", ["dash"], "Overview",

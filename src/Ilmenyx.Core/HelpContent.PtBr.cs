@@ -394,7 +394,7 @@ public static partial class HelpContent
                 ],
                 Q("tray", "Como deixar o Ilmenyx na área de notificação?", "Marque \"Ao minimizar, ir para a área de notificação\" em Preferências. Ao minimizar, a janela some e fica um ícone perto do relógio; clique nele para voltar ou use o menu dele para pausar as leituras ou sair. No GNOME é preciso a extensão AppIndicator; sem área de notificação, a janela só minimiza."),
                 Q("tempalert", "O aviso de CPU quente vai disparar toda hora?", "Não. Picos de um segundo a 70–80 °C são normais quando o processador acelera. O aviso só aparece se a CPU ficar acima do limite escolhido por 20 segundos seguidos, e depois espera 10 minutos e a CPU esfriar antes de avisar de novo."),
-                Q("updates", "Como o Ilmenyx sabe que saiu uma versão nova?", "Se você permitir, ele consulta a página de versões do projeto no GitHub uma vez por dia. Nenhum dado do seu PC é enviado. Quando há versão nova, chega uma notificação e a versão no canto do menu lateral vira um link para a página de download.")),
+                Q("updates", "Como o Ilmenyx sabe que saiu uma versão nova?", "Se você permitir, ele consulta a página de versões do projeto no GitHub uma vez por dia. Nenhum dado do seu PC é enviado. Quando há versão nova, chega uma notificação e a versão no canto do menu lateral vira um botão: Atualizar agora baixa a versão nova, confere a assinatura GPG e instala (AppImage e Flatpak); depois é só reiniciar. O pacote em pasta abre a página de download.")),
         ],
         [
             new("overview", "dash", ["dash"], "Visão geral",
