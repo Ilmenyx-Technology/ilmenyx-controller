@@ -577,9 +577,10 @@ public sealed partial class ShellWindow
         var page = new StackPanel
         {
             Spacing = 12,
-            Children = { UiKit.PageHeader(L.T("Requisitos e sobre")), UiKit.Card(new StackPanel { Spacing = 12, Children = { UiKit.Label(L.T("FERRAMENTAS")), new WrapPanel { ItemSpacing = 10, LineSpacing = 8, Children = { requirements, about, classicButton } }, toastToggle,
+            Children = { UiKit.PageHeader(L.T("Requisitos e sobre")), UiKit.Card(new StackPanel { Spacing = 12, Children = { UiKit.Label(L.T("FERRAMENTAS")), new WrapPanel { ItemSpacing = 10, LineSpacing = 8, Children = { requirements, about, classicButton } },
                 Wrapped("ToolsNote", ProductIdentity.Attribution, 12, Palette.Faint) } }) }
         };
+        page.Children.Add(PreferencesCard(toastToggle));
         if (GrantsCard() is { } grants) page.Children.Add(grants);
         return Scroll("ToolsScroll", page);
     }

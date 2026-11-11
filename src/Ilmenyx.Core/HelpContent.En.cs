@@ -65,7 +65,7 @@ public static partial class HelpContent
                 Q("cputemp", "Why doesn't the CPU temperature show?", "Sometimes Linux doesn't load the sensor module or hides the reading from regular users. Click \"Unlock CPU sensors\" in the sidebar: the system asks for your password once and you can undo it with the same button. In a virtual machine the sensor may not exist."),
                 Q("power", "Why is the Draw button grayed out?", "CPU power comes from a kernel counter (RAPL) that many distributions only let the administrator read. The \"Unlock CPU sensors\" button fixes that too. Some processors don't have this counter."),
                 Q("dash", "What does \"—\" mean instead of a number?", "That this reading isn't available on this PC. It's not a sign of a defect: Ilmenyx prefers showing \"—\" to making up a value."),
-                Q("monitor", "Do the live readings slow the PC down?", "No. The monitor only reads system files once per second. If you want, the pause button at the top stops the readings.")),
+                Q("monitor", "Do the live readings slow the PC down?", "No. On a laptop with an 11th-gen Core i5, Ilmenyx sitting idle uses about 3% of one of its 8 cores and 250 to 360 MB of memory. The pause button at the top stops the live readings.")),
 
             S("system", "diag", "System",
                 "Lists the hardware and software found: system, motherboard, processor, memory, graphics card and storage.",
@@ -374,8 +374,11 @@ public static partial class HelpContent
                     "Requirements checks whether the system has what Ilmenyx needs.",
                     "Licenses and credits shows the project's version, licenses and credits.",
                     "Classic diagnostics panel opens the old diagnostics window.",
-                    "Check or uncheck the alert for a USB stick or USB device connected or removed.",
-                ]),
+                    "In Preferences, turn the alerts on or off: USB stick or device, notification area, hot CPU and new version.",
+                ],
+                Q("tray", "How do I keep Ilmenyx in the notification area?", "Check \"When minimized, go to the notification area\" in Preferences. When you minimize, the window disappears and an icon stays near the clock; click it to come back or use its menu to pause the readings or quit. GNOME needs the AppIndicator extension; without a notification area, the window just minimizes."),
+                Q("tempalert", "Will the hot CPU alert go off all the time?", "No. One-second spikes to 70–80 °C are normal when the processor boosts. The alert only appears if the CPU stays above the chosen limit for 20 seconds in a row, and then it waits 10 minutes and for the CPU to cool down before alerting again."),
+                Q("updates", "How does Ilmenyx know a new version is out?", "If you allow it, it checks the project's releases page on GitHub once a day. No data from your PC is sent. When there's a new version, a notification arrives and the version in the corner of the sidebar becomes a link to the download page.")),
         ],
         [
             new("overview", "dash", ["dash"], "Overview",

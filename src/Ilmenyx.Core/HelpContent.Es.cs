@@ -65,7 +65,7 @@ public static partial class HelpContent
                 Q("cputemp", "¿Por qué no aparece la temperatura de la CPU?", "A veces Linux no carga el módulo del sensor u oculta la lectura a los usuarios comunes. Haz clic en \"Habilitar sensores de la CPU\" en el menú lateral: el sistema pide tu contraseña una vez y se puede deshacer con el mismo botón. En una máquina virtual el sensor puede no existir."),
                 Q("power", "¿Por qué el botón Consumo está apagado?", "El consumo de la CPU viene de un contador del kernel (RAPL) que muchas distribuciones solo dejan leer al administrador. El botón \"Habilitar sensores de la CPU\" también lo resuelve. Algunos procesadores no tienen ese contador."),
                 Q("dash", "¿Qué significa \"—\" en lugar de un número?", "Que esa lectura no está disponible en esta PC. No es señal de defecto: Ilmenyx prefiere mostrar \"—\" antes que inventar un valor."),
-                Q("monitor", "¿Las lecturas en vivo ponen lenta la PC?", "No. El monitor solo lee archivos del sistema una vez por segundo. Si quieres, el botón de pausa de arriba detiene las lecturas.")),
+                Q("monitor", "¿Las lecturas en vivo ponen lenta la PC?", "No. En una laptop con Core i5 de 11.ª generación, Ilmenyx en reposo usa cerca del 3% de uno de sus 8 núcleos y de 250 a 360 MB de memoria. El botón de pausa de arriba detiene las lecturas en vivo.")),
 
             S("system", "diag", "Sistema",
                 "Lista el hardware y el software encontrados: sistema, placa madre, procesador, memoria, tarjeta de video y almacenamiento.",
@@ -374,8 +374,11 @@ public static partial class HelpContent
                     "Requisitos verifica si el sistema tiene lo que Ilmenyx necesita.",
                     "Licencias y créditos muestra la versión, las licencias y los créditos del proyecto.",
                     "Panel clásico de diagnóstico abre la ventana de diagnóstico antigua.",
-                    "Marca o desmarca el aviso de memoria USB o dispositivo USB conectado o retirado.",
-                ]),
+                    "En Preferencias, activa o desactiva los avisos: memoria o dispositivo USB, área de notificación, CPU caliente y versión nueva.",
+                ],
+                Q("tray", "¿Cómo dejo Ilmenyx en el área de notificación?", "Marca \"Al minimizar, ir al área de notificación\" en Preferencias. Al minimizar, la ventana desaparece y queda un ícono cerca del reloj; haz clic en él para volver o usa su menú para pausar las lecturas o salir. En GNOME se necesita la extensión AppIndicator; sin área de notificación, la ventana solo se minimiza."),
+                Q("tempalert", "¿El aviso de CPU caliente va a sonar todo el tiempo?", "No. Picos de un segundo a 70–80 °C son normales cuando el procesador acelera. El aviso solo aparece si la CPU se queda por encima del límite elegido durante 20 segundos seguidos, y después espera 10 minutos y que la CPU se enfríe antes de avisar otra vez."),
+                Q("updates", "¿Cómo sabe Ilmenyx que salió una versión nueva?", "Si lo permites, consulta la página de versiones del proyecto en GitHub una vez al día. No se envía ningún dato de tu PC. Cuando hay una versión nueva, llega una notificación y la versión en la esquina del menú lateral se convierte en un enlace a la página de descarga.")),
         ],
         [
             new("overview", "dash", ["dash"], "Vista general",
