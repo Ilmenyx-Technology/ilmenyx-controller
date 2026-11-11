@@ -34,6 +34,12 @@ public sealed class UsageViewModel(IUsageProvider provider, TimeSpan? interval =
     public string DiskLine { get; private set; } = L.T("Aguardando amostras…");
     public string NetLine { get; private set; } = L.T("Aguardando amostras…");
     public string NetSub { get; private set; } = "";
+    /// <summary>Swap in use ("Swap 5,9 GiB de 15,3 GiB"), or that there is none.</summary>
+    public string SwapLine { get; private set; } = "";
+    /// <summary>Each active interface with its kind and first IP address.</summary>
+    public string NetAddresses { get; private set; } = "";
+    /// <summary>Rates per interface, only when more than one is active (otherwise the total says it all).</summary>
+    public string NetPerInterface { get; private set; } = "";
     public string Status { get; private set; } = L.T("Monitor pausado.");
     public string ProcessSummary { get; private set; } = "";
 
@@ -104,10 +110,14 @@ public sealed class UsageViewModel(IUsageProvider provider, TimeSpan? interval =
         DiskLine = s.DiskReadBps is { } dr && s.DiskWriteBps is { } dw ? L.T($"{Rate(dr)} leitura / {Rate(dw)} escrita") : L.T("Taxa de disco: aguardando 2ª amostra ou indisponível");
         NetLine = s.NetRxBps is { } nr && s.NetTxBps is { } nt ? L.T($"{Rate(nr)} recebido / {Rate(nt)} enviado") : L.T("Taxa de rede: aguardando 2ª amostra ou indisponível");
         NetSub = s.NetInterface ?? L.T("Nenhuma interface de rede ativa");
+        SwapLine = s.SwapTotal is { } st && s.SwapUsed is { } su ? L.T($"Swap {Bytes(su)} de {Bytes(st)}") : L.T("Sem swap");
+        var ifaces = s.Interfaces ?? [];
+        NetAddresses = ifaces.Count == 0 ? NetSub : string.Join(" · ", ifaces.Select(i => i.Name + (i.Wireless ? " (Wi-Fi)" : "") + " " + (i.Addresses.Count > 0 ? i.Addresses[0] : L.T("sem IP"))));
+        NetPerInterface = ifaces.Count < 2 ? "" : string.Join(" · ", ifaces.Select(i => i.Name + " ↓" + (i.RxBps is { } r ? Rate(r) : "—") + " ↑" + (i.TxBps is { } t ? Rate(t) : "—")));
         ProcessSummary = L.T($"{s.ProcessCount} processos visíveis · mostrando {Math.Min(s.Processes.Count, 40)}");
         var ordered = SortByMemory ? s.Processes.OrderByDescending(p => p.ResidentBytes ?? -1) : s.Processes.OrderByDescending(p => p.CpuPercent ?? -1).ThenByDescending(p => p.ResidentBytes ?? -1);
         Rows = ordered.Take(40).Select(p => new ProcessRow(p.Name, Pct(p.CpuPercent), p.ResidentBytes is { } b ? Bytes(b) : "—")).ToArray();
-        foreach (var name in new[] { nameof(Last), nameof(CpuLine), nameof(CpuModel), nameof(MemoryLine), nameof(MemorySub), nameof(DiskLine), nameof(NetLine), nameof(NetSub), nameof(ProcessSummary), nameof(Rows) }) Notify(name);
+        foreach (var name in new[] { nameof(Last), nameof(CpuLine), nameof(CpuModel), nameof(MemoryLine), nameof(MemorySub), nameof(DiskLine), nameof(NetLine), nameof(NetSub), nameof(SwapLine), nameof(NetAddresses), nameof(NetPerInterface), nameof(ProcessSummary), nameof(Rows) }) Notify(name);
         Updated?.Invoke();
     }
 
