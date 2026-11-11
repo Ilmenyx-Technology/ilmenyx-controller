@@ -17,7 +17,7 @@ performance and helps games run on Linux. It has a **desktop app** and a **comma
 Portuguese and Spanish**.
 
 > **Pre-release.** It works and was validated on real hardware (Intel Iris Xe, AMD Radeon 610M, NVIDIA GeForce 940MX; CachyOS,
-> Linux Mint), but not yet on every distro and GPU. What still needs testing is listed in [Sem_teste.md](Sem_teste.md) (Portuguese).
+> Linux Mint), but not yet on every distro and GPU. What still needs testing is listed in [Sem_teste.md](Sem_teste.md) (Portuguese, with an English summary).
 
 ![Ilmenyx Controller overview](docs/imagens/visao-geral.png)
 
