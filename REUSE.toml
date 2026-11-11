@@ -1,7 +1,7 @@
 version = 1
 SPDX-PackageName = "Ilmenyx"
 SPDX-PackageSupplier = "Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)"
-SPDX-PackageDownloadLocation = "https://github.com/Ilmenyx-Technology/ilmenyx"
+SPDX-PackageDownloadLocation = "https://github.com/Ilmenyx-Technology/ilmenyx-controller"
 
 # Licensing of files that cannot carry an SPDX header (images, binary data, JSON fixtures, documents).
 # Files WITH an SPDX header keep their header (precedence "closest"). When several annotations match a
@@ -16,7 +16,7 @@ SPDX-License-Identifier = "PolyForm-Noncommercial-1.0.0"
 
 # Top-level documents that explain the license and the additional permission.
 [[annotations]]
-path = ["README.md", "LICENSING.md", "NOTICE.md"]
+path = ["README.md", "README.pt-BR.md", "LICENSING.md", "NOTICE.md"]
 precedence = "closest"
 SPDX-FileCopyrightText = "2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)"
 SPDX-License-Identifier = "PolyForm-Noncommercial-1.0.0 AND LicenseRef-Ilmenyx-Permissao-Adicional"

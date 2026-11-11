@@ -50,9 +50,9 @@ public sealed class BackgroundFeatureTests
 
     private const string Releases = """
         [
-          {"tag_name":"v0.32.0-beta","draft":true,"html_url":"https://github.com/Ilmenyx-Technology/ilmenyx/releases/tag/v0.32.0-beta"},
-          {"tag_name":"v0.31.1","draft":false,"prerelease":true,"html_url":"https://github.com/Ilmenyx-Technology/ilmenyx/releases/tag/v0.31.1"},
-          {"tag_name":"v0.31.0","draft":false,"prerelease":true,"html_url":"https://github.com/Ilmenyx-Technology/ilmenyx/releases/tag/v0.31.0"},
+          {"tag_name":"v0.32.0-beta","draft":true,"html_url":"https://github.com/Ilmenyx-Technology/ilmenyx-controller/releases/tag/v0.32.0-beta"},
+          {"tag_name":"v0.31.1","draft":false,"prerelease":true,"html_url":"https://github.com/Ilmenyx-Technology/ilmenyx-controller/releases/tag/v0.31.1"},
+          {"tag_name":"v0.31.0","draft":false,"prerelease":true,"html_url":"https://github.com/Ilmenyx-Technology/ilmenyx-controller/releases/tag/v0.31.0"},
           {"tag_name":"nightly","draft":false}
         ]
         """;

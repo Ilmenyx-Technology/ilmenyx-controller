@@ -3,7 +3,7 @@
 blank_issues_enabled: false
 contact_links:
   - name: Falha de segurança / Security issue
-    url: https://github.com/Ilmenyx-Technology/ilmenyx/blob/main/SECURITY.md
+    url: https://github.com/Ilmenyx-Technology/ilmenyx-controller/blob/main/SECURITY.md
     about: Não abra issue pública; escreva para ilmenyx.technology@gmail.com. Please email instead of opening a public issue.
   - name: Apoie o projeto / Support the project
     url: https://ko-fi.com/ilmenyxtechnology

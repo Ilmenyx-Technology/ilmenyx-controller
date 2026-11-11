@@ -25,7 +25,7 @@ public sealed class NativeArtFinder(string? home = null, HttpClient? http = null
     private static HttpClient CreateClient()
     {
         var c = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
-        c.DefaultRequestHeaders.UserAgent.ParseAdd("IlmenyxController/0.30 (+https://github.com/Ilmenyx-Technology/ilmenyx)");
+        c.DefaultRequestHeaders.UserAgent.ParseAdd("IlmenyxController/0.30 (+https://github.com/Ilmenyx-Technology/ilmenyx-controller)");
         return c;
     }
 

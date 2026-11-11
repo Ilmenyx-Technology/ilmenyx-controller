@@ -97,7 +97,7 @@ public sealed class FastExecDialog : Window
                 try
                 {
                     using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(30) };
-                    http.DefaultRequestHeaders.UserAgent.ParseAdd("IlmenyxController (+https://github.com/Ilmenyx-Technology/ilmenyx)");
+                    http.DefaultRequestHeaders.UserAgent.ParseAdd("IlmenyxController (+https://github.com/Ilmenyx-Technology/ilmenyx-controller)");
                     await ClassicProton.EnsureAsync(http, new Progress<double>(v => { status.Text = L.T($"Baixando o {ClassicProton.Version}… {v:P0}"); Busy(true, v); }), CancellationToken.None, classicRoot);
                 }
                 catch (Exception e) when (e is IOException or HttpRequestException or TaskCanceledException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
@@ -113,7 +113,7 @@ public sealed class FastExecDialog : Window
                 try
                 {
                     using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(30) };
-                    http.DefaultRequestHeaders.UserAgent.ParseAdd("IlmenyxController (+https://github.com/Ilmenyx-Technology/ilmenyx)");
+                    http.DefaultRequestHeaders.UserAgent.ParseAdd("IlmenyxController (+https://github.com/Ilmenyx-Technology/ilmenyx-controller)");
                     await PortableWine.EnsureAsync(http, new Progress<double>(v => { status.Text = L.T($"Baixando o Wine {PortableWine.Version}… {v:P0}"); Busy(true, v); }), CancellationToken.None);
                 }
                 catch (Exception e) when (e is IOException or HttpRequestException or TaskCanceledException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)

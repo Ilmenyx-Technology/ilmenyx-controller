@@ -1,14 +1,14 @@
 # Ilmenyx — tudo o que está pendente (atualizado em 2026-11-10)
 
-Lista para continuar em qualquer máquina. Repositório: https://github.com/Ilmenyx-Technology/ilmenyx (privado).
+Lista para continuar em qualquer máquina. Repositório: https://github.com/Ilmenyx-Technology/ilmenyx-controller (privado).
 Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes que faltam por área: `Sem_teste.md` e `docs/CONFIABILIDADE.md`.
 
 ## 0. Como retomar numa máquina nova
 - **No seu PC pessoal (clone em `/mnt/HDD/Github/Ilmenyx`)**: o repositório mudou de dono. Aponte o clone para o endereço novo e
-  traga tudo: `git remote set-url origin https://github.com/Ilmenyx-Technology/ilmenyx.git && git fetch --all && git checkout main && git pull`.
+  traga tudo: `git remote set-url origin https://github.com/Ilmenyx-Technology/ilmenyx-controller.git && git fetch --all && git checkout main && git pull`.
   (O GitHub Desktop também aceita: Repository → Repository settings → Remote.) A cópia `ilmenyx-repo.tar.gz` deste pendrive é de
   2026-11-07 (commit cce044b) e serve se estiver sem internet.
-1. `git clone https://github.com/Ilmenyx-Technology/ilmenyx.git` e `cd ilmenyx`.
+1. `git clone https://github.com/Ilmenyx-Technology/ilmenyx-controller.git` e `cd ilmenyx`.
 2. SDK local (sem instalar nada no sistema): `bash scripts/get-local-sdk.sh` e `source scripts/env-local-sdk.sh`; depois `dotnet restore Ilmenyx.slnx`.
 3. Build e testes: `dotnet build Ilmenyx.slnx -c Release` e `dotnet test Ilmenyx.slnx -c Release --no-build`.
 4. **Assinatura GPG:** numa máquina nova, rode no seu terminal `bash scripts/gpg-nova-maquina.sh /pasta/da/chave` (a pasta do
@@ -56,7 +56,7 @@ Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes qu
 - [ ] **Passe de otimização antes do lançamento público**: medir quanto o próprio Ilmenyx usa de CPU/RAM/GPU/disco/energia parado,
   monitorando e em cada página; achar e reduzir gargalos.
 - [x] **Release v0.31.0** (pré-release, 2026-11-10): AppImage, Flatpak e pacote em pasta com umu-launcher; fontes GPL do
-  OpenRGB, umu-launcher e python-xlib anexadas; tudo assinado com a subchave nova. https://github.com/Ilmenyx-Technology/ilmenyx/releases/tag/v0.31.0
+  OpenRGB, umu-launcher e python-xlib anexadas; tudo assinado com a subchave nova. https://github.com/Ilmenyx-Technology/ilmenyx-controller/releases/tag/v0.31.0
 - [ ] **Busca de marca manual** em 3 bases que bloquearam robôs: WIPO Global Brand Database, TMview, EUIPO (termos ilmenyx, ilmen*,
   "ilmenyx controller", "ilmenyx technology"; classes 9, 42, 41). Passo a passo: `docs/legal/BUSCA-MARCA-2026-11-07.md`, seção 4.
 - [ ] **Depositar a marca ILMENYX no INPI** (recomendado: pessoa física, classes 9 e 42, R$ 880 no total). "Ilmenyx Technology":
@@ -80,7 +80,7 @@ Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes qu
 
 ## 2026-11-09 (noite): máquina pessoal do dono (HP 250 G8, Intel Iris Xe, CachyOS/Arch, KDE Plasma Wayland)
 
-- Renomeação: produto **Ilmenyx Controller**, organização **Ilmenyx Technology** (github.com/Ilmenyx-Technology/ilmenyx), app ID
+- Renomeação: produto **Ilmenyx Controller**, organização **Ilmenyx Technology** (github.com/Ilmenyx-Technology/ilmenyx-controller), app ID
   `io.github.ilmenyx_technology.IlmenyxController`. Branch `chore/ilmenyx-controller` (sobre a feat/rodada3). Testes 1287; UiSmoke 68/68
   no KDE Wayland real (primeira vez fora do compositor aninhado).
 - [x] **Legibilidade no app real, temas claro e escuro: VALIDADA pelo dono.**

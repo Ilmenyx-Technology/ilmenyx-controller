@@ -8,7 +8,7 @@
 **Titular:** Flávio Henrique Meira Roque (mantido como Ilmenyx Technology). Ilmenyx Technology é o nome sob o qual o projeto
 é mantido; não é pessoa jurídica.
 
-**Required Notice:** Copyright (c) 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology) — https://github.com/Ilmenyx-Technology/ilmenyx
+**Required Notice:** Copyright (c) 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology) — https://github.com/Ilmenyx-Technology/ilmenyx-controller
 
 ## Em uma frase
 
@@ -119,7 +119,7 @@ estresse) sempre pedem confirmação na tela.
 and [LICENSES/](LICENSES/).*
 
 **Holder:** Flávio (maintained as Ilmenyx Technology). **Required Notice:** Copyright (c) 2026 Flávio
-(mantido como Ilmenyx Technology) — https://github.com/Ilmenyx-Technology/ilmenyx
+(mantido como Ilmenyx Technology) — https://github.com/Ilmenyx-Technology/ilmenyx-controller
 
 - **License:** the maintainer's own code and documentation (since the first commit, including the earlier
   "Silex Audit" phase) are under the **PolyForm Noncommercial License 1.0.0** plus a short **additional

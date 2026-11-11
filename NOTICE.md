@@ -1,6 +1,6 @@
 # Ilmenyx — origem, atribuição e avisos
 
-Required Notice: Copyright (c) 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology) — https://github.com/Ilmenyx-Technology/ilmenyx
+Required Notice: Copyright (c) 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology) — https://github.com/Ilmenyx-Technology/ilmenyx-controller
 
 ## Origem
 

@@ -18,7 +18,7 @@
     <p>An independent, unofficial Linux adaptation of RESET EXPLODE by Gustavo (GustavoReset); not affiliated with or endorsed by the RESET team.</p>
   </description>
   <launchable type="desktop-id">io.github.ilmenyx_technology.IlmenyxController.desktop</launchable>
-  <url type="homepage">https://github.com/Ilmenyx-Technology/ilmenyx</url>
+  <url type="homepage">https://github.com/Ilmenyx-Technology/ilmenyx-controller</url>
   <categories>
     <category>System</category>
     <category>Monitor</category>
