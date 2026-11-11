@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/imagens/banner.png" alt="Ilmenyx Technology" width="100%"></p>
+
 # Ilmenyx Controller
 
 **Diagnóstico, monitoramento e benchmark de hardware para Linux.**
@@ -219,7 +221,7 @@ para testar (GPUs AMD e NVIDIA que ainda não foram validadas). Doação é semp
 
 | Pix (Brasil) | Outras formas |
 |---|---|
-| <img src="docs/imagens/pix-qrcode.png" alt="QR Code Pix do Ilmenyx" width="180"><br>Chave aleatória:<br>`ad7075cc-cca1-4f12-9e11-f0d10890456a` | **GitHub Sponsors:** em breve<br>**Ko-fi:** em breve |
+| <img src="docs/imagens/pix-qrcode.png" alt="QR Code Pix do Ilmenyx" width="180"><br>Chave aleatória:<br>`ad7075cc-cca1-4f12-9e11-f0d10890456a` | **Ko-fi** (cartão ou PayPal, de qualquer país):<br>[ko-fi.com/ilmenyxtechnology](https://ko-fi.com/ilmenyxtechnology)<br><br>**GitHub Sponsors:** em breve |
 
 ## Licença e créditos
 
