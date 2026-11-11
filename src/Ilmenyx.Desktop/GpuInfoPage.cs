@@ -25,6 +25,14 @@ public sealed class GpuInfoPage : Grid
     private readonly StackPanel sections = new() { Name = "GpuSections" };
     private readonly StackPanel extras = new() { Name = "GpuExtras" };
     private readonly StackPanel live = new() { Name = "GpuLive" };
+    // Live chart above the tiles: load (0-100 %) and the core clock as a share of the highest clock seen, so both fit one scale.
+    private readonly UsageChart chart = new() { Name = "GpuLiveChart", Height = 120, HorizontalAlignment = HorizontalAlignment.Stretch };
+    private readonly TextBlock chartLoad = new() { Name = "GpuChartLoad", FontSize = 22, FontWeight = FontWeight.Bold, FontFamily = IlmenyxTheme.Mono, Text = "—" };
+    private readonly TextBlock chartClock = new() { Name = "GpuChartClock", FontSize = 22, FontWeight = FontWeight.Bold, FontFamily = IlmenyxTheme.Mono, Text = "—", HorizontalAlignment = HorizontalAlignment.Right };
+    private readonly Border chartCard;
+    private readonly List<double> loadSeries = [], clockSeries = [];
+    private double clockPeak;
+    private const int ChartPoints = 150; // 5 minutes at one reading every 2 s
     private readonly TextBlock status = new() { Name = "GpuStatus", Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap };
     private IReadOnlyList<(GpuRaw Raw, GpuCard Card)> gpus = [];
     private int selected;
@@ -55,12 +63,19 @@ public sealed class GpuInfoPage : Grid
         Grid.SetColumn(vendor, 1); heroGrid.Children.Add(vendor);
         var hero = UiKit.Hero(heroGrid, name: "GpuHero"); hero.Height = double.NaN; hero.MinHeight = 190; FollowTheme(hero);
 
+        var chartHead = new Grid { ColumnDefinitions = new("*,*"), Margin = new Thickness(0, 0, 0, 8) };
+        chartHead.Children.Add(new StackPanel { Children = { Legend(L.T("CARGA"), Palette.Accent), chartLoad } });
+        var clockHead = new StackPanel { HorizontalAlignment = HorizontalAlignment.Right, Children = { Legend(L.T("CLOCK DO NÚCLEO"), Palette.DataGpu), chartClock } };
+        Grid.SetColumn(clockHead, 1); chartHead.Children.Add(clockHead);
+        var chartNote = new TextBlock { Text = L.T("Últimos 5 minutos. A linha do clock mostra a velocidade em relação à maior vista até agora."), FontSize = 11, Foreground = Palette.Faint, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0) };
+        chartCard = UiKit.Card(new StackPanel { Children = { chartHead, chart, chartNote } }, new Thickness(0, 0, 0, 12));
+        chartCard.Padding = new Thickness(18, 14); chartCard.IsVisible = false;
         var page = new StackPanel { Name = "GpuBody", Margin = new Thickness(0, 0, 10, 16) };
         page.SizeChanged += (_, e) => Fit(e.NewSize.Width);
         page.Children.Add(UiKit.PageHeader(L.T("Placa de vídeo"), L.T("Especificações completas e sensores em tempo real"), chips));
         page.Children.Add(hero);
         page.Children.Add(UiKit.SectionHeader(L.T("Sensores ao vivo"), new TextBlock { Text = L.T("atualiza a cada 2 s"), FontSize = 11.5, Foreground = Palette.Faint, VerticalAlignment = VerticalAlignment.Center }));
-        page.Children.Add(live); page.Children.Add(extras);
+        page.Children.Add(chartCard); page.Children.Add(live); page.Children.Add(extras);
         page.Children.Add(UiKit.SectionHeader(L.T("Especificações")));
         page.Children.Add(sections);
         Children.Add(new ScrollViewer { Name = "GpuSectionsScroll", Content = page });
@@ -186,10 +201,29 @@ public sealed class GpuInfoPage : Grid
     private readonly List<TextBlock> liveValues = [];
     private readonly List<Avalonia.Controls.Documents.Run> pairValues = [];
 
+    private static StackPanel Legend(string text, IBrush color) => new()
+    {
+        Orientation = Orientation.Horizontal, Spacing = 6,
+        Children = { new Border { Width = 12, Height = 3, CornerRadius = new CornerRadius(2), Background = color, VerticalAlignment = VerticalAlignment.Center }, UiKit.Label(text) },
+    };
+
+    private void PushChart(GpuTelemetry t)
+    {
+        if (t.LoadPercent is null && t.CoreMHz is null) { chartCard.IsVisible = false; return; }
+        chartCard.IsVisible = true;
+        if (t.CoreMHz is { } mhz) clockPeak = Math.Max(clockPeak, mhz);
+        loadSeries.Add(t.LoadPercent ?? 0); clockSeries.Add(t.CoreMHz is { } c && clockPeak > 0 ? 100 * c / clockPeak : 0);
+        if (loadSeries.Count > ChartPoints) { loadSeries.RemoveAt(0); clockSeries.RemoveAt(0); }
+        chart.SetValues(loadSeries, 100, ChartPoints); chart.SetSecond(t.CoreMHz is null ? [] : clockSeries);
+        chartLoad.Text = t.LoadPercent is { } l ? l.ToString("0", System.Globalization.CultureInfo.InvariantCulture) + "%" : "—";
+        chartClock.Text = t.CoreMHz is { } m ? m.ToString("0", System.Globalization.CultureInfo.InvariantCulture) + " MHz" : "—";
+    }
+
     public void ShowLive(GpuTelemetry t)
     {
+        PushChart(t);
         var pairs = GpuLive.Extras(t);
-        var rows = GpuLive.Rows(t);
+        var rows = GpuLive.Rows(t).OrderBy(r => r.Category.TrimEnd(' ', '·') == L.T("Carga") ? 0 : r.Category.TrimEnd(' ', '·') == "Clock" ? 1 : 2).ToList();
         string layout = string.Join('|', pairs.Select(p => p.Key)) + "#" + string.Join('|', rows.Select(r => r.Category + "/" + r.Name)) + "#" + selected;
         if (layout == liveLayout)
         {
