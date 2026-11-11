@@ -9,7 +9,7 @@ NVIDIA, o Flatpak instala sozinho a extensão `org.freedesktop.Platform.GL.nvidi
 flatpak install --user flathub org.flatpak.Builder org.freedesktop.Platform//25.08 org.freedesktop.Sdk//25.08
 bash scripts/package-flatpak.sh /caminho/absoluto/destino-novo
 # Instalar e abrir (só este usuário):
-flatpak install --user Ilmenyx-Controller-0.31.1-x86_64.flatpak
+flatpak install --user Ilmenyx-Controller-0.32.0-x86_64.flatpak
 flatpak run io.github.ilmenyx_technology.IlmenyxController          # interface
 flatpak run --command=ilmenyx io.github.ilmenyx_technology.IlmenyxController info   # linha de comando
 ```
