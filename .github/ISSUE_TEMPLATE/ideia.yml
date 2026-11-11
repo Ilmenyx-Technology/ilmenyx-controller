@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
+name: Ideia / Feature request
+description: Uma função nova ou uma melhoria. A new feature or an improvement.
+labels: ["ideia"]
+body:
+  - type: textarea
+    id: ideia
+    attributes:
+      label: O que você gostaria? / What would you like?
+      description: Conte o problema que isso resolve no seu dia a dia, não só a solução.
+    validations:
+      required: true
+  - type: input
+    id: distro
+    attributes:
+      label: Distribuição e placa de vídeo (opcional) / Distro and GPU (optional)

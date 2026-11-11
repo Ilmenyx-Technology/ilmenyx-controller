@@ -1,0 +1,51 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
+name: Problema / Bug
+description: Algo não funciona ou mostra um valor errado. Something doesn't work or shows a wrong value.
+labels: ["problema"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado por relatar! Pode escrever em português, inglês ou espanhol.
+        A página **Relatório** do app gera um resumo do hardware para colar aqui: revise antes de enviar (ele pode identificar o seu PC).
+  - type: textarea
+    id: oque
+    attributes:
+      label: O que aconteceu? / What happened?
+      description: O que você fez, o que esperava e o que apareceu. Prints ajudam muito.
+    validations:
+      required: true
+  - type: input
+    id: versao
+    attributes:
+      label: Versão do Ilmenyx / Ilmenyx version
+      description: Aparece no canto de baixo do menu lateral (ex.: v0.31.1).
+    validations:
+      required: true
+  - type: dropdown
+    id: pacote
+    attributes:
+      label: Como instalou / How did you install it
+      options: [AppImage, Flatpak, Pacote em pasta (.tar.gz), Compilado do código]
+    validations:
+      required: true
+  - type: input
+    id: distro
+    attributes:
+      label: Distribuição e área de trabalho / Distro and desktop
+      placeholder: ex.: Ubuntu 24.04 GNOME, Fedora 44 KDE, CachyOS KDE
+    validations:
+      required: true
+  - type: input
+    id: hardware
+    attributes:
+      label: Processador e placa de vídeo / CPU and GPU
+      placeholder: ex.: Ryzen 5 5600 + RX 6600, i5-1135G7 (Iris Xe)
+    validations:
+      required: true
+  - type: textarea
+    id: relatorio
+    attributes:
+      label: Resumo do Relatório (opcional) / Report summary (optional)
+      render: text
