@@ -59,10 +59,10 @@ public sealed partial class ShellWindow : Window
         };
         var language = LanguageButton();
         var pause = UiKit.IconButton("ToggleMonitor", Icons.Pause, L.T("Pausar monitor"));
+        pauseButton = pause;
         pause.Click += async (_, _) =>
         {
-            if (usage.IsRunning) await usage.StopAsync(); else usage.Start(stop.Token);
-            UiKit.SetAction(pause, usage.IsRunning ? Icons.Pause : Icons.Play, usage.IsRunning ? L.T("Pausar monitor") : L.T("Retomar monitor"));
+            await ToggleMonitorAsync();
             if (IsVisible && !stop.IsCancellationRequested) pause.Focus();
         };
         var header = new Grid { Name = "ShellHeader", ColumnDefinitions = new("Auto,*,Auto"), Margin = new Thickness(20, 18, 22, 14) };
@@ -93,12 +93,13 @@ public sealed partial class ShellWindow : Window
             toasts = new DeviceToastService(() => LinuxDeviceWatcher.Read()) { Enabled = appSettings.DeviceToasts }; toasts.Notified += t => { sessionEvents.Insert(0, (DateTimeOffset.Now, t.Title, t.Text)); if (sessionEvents.Count > 50) sessionEvents.RemoveAt(50); overviewRefresh?.Invoke(); }; toasts.Start();
             _ = RefreshBlockedBadgeAsync();
             _ = FirstRunAsync();
+            StartBackgroundFeatures();
             await hardware.RefreshAsync(stop.Token);
             await sensors.RefreshAsync(stop.Token);
         };
         Closed += async (_, _) =>
         {
-            stop.Cancel(); toasts?.Dispose(); await usage.StopAsync(); usage.Dispose(); sensors.Dispose(); smartImport.Dispose();
+            stop.Cancel(); toasts?.Dispose(); StopBackgroundFeatures(); await usage.StopAsync(); usage.Dispose(); sensors.Dispose(); smartImport.Dispose();
             cpu.Dispose(); memory.Dispose(); simulation.Dispose(); cpuPanel?.Dispose(); stressPage?.Stop(L.T("Parado: janela fechada"));
         };
     }
@@ -226,7 +227,7 @@ public sealed partial class ShellWindow : Window
             Children =
             {
                 (sideReadout = new Border { Name = "SideReadout", Background = Palette.Card, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), Padding = new Thickness(14, 11), Child = readout }),
-                new TextBlock { Name = "SideVersion", Text = "v" + (typeof(ShellWindow).Assembly.GetName().Version is { } v ? $"{v.Major}.{v.Minor}.{v.Build}" : "?"), Foreground = Palette.Faint, FontSize = 11, Margin = new Thickness(6, 10, 0, 0) }
+                (sideVersion = new TextBlock { Name = "SideVersion", Text = "v" + ReleaseCheck.Current, Foreground = Palette.Faint, FontSize = 11, Margin = new Thickness(6, 10, 0, 0), TextWrapping = TextWrapping.Wrap })
             }
         };
         var dock = new DockPanel { Name = "Sidebar" };

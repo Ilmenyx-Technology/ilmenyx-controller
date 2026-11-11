@@ -207,6 +207,17 @@ public sealed class IlmenyxSettings
     public bool ThemeLight { get; set; }
     /// <summary>Toast when a removable drive or USB device appears or disappears (local polling only).</summary>
     public bool DeviceToasts { get; set; } = true;
+    /// <summary>Minimizing hides the window to the notification area (tray icon), when the desktop has one. Off by default.</summary>
+    public bool MinimizeToTray { get; set; }
+    /// <summary>System notification when the CPU stays above <see cref="TempAlertC"/> (see <see cref="TemperatureAlert"/>). Off by default.</summary>
+    public bool TempAlerts { get; set; }
+    public int TempAlertC { get; set; } = TemperatureAlert.DefaultLimit;
+    /// <summary>Check GitHub for a newer version once a day: null = not asked yet, then the user's answer. See <see cref="ReleaseCheck"/>.</summary>
+    public bool? UpdateCheck { get; set; }
+    public DateTimeOffset? UpdateCheckedAt { get; set; }
+    /// <summary>Tag of the newest release found by the last check (shown in the sidebar until the app is updated) and the one already notified.</summary>
+    public string? UpdateLatestTag { get; set; }
+    public string? UpdateNotifiedTag { get; set; }
     /// <summary>The first-run screen that offers every blocked sensor fix at once was already shown (accepted or not); later fixes stay in the sidebar button.</summary>
     public bool PermissionsAsked { get; set; }
     /// <summary>The first-run welcome dialog that offers the guided tour was already shown (accepted or not); the tour stays in Ajuda › Refazer o tour.</summary>
