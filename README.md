@@ -6,36 +6,39 @@ Por **Ilmenyx Technology**.
 ![versão](https://img.shields.io/badge/vers%C3%A3o-0.31.1-blue)
 ![plataforma](https://img.shields.io/badge/plataforma-Linux%20x64-informational)
 ![.NET](https://img.shields.io/badge/.NET-10-512bd4)
-![status](https://img.shields.io/badge/status-experimental-orange)
+![status](https://img.shields.io/badge/status-pr%C3%A9--lan%C3%A7amento-orange)
 
 O Ilmenyx Controller mostra o que há dentro do seu computador (CPU, memória, GPU, discos, sensores, bateria,
-rede) e mede o desempenho dele. Tem um **aplicativo desktop** e uma **linha de comando** (`ilmenyx`).
+rede), mede o desempenho dele e ajuda a fazer jogos rodarem no Linux. Tem um **aplicativo desktop** e uma **linha de
+comando** (`ilmenyx`), em **português, inglês e espanhol**.
 
-> **Status:** versão experimental, ainda sem lançamento público. O repositório é privado.
+> **Pré-lançamento.** Funciona e foi validado em hardware real (Intel Iris Xe, AMD Radeon 610M, NVIDIA GeForce 940MX; CachyOS,
+> Linux Mint), mas ainda não em todas as distros e GPUs. O que falta testar está em [Sem_teste.md](Sem_teste.md).
 
----
+![Visão geral do Ilmenyx Controller](docs/imagens/visao-geral.png)
 
-## Downloads e verificação
-
-Releases em https://github.com/Ilmenyx-Technology/ilmenyx/releases. Cada arquivo tem `.sha256` e assinatura `.asc`;
-impressão digital da chave: `3D97 1657 2A39 8DCD D0CF  F0EE 733D 2EC7 8436 DCE8` (veja `docs/assinatura-gpg.md`).
-
-## Sumário
-
-- [O que ele faz](#o-que-ele-faz)
-- [Princípios](#princípios)
-- [Como usar](#como-usar)
-- [Começando](#começando)
-- [Usando a linha de comando](#usando-a-linha-de-comando)
-- [Benchmarks](#benchmarks)
-- [O que ainda não funciona](#o-que-ainda-não-funciona)
-- [Confiabilidade: o que ainda não é muito confiável e como melhorar](docs/CONFIABILIDADE.md)
-- [Estrutura do projeto](#estrutura-do-projeto)
-- [Documentação](#documentação)
-- [Privacidade e segurança](#privacidade-e-segurança)
-- [Licença e créditos](#licença-e-créditos)
+| | |
+|---|---|
+| ![Sensores](docs/imagens/sensores.png) | ![Estimativa de FPS](docs/imagens/estimativa-fps.png) |
+| ![Por que o jogo não abre?](docs/imagens/jogo-nao-abre.png) | ![Tema claro](docs/imagens/visao-geral-claro.png) |
 
 ---
+
+## Baixar
+
+Na página de [releases](https://github.com/Ilmenyx-Technology/ilmenyx/releases), pegue a versão mais recente:
+
+| Arquivo | Para quem |
+|---|---|
+| `Ilmenyx-Controller-<versão>-x86_64.AppImage` | **Recomendado.** Um arquivo só, sem instalar: `chmod +x Ilmenyx-Controller-*.AppImage` e abrir. Todos os recursos. |
+| `Ilmenyx-Controller-<versão>-x86_64.flatpak` | Quem prefere Flatpak: `flatpak install --user Ilmenyx-Controller-*.flatpak`. Alguns recursos ainda não foram testados nele ([docs/flatpak.md](docs/flatpak.md)). |
+| `Ilmenyx-Controller-<versão>-linux-x64.tar.gz` | Pacote em pasta, para técnicos ([docs/pacote-linux-x64.md](docs/pacote-linux-x64.md)). |
+
+Não precisa instalar o .NET nem ser root: tudo o que o app usa vai dentro do pacote. Cada arquivo tem `.sha256` e assinatura
+`.asc`; impressão digital da chave: `3D97 1657 2A39 8DCD D0CF  F0EE 733D 2EC7 8436 DCE8` ([como conferir](docs/assinatura-gpg.md)).
+
+Achou um problema ou tem uma ideia? Abra uma [issue](https://github.com/Ilmenyx-Technology/ilmenyx/issues) dizendo a distro, a
+placa de vídeo e o que aconteceu (a página **Relatório** do app gera um resumo do hardware para colar).
 
 ## O que ele faz
 
@@ -45,7 +48,8 @@ impressão digital da chave: `3D97 1657 2A39 8DCD D0CF  F0EE 733D 2EC7 8436 DCE8
 | **Jogos** | Biblioteca (Steam, Lutris, Heroic), compatibilidade (ProtonDB, Steam Deck, anti-cheat e relatos de quem tem hardware parecido), estimativa de FPS e análise de gargalo |
 | **Desempenho** | Benchmarks de CPU, memória, GPU (Vulkan) e disco; verificador de overclock; overlay; testes de estresse |
 | **Maker** | Portas seriais e drivers de placas (CH340, CP210x, FTDI) |
-| **Ferramentas** | Otimizações reversíveis, RGB via OpenRGB, apps de inicialização, instalação de apps (Flatpak), relatórios HTML/JSON |
+| **Ferramentas** | Otimizações reversíveis, ZRAM, RGB via OpenRGB, apps de inicialização, instalação de apps (Flatpak), driver NVIDIA, relatórios HTML/JSON |
+| **Jogos de Windows** | Instala jogos de Windows (Proton/umu-launcher ou Wine próprio), diagnóstico "Por que o jogo não abre?" com correções de um clique |
 
 O app tem tema claro e escuro, e todos os relatórios são gerados localmente.
 
@@ -60,11 +64,12 @@ O app tem tema claro e escuro, e todos os relatórios são gerados localmente.
 
 ## Como usar
 
-1. Baixe e extraia o pacote `Ilmenyx-linux-x64` (não precisa instalar o .NET: ele vem dentro). Rode `desktop/Ilmenyx.Desktop`.
-   Para ter o ícone no menu do sistema, rode `packaging/linux/install-user.sh` (só no seu usuário, sem root).
+1. Baixe o AppImage (veja [Baixar](#baixar)), dê permissão de execução e abra. No pacote em pasta, rode `desktop/Ilmenyx.Desktop`;
+   para ter o ícone no menu, rode `packaging/linux/install-user.sh` (só no seu usuário, sem root).
 2. **Não precisa de root nem de driver extra.** As temperaturas vêm dos módulos do próprio kernel (`k10temp` na AMD, `coretemp` na Intel).
-3. **Temperatura ou consumo da CPU não aparecem?** O menu lateral mostra **"Por que não aparece?"**, com o motivo e o comando que
-   resolve (o Linux esconde o consumo da CPU — RAPL — do usuário comum desde 2020). O Ilmenyx só mostra e copia o comando; quem roda é você.
+3. **Temperatura ou consumo da CPU não aparecem?** Na primeira vez o app oferece liberar os sensores com **uma senha** do sistema (o
+   Linux esconde o consumo da CPU — RAPL — do usuário comum desde 2020). Dá para fazer depois pelo menu lateral e desfazer em
+   **Requisitos e sobre**.
 4. **Overlay de FPS:** ligue na página Overlay e inicie o jogo pelo Ilmenyx (ou use a opção de inicialização gerada). No jogo, **Ctrl + Shift + O**
    liga e desliga o overlay (MangoHud, incluído no pacote).
 5. **Stress e benchmarks:** sempre com o limite de temperatura ligado e boa ventilação; tudo pede confirmação e pode ser cancelado.
@@ -161,8 +166,7 @@ O que o RESET EXPLODE original faz foi portado ou substituído por um equivalent
 | Benchmark de GPU com ray tracing | **Portado (Vulkan, ray query); validado só numa APU Radeon 610M** | Falta GPU dedicada AMD RX 6000+ / NVIDIA RTX; score não comparável ao Windows |
 | GPU AMD/NVIDIA em hardware real | **Parcial**: AMD integrada (Radeon 610M) e NVIDIA de notebook (GeForce 940MX) validadas | Falta GPU AMD dedicada (VRAM própria, ventoinha, limite de energia) e NVIDIA de desktop/RTX |
 | RGB (Corsair, Razer) | Substituído pelo OpenRGB | Os SDKs originais são do Windows; o controle real de LEDs não foi testado |
-| FPS em jogo real | **Não testado** | Vem do log do MangoHud |
-| Pacotes `.deb`, `.rpm`, PKGBUILD, ARM64, musl | Não feito | Hoje só há `tar.gz` linux-x64 |
+| Pacotes `.deb`, `.rpm`, PKGBUILD, ARM64, musl | Não feito | Hoje há AppImage, Flatpak e `tar.gz` para linux-x64 |
 
 O aplicativo mostra essa lista na página **Bloqueados (!)**. O que não existe no Linux (ajustes do Windows, limpeza de USB fantasma, WinRAR) saiu da lista: ver [docs/bloqueados-removidos.md](docs/bloqueados-removidos.md). A tabela completa está em
 [docs/portagem-completa.md](docs/portagem-completa.md) e tudo que falta validar, com o motivo e como
@@ -196,6 +200,8 @@ upstream/ResetExplode/     projeto original (submódulo)
 | Monitor ao vivo | [docs/monitor.md](docs/monitor.md) |
 | SMART importado | [docs/smart-import.md](docs/smart-import.md) |
 | Histórico de versões | [docs/historico-versoes.md](docs/historico-versoes.md) |
+| Quanto o próprio app gasta | [docs/desempenho.md](docs/desempenho.md) |
+| Idiomas | [docs/idiomas.md](docs/idiomas.md) |
 | Regras para agentes e contribuidores | [AGENTS.md](AGENTS.md), [CONTRIBUTING.md](CONTRIBUTING.md) |
 
 ## Privacidade e segurança
@@ -229,5 +235,4 @@ Componentes de terceiros: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). Nome
 cabeçalho SPDX ([REUSE](https://reuse.software)); os que não podem trazer estão em [REUSE.toml](REUSE.toml).
 
 Contribuições de código externas não são aceitas por enquanto; issues são bem-vindas
-([CONTRIBUTING.md](CONTRIBUTING.md)). Pendências antes de tornar o repositório público:
-[checklist pré-publicação](docs/legal/PRE-RELEASE-CHECKLIST.md).
+([CONTRIBUTING.md](CONTRIBUTING.md)).
