@@ -107,3 +107,13 @@ public sealed class ProcessDetailsTests
         finally { Directory.Delete(proc, true); }
     }
 }
+
+public sealed class SwapTests
+{
+    [Fact]
+    public void SwapFromMeminfo()
+    {
+        Assert.Equal((2048L * 1024, 512L * 1024), LinuxUsageProvider.Swap("MemTotal: 100 kB\nSwapTotal:   2048 kB\nSwapFree:    1536 kB\n"));
+        Assert.Equal((null, null), LinuxUsageProvider.Swap("MemTotal: 100 kB\nSwapTotal: 0 kB\nSwapFree: 0 kB\n"));
+    }
+}

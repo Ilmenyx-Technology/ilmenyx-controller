@@ -210,6 +210,19 @@ public sealed partial class ShellWindow
         void Refresh()
         {
             bool temp = metric == "temp", watts = metric == "power";
+            if (metric is "mem" or "disk" or "net")
+            {
+                // Memory, disk and network history: the same 15 min the monitor keeps, now visible like on the System Monitor.
+                bool mem = metric == "mem";
+                chart.SetValues(mem ? usage.MemorySeries : metric == "disk" ? usage.DiskSeries : usage.NetSeries, mem ? 100 : null, range);
+                chart.SetSecond([]);
+                chartLabel.Text = mem ? L.T("MEMÓRIA · USO") : metric == "disk" ? L.T("DISCOS · LEITURA + ESCRITA") : L.T("REDE · RECEBIDO + ENVIADO");
+                var l = usage.Last;
+                hero.Text = mem ? (l is { MemoryTotal: > 0, MemoryUsed: { } mu } ? UsageViewModel.Pct(100.0 * mu / l.MemoryTotal.Value) : "—")
+                    : metric == "disk" ? (l?.DiskReadBps is { } dr && l.DiskWriteBps is { } dw ? UsageViewModel.Rate(dr + dw) : "—")
+                    : (l?.NetRxBps is { } nr && l.NetTxBps is { } nt ? UsageViewModel.Rate(nr + nt) : "—");
+                return;
+            }
             if (powerChip is { IsEnabled: true }) ChipStyle(powerChip, watts);
             chart.SetValues(temp ? usage.TempSeries : watts ? usage.PowerSeries : usage.CpuSeries, temp || watts ? null : 100, range);
             chart.SetSecond(!temp && !watts && gpuLoad.Count > 0 ? gpuLoad : []);
@@ -219,7 +232,7 @@ public sealed partial class ShellWindow
         }
         usage.Updated += UiKit.OnScreen(chart, Refresh);
         var ranges = Chips("DashRange", [("1 min", 60), ("5 min", 300), ("15 min", 900)], 300, v => { range = v; Refresh(); });
-        var metrics = Chips("DashMetric", [(L.T("Temperatura"), "temp"), (L.T("Carga"), "load")], "load", v => { metric = v; Refresh(); });
+        var metrics = Chips("DashMetric", [(L.T("Temperatura"), "temp"), (L.T("Carga"), "load"), (L.T("Memória"), "mem"), (L.T("Disco"), "disk"), (L.T("Rede"), "net")], "load", v => { metric = v; Refresh(); });
         // CPU power (RAPL): enabled once a sample arrives; otherwise the tooltip says why (absent counter or root-only file).
         var power = new Button { Name = "DashMetricPower", Content = L.T("Consumo"), FontSize = 11, Padding = new Thickness(13, 5), CornerRadius = new CornerRadius(IlmenyxTheme.Pill), IsEnabled = false, BorderBrush = Palette.Line, BorderThickness = new Thickness(1) };
         ToolTip.SetTip(power, L.T("Indisponível: o kernel não deixa ler o consumo da CPU (RAPL) sem permissão. Veja \"Por que não aparece?\" no menu lateral."));
@@ -395,9 +408,9 @@ public sealed partial class ShellWindow
                 : L.T("sem contadores");
             Set("GPU", gpuRaw?.Name is { } rawName ? MarketingName(rawName) : L.T("Inventário DRM/PCI"), UsageViewModel.Pct(g?.LoadPercent),
                 (g?.TempC is { } gt ? gt.ToString("0.0", CultureInfo.InvariantCulture) + " °C" : "—") + " · " + (g?.CoreMHz is { } gm ? gm.ToString("0", CultureInfo.InvariantCulture) + " MHz" : "—"), gUse);
-            Set(L.T("Memória"), usage.MemorySub, s is { MemoryTotal: > 0, MemoryUsed: { } u } ? UsageViewModel.Pct(100.0 * u / s.MemoryTotal.Value) : "—", usage.MemoryLine, "");
+            Set(L.T("Memória"), usage.MemorySub, s is { MemoryTotal: > 0, MemoryUsed: { } u } ? UsageViewModel.Pct(100.0 * u / s.MemoryTotal.Value) : "—", usage.MemoryLine, usage.SwapLine);
             Set(L.T("Discos"), L.T("Dispositivos inteiros"), "E/S", usage.DiskLine, "");
-            Set(L.T("Rede"), usage.NetSub, L.T("Tráfego"), usage.NetLine, "");
+            Set(L.T("Rede"), usage.NetAddresses, L.T("Tráfego"), usage.NetLine, usage.NetPerInterface);
             HeroReadings();
         }
         usage.Updated += UiKit.OnScreen(components, Components); Components();
@@ -439,6 +452,7 @@ public sealed partial class ShellWindow
                 new Grid { Children = { new RingGauge(fraction), new TextBlock { Text = (fraction * 100).ToString("0", CultureInfo.InvariantCulture) + "%", FontFamily = new FontFamily("monospace"), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center } } },
                 new StackPanel { VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center, Children = { Label(title), new TextBlock { Text = text, FontSize = 12, Foreground = Palette.Muted } } } } });
             if (usage.Last is { MemoryTotal: > 0, MemoryUsed: { } u } l) Ring(L.T("MEMÓRIA"), (double)u / l.MemoryTotal!.Value, usage.MemoryLine);
+            if (usage.Last is { SwapTotal: > 0, SwapUsed: { } su } sl) Ring("SWAP", (double)su / sl.SwapTotal!.Value, usage.SwapLine);
             if (OperatingSystem.IsLinux())
                 try { foreach (var d in MountedDrives.Read(File.ReadAllText("/proc/self/mounts")).Take(4)) Ring(L.T("DISCO · ") + d.Title, d.UsedFraction, d.Sizes); }
                 catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
