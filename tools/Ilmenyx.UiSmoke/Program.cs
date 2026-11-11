@@ -37,6 +37,8 @@ internal static class Program
         Environment.SetEnvironmentVariable("XDG_DATA_HOME", Path.Combine(OutputDirectory, "xdg-data"));
         // The first-run permissions screen is exercised by OnboardingAsync with a fake runner; the real shell must not open it (it would call pkexec).
         Environment.SetEnvironmentVariable("ILMENYX_NO_ONBOARDING", "1");
+        // Only for the audits (screenshots in another language): the smoke checks themselves read the pt-BR texts.
+        if (Environment.GetEnvironmentVariable("ILMENYX_LANG") is { Length: > 0 } language) Ilmenyx.Core.L.Use(language);
         return DesktopBackend.Configure(AppBuilder.Configure<UiSmokeApp>(), DesktopBackend.Parse(DesktopBackend.ReadSelection())).StartWithClassicDesktopLifetime(Array.Empty<string>());
     }
 }
