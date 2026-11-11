@@ -68,7 +68,8 @@ Detalhes de cada item de governança: `docs/governance/PENDENCIAS.md`. Testes qu
 - [ ] Ao criar a empresa: contrato de cessão dos direitos para a pessoa jurídica + revisão curta da permissão adicional por advogado.
 - [ ] `reuse lint` oficial (a ferramenta não estava disponível; um script local cobre por ora) e SBOM.
 - [ ] Enviar o relato do travamento do Wayland ao Avalonia (rascunho em `docs/upstream/avalonia-wayland-crash.md`).
-- [ ] **Tornar o repositório e a release públicos** quando eu disser que a validação está suficiente.
+- [x] **Repositório e releases públicos** (2026-11-10, pedido do dono): github.com/Ilmenyx-Technology/ilmenyx-controller e o perfil da
+  organização (Ilmenyx-Technology/.github). Commits novos com o e-mail anônimo do GitHub; branches antigas apagadas (todas integradas).
 - [ ] Problemas encontrados que o app pode detectar e oferecer correção: `docs/problemas-conhecidos.md` (botão "Forçar fechamento do
   jogo", aviso de temperatura alta no jogo — a CPU chegou a 100 °C, Wi-Fi gerando milhares de erros PCIe no log, Alt+Tab).
 - [x] **HowManyFPS**: removido do app em 2026-11-08 (decisão do mantenedor: burocracia demais para obter acesso à API). Histórico:
