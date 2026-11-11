@@ -3,7 +3,7 @@
 <Project>
   <PropertyGroup>
     <!-- The one place for the version: assemblies, package names and the version shown in the app and reports. -->
-    <Version>0.33.0</Version>
+    <Version>0.33.1</Version>
     <Product>Ilmenyx Controller</Product>
     <Company>Ilmenyx Technology</Company>
     <Description>Independent, unofficial Linux adaptation of RESET EXPLODE by Gustavo (GustavoReset). Hardware diagnostics, monitoring and experimental benchmarking.</Description>
