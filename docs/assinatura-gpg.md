@@ -3,8 +3,9 @@
 Cada arquivo de release tem um `.asc` ao lado: a assinatura feita com a chave de releases da Ilmenyx Technology. O `.sha256` só detecta
 arquivo corrompido; a assinatura prova que o arquivo saiu do mantenedor e não foi trocado depois.
 
-- Chave: `Ilmenyx Technology (Ilmenyx releases) <meirafhenrique@gmail.com>` a partir da v0.31.0. A mesma chave tem o UID antigo
-  `Bismuth Technology (Ilmenyx releases)`, usado na v0.30.0; a impressão digital é a mesma.
+- Chave: `Ilmenyx Technology (Ilmenyx releases) <ilmenyx.technology@gmail.com>`. A mesma chave guarda os nomes anteriores
+  (o mesmo nome com o e-mail pessoal do mantenedor, usado na v0.31, e `Bismuth Technology (Ilmenyx releases)`, usado na v0.30.0);
+  a impressão digital é a mesma.
 - Impressão digital (confira por um segundo canal, como o README ou o perfil da organização):
   **`3D97 1657 2A39 8DCD D0CF  F0EE 733D 2EC7 8436 DCE8`**
 - Chave pública: `packaging/ilmenyx-release-key.asc` e o arquivo `ilmenyx-release-key.asc` de cada release.
