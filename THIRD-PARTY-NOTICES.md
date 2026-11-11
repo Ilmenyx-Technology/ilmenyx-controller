@@ -116,6 +116,9 @@ não executada. Metodologia e diferenças versionadas em docs/gamesim-completo.m
 | Silk.NET.Vulkan e dependências | 2.23.0 | MIT | bindings; o loader `libvulkan.so.1` e o driver são do sistema, não embutidos |
 | MangoHud | 0.8.4 | MIT | bibliotecas 64 bits oficiais sem alteração em `components/mangohud/`; fonte: github.com/flightlessmango/MangoHud (v0.8.4) |
 | OpenRGB | 1.1 | GPL-2.0-only | AppImage oficial sem alteração em `components/openrgb/`, executado como programa separado (sem ligação); fonte correspondente exata (commit 8e16de2) publicada em cada release do Ilmenyx como `OpenRGB-1.1-source.tar.gz` (`scripts/fetch-gpl-sources.sh`), além de codeberg.org/OpenRGB/OpenRGB (release_1.1); oferta escrita de 3 anos em `components/openrgb/SOURCE.txt`; texto da licença em `licenses/components/` |
+| umu-launcher | 1.4.4 | GPL-3.0 | zipapp oficial sem alteração em `components/umu/` (github.com/Open-Wine-Components/umu-launcher, tag 1.4.4, commit cf3d1b1), executado com o python3 do sistema como programa separado; fonte correspondente publicada em cada release como `umu-launcher-1.4.4-source.tar.gz` (`scripts/fetch-gpl-sources.sh`); licenças em `licenses/components/umu-launcher/` |
+| python-xlib (dentro do zipapp do umu-launcher) | 0.33 | LGPL-2.1-or-later | sem alteração; sdist oficial do PyPI publicado em cada release como `python-xlib-0.33.tar.gz` |
+| truststore, urllib3, six (dentro do zipapp do umu-launcher) | 0.10.4, 2.7.0, 1.17.0 | MIT | sem alteração; licenças em `licenses/components/umu-launcher/` |
 
 | Fonte Inter (via Avalonia.Fonts.Inter) | 4.x | SIL OFL 1.1 | Copyright (c) 2016 The Inter Project Authors; texto em `licenses/Inter-font-OFL-1.1.txt`; a fonte não é vendida separadamente |
 | Material Design Icons (dados de caminho em `Icons.cs`) | @mdi/js 7.4.47 | Apache-2.0 | Pictogrammers; texto em `licenses/MaterialDesignIcons-Apache-2.0.txt` |
