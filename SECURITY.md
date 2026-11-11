@@ -1,7 +1,7 @@
 # Segurança
 
 ## Como relatar uma vulnerabilidade
-Escreva para **meirafhenrique@gmail.com** com o assunto `[Ilmenyx segurança]`. Não abra issue pública para falhas de segurança.
+Escreva para **ilmenyx.technology@gmail.com** com o assunto `[Ilmenyx segurança]`. Não abra issue pública para falhas de segurança.
 Inclua: versão do Ilmenyx (menu lateral ou `--cli --version`), distro, como reproduzir e o impacto que você observou.
 
 - Resposta inicial em até 7 dias. Correções saem numa nova release; quem relatou recebe crédito, se quiser.

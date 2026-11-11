@@ -1,0 +1,6 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
+# Botão "Sponsor" do repositório. Descomente cada linha quando a conta estiver ativa:
+# github: [Ilmenyx-Technology]   # depois que o GitHub aprovar o GitHub Sponsors da organização
+# ko_fi: USUARIO_DO_KO_FI         # nome de usuário do Ko-fi (o que vem depois de ko-fi.com/)
+custom: ["https://github.com/Ilmenyx-Technology/ilmenyx#apoie-o-projeto"]

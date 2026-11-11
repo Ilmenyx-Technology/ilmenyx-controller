@@ -212,6 +212,15 @@ ou logs com dados pessoais.
 
 Veja [PRIVACY.md](PRIVACY.md) e [SECURITY.md](SECURITY.md).
 
+## Apoie o projeto
+
+O Ilmenyx é gratuito e feito por uma pessoa só. Se ele te ajudou, uma doação ajuda a manter o desenvolvimento e a comprar hardware
+para testar (GPUs AMD e NVIDIA que ainda não foram validadas). Doação é sempre opcional: nenhuma função do app depende dela.
+
+| Pix (Brasil) | Outras formas |
+|---|---|
+| <img src="docs/imagens/pix-qrcode.png" alt="QR Code Pix do Ilmenyx" width="180"><br>Chave aleatória:<br>`ad7075cc-cca1-4f12-9e11-f0d10890456a` | **GitHub Sponsors:** em breve<br>**Ko-fi:** em breve |
+
 ## Licença e créditos
 
 O Ilmenyx é **gratuito, mas não é open source**: o código próprio está sob a
