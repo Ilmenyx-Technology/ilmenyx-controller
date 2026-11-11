@@ -283,6 +283,18 @@ public static partial class HelpContent
                     "Use Open official page when you need the manufacturer's driver.",
                 ]),
 
+            S("cleanup", "tools", "Free up space",
+                "Shows what can be deleted safely to free disk space and the big files you have not used for a long time. Nothing is deleted until you tick it and confirm.",
+                [
+                    "When it opens, the page measures (read only) the trash, program caches, the system's downloaded packages, old logs and unused Flatpak.",
+                    "Recommended items come ticked; the ones marked \"asks for password\" show the command that will run.",
+                    "UNUSED FOR MORE THAN 50 DAYS lists files of 50 MB or more in your home folder; tick only what you are sure about.",
+                    "Click Clean selected, check the list and confirm.",
+                ],
+                Q("safe", "Will the caches be missed?", "No: programs rebuild what they need. The first use after cleaning may be a little slower. Close the browser first so its cache is removed completely."),
+                Q("packages", "Does deleting downloaded packages hurt updates?", "No. On Arch and derivatives Ilmenyx keeps the last 2 versions of each package (paccache -rk2), so you can still go back one version."),
+                Q("stale", "Do unused files go to the trash?", "No, they are deleted for good, which is why none comes ticked. Hidden folders (settings, games, Flatpak) are not searched.")),
+
             S("optimize", "tools", "Optimize",
                 "Gets the PC ready for gaming: closes programs that get in the way and turns on system tweaks, all without a password and reversible.",
                 [
@@ -399,8 +411,8 @@ public static partial class HelpContent
                 "Shows FPS, temperature and usage on top of the screen. Choose the items and the corner (saved automatically); inside the game, MangoHud does the drawing."),
             new("maker", "makerports", ["makerports", "makerdrv"], "Maker: ports and serial drivers",
                 "For people who use Arduino, ESP32 and other boards: Ports lists the USB serial ports without opening any (opening one can reset the board). Serial drivers shows whether the drivers for the most common USB-serial chips are loaded and takes you to each one's official page."),
-            new("tools", "optimize", ["optimize", "lighting", "startup"], "Optimize, Integration and Startup",
-                "Optimize closes programs that get in the way, turns on tweaks for games (such as a larger shader cache) and ZRAM (compressed memory); everything can be undone. Integration controls the RGB lights through OpenRGB, and Startup shows the programs that open with the session so you can turn off what you don't need."),
+            new("tools", "optimize", ["optimize", "cleanup", "lighting", "startup"], "Optimize, Free up space, Integration and Startup",
+                "Free up space shows what can be deleted safely and big files idle for a long time. Optimize closes programs that get in the way, turns on tweaks for games (such as a larger shader cache) and ZRAM (compressed memory); everything can be undone. Integration controls the RGB lights through OpenRGB, and Startup shows the programs that open with the session so you can turn off what you don't need."),
             new("install", "apps", ["apps", "driver", "nvdriver"], "Apps and drivers",
                 "Install apps installs the essentials and gaming apps (Proton, LACT, Gamescope, Sunshine, mice) from Flathub, only for your user and without a password. Drivers shows the drivers in use and installs nothing; NVIDIA Driver installs, repairs and updates the right driver for your card, always with your confirmation."),
             new("report", "report", ["report", "blocked", "tools"], "Report, Blocked and Requirements",
