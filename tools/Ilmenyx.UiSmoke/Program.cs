@@ -407,7 +407,13 @@ public sealed class UiSmokeApp : Application
     {
         var shell = new ShellWindow { Width = 1280, Height = 820 };
         shell.Show();
-        await Until(() => shell.IsVisible && shell.GetVisualDescendants().OfType<UsageChart>().Any(c => c.Name == "OverviewChart" && c.Count >= 3));
+        // First run opens in simple mode ("Seu PC agora"): status sentence, four cards with real readings and the open apps.
+        await Until(() => shell.IsVisible && Find<TextBlock>(shell, "SimpleStatusTag").Text is { Length: > 0 } t && !t.StartsWith("Lendo", StringComparison.Ordinal) && Find<TextBlock>(shell, "SimpleBig0").Text != "—");
+        if (!Find<ToggleSwitch>(shell, "OverviewSimpleToggle").IsChecked.GetValueOrDefault()) throw new InvalidOperationException("Simple mode is not the first screen.");
+        await Task.Delay(3200); Capture(shell, "shell-simple.png");
+        Find<ToggleSwitch>(shell, "OverviewSimpleToggle").IsChecked = false; // the rest of the run uses the full overview (choice saved in settings)
+        Console.WriteLine("PASS simple overview: first screen, status sentence, four live cards, apps list; switching to the full view");
+        await Until(() => shell.IsVisible && shell.GetVisualDescendants().OfType<UsageChart>().Any(c => c.Name == "OverviewChart" && c.Count >= 3 && c.IsEffectivelyVisible));
         if (Find<TextBlock>(shell, "ProductName").Text != "Ilmenyx Controller" || Find<TextBlock>(shell, "MaintainerSignature").Text != "by Ilmenyx Technology")
             throw new InvalidOperationException("Identity missing from shell window.");
         if (Find<TextBlock>(shell, "OverviewGpuNotice").Text != (ExpectedGpuNotice ?? "")) throw new InvalidOperationException("AMD/NVIDIA notice wrong on overview.");
