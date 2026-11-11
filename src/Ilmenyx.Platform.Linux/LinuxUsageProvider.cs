@@ -15,7 +15,7 @@ namespace Ilmenyx.Platform.Linux;
 /// </summary>
 public sealed partial class LinuxUsageProvider(string procRoot = "/proc", string sysRoot = "/sys") : IUsageProvider
 {
-    public const int MaxProcesses = 4096, MaxRows = 64, TicksPerSecond = 100, MaxFileCharacters = 1 << 20;
+    public const int MaxProcesses = 4096, TicksPerSecond = 100, MaxFileCharacters = 1 << 20;
     private readonly Stopwatch clock = Stopwatch.StartNew();
     private (double At, long Total, long Idle)? cpuBefore;
     private readonly Dictionary<string, (long Total, long Idle)> coreBefore = new(StringComparer.Ordinal);
@@ -23,6 +23,15 @@ public sealed partial class LinuxUsageProvider(string procRoot = "/proc", string
     private (double At, long Rx, long Tx)? netBefore;
     private (double At, Dictionary<(int, long), long> Ticks) processBefore = (0, []);
     private bool hasProcessBefore;
+    // Facts that never change while a process lives, read once per (pid, start): owner, app unit, full name of a cut comm.
+    private Dictionary<(int, long), (int? Uid, string? AppUnit, string? FullName)> facts = [];
+    private (double At, Dictionary<(int, long), (long Read, long Write)> Bytes) ioBefore = (0, []);
+
+    /// <summary>
+    /// When true (the Processes page is open), each sample also reads the disk counters of the user's own processes. Off by default:
+    /// the overview does not need them and it saves hundreds of reads per second.
+    /// </summary>
+    public bool DetailedProcesses { get; set; }
     private readonly RaplPowerReader rapl = new(sysRoot);
     /// <summary>Why CPU power is (not) available: RAPL present, missing or root-only (the kernel default).</summary>
     public RaplState CpuPowerState => rapl.State;
@@ -209,14 +218,16 @@ public sealed partial class LinuxUsageProvider(string procRoot = "/proc", string
         var rows = new List<ProcessUsage>();
         int count = 0;
         double dt = now - processBefore.At;
+        bool host = HostProcesses.Active(procRoot);
         // Natively one stat file per process; in Flatpak the host's stat lines in one dump (the sandbox /proc only lists the sandbox).
         var stats = new List<(int Pid, string? Dir, string? Line)>();
-        if (HostProcesses.Active(procRoot)) stats.AddRange(HostProcesses.Parse(await HostProcesses.StatDumpAsync(ct)).Take(MaxProcesses).Select(h => (h.Pid, (string?)null, (string?)h.Line)));
+        if (host) stats.AddRange(HostProcesses.Parse(await HostProcesses.StatDumpAsync(ct)).Take(MaxProcesses).Select(h => (h.Pid, (string?)null, (string?)h.Line)));
         else
         {
             try { stats.AddRange(Directory.EnumerateDirectories(procRoot).Where(p => Digits().IsMatch(Path.GetFileName(p))).Take(MaxProcesses).Select(d => (int.TryParse(Path.GetFileName(d), NumberStyles.None, CultureInfo.InvariantCulture, out int p) ? p : -1, (string?)d, (string?)null))); }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return ([], 0); }
         }
+        var parsed = new List<(int Pid, (string name, long ticks, long start, long? rssPages, int ppid) S)>();
         foreach (var (pid, dir, line) in stats)
         {
             ct.ThrowIfCancellationRequested();
@@ -227,24 +238,67 @@ public sealed partial class LinuxUsageProvider(string procRoot = "/proc", string
             if (ParseStat(text) is not { } s || pid < 0) continue;
             count++;
             current[(pid, s.start)] = s.ticks;
+            if (s.rssPages is 0) continue; // kernel threads have no resident pages; counted above, hidden from the table
+            parsed.Add((pid, s));
+        }
+        await LearnFacts(parsed.Select(p => (p.Pid, p.S.start, p.S.name)).ToList(), host, ct);
+        var io = DetailedProcesses ? await ReadIo(parsed.Where(p => facts.TryGetValue((p.Pid, p.S.start), out var f) && f.Uid == ProcessDetails.CurrentUid).Select(p => (p.Pid, p.S.start)).ToList(), host, ct) : [];
+        double ioDt = now - ioBefore.At;
+        foreach (var (pid, s) in parsed)
+        {
             double? percent = null;
             if (hasProcessBefore && dt > 0 && processBefore.Ticks.TryGetValue((pid, s.start), out long before) && s.ticks >= before)
                 percent = Math.Clamp((s.ticks - before) / (double)TicksPerSecond / dt * 100.0 / logical, 0, 100);
-            if (s.rssPages is 0) continue; // kernel threads have no resident pages; counted above, hidden from the table
-            rows.Add(new(pid, s.name, percent, s.rssPages is { } pages ? pages * Environment.SystemPageSize : null));
+            facts.TryGetValue((pid, s.start), out var f);
+            double? readBps = null, writeBps = null;
+            if (io.TryGetValue((pid, s.start), out var now2) && ioBefore.Bytes.TryGetValue((pid, s.start), out var then) && ioDt > 0 && now2.Read >= then.Read && now2.Write >= then.Write)
+            { readBps = (now2.Read - then.Read) / ioDt; writeBps = (now2.Write - then.Write) / ioDt; }
+            rows.Add(new(pid, f.FullName ?? s.name, percent, s.rssPages is { } pages ? pages * Environment.SystemPageSize : null, f.Uid, s.ppid, s.start, f.AppUnit, readBps, writeBps));
         }
         processBefore = (now, current); hasProcessBefore = true;
-        var top = rows.OrderByDescending(r => r.CpuPercent ?? -1).ThenByDescending(r => r.ResidentBytes ?? -1).Take(MaxRows).ToArray();
-        if (!HostProcesses.Active(procRoot)) // the sandbox cannot read the host's cmdline; there the short name stays
-            for (int i = 0; i < top.Length; i++)
-                if (top[i].Name.Length == CommLength)
-                {
-                    string cmdline;
-                    try { cmdline = LinuxFiles.ReadSmall(Path.Combine(procRoot, top[i].Pid.ToString(CultureInfo.InvariantCulture), "cmdline")); }
-                    catch (Exception e) when (e is IOException or UnauthorizedAccessException) { continue; }
-                    top[i] = top[i] with { Name = FullName(top[i].Name, cmdline) };
-                }
-        return (top, count);
+        ioBefore = (now, io);
+        // Forget the facts of processes that ended (the dictionary would otherwise grow for as long as the app runs).
+        if (facts.Count > current.Count + 256) facts = facts.Where(kv => current.ContainsKey(kv.Key)).ToDictionary(kv => kv.Key, kv => kv.Value);
+        return (rows.OrderByDescending(r => r.CpuPercent ?? -1).ThenByDescending(r => r.ResidentBytes ?? -1).ToArray(), count);
+    }
+
+    private async Task LearnFacts(List<(int Pid, long Start, string Comm)> seen, bool host, CancellationToken ct)
+    {
+        var unknown = seen.Where(p => !facts.ContainsKey((p.Pid, p.Start))).ToList();
+        if (unknown.Count == 0) return;
+        if (host)
+        {
+            // The sandbox cannot read the host's status/cgroup/cmdline: one host command for all new processes; names stay as the kernel cut them.
+            var hostFacts = await ProcessDetails.HostFactsAsync(unknown.Select(u => u.Pid).ToList(), ct);
+            foreach (var (pid, start, _) in unknown)
+                facts[(pid, start)] = hostFacts.TryGetValue(pid, out var h) ? (h.Uid, h.AppUnit, null) : (null, null, null);
+            return;
+        }
+        foreach (var (pid, start, comm) in unknown)
+        {
+            string dir = Path.Combine(procRoot, pid.ToString(CultureInfo.InvariantCulture));
+            int? uid = null; string? unit = null, full = null;
+            try { uid = ProcessDetails.ParseUid(LinuxFiles.ReadSmall(Path.Combine(dir, "status"))); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+            try { unit = ProcessDetails.ParseAppUnit(LinuxFiles.ReadSmall(Path.Combine(dir, "cgroup"))); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+            if (comm.Length == CommLength)
+                try { full = FullName(comm, LinuxFiles.ReadSmall(Path.Combine(dir, "cmdline"))); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+            facts[(pid, start)] = (uid, unit, full);
+        }
+    }
+
+    private async Task<Dictionary<(int, long), (long Read, long Write)>> ReadIo(List<(int Pid, long Start)> own, bool host, CancellationToken ct)
+    {
+        var result = new Dictionary<(int, long), (long, long)>();
+        if (host)
+        {
+            var dump = await ProcessDetails.HostIoAsync(own.Select(o => o.Pid).ToList(), ct);
+            foreach (var (pid, start) in own) if (dump.TryGetValue(pid, out var v)) result[(pid, start)] = v;
+            return result;
+        }
+        foreach (var (pid, start) in own)
+            try { if (ProcessDetails.ParseIo(LinuxFiles.ReadSmall(Path.Combine(procRoot, pid.ToString(CultureInfo.InvariantCulture), "io"))) is { } v) result[(pid, start)] = v; }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+        return result;
     }
 
     /// <summary>The kernel keeps only the first 15 bytes of a program name (comm).</summary>
@@ -261,19 +315,20 @@ public sealed partial class LinuxUsageProvider(string procRoot = "/proc", string
         return name.Length > comm.Length && name.StartsWith(comm, StringComparison.Ordinal) ? name : comm;
     }
 
-    internal static (string name, long ticks, long start, long? rssPages)? ParseStat(string text)
+    internal static (string name, long ticks, long start, long? rssPages, int ppid)? ParseStat(string text)
     {
         int open = text.IndexOf('('), close = text.LastIndexOf(')');
         if (open < 0 || close < open) return null;
         // Fields after the name, counted from 0 = field 3 (state); read in place, ~300 times per second, without splitting the line.
         var rest = text.AsSpan(close + 1);
-        long utime = 0, stime = 0, start = 0; long? rss = null; int field = 0;
+        long utime = 0, stime = 0, start = 0; long? rss = null; int field = 0, ppid = 0;
         foreach (var range in rest.Split(' '))
         {
             var value = rest[range];
             if (value.IsEmpty) continue;
             bool ok = field switch
             {
+                1 => int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out ppid),
                 11 => long.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out utime),
                 12 => long.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out stime),
                 19 => long.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out start),
@@ -286,6 +341,6 @@ public sealed partial class LinuxUsageProvider(string procRoot = "/proc", string
         }
         if (field < 22) return null;
         string name = new(text[(open + 1)..close].Where(c => !char.IsControl(c)).Take(64).ToArray());
-        return (name, utime + stime, start, rss);
+        return (name, utime + stime, start, rss, ppid);
     }
 }
