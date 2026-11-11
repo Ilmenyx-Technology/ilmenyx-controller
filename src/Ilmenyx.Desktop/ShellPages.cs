@@ -210,6 +210,19 @@ public sealed partial class ShellWindow
         void Refresh()
         {
             bool temp = metric == "temp", watts = metric == "power";
+            if (metric is "mem" or "disk" or "net")
+            {
+                // Memory, disk and network history: the same 15 min the monitor keeps, now visible like on the System Monitor.
+                bool mem = metric == "mem";
+                chart.SetValues(mem ? usage.MemorySeries : metric == "disk" ? usage.DiskSeries : usage.NetSeries, mem ? 100 : null, range);
+                chart.SetSecond([]);
+                chartLabel.Text = mem ? L.T("MEMÓRIA · USO") : metric == "disk" ? L.T("DISCOS · LEITURA + ESCRITA") : L.T("REDE · RECEBIDO + ENVIADO");
+                var l = usage.Last;
+                hero.Text = mem ? (l is { MemoryTotal: > 0, MemoryUsed: { } mu } ? UsageViewModel.Pct(100.0 * mu / l.MemoryTotal.Value) : "—")
+                    : metric == "disk" ? (l?.DiskReadBps is { } dr && l.DiskWriteBps is { } dw ? UsageViewModel.Rate(dr + dw) : "—")
+                    : (l?.NetRxBps is { } nr && l.NetTxBps is { } nt ? UsageViewModel.Rate(nr + nt) : "—");
+                return;
+            }
             if (powerChip is { IsEnabled: true }) ChipStyle(powerChip, watts);
             chart.SetValues(temp ? usage.TempSeries : watts ? usage.PowerSeries : usage.CpuSeries, temp || watts ? null : 100, range);
             chart.SetSecond(!temp && !watts && gpuLoad.Count > 0 ? gpuLoad : []);
@@ -219,7 +232,7 @@ public sealed partial class ShellWindow
         }
         usage.Updated += UiKit.OnScreen(chart, Refresh);
         var ranges = Chips("DashRange", [("1 min", 60), ("5 min", 300), ("15 min", 900)], 300, v => { range = v; Refresh(); });
-        var metrics = Chips("DashMetric", [(L.T("Temperatura"), "temp"), (L.T("Carga"), "load")], "load", v => { metric = v; Refresh(); });
+        var metrics = Chips("DashMetric", [(L.T("Temperatura"), "temp"), (L.T("Carga"), "load"), (L.T("Memória"), "mem"), (L.T("Disco"), "disk"), (L.T("Rede"), "net")], "load", v => { metric = v; Refresh(); });
         // CPU power (RAPL): enabled once a sample arrives; otherwise the tooltip says why (absent counter or root-only file).
         var power = new Button { Name = "DashMetricPower", Content = L.T("Consumo"), FontSize = 11, Padding = new Thickness(13, 5), CornerRadius = new CornerRadius(IlmenyxTheme.Pill), IsEnabled = false, BorderBrush = Palette.Line, BorderThickness = new Thickness(1) };
         ToolTip.SetTip(power, L.T("Indisponível: o kernel não deixa ler o consumo da CPU (RAPL) sem permissão. Veja \"Por que não aparece?\" no menu lateral."));
@@ -395,9 +408,9 @@ public sealed partial class ShellWindow
                 : L.T("sem contadores");
             Set("GPU", gpuRaw?.Name is { } rawName ? MarketingName(rawName) : L.T("Inventário DRM/PCI"), UsageViewModel.Pct(g?.LoadPercent),
                 (g?.TempC is { } gt ? gt.ToString("0.0", CultureInfo.InvariantCulture) + " °C" : "—") + " · " + (g?.CoreMHz is { } gm ? gm.ToString("0", CultureInfo.InvariantCulture) + " MHz" : "—"), gUse);
-            Set(L.T("Memória"), usage.MemorySub, s is { MemoryTotal: > 0, MemoryUsed: { } u } ? UsageViewModel.Pct(100.0 * u / s.MemoryTotal.Value) : "—", usage.MemoryLine, "");
+            Set(L.T("Memória"), usage.MemorySub, s is { MemoryTotal: > 0, MemoryUsed: { } u } ? UsageViewModel.Pct(100.0 * u / s.MemoryTotal.Value) : "—", usage.MemoryLine, usage.SwapLine);
             Set(L.T("Discos"), L.T("Dispositivos inteiros"), "E/S", usage.DiskLine, "");
-            Set(L.T("Rede"), usage.NetSub, L.T("Tráfego"), usage.NetLine, "");
+            Set(L.T("Rede"), usage.NetAddresses, L.T("Tráfego"), usage.NetLine, usage.NetPerInterface);
             HeroReadings();
         }
         usage.Updated += UiKit.OnScreen(components, Components); Components();
@@ -439,6 +452,7 @@ public sealed partial class ShellWindow
                 new Grid { Children = { new RingGauge(fraction), new TextBlock { Text = (fraction * 100).ToString("0", CultureInfo.InvariantCulture) + "%", FontFamily = new FontFamily("monospace"), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center } } },
                 new StackPanel { VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center, Children = { Label(title), new TextBlock { Text = text, FontSize = 12, Foreground = Palette.Muted } } } } });
             if (usage.Last is { MemoryTotal: > 0, MemoryUsed: { } u } l) Ring(L.T("MEMÓRIA"), (double)u / l.MemoryTotal!.Value, usage.MemoryLine);
+            if (usage.Last is { SwapTotal: > 0, SwapUsed: { } su } sl) Ring("SWAP", (double)su / sl.SwapTotal!.Value, usage.SwapLine);
             if (OperatingSystem.IsLinux())
                 try { foreach (var d in MountedDrives.Read(File.ReadAllText("/proc/self/mounts")).Take(4)) Ring(L.T("DISCO · ") + d.Title, d.UsedFraction, d.Sizes); }
                 catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
@@ -450,7 +464,19 @@ public sealed partial class ShellWindow
         var eventsCard = CardBox(new StackPanel { Spacing = 10, Children = { Label(L.T("EVENTOS RECENTES")), eventsList } }, new Thickness(22, 18));
         Grid.SetColumn(eventsCard, 2); lower.Children.Add(healthCard); lower.Children.Add(eventsCard);
         var ringCard = CardBox(new StackPanel { Spacing = 8, Children = { Label(L.T("OCUPAÇÃO")), rings } }, new Thickness(22, 18)); ringCard.Margin = new Thickness(0, 14, 0, 0);
-        var content = new StackPanel { Margin = new Thickness(0, 0, 8, 12), Children = { row1, UiKit.SectionHeader(L.T("Atividade")), chartCard, UiKit.SectionHeader(L.T("Componentes")), components, lower, ringCard } };
+        var full = new StackPanel { Name = "OverviewFull", Children = { row1, UiKit.SectionHeader(L.T("Atividade")), chartCard, UiKit.SectionHeader(L.T("Componentes")), components, lower, ringCard } };
+        // Simple mode ("Seu PC agora") is the first screen for whoever only wants to know whether the PC is fine; the full view is one click away.
+        bool simpleOn = IlmenyxSettings.Load(IlmenyxSettings.DefaultPath()).SimpleOverview ?? true;
+        var simple = new SimpleOverview(usage, k => { if (pages.ContainsKey(k)) Select(k); }, () => this, canOpen: pages.ContainsKey) { IsVisible = simpleOn };
+        full.IsVisible = !simpleOn;
+        var modeSwitch = new ToggleSwitch { Name = "OverviewSimpleToggle", IsChecked = simpleOn, OnContent = L.T("Modo simples"), OffContent = L.T("Modo simples"), FontSize = 12.5, HorizontalAlignment = HorizontalAlignment.Right };
+        Avalonia.Automation.AutomationProperties.SetName(modeSwitch, L.T("Modo simples"));
+        modeSwitch.IsCheckedChanged += (_, _) =>
+        {
+            bool on = modeSwitch.IsChecked == true; simple.IsVisible = on; full.IsVisible = !on;
+            try { IlmenyxSettings.Update(IlmenyxSettings.DefaultPath(), st => st.SimpleOverview = on); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+        };
+        var content = new StackPanel { Margin = new Thickness(0, 0, 8, 12), Spacing = 6, Children = { modeSwitch, simple, full } };
         var scroll = Scroll("OverviewScroll", content);
         scroll.AttachedToVisualTree += (_, _) => overviewRefresh?.Invoke();
         var refreshTimer = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(20) };
@@ -508,7 +534,7 @@ public sealed partial class ShellWindow
 
     private Control GpuPage() => new GpuInfoPage(stop.Token) { Margin = new Thickness(0, 4, 0, 0) };
 
-    private Control DisksPage() => Scroll("DisksScroll", new DiskHealthPage(smartImport, Destination("smart-import"), stop.Token) { Margin = new Thickness(0, 4, 8, 12) });
+    private Control DisksPage() => Scroll("DisksScroll", new DiskHealthPage(() => this, stop.Token) { Margin = new Thickness(0, 4, 8, 12) });
 
     private Control EnergyPage() => Scroll("EnergyScroll", new Ilmenyx.Desktop.EnergyPage(sensors, stop.Token) { Margin = new Thickness(0, 4, 8, 12) });
 

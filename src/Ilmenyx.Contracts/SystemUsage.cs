@@ -14,7 +14,10 @@ public sealed record ProcessUsage(int Pid, string Name, double? CpuPercent, long
 public sealed record UsageSample(DateTimeOffset At, string? CpuModel, double? CpuPercent, double? CpuMhz, double? CpuTempC,
     long? MemoryTotal, long? MemoryUsed, double? DiskReadBps, double? DiskWriteBps,
     double? NetRxBps, double? NetTxBps, string? NetInterface, int ProcessCount, IReadOnlyList<ProcessUsage> Processes,
-    double? CpuMaxCorePercent = null, string? BusiestCore = null, double? CpuMaxMhz = null, double? CpuPowerW = null);
+    double? CpuMaxCorePercent = null, string? BusiestCore = null, double? CpuMaxMhz = null, double? CpuPowerW = null,
+    long? SwapTotal = null, long? SwapUsed = null, IReadOnlyList<NetInterfaceUsage>? Interfaces = null);
+/// <summary>One network interface: rates since the previous sample and its IP addresses (refreshed every few seconds).</summary>
+public sealed record NetInterfaceUsage(string Name, double? RxBps, double? TxBps, IReadOnlyList<string> Addresses, bool Wireless);
 public interface IUsageProvider
 {
     Task<UsageSample> SampleAsync(CancellationToken cancellationToken = default);
