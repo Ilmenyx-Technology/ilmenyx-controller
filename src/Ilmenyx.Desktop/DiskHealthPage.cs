@@ -25,6 +25,7 @@ public sealed class DiskHealthPage : StackPanel
     private readonly LinuxDiskHealthReader reader = new();
     private readonly CancellationToken lifetime;
     private readonly Func<Window?> owner;
+    private readonly Action<string>? open;
     private readonly StackPanel cards = new() { Name = "DiskCards", Spacing = 12 };
     private readonly StackPanel partitions = new() { Name = "DiskPartitions", Spacing = 12, IsVisible = false };
     private readonly StackPanel healthTab = new() { Spacing = 12 };
@@ -39,9 +40,10 @@ public sealed class DiskHealthPage : StackPanel
 
     public IReadOnlyList<HealthCard> Cards { get; private set; } = [];
 
-    public DiskHealthPage(Func<Window?> owner, CancellationToken lifetime)
+    /// <param name="open">Opens another page of the shell (Liberar espaço); null hides the shortcut.</param>
+    public DiskHealthPage(Func<Window?> owner, CancellationToken lifetime, Action<string>? open = null)
     {
-        this.owner = owner; this.lifetime = lifetime;
+        this.owner = owner; this.lifetime = lifetime; this.open = open;
         Spacing = 12;
         var refresh = UiKit.Primary("BtnDiskRefresh", L.T("Atualizar"));
         refresh.Click += async (_, _) => await RefreshAsync();
@@ -234,6 +236,12 @@ public sealed class DiskHealthPage : StackPanel
             body.Children.Add(bar);
             body.Children.Add(new TextBlock { Name = "DiskSpace_" + c.Device, Text = L.T($"{Size(used)} usados · {Size(avail)} livres · {fraction * 100:0}% cheio"), FontSize = 12, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap });
             if (fraction >= 0.9) body.Children.Add(new TextBlock { Text = L.T("Quase cheio: o sistema fica lento e atualizações podem falhar. Libere espaço apagando o que não usa mais."), FontSize = 12, Foreground = Palette.Warn, TextWrapping = TextWrapping.Wrap });
+            if (fraction >= 0.75 && open is { } go && d is { IsExternal: false })
+            {
+                var free = new Button { Name = "BtnDiskFreeSpace_" + c.Device, Content = L.T("Liberar espaço"), FontSize = 12, Padding = new Thickness(12, 6), HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 4, 0, 0) };
+                free.Click += (_, _) => go("cleanup");
+                body.Children.Add(free);
+            }
         }
         else if (d?.IsExternal == true && d.Partitions.Any()) body.Children.Add(new TextBlock { Text = L.T("Não montado: abra-o no gerenciador de arquivos ou monte na aba Partições."), FontSize = 12, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap });
         var tag = UiKit.Tag(c.VerdictText, HealthCardView.VerdictBrush(c.Verdict));

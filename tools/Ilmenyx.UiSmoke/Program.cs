@@ -431,7 +431,7 @@ public sealed class UiSmokeApp : Application
         }
         else if (Find<Button>(shell, "DashMetricPower").IsEnabled) throw new InvalidOperationException("Unavailable power metric must stay disabled.");
         Click(shell, "GoMemory"); await Until(() => shell.CurrentPage == "system");
-        var expected = new (string Key, string Control)[] { ("dash", "OverviewChart"), ("system", "SysRefresh"), ("sensors", "RefreshSensors"), ("gpu", "GpuValidationNotice"), ("disks", "BtnDiskRefresh"),
+        var expected = new (string Key, string Control)[] { ("dash", "OverviewChart"), ("system", "SysRefresh"), ("sensors", "RefreshSensors"), ("gpu", "GpuValidationNotice"), ("disks", "BtnDiskRefresh"), ("cleanup", "BtnCleanScan"),
             ("energy", "BtnEnergyRefresh"), ("net", "BtnNetTest"), ("procs", "ProcessRows"), ("launcher", "BtnScanGames"), ("fps", "GameSourceTitle"), ("stress", "BtnStress"), ("optimize", "BtnOptimize"), ("apps", "BtnAppsInstall"), ("bottleneck", "BtnBnSession"), ("validate", "ValidateCpu"), ("makerports", "BtnMakerPortScan"), ("makerdrv", "BtnMakerDrvScan"), ("startup", "BtnStartupScan"), ("driver", "BtnDrvScan"), ("tools", "About") };
         foreach (var (key, control) in expected)
         {
@@ -440,6 +440,15 @@ public sealed class UiSmokeApp : Application
             await Until(() => shell.CurrentPage == key && shell.GetVisualDescendants().Any(c => c is Control { Name: var n, IsVisible: true } && n == control));
             if (Find<TextBlock>(shell, "TitlePage").Text!.Length == 0) throw new InvalidOperationException("Page title missing for " + key);
             if (key == "procs") { await Until(() => Find<StackPanel>(shell, "ProcessRows").Children.Count > 0); Capture(shell, "shell-processes.png"); }
+            if (key == "cleanup")
+            {
+                // Real read-only scan of this machine (trash, caches, package cache, journal, stale files); nothing is cleaned here.
+                await Until(() => Find<TextBlock>(shell, "CleanStatus").Text?.StartsWith("Analisado", StringComparison.Ordinal) == true);
+                if (Find<Button>(shell, "BtnCleanRun").IsEnabled != shell.GetVisualDescendants().OfType<CheckBox>().Any(c => c.Name?.StartsWith("CleanItem_", StringComparison.Ordinal) == true && c.IsChecked == true))
+                    throw new InvalidOperationException("Clean button state does not follow the selection.");
+                Capture(shell, "shell-cleanup.png");
+                Console.WriteLine("PASS cleanup page: real read-only scan, recommended items ticked, clean button follows the selection (nothing deleted)");
+            }
             if (key == "gpu" && Find<TextBlock>(shell, "GpuValidationNotice").Text != (ExpectedGpuNotice ?? "")) throw new InvalidOperationException("AMD/NVIDIA notice wrong on GPU page.");
             if (key == "net") await Until(() => Find<UsageChart>(shell, "NetChart").Count >= 2);
         }

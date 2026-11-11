@@ -120,7 +120,7 @@ public sealed partial class ShellWindow : Window
     {
         ["dash"] = Icons.Overview, ["system"] = Icons.System, ["sensors"] = Icons.Sensors, ["gpu"] = Icons.Gpu, ["disks"] = Icons.Disks, ["energy"] = Icons.Energy, ["net"] = Icons.Network,
         ["procs"] = Icons.Processes, ["launcher"] = Icons.Games, ["compat"] = Icons.Compat, ["gamecheck"] = Icons.Validate, ["fps"] = Icons.Fps, ["bottleneck"] = Icons.Bottleneck, ["bench"] = Icons.Bench, ["oc"] = Icons.Oc,
-        ["overlay"] = Icons.Overlay, ["validate"] = Icons.Validate, ["stress"] = Icons.Stress, ["makerports"] = Icons.Ports, ["makerdrv"] = Icons.SerialDrivers, ["optimize"] = Icons.Optimize,
+        ["overlay"] = Icons.Overlay, ["validate"] = Icons.Validate, ["stress"] = Icons.Stress, ["makerports"] = Icons.Ports, ["makerdrv"] = Icons.SerialDrivers, ["optimize"] = Icons.Optimize, ["cleanup"] = Icons.Broom,
         ["lighting"] = Icons.Lighting, ["startup"] = Icons.Startup, ["apps"] = Icons.Apps, ["driver"] = Icons.Drivers, ["nvdriver"] = Icons.Gpu, ["report"] = Icons.Report, ["blocked"] = Icons.Blocked, ["tools"] = Icons.About, ["help"] = Icons.Help,
     };
 
@@ -187,7 +187,7 @@ public sealed partial class ShellWindow : Window
         Group(L.T("JOGOS"), ("launcher", L.T("Jogos")), ("compat", L.T("Compatibilidade")), ("gamecheck", L.T("Jogo não abre?")), ("fps", L.T("Estimativa de FPS")), ("bottleneck", L.T("Detector de gargalo")));
         Group(L.T("DESEMPENHO"), ("bench", "Benchmark"), ("oc", "OC"), ("overlay", "Overlay"), ("validate", L.T("Validações reduzidas")), ("stress", "Stress test"));
         Group("MAKER", ("makerports", L.T("Portas")), ("makerdrv", L.T("Drivers seriais")));
-        Group(L.T("FERRAMENTAS"), ("optimize", L.T("Otimiza")), ("lighting", L.T("Integração")), ("startup", L.T("Inicialização")), ("apps", L.T("Instalar apps")), ("driver", "Drivers"), ("nvdriver", L.T("Driver NVIDIA")), ("report", L.T("Relatório")), ("blocked", L.T("Bloqueados (!)")), ("tools", L.T("Requisitos e sobre")));
+        Group(L.T("FERRAMENTAS"), ("optimize", L.T("Otimiza")), ("cleanup", L.T("Liberar espaço")), ("lighting", L.T("Integração")), ("startup", L.T("Inicialização")), ("apps", L.T("Instalar apps")), ("driver", "Drivers"), ("nvdriver", L.T("Driver NVIDIA")), ("report", L.T("Relatório")), ("blocked", L.T("Bloqueados (!)")), ("tools", L.T("Requisitos e sobre")));
         // Help Center at the bottom of the menu (also reachable from the header "?" and the search).
         var helpItem = NavItem("help", help[HelpKeys.HelpNav]); helpItem.Margin = new Thickness(0, 14, 0, 1); items.Children.Add(helpItem);
 
