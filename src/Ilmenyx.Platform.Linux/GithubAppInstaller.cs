@@ -25,7 +25,7 @@ public sealed class GithubAppInstaller(ProgramRunner run, HttpMessageHandler? ha
     {
         var c = handler is null ? new HttpClient() : new HttpClient(handler);
         c.Timeout = TimeSpan.FromMinutes(30);
-        c.DefaultRequestHeaders.UserAgent.ParseAdd("IlmenyxController/0.30 (+https://github.com/Ilmenyx-Technology/ilmenyx)");
+        c.DefaultRequestHeaders.UserAgent.ParseAdd("IlmenyxController/0.30 (+https://github.com/Ilmenyx-Technology/ilmenyx-controller)");
         return c;
     }
 

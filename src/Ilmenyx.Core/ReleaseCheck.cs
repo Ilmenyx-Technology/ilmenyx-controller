@@ -13,8 +13,8 @@ public sealed record ReleaseInfo(Version Version, string Tag, string Url);
 /// </summary>
 public static class ReleaseCheck
 {
-    public const string Api = "https://api.github.com/repos/Ilmenyx-Technology/ilmenyx/releases?per_page=10";
-    public const string ReleasesPage = "https://github.com/Ilmenyx-Technology/ilmenyx/releases";
+    public const string Api = "https://api.github.com/repos/Ilmenyx-Technology/ilmenyx-controller/releases?per_page=10";
+    public const string ReleasesPage = "https://github.com/Ilmenyx-Technology/ilmenyx-controller/releases";
     public static readonly TimeSpan Interval = TimeSpan.FromDays(1);
     private const int MaxBytes = 1 << 20;
 

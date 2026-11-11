@@ -2,103 +2,109 @@
 
 # Ilmenyx Controller
 
-**Diagnóstico, monitoramento e benchmark de hardware para Linux.**
-Por **Ilmenyx Technology**.
+**English** · [Português](README.pt-BR.md)
 
-![versão](https://img.shields.io/badge/vers%C3%A3o-0.31.1-blue)
-![plataforma](https://img.shields.io/badge/plataforma-Linux%20x64-informational)
+**Hardware diagnostics, monitoring and benchmarking for Linux.**
+By **Ilmenyx Technology**.
+
+![version](https://img.shields.io/badge/version-0.31.1-blue)
+![platform](https://img.shields.io/badge/platform-Linux%20x64-informational)
 ![.NET](https://img.shields.io/badge/.NET-10-512bd4)
-![status](https://img.shields.io/badge/status-pr%C3%A9--lan%C3%A7amento-orange)
+![status](https://img.shields.io/badge/status-pre--release-orange)
 
-O Ilmenyx Controller mostra o que há dentro do seu computador (CPU, memória, GPU, discos, sensores, bateria,
-rede), mede o desempenho dele e ajuda a fazer jogos rodarem no Linux. Tem um **aplicativo desktop** e uma **linha de
-comando** (`ilmenyx`), em **português, inglês e espanhol**.
+Ilmenyx Controller shows what is inside your computer (CPU, memory, GPU, disks, sensors, battery, network), measures its
+performance and helps games run on Linux. It has a **desktop app** and a **command line** (`ilmenyx`), in **English,
+Portuguese and Spanish**.
 
-> **Pré-lançamento.** Funciona e foi validado em hardware real (Intel Iris Xe, AMD Radeon 610M, NVIDIA GeForce 940MX; CachyOS,
-> Linux Mint), mas ainda não em todas as distros e GPUs. O que falta testar está em [Sem_teste.md](Sem_teste.md).
+> **Pre-release.** It works and was validated on real hardware (Intel Iris Xe, AMD Radeon 610M, NVIDIA GeForce 940MX; CachyOS,
+> Linux Mint), but not yet on every distro and GPU. What still needs testing is listed in [Sem_teste.md](Sem_teste.md) (Portuguese).
 
-![Visão geral do Ilmenyx Controller](docs/imagens/visao-geral.png)
+![Ilmenyx Controller overview](docs/imagens/visao-geral.png)
 
 | | |
 |---|---|
-| ![Sensores](docs/imagens/sensores.png) | ![Estimativa de FPS](docs/imagens/estimativa-fps.png) |
-| ![Por que o jogo não abre?](docs/imagens/jogo-nao-abre.png) | ![Tema claro](docs/imagens/visao-geral-claro.png) |
+| ![Sensors](docs/imagens/sensores.png) | ![FPS estimate](docs/imagens/estimativa-fps.png) |
+| ![Why won't the game start?](docs/imagens/jogo-nao-abre.png) | ![Light theme](docs/imagens/visao-geral-claro.png) |
+
+<sub>Screenshots in Portuguese; the app follows your system language or the one you pick in the header.</sub>
 
 ---
 
-## Baixar
+## Download
 
-Na página de [releases](https://github.com/Ilmenyx-Technology/ilmenyx/releases), pegue a versão mais recente:
+Get the latest version on the [releases](https://github.com/Ilmenyx-Technology/ilmenyx-controller/releases) page:
 
-| Arquivo | Para quem |
+| File | For |
 |---|---|
-| `Ilmenyx-Controller-<versão>-x86_64.AppImage` | **Recomendado.** Um arquivo só, sem instalar: `chmod +x Ilmenyx-Controller-*.AppImage` e abrir. Todos os recursos. |
-| `Ilmenyx-Controller-<versão>-x86_64.flatpak` | Quem prefere Flatpak: `flatpak install --user Ilmenyx-Controller-*.flatpak`. Alguns recursos ainda não foram testados nele ([docs/flatpak.md](docs/flatpak.md)). |
-| `Ilmenyx-Controller-<versão>-linux-x64.tar.gz` | Pacote em pasta, para técnicos ([docs/pacote-linux-x64.md](docs/pacote-linux-x64.md)). |
+| `Ilmenyx-Controller-<version>-x86_64.AppImage` | **Recommended.** A single file, nothing to install: `chmod +x Ilmenyx-Controller-*.AppImage` and open it. Every feature. |
+| `Ilmenyx-Controller-<version>-x86_64.flatpak` | If you prefer Flatpak: `flatpak install --user Ilmenyx-Controller-*.flatpak`. Some features haven't been tested in it yet ([docs/flatpak.md](docs/flatpak.md)). |
+| `Ilmenyx-Controller-<version>-linux-x64.tar.gz` | Plain folder package, for technical users ([docs/pacote-linux-x64.md](docs/pacote-linux-x64.md)). |
 
-Não precisa instalar o .NET nem ser root: tudo o que o app usa vai dentro do pacote. Cada arquivo tem `.sha256` e assinatura
-`.asc`; impressão digital da chave: `3D97 1657 2A39 8DCD D0CF  F0EE 733D 2EC7 8436 DCE8` ([como conferir](docs/assinatura-gpg.md)).
+No .NET install and no root needed: everything the app uses ships inside the package. Every file has a `.sha256` and an `.asc`
+GPG signature; key fingerprint: `3D97 1657 2A39 8DCD D0CF  F0EE 733D 2EC7 8436 DCE8` ([how to verify](docs/assinatura-gpg.md)).
 
-Achou um problema ou tem uma ideia? Abra uma [issue](https://github.com/Ilmenyx-Technology/ilmenyx/issues) dizendo a distro, a
-placa de vídeo e o que aconteceu (a página **Relatório** do app gera um resumo do hardware para colar).
+Found a problem or have an idea? Open an [issue](https://github.com/Ilmenyx-Technology/ilmenyx-controller/issues/new/choose) with your
+distro, your graphics card and what happened (the app's **Report** page builds a hardware summary you can paste).
 
-## O que ele faz
+## What it does
 
-| Área | O que você encontra |
+| Area | What you get |
 |---|---|
-| **Diagnóstico** | Visão geral ao vivo, sistema, sensores, GPU, discos (com SMART importado), energia/bateria, rede e processos |
-| **Jogos** | Biblioteca (Steam, Lutris, Heroic), compatibilidade (ProtonDB, Steam Deck, anti-cheat e relatos de quem tem hardware parecido), estimativa de FPS e análise de gargalo |
-| **Desempenho** | Benchmarks de CPU, memória, GPU (Vulkan) e disco; verificador de overclock; overlay; testes de estresse |
-| **Maker** | Portas seriais e drivers de placas (CH340, CP210x, FTDI) |
-| **Ferramentas** | Otimizações reversíveis, ZRAM, RGB via OpenRGB, apps de inicialização, instalação de apps (Flatpak), driver NVIDIA, relatórios HTML/JSON |
-| **Jogos de Windows** | Instala jogos de Windows (Proton/umu-launcher ou Wine próprio), diagnóstico "Por que o jogo não abre?" com correções de um clique |
+| **Diagnostics** | Live overview, system, sensors, GPU, disks (with imported SMART), power/battery, network and processes |
+| **Games** | Library (Steam, Lutris, Heroic), compatibility (ProtonDB, Steam Deck, anti-cheat and reports from people with similar hardware), FPS estimate and bottleneck analysis |
+| **Performance** | CPU, memory, GPU (Vulkan) and disk benchmarks; overclock checker; overlay; stress tests |
+| **Maker** | Serial ports and board drivers (CH340, CP210x, FTDI) |
+| **Tools** | Reversible tweaks, ZRAM, RGB through OpenRGB, startup apps, app installer (Flatpak), NVIDIA driver, HTML/JSON reports |
+| **Windows games** | Installs Windows games (Proton/umu-launcher or its own Wine), "Why won't the game start?" diagnostics with one-click fixes |
 
-O app tem tema claro e escuro, e todos os relatórios são gerados localmente.
+Light and dark themes; every report is generated locally. Optional: minimize to the notification area, hot-CPU alerts and
+new-version alerts.
 
-## Princípios
+## Principles
 
-- **Somente leitura por padrão.** Lê `/proc`, `/sys` e `/etc`; não altera o sistema ao abrir.
-- **Carga só com o seu clique.** Benchmarks e stress pedem confirmação, têm limites e cortam por temperatura.
-- **Sem `sudo` escondido.** O que exige root aparece como um comando para você copiar e executar.
-- **Sem telemetria.** Nenhum dado sai da sua máquina sem você pedir.
-- **Sem dados inventados.** Se um sensor não existe, o Ilmenyx diz isso em vez de estimar.
-- **Sem rede escondida.** A internet só é usada quando você confirma (ex.: consulta de compatibilidade, base do ProtonDB).
+- **Read-only by default.** Reads `/proc`, `/sys` and `/etc`; opening the app changes nothing.
+- **Load only when you click.** Benchmarks and stress tests ask first, have limits and stop on high temperature.
+- **No hidden `sudo`.** Anything that needs root shows the exact command or script first and asks for your password.
+- **No telemetry.** No data leaves your machine unless you ask.
+- **No made-up data.** If a sensor doesn't exist, Ilmenyx says so instead of guessing.
+- **No hidden network use.** The internet is only used after you confirm (e.g. compatibility lookups, the ProtonDB database).
 
-## Como usar
+## How to use it
 
-1. Baixe o AppImage (veja [Baixar](#baixar)), dê permissão de execução e abra. No pacote em pasta, rode `desktop/Ilmenyx.Desktop`;
-   para ter o ícone no menu, rode `packaging/linux/install-user.sh` (só no seu usuário, sem root).
-2. **Não precisa de root nem de driver extra.** As temperaturas vêm dos módulos do próprio kernel (`k10temp` na AMD, `coretemp` na Intel).
-3. **Temperatura ou consumo da CPU não aparecem?** Na primeira vez o app oferece liberar os sensores com **uma senha** do sistema (o
-   Linux esconde o consumo da CPU — RAPL — do usuário comum desde 2020). Dá para fazer depois pelo menu lateral e desfazer em
-   **Requisitos e sobre**.
-4. **Overlay de FPS:** ligue na página Overlay e inicie o jogo pelo Ilmenyx (ou use a opção de inicialização gerada). No jogo, **Ctrl + Shift + O**
-   liga e desliga o overlay (MangoHud, incluído no pacote).
-5. **Stress e benchmarks:** sempre com o limite de temperatura ligado e boa ventilação; tudo pede confirmação e pode ser cancelado.
-6. **Funciona em X11 e Wayland.** O app escolhe sozinho; para forçar, use `ILMENYX_DISPLAY_BACKEND=x11` ou `wayland`.
+1. Download the AppImage (see [Download](#download)), make it executable and open it. In the folder package, run
+   `desktop/Ilmenyx.Desktop`; for a menu entry, run `packaging/linux/install-user.sh` (your user only, no root).
+2. **No root or extra driver needed.** Temperatures come from the kernel's own modules (`k10temp` on AMD, `coretemp` on Intel).
+3. **CPU temperature or power missing?** On first launch the app offers to unlock the sensors with **one** system password
+   (Linux has hidden CPU power — RAPL — from regular users since 2020). You can also do it later from the sidebar and undo it
+   in **Requirements and about**.
+4. **FPS overlay:** turn it on in the Overlay page and start the game through Ilmenyx (or use the generated launch option).
+   In game, **Ctrl + Shift + O** toggles the overlay (MangoHud, included in the package).
+5. **Stress and benchmarks:** always with the temperature limit on and good airflow; everything asks first and can be canceled.
+6. **Works on X11 and Wayland.** The app picks one; to force it, use `ILMENYX_DISPLAY_BACKEND=x11` or `wayland`.
 
-Onde ficam os dados (nada vai junto com o programa): configurações e histórico em `~/.config/ilmenyx/`, caches (compatibilidade,
-componentes) em `~/.cache/ilmenyx/` e `~/.local/share/ilmenyx/`. Para começar do zero, apague essas pastas.
+Where data lives (nothing is shipped with the program): settings and history in `~/.config/ilmenyx/`, caches (compatibility,
+components) in `~/.cache/ilmenyx/` and `~/.local/share/ilmenyx/`. To start over, delete those folders.
 
-> **GPU:** placas NVIDIA mostram mais detalhes (VBIOS, limites de energia, CUDA) com o driver proprietário e o `nvidia-smi`.
-> Em AMD os dados vêm do `amdgpu`. NVIDIA foi validada numa GeForce 940MX de notebook (driver 580, PRIME); GPU AMD dedicada ainda não foi testada (aviso no app).
+> **GPU:** NVIDIA cards show more details (VBIOS, power limits, CUDA) with the proprietary driver and `nvidia-smi`. On AMD the
+> data comes from `amdgpu`. NVIDIA was validated on a laptop GeForce 940MX (driver 580, PRIME); dedicated AMD GPUs haven't been
+> tested yet (the app says so).
 
-## Começando
+## Building from source
 
-### Requisitos
+### Requirements
 
 - Linux x64 (glibc)
-- [SDK .NET 10](https://dotnet.microsoft.com/download)
-- Bibliotecas gráficas do sistema para o app desktop: X11 ou Wayland, fontconfig, EGL
-- Loader Vulkan, para o benchmark de GPU
+- [.NET 10 SDK](https://dotnet.microsoft.com/download)
+- System graphics libraries for the desktop app: X11 or Wayland, fontconfig, EGL
+- Vulkan loader, for the GPU benchmark
 
-Para checar o que falta na sua máquina depois de compilar, rode `ilmenyx doctor`.
+After building, run `ilmenyx doctor` to check what your machine is missing.
 
-### Compilar e testar
+### Build and test
 
 ```bash
-git clone --recurse-submodules https://github.com/Ilmenyx-Technology/ilmenyx.git
-cd ilmenyx
+git clone --recurse-submodules https://github.com/Ilmenyx-Technology/ilmenyx-controller.git
+cd ilmenyx-controller
 
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
 dotnet restore Ilmenyx.slnx
@@ -106,144 +112,140 @@ dotnet build Ilmenyx.slnx -c Release --no-restore
 dotnet test Ilmenyx.slnx -c Release --no-build --no-restore
 ```
 
-### Abrir o aplicativo
+### Run the app
 
 ```bash
 dotnet run --project src/Ilmenyx.Desktop -c Release --no-build
 ```
 
-Para forçar o servidor gráfico, use `ILMENYX_DISPLAY_BACKEND=x11` ou `ILMENYX_DISPLAY_BACKEND=wayland`.
-
-### Gerar um pacote autocontido
+### Build a self-contained package
 
 ```bash
-scripts/package-linux-x64.sh
+scripts/package-linux-x64.sh /absolute/path/new-folder
 ```
 
-O pacote inclui o runtime .NET. Detalhes em [docs/pacote-linux-x64.md](docs/pacote-linux-x64.md).
+The package includes the .NET runtime. Details in [docs/pacote-linux-x64.md](docs/pacote-linux-x64.md); AppImage and Flatpak
+in [docs/appimage.md](docs/appimage.md) and [docs/flatpak.md](docs/flatpak.md).
 
-## Usando a linha de comando
+## Command line
 
 ```bash
-# Ajuda e verificação de requisitos
-dotnet run --project src/Ilmenyx.Cli -c Release --no-build -- --help
-dotnet run --project src/Ilmenyx.Cli -c Release --no-build -- doctor
+# Help and requirements check
+ilmenyx --help
+ilmenyx doctor
 
-# Inventário de hardware
-... -- info --json
-... -- info --html --output ~/ilmenyx-hardware.html
+# Hardware inventory
+ilmenyx info --json
+ilmenyx info --html --output ~/ilmenyx-hardware.html
 
-# Sensores
-... -- sensors --json
+# Sensors
+ilmenyx sensors --json
 
-# SMART a partir de um relatório do smartctl que você já tem
-... -- smart-import --device nvme0n1 --html --output ~/smart.html < relatorio.json
+# SMART from a smartctl report you already have
+ilmenyx smart-import --device nvme0n1 --html --output ~/smart.html < report.json
+
+# Read-only checks
+ilmenyx game-check
+ilmenyx zram status
+ilmenyx nvidia-driver status
 ```
 
-Em `...`, use o prefixo `dotnet run --project src/Ilmenyx.Cli -c Release --no-build`.
-Depois de compilar, o executável também fica em `src/Ilmenyx.Cli/bin/Release/net10.0/ilmenyx`.
-
-O arquivo de saída (`--output`) precisa ser **novo**: o Ilmenyx não sobrescreve arquivos.
+From source, replace `ilmenyx` with `dotnet run --project src/Ilmenyx.Cli -c Release --no-build --`. The output file
+(`--output`) must be **new**: Ilmenyx never overwrites files. The CLI speaks the same three languages (`ILMENYX_LANG=en|es|pt-BR`).
 
 ## Benchmarks
 
 ```bash
-... -- bench sim --json                                  # simulação leve
-... -- bench cpu --profile full --allow-cpu-load         # carga total da CPU
-... -- bench sim-full --allow-cpu-load                  # simulação completa
+ilmenyx bench sim --json                              # light simulation
+ilmenyx bench cpu --profile full --allow-cpu-load     # full CPU load
+ilmenyx bench gpu-rt --allow-gpu-load                 # Vulkan ray tracing
 ```
 
-Os modos `full` geram carga pesada e exigem `--allow-cpu-load`. Métodos em
-[docs/benchmarks-metodologia.md](docs/benchmarks-metodologia.md).
+Heavy modes need an explicit `--allow-*-load` flag. Methods in [docs/benchmarks-metodologia.md](docs/benchmarks-metodologia.md).
 
-> Os scores são **experimentais**. Não os compare com os do Windows e não os use para concluir
-> que uma máquina está saudável ou estável.
+> Scores are **experimental**. Don't compare them with Windows scores and don't use them to conclude a machine is healthy or
+> stable.
 
-## O que ainda não funciona
+## Not there yet
 
-O que o RESET EXPLODE original faz foi portado ou substituído por um equivalente Linux, com estas exceções:
+Everything the original RESET EXPLODE does was ported or replaced with a Linux equivalent, with these exceptions:
 
-| Item | Situação | Motivo |
+| Item | Status | Why |
 |---|---|---|
-| Benchmark de GPU com ray tracing | **Portado (Vulkan, ray query); validado só numa APU Radeon 610M** | Falta GPU dedicada AMD RX 6000+ / NVIDIA RTX; score não comparável ao Windows |
-| GPU AMD/NVIDIA em hardware real | **Parcial**: AMD integrada (Radeon 610M) e NVIDIA de notebook (GeForce 940MX) validadas | Falta GPU AMD dedicada (VRAM própria, ventoinha, limite de energia) e NVIDIA de desktop/RTX |
-| RGB (Corsair, Razer) | Substituído pelo OpenRGB | Os SDKs originais são do Windows; o controle real de LEDs não foi testado |
-| Pacotes `.deb`, `.rpm`, PKGBUILD, ARM64, musl | Não feito | Hoje há AppImage, Flatpak e `tar.gz` para linux-x64 |
+| GPU ray tracing benchmark | **Ported (Vulkan, ray query); validated only on a Radeon 610M APU** | Needs a dedicated AMD RX 6000+ / NVIDIA RTX; score not comparable to Windows |
+| AMD/NVIDIA GPUs on real hardware | **Partial**: integrated AMD (Radeon 610M) and laptop NVIDIA (GeForce 940MX) validated | Missing dedicated AMD (own VRAM, fan, power limit) and desktop/RTX NVIDIA |
+| RGB (Corsair, Razer) | Replaced by OpenRGB | The original SDKs are Windows-only; real LED control wasn't tested |
+| `.deb`, `.rpm`, PKGBUILD, ARM64, musl packages | Not done | Today there are AppImage, Flatpak and `tar.gz` for linux-x64 |
 
-O aplicativo mostra essa lista na página **Bloqueados (!)**. O que não existe no Linux (ajustes do Windows, limpeza de USB fantasma, WinRAR) saiu da lista: ver [docs/bloqueados-removidos.md](docs/bloqueados-removidos.md). A tabela completa está em
-[docs/portagem-completa.md](docs/portagem-completa.md) e tudo que falta validar, com o motivo e como
-retestar, está em [Sem_teste.md](Sem_teste.md). **Contribuições para esses itens são bem-vindas.**
+The app shows this list in the **Blocked (!)** page. Full table: [docs/portagem-completa.md](docs/portagem-completa.md); everything
+still to validate, with the reason and how to retest: [Sem_teste.md](Sem_teste.md). **Help with these items is welcome.**
 
-## Estrutura do projeto
+## Project layout
 
 ```
 src/
-  Ilmenyx.Contracts/       tipos e contratos compartilhados
-  Ilmenyx.Core/            lógica de coleta e benchmarks
-  Ilmenyx.Platform.Linux/  leitura de /proc, /sys e integrações do Linux
-  Ilmenyx.Gpu.Vulkan/      benchmark de GPU
-  Ilmenyx.Cli/             linha de comando (ilmenyx)
-  Ilmenyx.Desktop/         aplicativo desktop (Avalonia 12)
-tests/                     testes automatizados
-tools/                     smoke da interface e validações
-scripts/                   empacotamento e validação
-docs/                      documentação técnica
-upstream/ResetExplode/     projeto original (submódulo)
+  Ilmenyx.Contracts/       shared types and contracts
+  Ilmenyx.Core/            collection logic, benchmarks, translations
+  Ilmenyx.Platform.Linux/  /proc, /sys and Linux integrations
+  Ilmenyx.Gpu.Vulkan/      GPU benchmarks
+  Ilmenyx.Cli/             command line (ilmenyx)
+  Ilmenyx.Desktop/         desktop app (Avalonia 12)
+tests/                     automated tests
+tools/                     UI smoke test, translation tool, validations
+scripts/                   packaging and validation
+docs/                      technical documentation (mostly Portuguese)
+upstream/ResetExplode/     original project (submodule)
 ```
 
-## Documentação
+## Documentation
 
-| Assunto | Documento |
+The technical documentation is in Portuguese. Main entry points:
+
+| Topic | Document |
 |---|---|
-| Arquitetura | [docs/arquitetura.md](docs/arquitetura.md) |
+| Architecture | [docs/arquitetura.md](docs/arquitetura.md) |
 | Roadmap | [docs/roadmap-linux.md](docs/roadmap-linux.md) |
-| Validação e evidências | [docs/validacao.md](docs/validacao.md) |
-| Compatibilidade entre distros | [docs/compatibilidade-linux.md](docs/compatibilidade-linux.md) |
-| Monitor ao vivo | [docs/monitor.md](docs/monitor.md) |
-| SMART importado | [docs/smart-import.md](docs/smart-import.md) |
-| Histórico de versões | [docs/historico-versoes.md](docs/historico-versoes.md) |
-| Quanto o próprio app gasta | [docs/desempenho.md](docs/desempenho.md) |
-| Idiomas | [docs/idiomas.md](docs/idiomas.md) |
-| Regras para agentes e contribuidores | [AGENTS.md](AGENTS.md), [CONTRIBUTING.md](CONTRIBUTING.md) |
+| Distro compatibility | [docs/compatibilidade-linux.md](docs/compatibilidade-linux.md) |
+| Live monitor | [docs/monitor.md](docs/monitor.md) |
+| How much the app itself uses | [docs/desempenho.md](docs/desempenho.md) |
+| Languages and translations | [docs/idiomas.md](docs/idiomas.md) |
+| Version history | [docs/historico-versoes.md](docs/historico-versoes.md) |
+| Rules for agents and contributors | [AGENTS.md](AGENTS.md), [CONTRIBUTING.md](CONTRIBUTING.md) |
 
-## Privacidade e segurança
+## Privacy and security
 
-Relatórios podem identificar a sua máquina (hardware, datas, rótulos). Revise antes de compartilhar;
-a limpeza automática de padrões óbvios não garante anonimato. Não anexe saída bruta de SMART, dumps
-ou logs com dados pessoais.
+Reports can identify your machine (hardware, dates, labels). Review them before sharing; the automatic cleanup of obvious
+patterns doesn't guarantee anonymity. Don't attach raw SMART output, dumps or logs with personal data.
 
-Veja [PRIVACY.md](PRIVACY.md) e [SECURITY.md](SECURITY.md).
+See [PRIVACY.md](PRIVACY.md) and [SECURITY.md](SECURITY.md).
 
-## Apoie o projeto
+## Support the project
 
-O Ilmenyx é gratuito e feito por uma pessoa só. Se ele te ajudou, uma doação ajuda a manter o desenvolvimento e a comprar hardware
-para testar (GPUs AMD e NVIDIA que ainda não foram validadas). Doação é sempre opcional: nenhuma função do app depende dela.
+Ilmenyx is free and made by one person. If it helped you, a donation helps keep it going and buys hardware to test (AMD and NVIDIA
+GPUs not validated yet). Donations are always optional: no feature depends on them.
 
-| Pix (Brasil) | Outras formas |
+| Pix (Brazil) | Other ways |
 |---|---|
-| <img src="docs/imagens/pix-qrcode.png" alt="QR Code Pix do Ilmenyx" width="180"><br>Chave aleatória:<br>`ad7075cc-cca1-4f12-9e11-f0d10890456a` | **Ko-fi** (cartão ou PayPal, de qualquer país):<br>[ko-fi.com/ilmenyxtechnology](https://ko-fi.com/ilmenyxtechnology)<br><br>**GitHub Sponsors:** em breve |
+| <img src="docs/imagens/pix-qrcode.png" alt="Ilmenyx Pix QR code" width="180"><br>Random key:<br>`ad7075cc-cca1-4f12-9e11-f0d10890456a` | **Ko-fi** (card or PayPal, from any country):<br>[ko-fi.com/ilmenyxtechnology](https://ko-fi.com/ilmenyxtechnology)<br><br>**GitHub Sponsors:** coming soon |
 
-## Licença e créditos
+## License and credits
 
-O Ilmenyx é **gratuito, mas não é open source**: o código próprio está sob a
-[PolyForm Noncommercial 1.0.0](LICENSE) com uma [permissão adicional](LICENSES/LicenseRef-Ilmenyx-Permissao-Adicional.txt).
+Ilmenyx is **free of charge, with its source code available, but it isn't OSI open source**: the project's own code is under the
+[PolyForm Noncommercial 1.0.0](LICENSE) with an [additional permission](LICENSES/LicenseRef-Ilmenyx-Permissao-Adicional.txt).
 
-- **Pode:** usar de graça; usar como ferramenta em trabalho pago (por exemplo, diagnosticar o PC de um
-  cliente e cobrar pelo serviço); instalar no PC do cliente sem cobrar pelo app; fazer vídeos e
-  tutoriais monetizados; redistribuir os pacotes sem modificação de graça, sem exigir cadastro ou
-  anúncio para baixar; modificar para uso interno da empresa.
-- **Não pode:** vender o app ou versões modificadas, cobrar pelo acesso, oferecê-lo como serviço pago ou
-  usar o código dele em produto ou serviço pago.
-- Explicação completa, em português (que prevalece) e inglês: [LICENSING.md](LICENSING.md).
+- **You can:** use it for free; use it as a tool in paid work (for example, diagnosing a client's PC and charging for the
+  service); install it on a client's PC without charging for the app; make monetized videos and tutorials; redistribute the
+  unmodified packages for free, without requiring sign-up or ads to download; modify it for internal company use.
+- **You can't:** sell the app or modified versions, charge for access, offer it as a paid service or use its code in a paid
+  product or service.
+- Full explanation, in Portuguese (which prevails) and English: [LICENSING.md](LICENSING.md).
 
-O Ilmenyx é uma adaptação **independente e não oficial** do
-[RESET EXPLODE](https://github.com/GustavoReset/ResetExplode), criado por Gustavo (GustavoReset), sem
-afiliação ou endosso da equipe RESET. O original fica no submódulo `upstream/ResetExplode`, com
-licença e histórico preservados. Os trechos que vêm dele continuam sob a **MIT**
-([LICENSES/MIT.txt](LICENSES/MIT.txt)); a lista desses arquivos está em [NOTICE.md](NOTICE.md).
-Componentes de terceiros: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). Nome e logo:
-[LICENSES/LicenseRef-Ilmenyx-Marca.txt](LICENSES/LicenseRef-Ilmenyx-Marca.txt). Cada arquivo traz um
-cabeçalho SPDX ([REUSE](https://reuse.software)); os que não podem trazer estão em [REUSE.toml](REUSE.toml).
+Ilmenyx is an **independent, unofficial** adaptation of [RESET EXPLODE](https://github.com/GustavoReset/ResetExplode), created by
+Gustavo (GustavoReset), with no affiliation with or endorsement by the RESET team. The original is kept in the
+`upstream/ResetExplode` submodule, with its license and history. The parts that come from it remain under **MIT**
+([LICENSES/MIT.txt](LICENSES/MIT.txt)); the list of those files is in [NOTICE.md](NOTICE.md). Third-party components:
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). Name and logo:
+[LICENSES/LicenseRef-Ilmenyx-Marca.txt](LICENSES/LicenseRef-Ilmenyx-Marca.txt). Every file has an SPDX header
+([REUSE](https://reuse.software)); the ones that can't are listed in [REUSE.toml](REUSE.toml).
 
-Contribuições de código externas não são aceitas por enquanto; issues são bem-vindas
-([CONTRIBUTING.md](CONTRIBUTING.md)).
+External code contributions aren't accepted for now; issues are welcome ([CONTRIBUTING.md](CONTRIBUTING.md)).

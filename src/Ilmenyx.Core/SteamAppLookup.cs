@@ -19,7 +19,7 @@ public sealed class SteamAppLookup(HttpMessageHandler? handler = null)
     {
         var c = handler is null ? new HttpClient() : new HttpClient(handler);
         c.Timeout = TimeSpan.FromSeconds(10);
-        c.DefaultRequestHeaders.UserAgent.ParseAdd("IlmenyxController/0.30 (+https://github.com/Ilmenyx-Technology/ilmenyx)");
+        c.DefaultRequestHeaders.UserAgent.ParseAdd("IlmenyxController/0.30 (+https://github.com/Ilmenyx-Technology/ilmenyx-controller)");
         return c;
     }
 
