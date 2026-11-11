@@ -92,7 +92,31 @@ public sealed class BottleneckPage : StackPanel
         var durations = new UiKit.ChipGroup<int>("BnDurationPanel", [("1 min", 1), ("3 min", 3), ("5 min", 5)], 1, minutes => chosen = TimeSpan.FromMinutes(minutes));
         durations.Panel.VerticalAlignment = VerticalAlignment.Center;
         start.Click += (_, _) => { if (session is { Done: false }) Finish(); else StartSession(chosen); };
-        var intro = new StackPanel { Children = { CardTitle(Icons.Stress, L.T("ANÁLISE DE SESSÃO")), new TextBlock { Text = L.T("Clique em iniciar, abra o jogo e jogue normalmente. Ao final você recebe o diagnóstico. As amostras ficam só na memória."), Foreground = Palette.Muted, FontSize = 13, TextWrapping = TextWrapping.Wrap } } };
+        var intro = new StackPanel { Children = { CardTitle(Icons.Stress, L.T("ANÁLISE DE SESSÃO")), new TextBlock { Text = L.T("Descobre o que segura o FPS de um jogo de verdade, olhando o PC enquanto você joga. Melhor que a leitura ao vivo para quedas que vão e voltam."), Foreground = Palette.Muted, FontSize = 13, TextWrapping = TextWrapping.Wrap } } };
+        // How to use, in three steps, and what the diagnosis can say (BottleneckAnalyzer.Limiter), so the result is never a surprise.
+        var steps = new StackPanel { Name = "BnHowTo", Spacing = 6, Margin = new Thickness(0, 12, 0, 0) };
+        string[] how = [L.T("Escolha a duração (3 min é um bom começo) e clique em Iniciar análise."), L.T("Abra o jogo e jogue normalmente, numa parte que costuma pesar. Deixe o Ilmenyx aberto em segundo plano."), L.T("No fim (ou ao clicar em Parar análise) aparece o diagnóstico com o que mais limitou o jogo.")];
+        for (int i = 0; i < how.Length; i++)
+            steps.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, Children = {
+                new Border { Width = 22, Height = 22, CornerRadius = new CornerRadius(11), Background = Palette.AccentContainer, VerticalAlignment = VerticalAlignment.Top,
+                    Child = new TextBlock { Text = (i + 1).ToString(System.Globalization.CultureInfo.InvariantCulture), FontSize = 11.5, FontWeight = FontWeight.Bold, Foreground = Palette.OnAccentContainer, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center } },
+                new TextBlock { Text = how[i], FontSize = 13, TextWrapping = TextWrapping.Wrap, MaxWidth = 720, VerticalAlignment = VerticalAlignment.Center } } });
+        var finds = new StackPanel { Name = "BnFinds", Spacing = 4, Margin = new Thickness(0, 14, 0, 0), Children = { UiKit.Label(L.T("O QUE ELA CONSEGUE IDENTIFICAR")) } };
+        foreach (var (title, text) in new[] {
+            (L.T("Placa de vídeo no limite"), L.T("o normal em jogos pesados; mais FPS só baixando qualidade ou resolução")),
+            (L.T("Processador segurando o jogo"), L.T("a placa de vídeo sobra; comum em jogos competitivos em 1080p")),
+            (L.T("Memória de vídeo cheia"), L.T("causa travadas; reduza a qualidade das texturas")),
+            (L.T("Memória RAM cheia"), L.T("o sistema usa o disco como memória e o jogo engasga")),
+            (L.T("Calor derrubando a velocidade"), L.T("CPU ou GPU quente demais reduzem o clock para se proteger")),
+            (L.T("Nada no limite"), L.T("trava de FPS, V-Sync ou o jogo em menu; normal se o FPS já está bom")) })
+        {
+            var line = new TextBlock { TextWrapping = TextWrapping.Wrap, FontSize = 12.5, Foreground = Palette.Muted };
+            line.Inlines!.Add(new Avalonia.Controls.Documents.Run("• " + title + ": ") { Foreground = Palette.Fg, FontWeight = FontWeight.SemiBold });
+            line.Inlines.Add(new Avalonia.Controls.Documents.Run(text));
+            finds.Children.Add(line);
+        }
+        finds.Children.Add(new TextBlock { Text = L.T("As amostras ficam só na memória e somem ao fechar o Ilmenyx. Nada é gravado nem enviado."), FontSize = 11.5, Foreground = Palette.Faint, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0) });
+        intro.Children.Add(steps); intro.Children.Add(finds);
         var controls = new WrapPanel { HorizontalAlignment = HorizontalAlignment.Right, ItemSpacing = 14, LineSpacing = 8, Margin = new Thickness(0, 12, 0, 0), Children = { durations.Panel, start } };
         Children.Add(UiKit.Card(new StackPanel { Children = { intro, controls, sessionStatus } }));
         // The session diagnosis is the page's secondary highlight.
