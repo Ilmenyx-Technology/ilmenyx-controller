@@ -446,6 +446,16 @@ public sealed class UiSmokeApp : Application
             await Until(() => shell.CurrentPage == key && shell.GetVisualDescendants().Any(c => c is Control { Name: var n, IsVisible: true } && n == control));
             if (Find<TextBlock>(shell, "TitlePage").Text!.Length == 0) throw new InvalidOperationException("Page title missing for " + key);
             if (key == "procs") { await Until(() => Find<StackPanel>(shell, "ProcessRows").Children.Count > 0); Capture(shell, "shell-processes.png"); }
+            if (key == "sensors")
+            {
+                // Friendly view: real readings grouped in cards with the overall banner; the technical names toggle shows the kernel names.
+                Click(shell, "RefreshSensors"); await Until(() => Find<Border>(shell, "SensorOverall").IsVisible);
+                Capture(shell, "shell-sensors.png");
+                var tech = Find<ToggleSwitch>(shell, "SensorTechNames"); tech.IsChecked = true;
+                await Until(() => shell.GetVisualDescendants().OfType<TextBlock>().Any(t => t.IsEffectivelyVisible && t.Text?.Contains(" · ", StringComparison.Ordinal) == true && t.FontFamily == IlmenyxTheme.Mono));
+                tech.IsChecked = false;
+                Console.WriteLine("PASS sensors page: cards with plain names and overall banner; technical names on request");
+            }
             if (key == "cleanup")
             {
                 // Real read-only scan of this machine (trash, caches, package cache, journal, stale files); nothing is cleaned here.
