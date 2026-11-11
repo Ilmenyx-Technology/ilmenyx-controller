@@ -12,4 +12,8 @@
     <ProjectReference Include="../Ilmenyx.Contracts/Ilmenyx.Contracts.csproj" />
     <ProjectReference Include="../Ilmenyx.Core/Ilmenyx.Core.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Release signing key: the in-app updater checks downloads against this copy, never against one fetched from the network. -->
+    <EmbeddedResource Include="../../packaging/ilmenyx-release-key.asc" LogicalName="ilmenyx-release-key.asc" />
+  </ItemGroup>
 </Project>

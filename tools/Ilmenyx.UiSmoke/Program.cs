@@ -414,6 +414,13 @@ public sealed class UiSmokeApp : Application
         Find<ToggleSwitch>(shell, "OverviewSimpleToggle").IsChecked = false; // the rest of the run uses the full overview (choice saved in settings)
         Console.WriteLine("PASS simple overview: first screen, status sentence, four live cards, apps list; switching to the full view");
         await Until(() => shell.IsVisible && shell.GetVisualDescendants().OfType<UsageChart>().Any(c => c.Name == "OverviewChart" && c.Count >= 3 && c.IsEffectivelyVisible));
+        // Update window: this build runs as the folder package, which cannot update itself: only the download page, never an install.
+        var updateDialog = new UpdateDialog("v9.9.9"); _ = updateDialog.ShowDialog<bool?>(shell);
+        await Until(() => updateDialog.IsVisible);
+        if (Find<Button>(updateDialog, "BtnUpdateNow").IsVisible != Ilmenyx.Platform.Linux.SelfUpdate.CanInstall || !Find<Button>(updateDialog, "BtnUpdatePage").IsVisible)
+            throw new InvalidOperationException("Update window offers the wrong action for this install.");
+        await Task.Delay(500); Capture(updateDialog, "update-dialog.png"); updateDialog.Close();
+        Console.WriteLine("PASS update window: action follows the install kind (folder package: download page only)");
         if (Find<TextBlock>(shell, "ProductName").Text != "Ilmenyx Controller" || Find<TextBlock>(shell, "MaintainerSignature").Text != "by Ilmenyx Technology")
             throw new InvalidOperationException("Identity missing from shell window.");
         if (Find<TextBlock>(shell, "OverviewGpuNotice").Text != (ExpectedGpuNotice ?? "")) throw new InvalidOperationException("AMD/NVIDIA notice wrong on overview.");

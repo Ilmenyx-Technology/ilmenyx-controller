@@ -141,7 +141,7 @@ public partial class ShellWindow
         if (appSettings.UpdateNotifiedTag != newer.Tag)
         {
             SaveSetting(s => s.UpdateNotifiedTag = newer.Tag); appSettings.UpdateNotifiedTag = newer.Tag;
-            await NotifyAsync(L.T("Nova versão do Ilmenyx"), L.T($"A versão {newer.Tag} está disponível (você usa a v{ReleaseCheck.Current}). Clique na versão, no canto do menu lateral, para abrir a página de download."));
+            await NotifyAsync(L.T("Nova versão do Ilmenyx"), L.T($"A versão {newer.Tag} está disponível (você usa a v{ReleaseCheck.Current}). Clique na versão, no canto do menu lateral, para atualizar."));
         }
         return L.T($"Versão {newer.Tag} disponível. Clique na versão no menu lateral para baixar.");
     }
@@ -156,15 +156,24 @@ public partial class ShellWindow
         sideVersion.Text = newer ? current + L.T($" · nova versão {tag}") : current;
         sideVersion.Foreground = newer ? Palette.AccentText : Palette.Faint;
         sideVersion.Cursor = newer ? new Cursor(StandardCursorType.Hand) : Cursor.Default;
-        ToolTip.SetTip(sideVersion, newer ? L.T("Abrir a página de download no navegador") : null);
+        ToolTip.SetTip(sideVersion, newer ? L.T("Atualizar para a versão nova") : null);
         sideVersion.Tapped -= OpenReleasesPage;
         if (newer) sideVersion.Tapped += OpenReleasesPage;
     }
 
-    private async void OpenReleasesPage(object? sender, TappedEventArgs e)
+    private async void OpenReleasesPage(object? sender, TappedEventArgs e) => await OpenUpdateAsync();
+
+    /// <summary>The update window (download, check, install, restart); after a restart request this copy closes and the new one opens.</summary>
+    private async Task OpenUpdateAsync()
     {
-        try { await DriverTools.OpenUrlAsync(ReleaseCheck.ReleasesPage, stop.Token); }
-        catch (Exception ex) when (ex is IOException or System.ComponentModel.Win32Exception or OperationCanceledException) { }
+        if (appSettings.UpdateLatestTag is not { } tag) return;
+        var dialog = new UpdateDialog(tag);
+        await dialog.ShowDialog<bool?>(this);
+        if (!dialog.RestartRequested) return;
+        try { Ilmenyx.Platform.Linux.SelfUpdate.Restart(); }
+        catch (Exception ex) when (ex is IOException or System.ComponentModel.Win32Exception or InvalidOperationException) { return; }
+        if (Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime life) life.Shutdown();
+        else Close();
     }
 
     private void SaveSetting(Action<IlmenyxSettings> change)
@@ -209,6 +218,9 @@ public partial class ShellWindow
         {
             checkNow.IsEnabled = false; updateStatus.Text = L.T("Consultando o GitHub…");
             try { updateStatus.Text = await CheckUpdatesAsync(); } finally { checkNow.IsEnabled = true; }
+            // A manual check that finds a newer version goes straight to the update window.
+            if (appSettings.UpdateLatestTag is { } found && Version.TryParse(found.TrimStart('v', 'V').Split('-', '+')[0], out var fv) && ReleaseCheck.Normalize(fv) > ReleaseCheck.Current)
+                await OpenUpdateAsync();
         };
         var updateRow = new WrapPanel { ItemSpacing = 10, LineSpacing = 6, Children = { updateToggle, checkNow } };
 
