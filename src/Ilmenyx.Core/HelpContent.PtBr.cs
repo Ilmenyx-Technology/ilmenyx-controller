@@ -287,6 +287,18 @@ public static partial class HelpContent
                     "Use Abrir página oficial quando precisar do driver do fabricante.",
                 ]),
 
+            S("cleanup", "tools", "Liberar espaço",
+                "Mostra o que dá para apagar com segurança para abrir espaço no disco e os arquivos grandes que você não usa há muito tempo. Nada é apagado sem você marcar e confirmar.",
+                [
+                    "Ao abrir, a página mede (só lendo) a lixeira, os caches dos programas, os pacotes baixados do sistema, os registros antigos e o Flatpak sem uso.",
+                    "Os itens recomendados já vêm marcados; os que dizem \"pede senha\" mostram o comando que vai rodar.",
+                    "Em SEM USO HÁ MAIS DE 50 DIAS aparecem arquivos de 50 MB ou mais da sua pasta pessoal; marque só o que tiver certeza.",
+                    "Clique em Limpar selecionados, confira a lista e confirme.",
+                ],
+                Q("safe", "Os caches fazem falta?", "Não: os programas refazem o que precisarem. O primeiro uso depois da limpeza pode ser um pouco mais lento. Feche o navegador antes para o cache dele sair inteiro."),
+                Q("packages", "Apagar os pacotes baixados atrapalha atualizar?", "Não. No Arch e derivados o Ilmenyx mantém as 2 últimas versões de cada pacote (paccache -rk2), então ainda dá para voltar uma versão."),
+                Q("stale", "Os arquivos sem uso vão para a lixeira?", "Não, são apagados de vez, por isso nenhum vem marcado. Pastas ocultas (configurações, jogos, Flatpak) não entram na busca.")),
+
             S("optimize", "tools", "Otimiza",
                 "Prepara o PC para jogar: fecha programas que atrapalham e liga ajustes do sistema, tudo sem senha e reversível.",
                 [
@@ -403,8 +415,8 @@ public static partial class HelpContent
                 "Mostra FPS, temperatura e uso por cima da tela. Escolha os itens e o canto (salvos sozinhos); dentro do jogo, quem desenha é o MangoHud."),
             new("maker", "makerports", ["makerports", "makerdrv"], "Maker: portas e drivers seriais",
                 "Para quem usa Arduino, ESP32 e outras placas: Portas lista as portas seriais USB sem abrir nenhuma (abrir pode reiniciar a placa). Drivers seriais mostra se os drivers dos chips USB-serial mais comuns estão carregados e leva à página oficial de cada um."),
-            new("tools", "optimize", ["optimize", "lighting", "startup"], "Otimiza, Integração e Inicialização",
-                "Otimiza fecha programas que atrapalham, liga ajustes para jogos (como um cache de shaders maior) e o ZRAM (memória comprimida); tudo tem como desfazer. Integração controla as luzes RGB pelo OpenRGB, e Inicialização mostra os programas que abrem junto com a sessão para você desligar o que não precisa."),
+            new("tools", "optimize", ["optimize", "cleanup", "lighting", "startup"], "Otimiza, Liberar espaço, Integração e Inicialização",
+                "Liberar espaço mostra o que dá para apagar com segurança e os arquivos grandes parados há muito tempo. Otimiza fecha programas que atrapalham, liga ajustes para jogos (como um cache de shaders maior) e o ZRAM (memória comprimida); tudo tem como desfazer. Integração controla as luzes RGB pelo OpenRGB, e Inicialização mostra os programas que abrem junto com a sessão para você desligar o que não precisa."),
             new("install", "apps", ["apps", "driver", "nvdriver"], "Apps e drivers",
                 "Instalar apps instala os essenciais e apps de jogos (Proton, LACT, Gamescope, Sunshine, mouses) pelo Flathub, só para o seu usuário e sem senha. Drivers mostra os drivers em uso e não instala nada; Driver NVIDIA instala, repara e atualiza o driver certo para a sua placa, sempre com a sua confirmação."),
             new("report", "report", ["report", "blocked", "tools"], "Relatório, Bloqueados e Requisitos",

@@ -59,6 +59,7 @@ public sealed partial class ShellWindow
         pages["validate"] = (L.T("Validações reduzidas"), ValidatePage, null);
         pages["makerports"] = (L.T("Maker · Portas"), () => Scroll("MakerPortsScroll", new MakerPortsPage(stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["makerdrv"] = (L.T("Maker · Drivers seriais"), () => Scroll("MakerDrvScroll", new MakerDriversPage(stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
+        pages["cleanup"] = (L.T("Liberar espaço"), () => Scroll("CleanupScroll", new CleanupPage(() => this, stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["optimize"] = (L.T("Otimiza"), () => Scroll("OptimizeScroll", new OptimizePage(new LinuxOptimizer(), new OptimizeServices(LinuxGameLauncher.PowerProfileAsync, LinuxGameLauncher.SetPowerProfileAsync) { SteamRoot = () => new SteamInfo(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)).Root() }, usage, IlmenyxSettings.DefaultPath(), () => this, stop.Token,
             OperatingSystem.IsLinux() ? new ZramServices(new ZramProbe().CollectAsync, NvidiaDriverRunner.Available ? NvidiaDriverRunner.RunAsync : null) : null) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["gamecheck"] = (L.T("Jogo não abre?"), () => Scroll("GameCheckScroll", new GameCheckPage(OperatingSystem.IsLinux() ? new GameCheckServices(new GameLaunchProbe().CollectAsync, GameUserFixRunner.RunAsync, Select) : throw new PlatformNotSupportedException(), () => this, stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
@@ -534,7 +535,7 @@ public sealed partial class ShellWindow
 
     private Control GpuPage() => new GpuInfoPage(stop.Token) { Margin = new Thickness(0, 4, 0, 0) };
 
-    private Control DisksPage() => Scroll("DisksScroll", new DiskHealthPage(() => this, stop.Token) { Margin = new Thickness(0, 4, 8, 12) });
+    private Control DisksPage() => Scroll("DisksScroll", new DiskHealthPage(() => this, stop.Token, Select) { Margin = new Thickness(0, 4, 8, 12) });
 
     private Control EnergyPage() => Scroll("EnergyScroll", new Ilmenyx.Desktop.EnergyPage(sensors, stop.Token) { Margin = new Thickness(0, 4, 8, 12) });
 
