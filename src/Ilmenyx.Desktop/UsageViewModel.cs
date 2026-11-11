@@ -54,6 +54,9 @@ public sealed class UsageViewModel(IUsageProvider provider, TimeSpan? interval =
 
     public void ToggleSort() { SortByMemory = !SortByMemory; if (Last is { } l) Apply(l); }
 
+    /// <summary>Asks the sampler for per-process disk counters while a page that shows them is open.</summary>
+    public bool DetailedProcesses { get => provider.DetailedProcesses; set => provider.DetailedProcesses = value; }
+
     private async Task LoopAsync(CancellationTokenSource source)
     {
         using (source)
