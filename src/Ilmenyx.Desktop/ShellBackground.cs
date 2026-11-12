@@ -78,7 +78,7 @@ public partial class ShellWindow
         return true;
     }
 
-    private void RestoreFromTray()
+    internal void RestoreFromTray()
     {
         Show();
         if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;

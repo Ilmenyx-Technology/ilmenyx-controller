@@ -742,6 +742,14 @@ public sealed class UiSmokeApp : Application
         Click(host, "BtnAddExe"); Find<TextBox>(host, "LAddPath").Text = "relative/path"; Click(host, "BtnAddExeConfirm");
         await Until(() => Find<TextBlock>(host, "LAddStatus").Text!.Contains("Procurar"));
         if (!Find<Button>(host, "BtnAddExeBrowse").IsVisible) throw new InvalidOperationException("The add box must offer a file chooser (Procurar…).");
+        // Real pointer hit test (Click() raises the event directly and misses overlaps): with the empty-library card showing, a click on
+        // Procurar… must land on the button, not on the card drawn over it.
+        Find<TextBox>(host, "LGameSearch").Text = "zzzz-nenhum-jogo"; await Task.Delay(400);
+        var browse = Find<Button>(host, "BtnAddExeBrowse");
+        var middle = browse.TranslatePoint(new Point(browse.Bounds.Width / 2, browse.Bounds.Height / 2), host)!.Value;
+        if (host.InputHitTest(middle) is not Visual hit || !(hit == browse || browse.IsVisualAncestorOf(hit))) throw new InvalidOperationException("Procurar… is covered by another control.");
+        Console.WriteLine("PASS add box: Procurar… receives the click (empty-library card showing: " + Find<TextBlock>(host, "LEmpty").IsEffectivelyVisible + ")");
+        Find<TextBox>(host, "LGameSearch").Text = ""; await Task.Delay(200);
         Find<TextBox>(host, "LAddPath").Text = manual; Click(host, "BtnAddExeConfirm");
         await Until(() => page.Games.Count == 2 && page.Profile is not null && host.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "LTitle" && t.Text == "manualgame"));
         // A Windows game added by hand: named after its folder, Steam ID found by name (fixture search), executable path shown, removable.
