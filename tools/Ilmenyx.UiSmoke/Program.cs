@@ -742,6 +742,16 @@ public sealed class UiSmokeApp : Application
         if (!Find<TextBlock>(host, "LProtonIdStatus").Text!.Contains("Hollow Knight: Silksong")) throw new InvalidOperationException("The found Steam ID must say which store game it matched.");
         Find<TextBox>(host, "LProtonId").Text = "1234567";
         await Until(() => Find<TextBlock>(host, "LProtonIdStatus").Text!.StartsWith("ID salvo") && page.Profile!.ProtonGameId == "1234567");
+        // Proton/Wine and prefix of the game: automatic by default; choosing the latest GE-Proton is saved in the profile and can be undone.
+        var runners = Find<ComboBox>(host, "LRunner");
+        if (runners.SelectedIndex != 0 || !Find<TextBlock>(host, "LPrefix").Text!.Contains("prefixes")) throw new InvalidOperationException("Runner and prefix must start automatic.");
+        runners.SelectedIndex = 1;
+        await Until(() => page.Profile!.Runner == "GE-Proton" && Find<TextBlock>(host, "LRunnerStatus").Text!.StartsWith("Salvo"));
+        runners.SelectedIndex = 0;
+        await Until(() => page.Profile!.Runner is null);
+        Click(host, "BtnPrefixDefault");
+        if (page.Profile!.WinePrefix is not null || !Find<Button>(host, "BtnPrefixPick").IsVisible) throw new InvalidOperationException("Prefix controls missing.");
+        Console.WriteLine("PASS game runner and prefix: automatic by default, GE-Proton choice saved and undone, prefix shown with pick/default");
         Click(host, "BtnRenameGame");
         await Until(() => Find<TextBlock>(host, "LTitle").Text == "Silksong (teste)" && Ilmenyx.Core.IlmenyxSettings.Load(settingsPath).CustomGames.Any(c => c.Exe == winExe && c.Name == "Silksong (teste)"));
         if (page.Profile!.ProtonGameId != "1234567") throw new InvalidOperationException("Renaming must keep the game's profile.");

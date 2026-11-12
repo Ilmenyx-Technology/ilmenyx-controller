@@ -43,7 +43,7 @@ public static class PlainWine
         File.Exists(Path.Combine(folder, "bin", "wine")) && File.Exists(Path.Combine(folder, "bin", "wineserver")) && !File.Exists(Path.Combine(folder, "proton"));
 
     /// <summary>Sort key where numbers compare by value ("soda-11.0" after "soda-9.0").</summary>
-    private static string VersionKey(string name) =>
+    internal static string VersionKey(string name) =>
         System.Text.RegularExpressions.Regex.Replace(name.ToLowerInvariant(), @"\d+", m => m.Value.PadLeft(8, '0'));
 
     /// <summary>Short name shown to the user, e.g. "soda-11.0-10".</summary>

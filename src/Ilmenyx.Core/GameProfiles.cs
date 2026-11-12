@@ -31,6 +31,11 @@ public sealed class GameProfile
     public string Extra { get; set; } = "";
     /// <summary>Steam AppID of a Windows game run with Proton outside Steam (umu GAMEID umu-&lt;id&gt;, so the known per-game fixes apply). Digits only; null = generic.</summary>
     public string? ProtonGameId { get; set; }
+    /// <summary>Proton or Wine a Windows game runs with: null = automatic (umu's UMU-Proton), "GE-Proton" = latest GE-Proton (umu
+    /// downloads it), or the full path of a Proton build or of a plain Wine folder.</summary>
+    public string? Runner { get; set; }
+    /// <summary>Wine prefix (the game's "C:" drive) chosen by the user, full path; null = one per game under ilmenyx/prefixes.</summary>
+    public string? WinePrefix { get; set; }
     /// <summary>
     /// Full-screen freeze guard (default on): with PRIME on a hybrid notebook, a Proton game in exclusive full screen without vsync made
     /// the X server freeze for good (Intel modesetting "async flip" bug, Dell 7460, 2026-11-07). Forcing vsync in DXVK avoided it.
