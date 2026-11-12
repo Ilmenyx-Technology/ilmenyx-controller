@@ -73,4 +73,91 @@ public sealed class CleanupTests
         var (ok, _, freed) = await Cleanup.RunAsync(new CleanupItem(CleanupKind.PackageCache, "x", "x", 10, true, true, "rm -rf /"), CancellationToken.None);
         Assert.False(ok); Assert.Equal(0, freed);
     }
+
+    [Fact]
+    public void PackageDetailsGroupOldInstallersByProgram()
+    {
+        // paccache -dvk2 on CachyOS, 2026-11-11 (trimmed).
+        const string output = "==> Candidate packages:\n7zip-26.04-1.1-x86_64_v4.pkg.tar.zst\n7zip-26.04-1.1-x86_64_v4.pkg.tar.zst.sig\nalsa-card-profiles-1:1.6.9-1-x86_64.pkg.tar.zst\n\n==> finished dry run: 3 candidates (disk space saved: 2.64 GiB)\n";
+        Assert.Equal(["7zip-26.04-1.1-x86_64_v4.pkg.tar.zst", "7zip-26.04-1.1-x86_64_v4.pkg.tar.zst.sig", "alsa-card-profiles-1:1.6.9-1-x86_64.pkg.tar.zst"], Cleanup.PaccacheCandidates(output));
+        Assert.Equal("alsa-card-profiles", Cleanup.PackageName("alsa-card-profiles-1:1.6.9-1-x86_64.pkg.tar.zst"));
+        Assert.Equal("7zip", Cleanup.PackageName("7zip-26.04-1.1-x86_64_v4.pkg.tar.zst.sig"));
+        Assert.Equal("libc6", Cleanup.PackageName("libc6_2.39-0ubuntu8_amd64.deb"));
+        Assert.Equal("kernel-core", Cleanup.PackageName("kernel-core-6.17.1-300.fc43.x86_64.rpm"));
+        string dir = Directory.CreateTempSubdirectory("ilx-pkg").FullName;
+        try
+        {
+            File.WriteAllBytes(Path.Combine(dir, "7zip-26.04-1.1-x86_64_v4.pkg.tar.zst"), new byte[700]);
+            File.WriteAllBytes(Path.Combine(dir, "7zip-26.04-1.1-x86_64_v4.pkg.tar.zst.sig"), new byte[10]);
+            File.WriteAllBytes(Path.Combine(dir, "7zip-26.05-1.1-x86_64_v4.pkg.tar.zst"), new byte[800]); // newest: kept, not a candidate
+            File.WriteAllBytes(Path.Combine(dir, "alsa-card-profiles-1:1.6.9-1-x86_64.pkg.tar.zst"), new byte[100]);
+            var parts = Cleanup.PackageParts(Cleanup.PaccacheCandidates(output), dir);
+            Assert.Equal(["7zip", "alsa-card-profiles"], parts.Select(p => p.Name));
+            Assert.Equal(710, parts[0].Bytes);
+            Assert.Equal(3, Cleanup.PackageParts(null, dir).Sum(p => p.Name == "7zip" ? 2 : 1)); // whole folder (apt/dnf): both 7zip versions
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    [Fact]
+    public void JournalCountsOnlyArchivedFilesOlderThanFourWeeks()
+    {
+        var now = new DateTime(2026, 11, 11, 12, 0, 0, DateTimeKind.Utc);
+        var recent = new (string, long, DateTime)[] { ("system@a-1.journal", 6_553_600, now.AddDays(-5)), ("system.journal", 8_000_000, now) };
+        var (bytes, parts) = Cleanup.JournalPlan(recent, now);
+        Assert.Equal(0, bytes); // this PC on 2026-11-11: only 5 days of logs, the old item showed 47 MB to free
+        Assert.Equal(14_553_600, parts.Single(p => p.Key == "kept").Bytes);
+        var old = recent.Append(("system@b-2.journal", 9_000_000, now.AddDays(-40))).Append(("user-1000.journal", 1_000, now.AddDays(-60))).ToArray();
+        Assert.Equal(9_000_000, Cleanup.JournalPlan(old, now).Bytes); // the active file never counts, however old
+    }
+
+    [Fact]
+    public void FlatpakDetailsSayWhichAppsUseEachRuntime()
+    {
+        // flatpak 1.18.4 with LC_ALL=C, 2026-11-11 (trimmed).
+        const string runtimes = "org.freedesktop.Platform\t25.08\tuser\t670.7 MB\norg.freedesktop.Sdk\t25.08\tuser\t1.7 GB\norg.gtk.Gtk3theme.Breeze\t3.22\tsystem\t650.2 kB\n";
+        const string apps = "SuperTuxKart\torg.freedesktop.Platform/x86_64/25.08\nIlmenyx Controller\torg.freedesktop.Platform/x86_64/25.08\n";
+        var parts = Cleanup.FlatpakParts(runtimes, apps);
+        Assert.Equal(3, parts.Count);
+        Assert.Equal("org.freedesktop.Platform 25.08", parts[^1].Name); // the ones in use go last
+        Assert.Contains("SuperTuxKart", parts[^1].Note);
+        Assert.Equal(1_700_000_000, parts[0].Bytes);
+        Assert.Equal(650_200, Cleanup.ParseFlatpakSize("650,2 kB"));
+    }
+
+    [Fact]
+    public void CacheAndTrashDetailsNameEachEntryAndDeleteOnlyTheChosenOnes()
+    {
+        string root = Directory.CreateTempSubdirectory("ilx-cache").FullName;
+        try
+        {
+            string cache = Path.Combine(root, "cache");
+            foreach (var (dir, size) in new[] { ("mozilla", 3000), ("ms-playwright-mcp", 2000), ("ilmenyx", 50), ("Shelly", 4000) })
+            { Directory.CreateDirectory(Path.Combine(cache, dir)); File.WriteAllBytes(Path.Combine(cache, dir, "x"), new byte[size]); }
+            var parts = Cleanup.CacheParts(cache, CancellationToken.None);
+            Assert.Equal(["Shelly", "mozilla", "ms-playwright-mcp"], parts.Select(p => p.Key)); // biggest first, Ilmenyx's own left out
+            Assert.Equal("Firefox", parts[1].Name);
+            Assert.True(parts[2].Redownload); Assert.False(parts[1].Redownload);
+            Assert.Contains("Shelly", parts[0].Note);
+            Assert.Equal(3000, Cleanup.EmptyDirectory(cache, CancellationToken.None, skip: "ilmenyx", only: new HashSet<string> { "mozilla" }));
+            Assert.True(Directory.Exists(Path.Combine(cache, "Shelly"))); Assert.False(Directory.Exists(Path.Combine(cache, "mozilla")));
+
+            string trash = Path.Combine(root, "Trash");
+            Directory.CreateDirectory(Path.Combine(trash, "files")); Directory.CreateDirectory(Path.Combine(trash, "info"));
+            File.WriteAllBytes(Path.Combine(trash, "files", "foto.png"), new byte[123]);
+            File.WriteAllText(Path.Combine(trash, "info", "foto.png.trashinfo"), "[Trash Info]\nPath=" + Cleanup.Home + "/Imagens/foto.png\nDeletionDate=2026-10-29T00:31:26\n");
+            var item = Assert.Single(Cleanup.TrashParts(CancellationToken.None, trash));
+            Assert.Equal("foto.png", item.Name); Assert.Equal(123, item.Bytes);
+            Assert.Contains("~/Imagens", item.Note);
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [Fact]
+    public async Task OnlyDirectEntryNamesCanBeChosen()
+    {
+        var item = new CleanupItem(CleanupKind.UserCache, "x", "x", 10, true, false, "");
+        var (ok, _, freed) = await Cleanup.RunAsync(item, CancellationToken.None, new HashSet<string> { "../Documentos" });
+        Assert.False(ok); Assert.Equal(0, freed);
+    }
 }

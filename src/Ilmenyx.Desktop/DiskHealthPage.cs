@@ -277,7 +277,7 @@ public sealed class DiskHealthPage : StackPanel
         {
             ISmartctlQuery query = SmartAccess.Installed ? new HelperSmartctlQuery() : new SmartctlQuery();
             var d = await new SmartctlDiagnostic(query).CollectAsync(device, lifetime);
-            if (d.Status == "available") { smart[device] = d; status.Text = L.T($"Saúde de {device} lida."); await RefreshAsync(); }
+            if (d.Status == "available") { smart[device] = d; await RefreshAsync(); status.Text = L.T($"Saúde de {device} lida."); } // after the refresh, which rewrites the status
             else status.Text = L.T($"A saúde de {device} não foi lida: ") + (SmartAccess.Installed ? d.Reason : L.T("falta a permissão. Use \"Liberar leitura\" no aviso acima."));
         }
         catch (OperationCanceledException) { status.Text = L.T("Leitura cancelada."); }

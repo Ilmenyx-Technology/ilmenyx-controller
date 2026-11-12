@@ -13,7 +13,8 @@ namespace Ilmenyx.Desktop;
 /// <summary>
 /// "Liberar espaço": what is safe to delete (recommended items already ticked) and big files unused for 50+ days (never ticked). The user
 /// picks; one confirmation lists everything; what needs root shows its command and asks for the password through polkit.
-/// Scanning happens only on this page (on open and on "Analisar de novo"), off the UI thread.
+/// Scanning happens only on this page (on open and on "Analisar de novo"), off the UI thread. "Exibir detalhes" shows what each item holds
+/// (each program's cache, each file in the trash, each package…); for the trash and the caches the user can untick parts to keep them.
 /// </summary>
 public sealed class CleanupPage : StackPanel
 {
@@ -28,6 +29,9 @@ public sealed class CleanupPage : StackPanel
     private readonly Button scan, clean;
     private readonly HashSet<CleanupKind> chosen = [];
     private readonly HashSet<string> chosenFiles = new(StringComparer.Ordinal);
+    private readonly Dictionary<CleanupKind, HashSet<string>> skipped = []; // parts the user unticked to keep
+    private readonly HashSet<CleanupKind> expanded = [];
+    private const int PartsShown = 8;
     private IReadOnlyList<CleanupItem> items = [];
     private IReadOnlyList<StaleFile> stale = [];
     private int staleShown = 8;
@@ -70,7 +74,7 @@ public sealed class CleanupPage : StackPanel
             var (id, like) = new LinuxDriverInventory(etcRoot: HostSpawn.InFlatpak ? "/run/host/etc" : "/etc").Distro();
             items = await Cleanup.ScanAsync(id, like, lifetime);
             stale = await Task.Run(() => Cleanup.StaleFiles(Cleanup.Home, DateTime.UtcNow, lifetime), lifetime);
-            chosen.Clear(); chosenFiles.Clear();
+            chosen.Clear(); chosenFiles.Clear(); skipped.Clear();
             foreach (var i in items.Where(i => i.Recommended && i.Unavailable is null && i.Bytes is > 0)) chosen.Add(i.Kind);
             Render();
             status.Text = L.T($"Analisado às {DateTime.Now:HH:mm}. Nada foi apagado.");
@@ -95,22 +99,139 @@ public sealed class CleanupPage : StackPanel
         }
     }
 
+    private HashSet<string> Skipped(CleanupKind kind) => skipped.TryGetValue(kind, out var set) ? set : skipped[kind] = new(StringComparer.Ordinal);
+
+    private static bool Choosable(CleanupItem item) => item.PartsChoosable && item.Parts is { Count: > 0 };
+
+    private static long Whole(CleanupItem item) => Choosable(item) ? item.Parts!.Sum(p => p.Bytes) : item.Bytes ?? 0;
+
+    /// <summary>What the item frees with the current choice: the ticked parts when the user picked some, else the whole item.</summary>
+    private long ChosenBytes(CleanupItem item) => !chosen.Contains(item.Kind) ? 0
+        : Choosable(item) ? item.Parts!.Where(p => !Skipped(item.Kind).Contains(p.Key)).Sum(p => p.Bytes) : item.Bytes ?? 0;
+
+    /// <summary>The parts to delete, or null for the whole item (nothing unticked).</summary>
+    private IReadOnlySet<string>? OnlyParts(CleanupItem item) => Choosable(item) && Skipped(item.Kind).Count > 0
+        ? item.Parts!.Select(p => p.Key).Where(k => !Skipped(item.Kind).Contains(k)).ToHashSet(StringComparer.Ordinal) : null;
+
     private Control SafeRow(CleanupItem item)
     {
         bool usable = item.Unavailable is null && (item.Bytes is null or > 0);
+        var parts = item.Parts ?? [];
+        bool choosable = Choosable(item) && usable;
+        var skip = Skipped(item.Kind);
         var box = new CheckBox { Name = "CleanItem_" + item.Kind, IsChecked = chosen.Contains(item.Kind), IsEnabled = usable, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 2, 6, 0) };
         AutomationProperties.SetName(box, item.Title);
-        box.IsCheckedChanged += (_, _) => { if (box.IsChecked == true) chosen.Add(item.Kind); else chosen.Remove(item.Kind); Totals(); };
         var titleLine = new WrapPanel { ItemSpacing = 8, Children = { new TextBlock { Text = item.Title, FontSize = 13.5, FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center } } };
         if (item.Recommended && usable) titleLine.Children.Add(UiKit.Tag(L.T("recomendado"), Palette.Success));
         if (item.NeedsPassword) titleLine.Children.Add(UiKit.Tag(L.T("pede senha"), Palette.Muted));
         var text = new StackPanel { Spacing = 2, Children = { titleLine, new TextBlock { Text = item.Unavailable ?? item.Explanation, FontSize = 12, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap } } };
         if (item.Command.Length > 0 && usable) text.Children.Add(new TextBlock { Text = item.Command, FontSize = 11, FontFamily = IlmenyxTheme.Mono, Foreground = Palette.Faint, TextWrapping = TextWrapping.Wrap });
-        var size = new TextBlock { Text = item.Bytes is { } b ? (b == 0 ? L.T("vazio") : Size(b)) : "—", FontSize = 14, FontWeight = FontWeight.SemiBold, FontFamily = IlmenyxTheme.Mono, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(12, 0, 0, 0) };
+        var size = new TextBlock { Name = "CleanSize_" + item.Kind, FontSize = 14, FontWeight = FontWeight.SemiBold, FontFamily = IlmenyxTheme.Mono, HorizontalAlignment = HorizontalAlignment.Right };
+        var of = new TextBlock { FontSize = 11, Foreground = Palette.Faint, HorizontalAlignment = HorizontalAlignment.Right, IsVisible = false };
+        var sizes = new StackPanel { VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(12, 0, 0, 0), Children = { size, of } };
+
+        var partBoxes = new List<(CleanupPart Part, CheckBox Box)>();
+        bool syncing = false;
+        void Sync()
+        {
+            syncing = true;
+            bool on = chosen.Contains(item.Kind);
+            box.IsChecked = on;
+            foreach (var (p, b) in partBoxes) b.IsChecked = on && !skip.Contains(p.Key);
+            bool partial = choosable && on && skip.Count > 0;
+            size.Text = partial ? Size(ChosenBytes(item)) : item.Bytes is { } b0 ? (b0 == 0 ? L.T("vazio") : Size(Whole(item))) : "—";
+            of.Text = partial ? L.T("de ") + Size(Whole(item)) : ""; of.IsVisible = partial;
+            syncing = false;
+            Totals();
+        }
+        box.IsCheckedChanged += (_, _) => { if (syncing) return; if (box.IsChecked == true) { chosen.Add(item.Kind); skip.Clear(); } else chosen.Remove(item.Kind); Sync(); };
+        void Pick(CleanupPart part, bool on)
+        {
+            if (syncing) return;
+            if (on && !chosen.Contains(item.Kind)) { chosen.Add(item.Kind); skip.Clear(); foreach (var p in parts) if (p.Key != part.Key) skip.Add(p.Key); }
+            else if (on) skip.Remove(part.Key);
+            else { skip.Add(part.Key); if (parts.All(p => skip.Contains(p.Key))) { chosen.Remove(item.Kind); skip.Clear(); } }
+            Sync();
+        }
+
+        if (parts.Count > 0)
+        {
+            var details = new StackPanel { Name = "CleanDetails_" + item.Kind, Spacing = 0, Margin = new Thickness(0, 6, 0, 0) };
+            var toggle = new Button { Name = "BtnCleanDetails_" + item.Kind, FontSize = 12, Background = Brushes.Transparent, Foreground = Palette.AccentText, Padding = new Thickness(0, 4), HorizontalAlignment = HorizontalAlignment.Left };
+            void Label()
+            {
+                details.IsVisible = expanded.Contains(item.Kind);
+                toggle.Content = details.IsVisible ? L.T("Ocultar detalhes") : L.T($"Exibir detalhes ({parts.Count})");
+                AutomationProperties.SetName(toggle, (details.IsVisible ? L.T("Ocultar detalhes de ") : L.T("Exibir detalhes de ")) + item.Title);
+            }
+            void Fill(int count)
+            {
+                details.Children.Clear(); partBoxes.Clear();
+                string intro = item.Kind switch
+                {
+                    CleanupKind.Trash or CleanupKind.UserCache when choosable => L.T("Desmarque o que quiser manter. Só o que estiver marcado é apagado."),
+                    CleanupKind.UserCache => L.T("O que tem em ~/.cache, do maior para o menor."),
+                    CleanupKind.PackageCache => L.T("Instaladores antigos por programa. O comando acima apaga todos de uma vez; os programas instalados não mudam."),
+                    CleanupKind.Journal => L.T("O comando acima apaga só os registros com mais de 4 semanas."),
+                    CleanupKind.FlatpakUnused => L.T("Bibliotecas instaladas. O Flatpak remove só as que nenhum app usa e confere isso na hora; os primeiros da lista são os candidatos."),
+                    _ => "",
+                };
+                details.Children.Add(new TextBlock { Text = intro, FontSize = 11.5, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 4) });
+                if (choosable)
+                {
+                    var all = new Button { Name = "BtnCleanAll_" + item.Kind, Content = L.T("Marcar todos"), FontSize = 11.5, Background = Brushes.Transparent, Foreground = Palette.AccentText, Padding = new Thickness(0, 2, 12, 2) };
+                    var none = new Button { Name = "BtnCleanNone_" + item.Kind, Content = L.T("Desmarcar todos"), FontSize = 11.5, Background = Brushes.Transparent, Foreground = Palette.AccentText, Padding = new Thickness(0, 2) };
+                    all.Click += (_, _) => { chosen.Add(item.Kind); skip.Clear(); Sync(); };
+                    none.Click += (_, _) => { chosen.Remove(item.Kind); skip.Clear(); Sync(); };
+                    details.Children.Add(new WrapPanel { Children = { all, none } });
+                }
+                foreach (var part in parts.Take(count)) details.Children.Add(PartRow(part, choosable, partBoxes, Pick));
+                if (parts.Count > count)
+                {
+                    var more = new Button { Name = "BtnCleanAllParts_" + item.Kind, Content = L.T($"Mostrar todos ({parts.Count})"), FontSize = 12, Background = Brushes.Transparent, Foreground = Palette.AccentText, Padding = new Thickness(0, 6) };
+                    more.Click += (_, _) => { Fill(parts.Count); Sync(); };
+                    details.Children.Add(more);
+                }
+            }
+            toggle.Click += (_, _) =>
+            {
+                if (!expanded.Remove(item.Kind)) expanded.Add(item.Kind);
+                if (details.Children.Count == 0) { Fill(PartsShown); Sync(); }
+                Label();
+            };
+            if (expanded.Contains(item.Kind)) Fill(PartsShown);
+            Label();
+            text.Children.Add(toggle); text.Children.Add(details);
+        }
+
         var row = new Grid { ColumnDefinitions = new("Auto,*,Auto") };
-        Grid.SetColumn(text, 1); Grid.SetColumn(size, 2);
-        row.Children.Add(box); row.Children.Add(text); row.Children.Add(size);
+        Grid.SetColumn(text, 1); Grid.SetColumn(sizes, 2);
+        row.Children.Add(box); row.Children.Add(text); row.Children.Add(sizes);
+        Sync();
         return new Border { BorderBrush = Palette.Line, BorderThickness = new Thickness(0, 1, 0, 0), Padding = new Thickness(0, 10), Child = row };
+    }
+
+    /// <summary>One part inside "Exibir detalhes": plain name, what it is, size; a checkbox when the part can be kept apart.</summary>
+    private static Control PartRow(CleanupPart part, bool choosable, List<(CleanupPart Part, CheckBox Box)> boxes, Action<CleanupPart, bool> pick)
+    {
+        var name = new TextBlock { Text = part.Name, FontSize = 12.5, FontWeight = FontWeight.Medium, TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center };
+        if (part.Key.Length > 0 && part.Key != part.Name) ToolTip.SetTip(name, part.Key);
+        var head = new WrapPanel { ItemSpacing = 6, Children = { name } };
+        if (part.Redownload) head.Children.Add(UiKit.Tag(L.T("baixa de novo"), Palette.Warn));
+        var info = new StackPanel { Children = { head } };
+        if (part.Note.Length > 0) info.Children.Add(new TextBlock { Text = part.Note, FontSize = 11.5, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap });
+        var size = new TextBlock { Text = Size(part.Bytes), FontSize = 12.5, FontFamily = IlmenyxTheme.Mono, Foreground = Palette.Muted, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(12, 0, 0, 0) };
+        var row = new Grid { ColumnDefinitions = new("Auto,*,Auto") };
+        if (choosable)
+        {
+            var box = new CheckBox { VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 0, 6, 0) };
+            AutomationProperties.SetName(box, part.Name);
+            box.IsCheckedChanged += (_, _) => { if (box.IsChecked is { } on) pick(part, on); };
+            boxes.Add((part, box)); row.Children.Add(box);
+        }
+        Grid.SetColumn(info, 1); Grid.SetColumn(size, 2);
+        row.Children.Add(info); row.Children.Add(size);
+        return new Border { BorderBrush = Palette.Line, BorderThickness = new Thickness(0, 1, 0, 0), Padding = new Thickness(0, 6), Child = row };
     }
 
     private Control StaleRow(StaleFile f)
@@ -129,7 +250,7 @@ public sealed class CleanupPage : StackPanel
         return new Border { BorderBrush = Palette.Line, BorderThickness = new Thickness(0, 1, 0, 0), Padding = new Thickness(0, 8), Child = row };
     }
 
-    private long Selected() => items.Where(i => chosen.Contains(i.Kind)).Sum(i => i.Bytes ?? 0) + stale.Where(f => chosenFiles.Contains(f.Path)).Sum(f => f.Bytes);
+    private long Selected() => items.Sum(ChosenBytes) + stale.Where(f => chosenFiles.Contains(f.Path)).Sum(f => f.Bytes);
 
     /// <summary>Space of the file system of the home folder, before and after the selection.</summary>
     private void Totals()
@@ -151,12 +272,20 @@ public sealed class CleanupPage : StackPanel
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
     }
 
+    /// <summary>": Firefox, pip e mais 3" when only some parts are ticked; empty when the whole item goes.</summary>
+    private string Picked(CleanupItem item)
+    {
+        if (OnlyParts(item) is not { } only) return "";
+        var names = item.Parts!.Where(p => only.Contains(p.Key)).Select(p => p.Name).ToList();
+        return ": " + string.Join(", ", names.Take(3)) + (names.Count > 3 ? L.T($" e mais {names.Count - 3}") : "");
+    }
+
     private async Task CleanAsync()
     {
         if (owner() is not { } window) return;
         var picked = items.Where(i => chosen.Contains(i.Kind)).ToList();
         var files = stale.Where(f => chosenFiles.Contains(f.Path)).ToList();
-        var lines = picked.Select(i => "• " + i.Title + (i.Bytes is { } b ? " (" + Size(b) + ")" : "")).ToList();
+        var lines = picked.Select(i => "• " + i.Title + Picked(i) + (i.Bytes is not null ? " (" + Size(ChosenBytes(i)) + ")" : "")).ToList();
         if (files.Count > 0) lines.Add("• " + L.T($"{files.Count} arquivo(s) sem uso ({Size(files.Sum(f => f.Bytes))}), apagados para sempre"));
         string message = string.Join("\n", lines);
         if (picked.Any(i => i.NeedsPassword)) message += "\n\n" + L.T("Os itens marcados \"pede senha\" abrem o pedido de senha do sistema.");
@@ -169,7 +298,7 @@ public sealed class CleanupPage : StackPanel
             foreach (var item in picked)
             {
                 status.Text = L.T("Limpando: ") + item.Title + "…";
-                var (ok, msg, bytes) = await Cleanup.RunAsync(item, lifetime);
+                var (ok, msg, bytes) = await Cleanup.RunAsync(item, lifetime, OnlyParts(item));
                 freed += bytes;
                 if (!ok) errors.Add(item.Title + ": " + msg);
             }
