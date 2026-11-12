@@ -411,6 +411,17 @@ public sealed class UiSmokeApp : Application
         await Until(() => shell.IsVisible && Find<TextBlock>(shell, "SimpleStatusTag").Text is { Length: > 0 } t && !t.StartsWith("Lendo", StringComparison.Ordinal) && Find<TextBlock>(shell, "SimpleBig0").Text != "—");
         if (!Find<ToggleSwitch>(shell, "OverviewSimpleToggle").IsChecked.GetValueOrDefault()) throw new InvalidOperationException("Simple mode is not the first screen.");
         await Task.Delay(3200); Capture(shell, "shell-simple.png");
+        // Each card opens its detail below the cards: verdict, who uses it and what to do; a second click closes it.
+        for (int card = 0; card < 4; card++)
+        {
+            Click(shell, "SimpleCard" + card);
+            var detail = Find<Border>(shell, "SimpleDetail");
+            if (!detail.IsVisible || Find<TextBlock>(shell, "SimpleDetailTag").Text is not { Length: > 2 } || !detail.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text == "O QUE FAZER AGORA"))
+                throw new InvalidOperationException("Card " + card + " did not open a detail with verdict and actions.");
+            if (card == 1) { await Task.Delay(600); Capture(shell, "shell-simple-memory.png"); }
+        }
+        Click(shell, "SimpleCard3");
+        if (Find<Border>(shell, "SimpleDetail").IsVisible) throw new InvalidOperationException("Second click did not close the detail.");
         Find<ToggleSwitch>(shell, "OverviewSimpleToggle").IsChecked = false; // the rest of the run uses the full overview (choice saved in settings)
         Console.WriteLine("PASS simple overview: first screen, status sentence, four live cards, apps list; switching to the full view");
         await Until(() => shell.IsVisible && shell.GetVisualDescendants().OfType<UsageChart>().Any(c => c.Name == "OverviewChart" && c.Count >= 3 && c.IsEffectivelyVisible));
