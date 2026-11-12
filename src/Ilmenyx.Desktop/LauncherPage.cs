@@ -179,6 +179,8 @@ public sealed class LauncherPage : Grid
         var searchBox = new Grid { Children = { search, SearchIcon() } };
         search.Padding = new Thickness(34, 7, 10, 7);
         var tools = new StackPanel { Margin = new Thickness(0, 0, 0, 12), Spacing = 8, Children = { searchBox, addBox } };
+        // The empty-library card sits over this column: keep it below the add box, or it covers Procurar…/Adicionar (seen 2026-11-12).
+        tools.SizeChanged += (_, _) => emptyBox.Margin = new Thickness(0, 84 + (addBox.IsVisible ? addBox.Bounds.Height + tools.Spacing : 0), 0, 0);
         var left = new Grid { RowDefinitions = new("Auto,Auto,*") };
         var shelf = new TextBlock { Text = L.T("BIBLIOTECA"), FontSize = 11, FontWeight = FontWeight.SemiBold, Foreground = Palette.Faint, LetterSpacing = 0.6, Margin = new Thickness(4, 0, 0, 8) };
         Grid.SetRow(shelf, 1); Grid.SetRow(tools, 0);

@@ -22,6 +22,9 @@ finish-args:
   - --filesystem=host-os:ro
   - --filesystem=host-etc:ro
   - --talk-name=org.freedesktop.Flatpak
+  # Notification-area icon with its menu and tooltip (StatusNotifierItem). Without it the icon only appeared through the X11 fallback,
+  # with no menu.
+  - --talk-name=org.kde.StatusNotifierWatcher
   # Steam and game libraries, Heroic/Lutris folders, MangoHud logs and exported reports.
   - --filesystem=home
 modules:
