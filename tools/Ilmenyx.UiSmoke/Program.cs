@@ -471,6 +471,30 @@ public sealed class UiSmokeApp : Application
                     throw new InvalidOperationException("Clean button state does not follow the selection.");
                 Capture(shell, "shell-cleanup.png");
                 Console.WriteLine("PASS cleanup page: real read-only scan, recommended items ticked, clean button follows the selection (nothing deleted)");
+                // "Exibir detalhes": each program's cache with its size; unticking one keeps the item ticked and lowers the total.
+                var cacheBox = Find<CheckBox>(shell, "CleanItem_UserCache");
+                if (cacheBox.IsEnabled && shell.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnCleanDetails_UserCache"))
+                {
+                    cacheBox.IsChecked = true;
+                    string before = Find<TextBlock>(shell, "CleanTotal").Text ?? "";
+                    Click(shell, "BtnCleanDetails_UserCache");
+                    var details = Find<StackPanel>(shell, "CleanDetails_UserCache");
+                    await Until(() => details.IsEffectivelyVisible && details.GetVisualDescendants().OfType<CheckBox>().Any());
+                    var parts = details.GetVisualDescendants().OfType<CheckBox>().ToList();
+                    if (parts.Any(c => c.IsChecked != true) || parts.Any(c => string.IsNullOrEmpty(AutomationProperties.GetName(c)))) throw new InvalidOperationException("Cache parts must come ticked and named.");
+                    if (parts.Count > 1)
+                    {
+                        parts[0].IsChecked = false;
+                        if (cacheBox.IsChecked != true || Find<TextBlock>(shell, "CleanTotal").Text == before) throw new InvalidOperationException("Unticking one cache part must keep the item and change the total.");
+                        await Task.Delay(600); // let the cards lay out before the capture (RenderTargetBitmap draws the last arranged frame)
+                        Capture(shell, "shell-cleanup-details.png");
+                        parts[0].IsChecked = true;
+                        if (Find<TextBlock>(shell, "CleanTotal").Text != before) throw new InvalidOperationException("Ticking the part back must restore the total.");
+                    }
+                    Click(shell, "BtnCleanDetails_UserCache");
+                    if (details.IsVisible) throw new InvalidOperationException("Ocultar detalhes did not hide the list.");
+                    Console.WriteLine($"PASS cleanup details: {parts.Count} cache parts listed by program, partial choice changes the total");
+                }
             }
             if (key == "gpu" && Find<TextBlock>(shell, "GpuValidationNotice").Text != (ExpectedGpuNotice ?? "")) throw new InvalidOperationException("AMD/NVIDIA notice wrong on GPU page.");
             if (key == "net") await Until(() => Find<UsageChart>(shell, "NetChart").Count >= 2);
