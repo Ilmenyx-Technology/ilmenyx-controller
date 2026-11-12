@@ -19,7 +19,8 @@ public partial class ShellWindow
     private Button? pauseButton;
     private TextBlock? sideVersion;
     private TrayIcon? tray;
-    private NativeMenuItem? trayPause;
+    private NativeMenuItem? trayPause, trayStatus, trayCpu, trayMemory, trayDisk, trayWhat;
+    private InsightLevel? trayLevel;
     private bool? trayAvailable;
     private ToastWindow? alertToast;
     private readonly TemperatureAlert tempAlert = new(TemperatureAlert.DefaultLimit);
@@ -66,16 +67,56 @@ public partial class ShellWindow
         {
             var open = new NativeMenuItem(L.T("Abrir o Ilmenyx"));
             open.Click += (_, _) => RestoreFromTray();
+            // The PC at a glance (read-only lines) and shortcuts to what solves the usual problems.
+            NativeMenuItem Line() => new("—") { IsEnabled = false };
+            NativeMenuItem Go(string label, string page) { var item = new NativeMenuItem(label) { IsVisible = pages.ContainsKey(page) }; item.Click += (_, _) => { RestoreFromTray(); Select(page); }; return item; }
+            trayStatus = Line(); trayCpu = Line(); trayMemory = Line(); trayDisk = Line();
+            trayWhat = Go(L.T("Ver o que fazer"), "dash"); trayWhat.IsVisible = false;
+            var alerts = new NativeMenuItem(L.T("Avisar se o processador esquentar")) { ToggleType = MenuItemToggleType.CheckBox, IsChecked = appSettings.TempAlerts };
+            alerts.Click += (_, _) => { bool on = !appSettings.TempAlerts; appSettings.TempAlerts = on; alerts.IsChecked = on; SaveSetting(s => s.TempAlerts = on); };
             trayPause = new NativeMenuItem(usage.IsRunning ? L.T("Pausar monitor") : L.T("Retomar monitor"));
             trayPause.Click += async (_, _) => await ToggleMonitorAsync();
             var quit = new NativeMenuItem(L.T("Sair"));
             quit.Click += (_, _) => Close();
-            tray = new TrayIcon { Icon = AppIcon.Window, ToolTipText = ProductIdentity.Name, Menu = new NativeMenu { Items = { open, trayPause, new NativeMenuItemSeparator(), quit } } };
+            tray = new TrayIcon { Icon = AppIcon.Window, ToolTipText = ProductIdentity.Name, Menu = new NativeMenu { Items = { trayStatus, trayCpu, trayMemory, trayDisk, new NativeMenuItemSeparator(), open, trayWhat, Go(L.T("Liberar espaço"), "cleanup"), Go(L.T("Processos"), "procs"), new NativeMenuItemSeparator(), trayPause, alerts, new NativeMenuItemSeparator(), quit } } };
             tray.Clicked += (_, _) => RestoreFromTray();
             if (Application.Current is { } app) TrayIcon.SetIcons(app, [tray]);
         }
         tray.IsVisible = true;
         return true;
+    }
+
+    /// <summary>Menu lines, tooltip and attention dot of the notification-area icon; only what changed is written (each write is a D-Bus update).</summary>
+    private void UpdateTray(Ilmenyx.Contracts.UsageSample s)
+    {
+        static void Set(NativeMenuItem? item, string text) { if (item is not null && item.Header != text) item.Header = text; }
+        double? diskFull = null; string disk = "—";
+        try { if (SimpleOverview.HomeDrive() is { TotalSize: > 0 } d) { diskFull = 1 - d.AvailableFreeSpace / (double)d.TotalSize; disk = L.T($"{UsageViewModel.Bytes(d.AvailableFreeSpace)} livres"); } }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+        var (level, text) = OverviewInsight.Headline(s.CpuTempC, diskFull, SimpleOverview.MemoryLevel(s));
+        string cpu = (s.CpuTempC is { } t ? t.ToString("0", System.Globalization.CultureInfo.CurrentCulture) + " °C · " : "") + UsageViewModel.Pct(s.CpuPercent);
+        string memory = s is { MemoryTotal: > 0, MemoryUsed: { } used } ? UsageViewModel.Pct(100.0 * used / s.MemoryTotal.Value) : "—";
+        Set(trayStatus, (level == InsightLevel.Fine ? "✓ " : "! ") + text);
+        Set(trayCpu, L.T("Processador") + ": " + cpu); Set(trayMemory, L.T("Memória") + ": " + memory); Set(trayDisk, L.T("Disco") + ": " + disk);
+        string tip = ProductIdentity.Name + " · " + text + " · CPU " + cpu;
+        if (tray!.ToolTipText != tip) tray.ToolTipText = tip;
+        if (trayLevel == level) return;
+        trayLevel = level;
+        if (trayWhat is not null) trayWhat.IsVisible = level != InsightLevel.Fine;
+        tray.Icon = TrayIconFor(level);
+    }
+
+    /// <summary>The product icon; with an orange or red dot when something needs attention.</summary>
+    private static WindowIcon? TrayIconFor(InsightLevel level)
+    {
+        if (level == InsightLevel.Fine || AppIcon.Image is not { } image) return AppIcon.Window;
+        var marked = new Avalonia.Media.Imaging.RenderTargetBitmap(new PixelSize(64, 64));
+        using (var draw = marked.CreateDrawingContext())
+        {
+            draw.DrawImage(image, new Rect(0, 0, 64, 64));
+            draw.DrawEllipse(level == InsightLevel.Critical ? Palette.Error : Palette.Warn, new Pen(Palette.Bg, 3), new Point(49, 15), 12, 12);
+        }
+        return new WindowIcon(marked);
     }
 
     internal void RestoreFromTray()
@@ -90,8 +131,7 @@ public partial class ShellWindow
     private void OnUsageInBackground()
     {
         double? temp = usage.Last?.CpuTempC;
-        if (tray is { IsVisible: true })
-            tray.ToolTipText = ProductIdentity.Name + " · CPU " + (temp is { } t ? t.ToString("0", System.Globalization.CultureInfo.CurrentCulture) + " °C · " : "") + UsageViewModel.Pct(usage.Last?.CpuPercent);
+        if (tray is { IsVisible: true } && usage.Last is { } s) UpdateTray(s);
         if (!appSettings.TempAlerts || !tempAlert.Feed(DateTimeOffset.Now, temp)) return;
         double peak = tempAlert.Peak ?? temp ?? 0;
         _ = NotifyAsync(L.T("CPU muito quente"),

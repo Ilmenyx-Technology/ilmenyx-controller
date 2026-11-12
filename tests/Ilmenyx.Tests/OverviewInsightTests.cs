@@ -36,4 +36,14 @@ public sealed class OverviewInsightTests
         Assert.Equal((16000L << 10, 10000L << 10, 3000L << 10), LinuxUsageProvider.Memory("MemTotal: 16000 kB\nMemFree: 3000 kB\nMemAvailable: 6000 kB\n"));
         Assert.Null(LinuxUsageProvider.Memory("MemTotal: 16000 kB\nMemFree: 7000 kB\nMemAvailable: 6000 kB\n").free);
     }
+
+    [Fact]
+    public void HeadlineNamesTheWorstThingFirst()
+    {
+        Assert.Equal(InsightLevel.Fine, OverviewInsight.Headline(55, 0.79, InsightLevel.Fine).Level);
+        Assert.Equal((InsightLevel.Watch, "Memória apertada"), OverviewInsight.Headline(85, 0.5, InsightLevel.Watch)); // memory before a merely warm CPU
+        Assert.Equal((InsightLevel.Critical, "Disco quase cheio"), OverviewInsight.Headline(85, 0.93, InsightLevel.Watch));
+        Assert.Equal((InsightLevel.Critical, "Processador muito quente"), OverviewInsight.Headline(97, 0.93, InsightLevel.Critical));
+        Assert.Equal(InsightLevel.Fine, OverviewInsight.Headline(null, null, InsightLevel.Fine).Level);
+    }
 }

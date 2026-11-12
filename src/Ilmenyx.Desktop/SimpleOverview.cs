@@ -114,8 +114,7 @@ public sealed class SimpleOverview : StackPanel
         storageFraction = null;
         try
         {
-            string home = Environment.GetEnvironmentVariable("HOME") ?? "/";
-            var drive = DriveInfo.GetDrives().Where(d => d.IsReady && home.StartsWith(d.RootDirectory.FullName, StringComparison.Ordinal)).OrderByDescending(d => d.RootDirectory.FullName.Length).FirstOrDefault();
+            var drive = HomeDrive();
             if (drive is { TotalSize: > 0 })
             {
                 storageFraction = 1 - drive.AvailableFreeSpace / (double)drive.TotalSize; storageTotal = drive.TotalSize; storageFree = drive.AvailableFreeSpace;
@@ -149,7 +148,14 @@ public sealed class SimpleOverview : StackPanel
         if (selected >= 0) FillDetail(s);
     }
 
-    private static InsightLevel MemoryLevel(UsageSample s) => s is { MemoryTotal: { } t, MemoryUsed: { } u } ? OverviewInsight.Memory(t, u, s.SwapUsed ?? 0) : InsightLevel.Fine;
+    /// <summary>The file system of the home folder; may throw IOException/UnauthorizedAccessException like DriveInfo.</summary>
+    internal static DriveInfo? HomeDrive()
+    {
+        string home = Environment.GetEnvironmentVariable("HOME") ?? "/";
+        return DriveInfo.GetDrives().Where(d => d.IsReady && home.StartsWith(d.RootDirectory.FullName, StringComparison.Ordinal)).OrderByDescending(d => d.RootDirectory.FullName.Length).FirstOrDefault();
+    }
+
+    internal static InsightLevel MemoryLevel(UsageSample s) => s is { MemoryTotal: { } t, MemoryUsed: { } u } ? OverviewInsight.Memory(t, u, s.SwapUsed ?? 0) : InsightLevel.Fine;
 
     private void ShowDetail()
     {
