@@ -58,7 +58,7 @@ public sealed partial class LinuxUsageProvider(string procRoot = "/proc", string
         var (swapTotal, swapUsed) = Swap(meminfo);
         var (processes, count) = await Processes(now, Math.Max(1, logical), ct);
         return new(DateTimeOffset.UtcNow, Field(cpuinfo, "model name"), cpu, AverageMhz(cpuinfo), Temperature(),
-            memory.total, memory.used, read, write, rx, tx, iface, count, processes, maxCore, busiest, MaxMhz(cpuinfo), rapl.Sample(now), swapTotal, swapUsed, interfaces);
+            memory.total, memory.used, read, write, rx, tx, iface, count, processes, maxCore, busiest, MaxMhz(cpuinfo), rapl.Sample(now), swapTotal, swapUsed, interfaces, memory.free);
     }
 
     // The sampler runs off the UI thread (UsageViewModel), so the lean synchronous read is safe here.
@@ -114,7 +114,7 @@ public sealed partial class LinuxUsageProvider(string procRoot = "/proc", string
         return (best, name);
     }
 
-    internal static (long? total, long? used) Memory(string meminfo)
+    internal static (long? total, long? used, long? free) Memory(string meminfo)
     {
         long? Kb(string key)
         {
@@ -126,8 +126,8 @@ public sealed partial class LinuxUsageProvider(string procRoot = "/proc", string
             }
             return null;
         }
-        long? total = Kb("MemTotal"), available = Kb("MemAvailable");
-        return total is > 0 && available is { } a && a <= total ? (total, total - a) : (total, null);
+        long? total = Kb("MemTotal"), available = Kb("MemAvailable"), free = Kb("MemFree");
+        return total is > 0 && available is { } a && a <= total ? (total, total - a, free <= a ? free : null) : (total, null, null);
     }
 
     private (double?, double?) Disk(string diskstats, double now)
