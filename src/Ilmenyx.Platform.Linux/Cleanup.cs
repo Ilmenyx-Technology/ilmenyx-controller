@@ -39,7 +39,23 @@ public static partial class Cleanup
 
     public static string Home => Environment.GetEnvironmentVariable("HOME") is { Length: > 0 } h ? h : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
     public static string TrashDir => Path.Combine(Home, ".local/share/Trash");
-    public static string CacheDir => Path.Combine(Home, ".cache");
+    public static string CacheDir => CacheFolder(Home, Environment.GetEnvironmentVariable("XDG_CACHE_HOME"), HostSpawn.InFlatpak);
+
+    /// <summary>Ilmenyx's own caches (art, downloads, update files): never listed nor deleted.</summary>
+    private static readonly HashSet<string> OwnCaches = new(StringComparer.Ordinal) { "ilmenyx", "ilmenyx-update" };
+
+    /// <summary>
+    /// The user's cache folder: $XDG_CACHE_HOME when set to a real folder, else ~/.cache. Inside the Flatpak the variable points at the
+    /// sandbox's own cache, so ~/.cache is used. A value that is the home folder itself or above it is ignored: emptying it would delete personal files.
+    /// </summary>
+    internal static string CacheFolder(string home, string? xdg, bool inFlatpak)
+    {
+        string fallback = Path.Combine(home, ".cache");
+        if (inFlatpak || string.IsNullOrWhiteSpace(xdg) || !Path.IsPathFullyQualified(xdg)) return fallback;
+        string full = Path.GetFullPath(xdg).TrimEnd('/'), h = Path.GetFullPath(home).TrimEnd('/');
+        if (full.Length == 0 || full == h || (h + "/").StartsWith(full + "/", StringComparison.Ordinal) || !Directory.Exists(full)) return fallback;
+        return full;
+    }
 
     [GeneratedRegex(@"disk space saved:\s*([0-9.]+)\s*([KMGT]i?B)", RegexOptions.CultureInvariant)]
     private static partial Regex PaccacheSaved();
@@ -94,7 +110,7 @@ public static partial class Cleanup
         foreach (var entry in new DirectoryInfo(cacheDir).EnumerateFileSystemInfos())
         {
             ct.ThrowIfCancellationRequested();
-            if (entry.Name == "ilmenyx") continue;
+            if (OwnCaches.Contains(entry.Name)) continue;
             var (name, note, redownload) = KnownCache(entry.Name);
             parts.Add(new(entry.Name, name, note, EntrySize(entry, ct), redownload));
         }
@@ -156,19 +172,60 @@ public static partial class Cleanup
     }
 
     /// <summary>Cleaning command of the distribution's package cache. Arch keeps the last two versions (paccache) so a downgrade stays possible.</summary>
-    public static (string Command, string Folder) PackagePlan(string distroId, string idLike, bool paccache)
+    /// <remarks>Fedora: dnf5 (Fedora 41+) keeps packages in /var/cache/libdnf5, dnf 4 (RHEL, Alma, Rocky, older Fedora) in /var/cache/dnf.</remarks>
+    public static (string Command, string[] Folders) PackagePlan(string distroId, string idLike, bool paccache)
     {
         string all = (distroId + " " + idLike).ToLowerInvariant();
-        if (all.Contains("arch")) return (paccache ? "paccache -rk2" : "pacman -Sc --noconfirm", "/var/cache/pacman/pkg");
-        if (all.Contains("fedora") || all.Contains("rhel")) return ("dnf clean packages", "/var/cache/libdnf5");
-        if (all.Contains("suse")) return ("zypper clean --all", "/var/cache/zypp/packages");
-        return ("apt-get clean", "/var/cache/apt/archives");
+        if (all.Contains("arch")) return (paccache ? "paccache -rk2" : "pacman -Sc --noconfirm", ["/var/cache/pacman/pkg"]);
+        if (all.Contains("fedora") || all.Contains("rhel")) return ("dnf clean packages", ["/var/cache/libdnf5", "/var/cache/dnf"]);
+        if (all.Contains("suse")) return ("zypper clean --all", ["/var/cache/zypp/packages"]);
+        return ("apt-get clean", ["/var/cache/apt/archives"]);
+    }
+
+    /// <summary>
+    /// Files under a system folder (name, size, last write). Native: read directly. Flatpak: the sandbox does not see the host's /var, so
+    /// the host's `find` lists them (through flatpak-spawn, like the other host tools). Missing or unreadable folders give an empty list.
+    /// </summary>
+    internal static async Task<IReadOnlyList<(string Name, long Bytes, DateTime Modified)>> HostFilesAsync(string folder, int depth, CancellationToken ct, bool? useFind = null)
+    {
+        if (!(useFind ?? HostSpawn.InFlatpak))
+            return await Task.Run(() =>
+            {
+                if (!Directory.Exists(folder)) return (IReadOnlyList<(string, long, DateTime)>)[];
+                try
+                {
+                    return new DirectoryInfo(folder).EnumerateFiles("*", new EnumerationOptions { RecurseSubdirectories = true, MaxRecursionDepth = depth, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.ReparsePoint })
+                        .Select(f => (f.Name, f.Length, f.LastWriteTimeUtc)).ToArray();
+                }
+                catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return []; }
+            }, ct);
+        try
+        {
+            // Exit code 1 only means some subfolder was unreadable: what was listed still counts.
+            var (_, output) = await BoundedProcess.RunAsync("find", [folder, "-maxdepth", (depth + 1).ToString(CultureInfo.InvariantCulture), "-type", "f", "-printf", "%f\\t%s\\t%T@\\n"], TimeSpan.FromSeconds(30), 8 << 20, ct);
+            return ParseFindListing(output);
+        }
+        catch (Exception e) when (e is IOException or TimeoutException or FileNotFoundException or System.ComponentModel.Win32Exception) { return []; }
+    }
+
+    /// <summary>Lines of `find -printf '%f\t%s\t%T@\n'` (name, bytes, seconds since 1970) → files; malformed lines are skipped.</summary>
+    internal static IReadOnlyList<(string Name, long Bytes, DateTime Modified)> ParseFindListing(string output)
+    {
+        var files = new List<(string, long, DateTime)>();
+        foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var cols = line.Split('\t');
+            if (cols.Length != 3 || !long.TryParse(cols[1], NumberStyles.None, CultureInfo.InvariantCulture, out long bytes)
+                || !double.TryParse(cols[2], NumberStyles.Float, CultureInfo.InvariantCulture, out double seconds)) continue;
+            files.Add((cols[0], bytes, DateTime.UnixEpoch.AddSeconds(seconds)));
+        }
+        return files;
     }
 
     private static async Task<CleanupItem> PackageCacheAsync(string distroId, string idLike, CancellationToken ct)
     {
         bool paccache = BoundedProcess.FindSystem("paccache") is not null;
-        var (command, folder) = PackagePlan(distroId, idLike, paccache);
+        var (command, folders) = PackagePlan(distroId, idLike, paccache);
         string title = L.T("Pacotes baixados do sistema");
         string text = command.StartsWith("paccache", StringComparison.Ordinal)
             ? L.T("Instaladores antigos dos programas do sistema. Mantém as 2 últimas versões de cada um, para poder voltar. Pede senha.")
@@ -179,15 +236,19 @@ public static partial class Cleanup
         IReadOnlyList<CleanupPart> parts = [];
         try
         {
+            var files = new List<(string Name, long Bytes, DateTime Modified)>();
+            foreach (string folder in folders) files.AddRange(await HostFilesAsync(folder, 3, ct));
             if (paccache && tool == "paccache")
             {
                 var (_, output) = await BoundedProcess.RunAsync("paccache", ["-dvk2"], TimeSpan.FromSeconds(60), 4 << 20, ct);
                 bytes = ParsePaccache(output);
-                parts = PackageParts(PaccacheCandidates(output), HostSpawn.HostPath(folder));
+                parts = PackageParts(PaccacheCandidates(output), files);
             }
-            else if (tool != "pacman") parts = PackageParts(null, HostSpawn.HostPath(folder)); // pacman -Sc keeps what is installed: no honest list
-            if (bytes is null)
+            else if (tool != "pacman") parts = PackageParts(null, files); // pacman -Sc keeps what is installed: no honest list
+            if (bytes is null && tool != "pacman" && files.Count > 0) bytes = files.Sum(f => f.Bytes); // apt/dnf/zypper clean empty the whole folder
+            foreach (string folder in folders)
             {
+                if (bytes is not null) break;
                 var (code, output) = await BoundedProcess.RunAsync("du", ["-sb", folder], TimeSpan.FromSeconds(60), 4096, ct);
                 if (code == 0 && long.TryParse(output.Split('\t')[0].Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out long b)) bytes = b;
             }
@@ -204,16 +265,8 @@ public static partial class Cleanup
         // What --vacuum-time=4weeks removes: archived journal files (name with '@') whose last write is older than four weeks.
         // The folder listing is readable by everyone; the total from --disk-usage is only the fallback, and it would count what stays.
         var files = new List<(string Name, long Bytes, DateTime Modified)>();
-        foreach (string root in new[] { "/var/log/journal", "/run/log/journal" }.Select(HostSpawn.HostPath))
-        {
-            try
-            {
-                if (!Directory.Exists(root)) continue;
-                foreach (var f in new DirectoryInfo(root).EnumerateFiles("*.journal", new EnumerationOptions { RecurseSubdirectories = true, MaxRecursionDepth = 2, IgnoreInaccessible = true }))
-                    files.Add((f.Name, f.Length, f.LastWriteTimeUtc));
-            }
-            catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
-        }
+        foreach (string root in new[] { "/var/log/journal", "/run/log/journal" })
+            files.AddRange((await HostFilesAsync(root, 2, ct)).Where(f => f.Name.EndsWith(".journal", StringComparison.Ordinal)));
         if (files.Count > 0)
         {
             var (bytes, parts) = JournalPlan(files, DateTime.UtcNow);
@@ -260,23 +313,18 @@ public static partial class Cleanup
     }
 
     /// <summary>Old installers grouped by program, biggest first. <paramref name="only"/> limits to paccache's candidates; null lists the whole folder.</summary>
-    internal static IReadOnlyList<CleanupPart> PackageParts(IReadOnlyList<string>? only, string folder)
+    internal static IReadOnlyList<CleanupPart> PackageParts(IReadOnlyList<string>? only, IEnumerable<(string Name, long Bytes, DateTime Modified)> files)
     {
-        if (!Directory.Exists(folder)) return [];
         var wanted = only is null ? null : new HashSet<string>(only, StringComparer.Ordinal);
         var groups = new Dictionary<string, (int Versions, long Bytes)>(StringComparer.Ordinal);
-        try
+        foreach (var f in files)
         {
-            foreach (var f in new DirectoryInfo(folder).EnumerateFiles("*", new EnumerationOptions { RecurseSubdirectories = true, MaxRecursionDepth = 3, IgnoreInaccessible = true }))
-            {
-                if (wanted is not null && !wanted.Contains(f.Name)) continue;
-                if (!(f.Name.Contains(".pkg.tar", StringComparison.Ordinal) || f.Name.EndsWith(".deb", StringComparison.Ordinal) || f.Name.EndsWith(".rpm", StringComparison.Ordinal))) continue;
-                string name = PackageName(f.Name);
-                var g = groups.GetValueOrDefault(name);
-                groups[name] = (g.Versions + (f.Name.EndsWith(".sig", StringComparison.Ordinal) ? 0 : 1), g.Bytes + f.Length);
-            }
+            if (wanted is not null && !wanted.Contains(f.Name)) continue;
+            if (!(f.Name.Contains(".pkg.tar", StringComparison.Ordinal) || f.Name.EndsWith(".deb", StringComparison.Ordinal) || f.Name.EndsWith(".rpm", StringComparison.Ordinal))) continue;
+            string name = PackageName(f.Name);
+            var g = groups.GetValueOrDefault(name);
+            groups[name] = (g.Versions + (f.Name.EndsWith(".sig", StringComparison.Ordinal) ? 0 : 1), g.Bytes + f.Bytes);
         }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
         return groups.OrderByDescending(g => g.Value.Bytes)
             .Select(g => new CleanupPart(g.Key, g.Key, g.Value.Versions == 1 ? L.T("1 instalador") : L.T($"{g.Value.Versions} instaladores"), g.Value.Bytes)).ToArray();
     }
@@ -433,6 +481,8 @@ public static partial class Cleanup
                         + EmptyDirectory(Path.Combine(TrashDir, "info"), ct, only: only.Select(k => k + ".trashinfo").ToHashSet(StringComparer.Ordinal)), ct));
                 return (true, "", await Task.Run(() => EmptyDirectory(Path.Combine(TrashDir, "files"), ct) + EmptyDirectory(Path.Combine(TrashDir, "info"), ct) + EmptyDirectory(Path.Combine(TrashDir, "expunged"), ct), ct));
             case CleanupKind.UserCache:
+                // Only what the scan listed (and the user kept ticked): a folder created after the scan, or Ilmenyx's own, stays.
+                only ??= item.Parts?.Select(p => p.Key).ToHashSet(StringComparer.Ordinal);
                 return (true, "", await Task.Run(() => EmptyDirectory(CacheDir, ct, skip: "ilmenyx", only: only), ct));
             case CleanupKind.FlatpakUnused:
                 try

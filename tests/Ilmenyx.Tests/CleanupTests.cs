@@ -84,19 +84,56 @@ public sealed class CleanupTests
         Assert.Equal("7zip", Cleanup.PackageName("7zip-26.04-1.1-x86_64_v4.pkg.tar.zst.sig"));
         Assert.Equal("libc6", Cleanup.PackageName("libc6_2.39-0ubuntu8_amd64.deb"));
         Assert.Equal("kernel-core", Cleanup.PackageName("kernel-core-6.17.1-300.fc43.x86_64.rpm"));
+        // The same listing the host's find gives inside the Flatpak (names, sizes, times).
+        var files = Cleanup.ParseFindListing("7zip-26.04-1.1-x86_64_v4.pkg.tar.zst\t700\t1762000000.5\n7zip-26.04-1.1-x86_64_v4.pkg.tar.zst.sig\t10\t1762000000\n"
+            + "7zip-26.05-1.1-x86_64_v4.pkg.tar.zst\t800\t1762800000\nalsa-card-profiles-1:1.6.9-1-x86_64.pkg.tar.zst\t100\t1762000000\nlinha quebrada\n");
+        Assert.Equal(4, files.Count);
+        Assert.Equal(new DateTime(2025, 11, 1, 12, 26, 40, 500, DateTimeKind.Utc), files[0].Modified);
+        var parts = Cleanup.PackageParts(Cleanup.PaccacheCandidates(output), files);
+        Assert.Equal(["7zip", "alsa-card-profiles"], parts.Select(p => p.Name)); // the newest 7zip is kept by paccache: not listed
+        Assert.Equal(710, parts[0].Bytes);
+        Assert.Equal(1510, Cleanup.PackageParts(null, files).Single(p => p.Name == "7zip").Bytes); // apt/dnf/zypper: the whole folder goes
+    }
+
+    [Fact]
+    public async Task SystemFoldersAreListedDirectlyOrThroughFind()
+    {
         string dir = Directory.CreateTempSubdirectory("ilx-pkg").FullName;
         try
         {
-            File.WriteAllBytes(Path.Combine(dir, "7zip-26.04-1.1-x86_64_v4.pkg.tar.zst"), new byte[700]);
-            File.WriteAllBytes(Path.Combine(dir, "7zip-26.04-1.1-x86_64_v4.pkg.tar.zst.sig"), new byte[10]);
-            File.WriteAllBytes(Path.Combine(dir, "7zip-26.05-1.1-x86_64_v4.pkg.tar.zst"), new byte[800]); // newest: kept, not a candidate
-            File.WriteAllBytes(Path.Combine(dir, "alsa-card-profiles-1:1.6.9-1-x86_64.pkg.tar.zst"), new byte[100]);
-            var parts = Cleanup.PackageParts(Cleanup.PaccacheCandidates(output), dir);
-            Assert.Equal(["7zip", "alsa-card-profiles"], parts.Select(p => p.Name));
-            Assert.Equal(710, parts[0].Bytes);
-            Assert.Equal(3, Cleanup.PackageParts(null, dir).Sum(p => p.Name == "7zip" ? 2 : 1)); // whole folder (apt/dnf): both 7zip versions
+            Directory.CreateDirectory(Path.Combine(dir, "fedora/packages"));
+            File.WriteAllBytes(Path.Combine(dir, "fedora/packages/kernel-core-6.17.1-300.fc43.x86_64.rpm"), new byte[300]);
+            var files = await Cleanup.HostFilesAsync(dir, 3, CancellationToken.None);
+            Assert.Equal(300, Assert.Single(files).Bytes);
+            var viaFind = await Cleanup.HostFilesAsync(dir, 3, CancellationToken.None, useFind: true); // the Flatpak path, with the real find
+            Assert.Equal(files, viaFind.Select(f => (f.Name, f.Bytes, files[0].Modified)).ToArray());
+            Assert.True(Math.Abs((viaFind[0].Modified - files[0].Modified).TotalSeconds) < 1);
+            Assert.Empty(await Cleanup.HostFilesAsync(Path.Combine(dir, "não-existe"), 3, CancellationToken.None));
         }
         finally { Directory.Delete(dir, true); }
+    }
+
+    [Fact]
+    public void FedoraLooksInDnf5AndDnf4Folders() =>
+        Assert.Equal(["/var/cache/libdnf5", "/var/cache/dnf"], Cleanup.PackagePlan("rocky", "rhel centos fedora", false).Folders);
+
+    [Fact]
+    public void CacheFolderFollowsXdgOnlyWhenItIsSafe()
+    {
+        string home = Directory.CreateTempSubdirectory("ilx-home").FullName;
+        try
+        {
+            string custom = Directory.CreateDirectory(Path.Combine(home, "cache-x")).FullName;
+            Assert.Equal(custom, Cleanup.CacheFolder(home, custom, inFlatpak: false));
+            Assert.Equal(Path.Combine(home, ".cache"), Cleanup.CacheFolder(home, custom, inFlatpak: true)); // the sandbox's own variable
+            Assert.Equal(Path.Combine(home, ".cache"), Cleanup.CacheFolder(home, null, inFlatpak: false));
+            Assert.Equal(Path.Combine(home, ".cache"), Cleanup.CacheFolder(home, "relativo", inFlatpak: false));
+            Assert.Equal(Path.Combine(home, ".cache"), Cleanup.CacheFolder(home, home + "/", inFlatpak: false)); // the home folder itself: never
+            Assert.Equal(Path.Combine(home, ".cache"), Cleanup.CacheFolder(home, "/", inFlatpak: false));
+            Assert.Equal(Path.Combine(home, ".cache"), Cleanup.CacheFolder(home, Path.GetDirectoryName(home), inFlatpak: false));
+            Assert.Equal(Path.Combine(home, ".cache"), Cleanup.CacheFolder(home, Path.Combine(home, "não-existe"), inFlatpak: false));
+        }
+        finally { Directory.Delete(home, true); }
     }
 
     [Fact]
@@ -132,7 +169,7 @@ public sealed class CleanupTests
         try
         {
             string cache = Path.Combine(root, "cache");
-            foreach (var (dir, size) in new[] { ("mozilla", 3000), ("ms-playwright-mcp", 2000), ("ilmenyx", 50), ("Shelly", 4000) })
+            foreach (var (dir, size) in new[] { ("mozilla", 3000), ("ms-playwright-mcp", 2000), ("ilmenyx", 50), ("ilmenyx-update", 70), ("Shelly", 4000) })
             { Directory.CreateDirectory(Path.Combine(cache, dir)); File.WriteAllBytes(Path.Combine(cache, dir, "x"), new byte[size]); }
             var parts = Cleanup.CacheParts(cache, CancellationToken.None);
             Assert.Equal(["Shelly", "mozilla", "ms-playwright-mcp"], parts.Select(p => p.Key)); // biggest first, Ilmenyx's own left out
