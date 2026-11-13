@@ -25,6 +25,10 @@ finish-args:
   # Notification-area icon with its menu and tooltip (StatusNotifierItem). Without it the icon only appeared through the X11 fallback,
   # with no menu.
   - --talk-name=org.kde.StatusNotifierWatcher
+  # The icon registers under its own bus name, "org.kde.StatusNotifierItem-<pid>-<n>"; inside the sandbox the app is always pid 2.
+  # Without owning it the registration was refused and the icon fell back to the X11 tray: washed-out picture, no menu (v0.34.0).
+  - --own-name=org.kde.StatusNotifierItem-2-0
+  - --own-name=org.kde.StatusNotifierItem-2-1
   # Steam and game libraries, Heroic/Lutris folders, MangoHud logs and exported reports.
   - --filesystem=home
 modules:
