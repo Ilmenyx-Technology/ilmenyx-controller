@@ -35,6 +35,7 @@ public sealed class SimpleOverview : StackPanel
     private DateTime appsAt;
     private double? storageFraction;
     private long storageTotal, storageFree;
+    private bool headIsMemory;
     private readonly Border[] cardBorders = new Border[4];
     private readonly StackPanel detail = new() { Spacing = 12 };
     private readonly Border detailCard;
@@ -47,7 +48,8 @@ public sealed class SimpleOverview : StackPanel
     {
         this.usage = usage; this.open = open; this.owner = owner; this.actions = actions ?? ProcessActions.System(); this.canOpen = canOpen ?? (_ => true);
         Name = "SimpleOverview"; Spacing = 14;
-        freeSpace.Content = L.T("Liberar espaço"); freeSpace.Click += (_, _) => open("cleanup");
+        // The button beside the sentence acts on what the sentence is about: memory opens the Memory detail, disk opens Liberar espaço.
+        freeSpace.Click += (_, _) => { if (headIsMemory) { selected = 1; ShowDetail(); } else open("cleanup"); };
         var tagBox = new Border { CornerRadius = new CornerRadius(IlmenyxTheme.Pill), Padding = new Thickness(12, 5), Background = Palette.Hover, Child = statusTag, VerticalAlignment = VerticalAlignment.Center };
         var statusGrid = new Grid { ColumnDefinitions = new("Auto,*,Auto") };
         statusText.Margin = new Thickness(14, 0, 12, 0);
@@ -140,7 +142,11 @@ public sealed class SimpleOverview : StackPanel
         statusTag.Text = level switch { Level.Critical => L.T("! Precisa de atenção"), Level.Hot => L.T("! Fique de olho"), _ => L.T("✓ Está tudo bem") };
         statusTag.Foreground = level switch { Level.Critical => Palette.Error, Level.Hot => Palette.Warn, _ => Palette.Success };
         statusText.Text = text;
-        freeSpace.IsVisible = storageFraction >= 0.75 && canOpen("cleanup");
+        // Worst first, as the sentence: a hot processor has no button; memory comes before a disk that is only filling up.
+        bool diskHead = storageFraction >= 0.9, memoryHead = !diskHead && levelTemp != Level.Critical && MemoryLevel(s) != InsightLevel.Fine;
+        headIsMemory = memoryHead;
+        freeSpace.Content = memoryHead ? L.T("Ver o que fazer") : L.T("Liberar espaço");
+        freeSpace.IsVisible = memoryHead ? selected != 1 : levelTemp != Level.Critical && storageFraction >= 0.75 && canOpen("cleanup");
         // The app list changes slowly: every 3 s is enough and keeps the page light.
         if (DateTime.UtcNow - appsAt < TimeSpan.FromSeconds(3)) return;
         appsAt = DateTime.UtcNow;
@@ -232,8 +238,15 @@ public sealed class SimpleOverview : StackPanel
                     : level == InsightLevel.Watch ? L.T("Quase toda em uso. Feche o que não estiver usando.") : L.T("Sobra memória para abrir mais programas."));
                 Split((used, Palette.DataMemory, L.T("Programas")), (total - used - free, Palette.Faint, L.T("Cache de arquivos")), (free, Palette.Line, L.T("Livre")));
                 Note((total - used - free > 0 ? L.T("Cache não é problema: o sistema devolve na hora que um programa pedir.") + " " : "") + (swap > 0 && s.SwapTotal is { } st ? L.T($"Swap em uso: {UsageViewModel.Bytes(swap)} de {UsageViewModel.Bytes(st)}.") : ""));
-                foreach (var g in groups.OrderByDescending(g => g.ResidentBytes).Take(4)) who.Children.Add(AppRow(g, UsageViewModel.Bytes(g.ResidentBytes), who.Children.Count == 0));
+                var top = groups.OrderByDescending(g => g.ResidentBytes).Take(6).ToList();
+                foreach (var g in top) who.Children.Add(AppRow(g, UsageViewModel.Bytes(g.ResidentBytes), who.Children.Count == 0));
+                // The list must add up to "Programas": what the apps above do not explain is the system, services and smaller programs.
+                long rest = used - top.Sum(g => g.ResidentBytes);
+                if (rest > 0) who.Children.Add(new Border { BorderBrush = Palette.Line, BorderThickness = new Thickness(0, 1, 0, 0), Padding = new Thickness(0, 8),
+                    Child = new TextBlock { Name = "SimpleMemoryRest", Text = L.T($"Sistema, serviços e programas menores: {UsageViewModel.Bytes(rest)}"), FontSize = 12.5, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap } });
+                if (swap > 0) who.Children.Add(new TextBlock { Text = L.T("Os números acima são o que cada programa ocupa na memória agora. O que foi para o swap não entra nessa conta por programa."), FontSize = 11.5, Foreground = Palette.Faint, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) });
                 if (OverviewInsight.IdleHog(groups.Where(Mine)) is { } hog) Tip(L.T($"{Name(hog)} está parado e segura {UsageViewModel.Bytes(hog.ResidentBytes)}. Fechar libera esse espaço na hora."), L.T("Encerrar"), () => _ = EndAsync(hog, Name(hog)));
+                Page("procs", L.T("Lista completa, com cada processo e quanto usa."), L.T("Ver todos os processos"));
                 if (level != InsightLevel.Fine)
                 {
                     Page("startup", L.T("Programas que abrem sozinhos com o sistema gastam memória o dia todo."), L.T("Ver"));
