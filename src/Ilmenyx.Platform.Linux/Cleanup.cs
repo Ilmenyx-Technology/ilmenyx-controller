@@ -20,7 +20,9 @@ public sealed record CleanupItem(CleanupKind Kind, string Title, string Explanat
 /// <summary>One piece of a cleanup item, in plain words.</summary>
 /// <param name="Key">The entry name inside the item's folder: what the page sends back to delete only the chosen parts.</param>
 /// <param name="Redownload">Comes back only by downloading it again (browsers for automation, AUR builds, AI models…).</param>
-public sealed record CleanupPart(string Key, string Name, string Note, long Bytes, bool Redownload = false);
+/// <param name="Recommended">Will not be missed: it rebuilds itself without a download, or nobody touched it for 90+ days. "Só recomendados" ticks these.</param>
+/// <param name="IdleDays">Days since anything inside changed; null when unknown.</param>
+public sealed record CleanupPart(string Key, string Name, string Note, long Bytes, bool Redownload = false, bool Recommended = false, int? IdleDays = null);
 
 /// <summary>A big file in the home folder that nobody opened or changed for a long time.</summary>
 public sealed record StaleFile(string Path, long Bytes, int DaysUnused);
@@ -64,7 +66,7 @@ public static partial class Cleanup
 
     public static async Task<IReadOnlyList<CleanupItem>> ScanAsync(string distroId, string idLike, CancellationToken ct = default)
     {
-        var trash = await Task.Run(() => TrashParts(ct), ct);
+        var trash = (await Task.Run(() => TrashParts(ct), ct)).Select(p => p with { Recommended = true }).ToArray();
         var cache = await Task.Run(() => CacheParts(CacheDir, ct), ct);
         var items = new List<CleanupItem>
         {
@@ -102,50 +104,94 @@ public static partial class Cleanup
         return parts.OrderByDescending(p => p.Bytes).ToArray();
     }
 
-    /// <summary>Each program's folder (or loose file) in ~/.cache with a plain name and what removing it means; Ilmenyx's own cache is left out.</summary>
-    public static IReadOnlyList<CleanupPart> CacheParts(string cacheDir, CancellationToken ct)
+    /// <summary>Days without change after which a cache nobody recognises counts as leftover.</summary>
+    public const int IdleDaysLeftover = 90;
+
+    /// <summary>
+    /// Each program's folder (or loose file) in ~/.cache with a plain name, what removing it means, how long it sits untouched and
+    /// whether removing it is recommended; Ilmenyx's own cache is left out. Folders the table does not know are matched to an installed
+    /// app by name (<paramref name="apps"/>).
+    /// </summary>
+    public static IReadOnlyList<CleanupPart> CacheParts(string cacheDir, CancellationToken ct, DesktopApps? apps = null, DateTime? nowUtc = null)
     {
         if (!Directory.Exists(cacheDir)) return [];
+        apps ??= new DesktopApps(); var now = nowUtc ?? DateTime.UtcNow;
         var parts = new List<CleanupPart>();
         foreach (var entry in new DirectoryInfo(cacheDir).EnumerateFileSystemInfos())
         {
             ct.ThrowIfCancellationRequested();
             if (OwnCaches.Contains(entry.Name)) continue;
-            var (name, note, redownload) = KnownCache(entry.Name);
-            parts.Add(new(entry.Name, name, note, EntrySize(entry, ct), redownload));
+            var (bytes, newest) = Measure(entry, ct);
+            int? idle = newest is { } n ? Math.Max(0, (int)(now - n).TotalDays) : null;
+            var known = KnownCache(entry.Name);
+            if (known is { } k) { parts.Add(new(entry.Name, k.Name, k.Note, bytes, k.Redownload, k.Safe || idle >= IdleDaysLeftover, idle)); continue; }
+            var app = apps.FindByFolder(entry.Name);
+            string note = app is not null ? L.T($"Cache do aplicativo {app.Name}, que está instalado. Ele refaz o que precisar; pode ter de baixar algo de novo.")
+                : L.T("Não achei um programa instalado com este nome. Pode ser de uma ferramenta de terminal ou sobra de algo desinstalado.");
+            parts.Add(new(entry.Name, app?.Name ?? entry.Name, note, bytes, false, idle >= IdleDaysLeftover, idle));
         }
         return parts.OrderByDescending(p => p.Bytes).ToArray();
     }
 
-    /// <summary>Plain name and meaning of well-known cache folders; anything else keeps its folder name.</summary>
-    internal static (string Name, string Note, bool Redownload) KnownCache(string entry)
+    /// <summary>Size and newest change under one cache entry (symbolic links not followed).</summary>
+    private static (long Bytes, DateTime? Newest) Measure(FileSystemInfo entry, CancellationToken ct)
+    {
+        try
+        {
+            if (entry is FileInfo file) return (file.Length, file.LastWriteTimeUtc);
+            if (entry is not DirectoryInfo dir || (dir.Attributes & FileAttributes.ReparsePoint) != 0) return (0, null);
+            long total = 0; DateTime newest = dir.LastWriteTimeUtc;
+            foreach (var f in dir.EnumerateFiles("*", new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.ReparsePoint }))
+            {
+                ct.ThrowIfCancellationRequested();
+                try { total += f.Length; if (f.LastWriteTimeUtc > newest) newest = f.LastWriteTimeUtc; } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+            }
+            return (total, newest);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return (0, null); }
+    }
+
+    private static readonly string[] Browsers = ["mozilla", "firefox", "librewolf", "zen", "google-chrome", "chromium", "bravesoftware", "microsoft-edge", "vivaldi", "opera", "epiphany", "falkon", "thorium"];
+    private static readonly string[] Shaders = ["mesa_shader_cache", "nvidia", "radv_builtin_shaders", "dxvk", "vkd3d-proton", "amd"];
+    // Desktop caches of GNOME, KDE Plasma, Cinnamon, XFCE, COSMIC (Pop!_OS) and the toolkits: rebuilt at the next login or use, nothing to download.
+    private static readonly string[] Desktop = ["fontconfig", "gstreamer-1.0", "gtk-3.0", "gtk-4.0", "glycin", "ibus", "ibus-table", "babl", "gegl-0.4", "imagemagick", "matplotlib", "kde", "plasma", "kwin", "ksycoca", "krunner",
+        "kscreen", "ksplash", "ksvg-elements", "ksmserver", "kinfocenter", "kcmshell", "kpackage", "kdeconnect", "drkonqi", "bookmarksrunner", "systemsettings", "icon-cache", "event-sound-cache", "favicons",
+        "gnome-shell", "gnome-desktop-thumbnailer", "gnome-control-center", "gnome-calculator", "gnome-screenshot", "nautilus", "cinnamon", "nemo", "mate", "xfce4", "cosmic", "pop-shell", "pop-launcher", "io.elementary",
+        "ubuntu-report", "update-manager-core", "motd.legal-displayed", "dconf", "obexd", "wireplumber", "pipewire", "ddcutil", "fish", "starship", "nvim", "vim"];
+    private static readonly string[] KdePrefixes = ["ksycoca", "kscreen", "kcmshell", "kpackage", "ksmserver", "ksplash", "ksvg", "kwin", "plasma"];
+    private static readonly string[] Stores = ["appstream", "gnome-software", "pamac", "discover", "packagekit", "mintinstall", "pop-shop", "io.elementary.appcenter", "apt-file", "debtap", "flatpak"];
+    private static readonly string[] Aur = ["paru", "yay", "pikaur", "trizen", "aurutils"];
+    private static readonly string[] Python = ["pip", "pypoetry", "uv", "pipenv", "pipx", "pdm", "hatch", "conda", "torch", "pre-commit"];
+    private static readonly string[] DevTools = ["yarn", "pnpm", "deno", "bun", "go-build", "node-gyp", "typescript", "ccache", "sccache", "electron", "electron-builder", "cypress", "puppeteer", "bazel", "nix", "jetbrains", "gh", "cloud-code", "copilot", "vscode-cpptools"];
+    private static readonly string[] WindowsGames = ["winetricks", "protonfixes", "lutris", "bottles", "heroic", "umu", "wine", "legendary"];
+
+    /// <summary>
+    /// Plain name and meaning of well-known cache folders; null when the folder is not known. <c>Safe</c>: rebuilt by itself without a
+    /// download and without anyone noticing, so it is recommended; shaders and anything that must be downloaded again are not.
+    /// </summary>
+    internal static (string Name, string Note, bool Redownload, bool Safe)? KnownCache(string entry)
     {
         string e = entry.ToLowerInvariant();
-        static string Browser() => L.T("Páginas e imagens guardadas pelo navegador. Logins e favoritos não ficam aqui.");
-        if (e == "mozilla") return ("Firefox", Browser(), false);
-        if (e is "google-chrome" or "chromium" or "bravesoftware" or "microsoft-edge" or "vivaldi" or "opera")
-            return (e switch { "google-chrome" => "Google Chrome", "chromium" => "Chromium", "bravesoftware" => "Brave", "microsoft-edge" => "Microsoft Edge", "vivaldi" => "Vivaldi", _ => "Opera" }, Browser(), false);
-        if (e == "thumbnails") return (L.T("Miniaturas"), L.T("Prévias de fotos e vídeos nas pastas. Se refazem quando você abre as pastas."), false);
-        if (e.StartsWith("mesa_shader_cache", StringComparison.Ordinal) || e is "nvidia" or "radv_builtin_shaders" or "dxvk" or "vkd3d-proton")
-            return (L.T("Shaders da placa de vídeo"), L.T("Jogos podem engasgar um pouco nos primeiros minutos enquanto refazem."), false);
-        if (e is "paru" or "yay" or "pikaur" or "trizen")
-            return (L.T("Pacotes do AUR") + " (" + entry + ")", L.T($"Fontes e pacotes que o {entry} baixou e compilou. Só fazem falta para reinstalar sem baixar de novo."), true);
-        if (e is "pip" or "pypoetry" or "uv") return ("Python (" + entry + ")", L.T("Pacotes Python baixados. São baixados de novo quando um projeto precisar."), true);
-        if (e is "yarn" or "pnpm" or "deno" or "go-build" or "bun" or "node-gyp" or "typescript")
-            return (entry, L.T("Arquivos de ferramentas de programação. São baixados ou gerados de novo quando precisar."), true);
-        if (e.StartsWith("ms-playwright", StringComparison.Ordinal) || e == "selenium")
-            return (L.T("Navegadores de automação") + " (" + entry + ")", L.T("Navegadores usados por ferramentas de teste. São baixados de novo no próximo uso."), true);
-        if (e == "huggingface") return (L.T("Modelos de IA (Hugging Face)"), L.T("Modelos baixados por programas de IA. Costumam ser grandes para baixar de novo."), true);
-        if (e is "winetricks" or "protonfixes" or "lutris" or "bottles" or "heroic")
-            return (entry, L.T("Instaladores e correções baixados para jogos e programas do Windows. São baixados de novo quando precisar."), true);
-        if (e is "spotify") return ("Spotify", L.T("Músicas guardadas para tocar sem baixar de novo."), true);
-        if (e is "discord") return ("Discord", L.T("Imagens e arquivos das conversas já vistos."), false);
-        if (e == "flatpak") return ("Flatpak", L.T("Arquivos temporários do Flatpak. Os apps instalados não ficam aqui."), false);
-        if (e == "appstream") return (L.T("Catálogo de apps"), L.T("Lista de apps da loja de programas. Se refaz na próxima atualização."), false);
-        if (e == "fontconfig") return (L.T("Índice de fontes"), L.T("Se refaz sozinho; os programas abrem um pouco mais devagar na primeira vez."), false);
-        if (e.EndsWith(".kcache", StringComparison.Ordinal) || e.StartsWith("plasma", StringComparison.Ordinal) || e.StartsWith("kwin", StringComparison.Ordinal) || e.StartsWith("ksycoca", StringComparison.Ordinal) || e is "kde" or "systemsettings" or "kpackage-knshandler" or "krunner")
-            return (entry, L.T("Cache da área de trabalho KDE Plasma. Se refaz no próximo login."), false);
-        return (entry, L.T($"Cache do programa \"{entry}\". Se você não sabe o que é, pode desmarcar e manter."), false);
+        bool Is(string[] names) => names.Any(n => e == n || e.StartsWith(n + "-", StringComparison.Ordinal) || e.StartsWith(n + "_", StringComparison.Ordinal) || e.StartsWith(n + ".", StringComparison.Ordinal));
+        if (Is(Browsers))
+            return (e switch { "mozilla" or "firefox" => "Firefox", "bravesoftware" => "Brave", "microsoft-edge" => "Microsoft Edge", "chromium" => "Chromium", "vivaldi" => "Vivaldi", "opera" => "Opera", _ when e.StartsWith("google-chrome", StringComparison.Ordinal) => "Google Chrome", _ => entry },
+                L.T("Páginas e imagens guardadas pelo navegador. Logins e favoritos não ficam aqui."), false, true);
+        if (e == "thumbnails") return (L.T("Miniaturas"), L.T("Prévias de fotos e vídeos nas pastas. Se refazem quando você abre as pastas."), false, true);
+        if (Is(Shaders)) return (L.T("Shaders da placa de vídeo") + " (" + entry + ")", L.T("Jogos podem engasgar um pouco nos primeiros minutos enquanto refazem."), false, false);
+        if (Is(Aur)) return (L.T("Pacotes do AUR") + " (" + entry + ")", L.T($"Fontes e pacotes que o {entry} baixou e compilou. Só fazem falta para reinstalar sem baixar de novo."), true, false);
+        if (Is(Python)) return ("Python (" + entry + ")", L.T("Pacotes Python baixados. Evitam baixar tudo de novo a cada instalação num projeto."), true, false);
+        if (Is(DevTools)) return (entry, L.T("Arquivos de ferramentas de programação. São baixados ou gerados de novo quando precisar."), true, false);
+        if (e.StartsWith("ms-playwright", StringComparison.Ordinal) || e == "selenium") return (L.T("Navegadores de automação") + " (" + entry + ")", L.T("Navegadores usados por ferramentas de teste. São baixados de novo no próximo uso."), true, false);
+        if (e == "huggingface") return (L.T("Modelos de IA (Hugging Face)"), L.T("Modelos baixados por programas de IA. Costumam ser grandes para baixar de novo."), true, false);
+        if (Is(WindowsGames)) return (entry, L.T("Instaladores e correções baixados para jogos e programas do Windows. São baixados de novo quando precisar."), true, false);
+        if (e == "spotify") return ("Spotify", L.T("Músicas guardadas para tocar sem baixar de novo."), true, false);
+        if (e is "discord" or "vesktop" or "slack" or "teams-for-linux" or "telegram-desktop") return (entry, L.T("Imagens e arquivos das conversas já vistos."), false, true);
+        if (e is "tracker3" or "tracker" or "baloo") return (L.T("Índice de busca de arquivos") + " (" + entry + ")", L.T("A busca do sistema refaz o índice, o que ocupa o processador por um tempo."), false, false);
+        if (e == "evolution" || e == "thunderbird" || e == "geary") return (entry, L.T("Cópias dos e-mails para ler sem conexão. São baixadas de novo do servidor."), true, false);
+        if (Is(Stores)) return (L.T("Catálogo de apps") + " (" + entry + ")", L.T("Lista de apps da loja de programas. Se refaz na próxima atualização."), false, true);
+        // KDE numbers its caches after the name ("ksycoca6_pt_…", "kcmshell6", "kscreenlocker_greet"): plain prefixes for these.
+        if (Is(Desktop) || e.EndsWith(".kcache", StringComparison.Ordinal) || KdePrefixes.Any(k => e.StartsWith(k, StringComparison.Ordinal))) return (entry, L.T("Cache da área de trabalho e dos programas do sistema. Se refaz sozinho no próximo uso."), false, true);
+        return null;
     }
 
     private static long EntrySize(FileSystemInfo entry, CancellationToken ct)

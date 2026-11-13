@@ -492,7 +492,21 @@ public sealed class UiSmokeApp : Application
                     var details = Find<StackPanel>(shell, "CleanDetails_UserCache");
                     await Until(() => details.IsEffectivelyVisible && details.GetVisualDescendants().OfType<CheckBox>().Any());
                     var parts = details.GetVisualDescendants().OfType<CheckBox>().ToList();
-                    if (parts.Any(c => c.IsChecked != true) || parts.Any(c => string.IsNullOrEmpty(AutomationProperties.GetName(c)))) throw new InvalidOperationException("Cache parts must come ticked and named.");
+                    // The scan leaves only the recommended parts ticked; "Marcar todos" is the starting point for the checks below.
+                    bool startedPartial = parts.Any(c => c.IsChecked != true);
+                    Click(shell, "BtnCleanAll_UserCache"); before = Find<TextBlock>(shell, "CleanTotal").Text ?? "";
+                    if (parts.Any(c => c.IsChecked != true) || parts.Any(c => string.IsNullOrEmpty(AutomationProperties.GetName(c)))) throw new InvalidOperationException("Cache parts must be named and all ticked after Marcar todos.");
+                    Console.WriteLine("PASS cleanup default: scan started with only recommended parts ticked = " + startedPartial);
+                    // "Só recomendados" keeps only what will not be missed (no re-download, or idle for 90+ days) and "Marcar todos" undoes it.
+                    if (shell.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "BtnCleanRecommended_UserCache"))
+                    {
+                        Click(shell, "BtnCleanRecommended_UserCache");
+                        if (parts.All(c => c.IsChecked == true) || cacheBox.IsChecked != true || Find<TextBlock>(shell, "CleanTotal").Text == before) throw new InvalidOperationException("Só recomendados must untick the parts that are not recommended.");
+                        await Task.Delay(600); Capture(shell, "shell-cleanup-recommended.png");
+                        Console.WriteLine($"PASS cleanup recommended: {parts.Count(c => c.IsChecked == true)} of {parts.Count} shown cache parts stay ticked");
+                        Click(shell, "BtnCleanAll_UserCache");
+                        if (parts.Any(c => c.IsChecked != true) || Find<TextBlock>(shell, "CleanTotal").Text != before) throw new InvalidOperationException("Marcar todos must tick everything again.");
+                    }
                     if (parts.Count > 1)
                     {
                         parts[0].IsChecked = false;

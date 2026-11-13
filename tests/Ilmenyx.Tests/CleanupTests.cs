@@ -171,11 +171,24 @@ public sealed class CleanupTests
             string cache = Path.Combine(root, "cache");
             foreach (var (dir, size) in new[] { ("mozilla", 3000), ("ms-playwright-mcp", 2000), ("ilmenyx", 50), ("ilmenyx-update", 70), ("Shelly", 4000) })
             { Directory.CreateDirectory(Path.Combine(cache, dir)); File.WriteAllBytes(Path.Combine(cache, dir, "x"), new byte[size]); }
-            var parts = Cleanup.CacheParts(cache, CancellationToken.None);
-            Assert.Equal(["Shelly", "mozilla", "ms-playwright-mcp"], parts.Select(p => p.Key)); // biggest first, Ilmenyx's own left out
-            Assert.Equal("Firefox", parts[1].Name);
-            Assert.True(parts[2].Redownload); Assert.False(parts[1].Redownload);
-            Assert.Contains("Shelly", parts[0].Note);
+            foreach (var (dir, size) in new[] { ("pip", 600), ("antigo-sumido", 500), ("ksycoca6_pt_abc=", 10) })
+            { Directory.CreateDirectory(Path.Combine(cache, dir)); File.WriteAllBytes(Path.Combine(cache, dir, "x"), new byte[size]); }
+            var now = DateTime.UtcNow;
+            File.SetLastWriteTimeUtc(Path.Combine(cache, "antigo-sumido", "x"), now.AddDays(-200)); Directory.SetLastWriteTimeUtc(Path.Combine(cache, "antigo-sumido"), now.AddDays(-200));
+            // The installed app whose .desktop id ends in the folder name (CachyOS, 2026-11-12: ~/.cache/Shelly belongs to com.shellyorg.shelly).
+            string data = Path.Combine(root, "share"); Directory.CreateDirectory(Path.Combine(data, "applications"));
+            File.WriteAllText(Path.Combine(data, "applications", "com.shellyorg.shelly.desktop"), "[Desktop Entry]\nName=Shelly Package Manager\n");
+            var parts = Cleanup.CacheParts(cache, CancellationToken.None, new DesktopApps([data]), now);
+            Assert.Equal(["Shelly", "mozilla", "ms-playwright-mcp", "pip", "antigo-sumido", "ksycoca6_pt_abc="], parts.Select(p => p.Key)); // biggest first, Ilmenyx's own left out
+            CleanupPart Part(string key) => parts.Single(p => p.Key == key);
+            Assert.Equal("Firefox", Part("mozilla").Name);
+            Assert.True(Part("ms-playwright-mcp").Redownload); Assert.False(Part("mozilla").Redownload);
+            Assert.Equal("Shelly Package Manager", Part("Shelly").Name); Assert.Contains("instalado", Part("Shelly").Note);
+            // Recommended = rebuilt without a download (browser, desktop caches) or untouched for 90+ days; never what must be downloaded again or an app in use.
+            Assert.Equal(["mozilla", "antigo-sumido", "ksycoca6_pt_abc="], parts.Where(p => p.Recommended).Select(p => p.Key));
+            Assert.Equal(200, Part("antigo-sumido").IdleDays); Assert.Equal(0, Part("pip").IdleDays);
+            Assert.Null(Cleanup.KnownCache("Shelly")); Assert.True(Cleanup.KnownCache("gnome-software")!.Value.Safe); Assert.False(Cleanup.KnownCache("mesa_shader_cache_db")!.Value.Safe);
+            Assert.True(Cleanup.KnownCache("yay")!.Value.Redownload); Assert.True(Cleanup.KnownCache("cosmic-settings")!.Value.Safe); Assert.Null(Cleanup.KnownCache("pipeline-tool")); // "pip" must not match by prefix alone
             Assert.Equal(3000, Cleanup.EmptyDirectory(cache, CancellationToken.None, skip: "ilmenyx", only: new HashSet<string> { "mozilla" }));
             Assert.True(Directory.Exists(Path.Combine(cache, "Shelly"))); Assert.False(Directory.Exists(Path.Combine(cache, "mozilla")));
 

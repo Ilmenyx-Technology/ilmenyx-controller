@@ -34,6 +34,23 @@ public sealed class DesktopApps(IReadOnlyList<string>? dataDirs = null)
         return list.Distinct(StringComparer.Ordinal).ToArray();
     }
 
+    private string[]? ids;
+
+    /// <summary>
+    /// The installed app a folder named <paramref name="folder"/> most likely belongs to (cache folders carry the program's name):
+    /// a .desktop id equal to it or ending in ".folder", ignoring case ("Shelly" → com.shellyorg.shelly). Null when none.
+    /// </summary>
+    public DesktopApp? FindByFolder(string folder)
+    {
+        ids ??= dirs.SelectMany(d =>
+        {
+            try { string apps = Path.Combine(d, "applications"); return Directory.Exists(apps) ? Directory.EnumerateFiles(apps, "*.desktop").Select(f => Path.GetFileNameWithoutExtension(f)) : []; }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return []; }
+        }).Distinct(StringComparer.Ordinal).ToArray();
+        string? id = ids.FirstOrDefault(i => i.Equals(folder, StringComparison.OrdinalIgnoreCase)) ?? ids.FirstOrDefault(i => i.EndsWith("." + folder, StringComparison.OrdinalIgnoreCase));
+        return id is null ? null : Find(id);
+    }
+
     public DesktopApp? Find(string appId)
     {
         if (cache.TryGetValue(appId, out var known)) return known;

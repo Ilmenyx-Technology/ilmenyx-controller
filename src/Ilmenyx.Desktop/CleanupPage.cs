@@ -75,7 +75,12 @@ public sealed class CleanupPage : StackPanel
             items = await Cleanup.ScanAsync(id, like, lifetime);
             stale = await Task.Run(() => Cleanup.StaleFiles(Cleanup.Home, DateTime.UtcNow, lifetime), lifetime);
             chosen.Clear(); chosenFiles.Clear(); skipped.Clear();
-            foreach (var i in items.Where(i => i.Recommended && i.Unavailable is null && i.Bytes is > 0)) chosen.Add(i.Kind);
+            foreach (var i in items.Where(i => i.Recommended && i.Unavailable is null && i.Bytes is > 0))
+            {
+                // Items with parts start with only the recommended ones ticked (caches that would have to be downloaded again stay).
+                if (Choosable(i)) { foreach (var part in i.Parts!.Where(p => !p.Recommended)) Skipped(i.Kind).Add(part.Key); if (i.Parts!.All(p => !p.Recommended)) { Skipped(i.Kind).Clear(); continue; } }
+                chosen.Add(i.Kind);
+            }
             Render();
             status.Text = L.T($"Analisado às {DateTime.Now:HH:mm}. Nada foi apagado.");
         }
@@ -169,7 +174,8 @@ public sealed class CleanupPage : StackPanel
                 details.Children.Clear(); partBoxes.Clear();
                 string intro = item.Kind switch
                 {
-                    CleanupKind.Trash or CleanupKind.UserCache when choosable => L.T("Desmarque o que quiser manter. Só o que estiver marcado é apagado."),
+                    CleanupKind.UserCache when choosable => L.T("Já vem marcado só o recomendado: o que se refaz sozinho, sem baixar nada, ou está parado há mais de 90 dias. Só o que estiver marcado é apagado."),
+                    CleanupKind.Trash when choosable => L.T("Desmarque o que quiser manter. Só o que estiver marcado é apagado."),
                     CleanupKind.UserCache => L.T("O que tem em ~/.cache, do maior para o menor."),
                     CleanupKind.PackageCache => L.T("Instaladores antigos por programa. O comando acima apaga todos de uma vez; os programas instalados não mudam."),
                     CleanupKind.Journal => L.T("O comando acima apaga só os registros com mais de 4 semanas."),
@@ -183,7 +189,14 @@ public sealed class CleanupPage : StackPanel
                     var none = new Button { Name = "BtnCleanNone_" + item.Kind, Content = L.T("Desmarcar todos"), FontSize = 11.5, Background = Brushes.Transparent, Foreground = Palette.AccentText, Padding = new Thickness(0, 2) };
                     all.Click += (_, _) => { chosen.Add(item.Kind); skip.Clear(); Sync(); };
                     none.Click += (_, _) => { chosen.Remove(item.Kind); skip.Clear(); Sync(); };
-                    details.Children.Add(new WrapPanel { Children = { all, none } });
+                    var actions = new WrapPanel { Children = { all, none } };
+                    if (parts.Any(p => p.Recommended) && parts.Any(p => !p.Recommended))
+                    {
+                        var safe = new Button { Name = "BtnCleanRecommended_" + item.Kind, Content = L.T("Só recomendados"), FontSize = 11.5, Background = Brushes.Transparent, Foreground = Palette.AccentText, Padding = new Thickness(0, 2, 12, 2) };
+                        safe.Click += (_, _) => { chosen.Add(item.Kind); skip.Clear(); foreach (var p in parts.Where(p => !p.Recommended)) skip.Add(p.Key); Sync(); };
+                        actions.Children.Insert(0, safe);
+                    }
+                    details.Children.Add(actions);
                 }
                 foreach (var part in parts.Take(count)) details.Children.Add(PartRow(part, choosable, partBoxes, Pick));
                 if (parts.Count > count)
@@ -217,9 +230,11 @@ public sealed class CleanupPage : StackPanel
         var name = new TextBlock { Text = part.Name, FontSize = 12.5, FontWeight = FontWeight.Medium, TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center };
         if (part.Key.Length > 0 && part.Key != part.Name) ToolTip.SetTip(name, part.Key);
         var head = new WrapPanel { ItemSpacing = 6, Children = { name } };
+        if (part.Recommended && choosable) head.Children.Add(UiKit.Tag(L.T("recomendado"), Palette.Success));
         if (part.Redownload) head.Children.Add(UiKit.Tag(L.T("baixa de novo"), Palette.Warn));
         var info = new StackPanel { Children = { head } };
-        if (part.Note.Length > 0) info.Children.Add(new TextBlock { Text = part.Note, FontSize = 11.5, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap });
+        string note = part.Note + (part.IdleDays is >= 30 and var idle ? (part.Note.Length > 0 ? " " : "") + L.T($"Sem uso há {idle} dias.") : "");
+        if (note.Length > 0) info.Children.Add(new TextBlock { Text = note, FontSize = 11.5, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap });
         var size = new TextBlock { Text = Size(part.Bytes), FontSize = 12.5, FontFamily = IlmenyxTheme.Mono, Foreground = Palette.Muted, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(12, 0, 0, 0) };
         var row = new Grid { ColumnDefinitions = new("Auto,*,Auto") };
         if (choosable)
