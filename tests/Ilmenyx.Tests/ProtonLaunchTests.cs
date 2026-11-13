@@ -91,4 +91,39 @@ public sealed class ProtonLaunchTests
         Assert.Null(BundledComponents.ResolveIn("umu-run", Path.Combine(root, "none"), data));
         Directory.Delete(root, true);
     }
+
+    [Fact]
+    public void TheProfileChoosesThePrefixTheProtonBuildOrAPlainWine()
+    {
+        string root = Directory.CreateTempSubdirectory("ilx-runners").FullName;
+        try
+        {
+            string ge = Path.Combine(root, ".local/share/Steam/compatibilitytools.d/GE-Proton10-34"), wine = Path.Combine(root, ".local/share/ilmenyx/runners/wine-soda-11.0-10");
+            Directory.CreateDirectory(ge); File.WriteAllText(Path.Combine(ge, "proton"), "");
+            Directory.CreateDirectory(Path.Combine(wine, "bin")); File.WriteAllText(Path.Combine(wine, "bin/wine"), ""); File.WriteAllText(Path.Combine(wine, "bin/wineserver"), "");
+            Directory.CreateDirectory(Path.Combine(root, ".local/share/Steam/compatibilitytools.d/not-a-runner"));
+            Assert.Equal([("wine-soda-11.0-10", true), ("GE-Proton10-34", false)], GameRunners.Find(root).Select(r => (r.Name, r.Wine)).OrderByDescending(r => r.Wine));
+
+            var auto = LinuxGameLauncher.BuildManual("/g/X/a.exe", new(), "", "AMD", Find, prefixRoot: "/p");
+            Assert.DoesNotContain(auto.Environment, e => e.Key == "PROTONPATH");
+            var chosen = LinuxGameLauncher.BuildManual("/g/X/a.exe", new() { Runner = ge, WinePrefix = "/saves/x" }, "", "AMD", Find, prefixRoot: "/p");
+            Assert.Contains(new KeyValuePair<string, string>("PROTONPATH", ge), chosen.Environment);
+            Assert.Contains(new KeyValuePair<string, string>("WINEPREFIX", "/saves/x"), chosen.Environment);
+            Assert.Contains(new KeyValuePair<string, string>("PROTONPATH", "GE-Proton"), LinuxGameLauncher.BuildManual("/g/X/a.exe", new() { Runner = GameRunners.LatestGe }, "", "AMD", Find, prefixRoot: "/p").Environment);
+            Assert.DoesNotContain(LinuxGameLauncher.BuildManual("/g/X/a.exe", new() { Runner = "/gone" }, "", "AMD", Find, prefixRoot: "/p").Environment, e => e.Key == "PROTONPATH"); // deleted build: back to automatic
+
+            var plain = LinuxGameLauncher.BuildManual("/g/X/a.exe", new() { Runner = wine, MangoHud = true }, "", "AMD", Find, prefixRoot: "/p");
+            Assert.Equal("/usr/bin/mangohud", plain.Program); // wrappers still come first
+            Assert.Equal([Path.Combine(wine, "bin/wine"), "/g/X/a.exe"], plain.Arguments.Take(2));
+            Assert.DoesNotContain(plain.Environment, e => e.Key is "GAMEID" or "PROTONPATH");
+            Assert.Contains(new KeyValuePair<string, string>("WINEPREFIX", "/p/x"), plain.Environment);
+
+            Assert.Null(GameRunners.PrefixProblem(Path.Combine(root, "novo"), root));
+            string docs = Path.Combine(root, "Documentos"); Directory.CreateDirectory(docs); File.WriteAllText(Path.Combine(docs, "cv.odt"), "");
+            Assert.NotNull(GameRunners.PrefixProblem(docs, root)); // would fill a personal folder with a C: drive
+            File.WriteAllText(Path.Combine(docs, "system.reg"), ""); Assert.Null(GameRunners.PrefixProblem(docs, root)); // an existing prefix
+            Assert.NotNull(GameRunners.PrefixProblem(root, root)); Assert.NotNull(GameRunners.PrefixProblem("/", root)); Assert.NotNull(GameRunners.PrefixProblem("relativa", root));
+        }
+        finally { Directory.Delete(root, true); }
+    }
 }

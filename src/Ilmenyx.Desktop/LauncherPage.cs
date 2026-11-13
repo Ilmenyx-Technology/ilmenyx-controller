@@ -63,6 +63,11 @@ public sealed class LauncherPage : Grid
     private readonly TextBox extra = new() { Name = "LExtra", PlaceholderText = L.T("ex.: -novid -high +fps_max 0") };
     private readonly TextBox protonId = new() { Name = "LProtonId", PlaceholderText = L.T("ID Steam do jogo (opcional), ex.: 307780"), MaxLength = 10 };
     private readonly StackPanel protonBox = new() { Name = "LProtonBox", IsVisible = false, Margin = new Thickness(0, 10, 0, 0) };
+    private readonly ComboBox runnerBox = new() { Name = "LRunner", HorizontalAlignment = HorizontalAlignment.Stretch, FontSize = 12 };
+    private readonly TextBlock prefixText = new() { Name = "LPrefix", FontSize = 11.5, FontFamily = IlmenyxTheme.Mono, Foreground = Palette.Muted, TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center };
+    private readonly TextBlock runnerStatus = new() { Name = "LRunnerStatus", FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) };
+    private List<(string Label, string? Value)> runnerChoices = [];
+    private const string PickRunner = "\0pick"; // the "Escolher pasta…" entry of the runner list
     private readonly TextBlock protonIdStatus = new() { Name = "LProtonIdStatus", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) };
     private readonly Button removeGame = new() { Name = "BtnRemoveGame", Content = L.T("Remover"), FontSize = 11, Padding = new Thickness(12, 6), IsVisible = false };
     private readonly Button renameGame = new() { Name = "BtnRenameGame", Content = L.T("Renomear"), FontSize = 11, Padding = new Thickness(12, 6), IsVisible = false };
@@ -298,6 +303,58 @@ public sealed class LauncherPage : Grid
         var protonHelp = new TextBlock { Text = L.T("Roda com Proton, sem a Steam. Com o ID Steam, o Proton aplica as correções conhecidas do jogo."), Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0) };
         ToolTip.SetTip(protonHelp, L.T("Na primeira vez o Proton é baixado (~1 GB) e o \"Windows\" do jogo é preparado; demora alguns minutos. O ID é o número em store.steampowered.com/app/ID; o Ilmenyx tenta achá-lo pelo nome quando o jogo é adicionado."));
         protonBox.Children.Add(protonHelp);
+        // Which Proton or Wine runs the game, and where its "C:" drive (Wine prefix) lives. Automatic unless the user chooses.
+        protonBox.Children.Add(new Border { Height = 12 }); protonBox.Children.Add(UiKit.Label(L.T("VERSÃO DO PROTON OU WINE")));
+        AutomationProperties.SetName(runnerBox, L.T("Versão do Proton ou Wine"));
+        var fetchRunner = new Button { Name = "BtnRunnerDownload", Content = L.T("Baixar versão…"), FontSize = 11, Padding = new Thickness(12, 5), Margin = new Thickness(8, 0, 0, 0) };
+        ToolTip.SetTip(fetchRunner, L.T("Baixa uma versão específica do GE-Proton ou do Proton (UMU-Proton) pelo GitHub e já seleciona para este jogo."));
+        fetchRunner.Click += async (_, _) =>
+        {
+            if (profile is null || owner() is not { } window) return;
+            var dialog = (RunnerDialog ?? (() => new RunnerDownloadDialog()))();
+            await dialog.ShowDialog(window);
+            if (dialog.Installed is not { } folder || profile is null) return;
+            profile.Runner = folder; SaveProfile(current, profile); LoadRunner(profile); protonName = Path.GetFileName(folder);
+            runnerStatus.Foreground = Palette.Faint; runnerStatus.Text = L.T($"{Path.GetFileName(folder)} baixado e selecionado para este jogo.");
+        };
+        var runnerRow = new Grid { ColumnDefinitions = new("*,Auto"), Margin = new Thickness(0, 6, 0, 0) };
+        Grid.SetColumn(fetchRunner, 1); runnerRow.Children.Add(runnerBox); runnerRow.Children.Add(fetchRunner);
+        protonBox.Children.Add(runnerRow);
+        runnerBox.SelectionChanged += async (_, _) =>
+        {
+            if (loading || profile is null || runnerBox.SelectedIndex < 0 || runnerBox.SelectedIndex >= runnerChoices.Count) return;
+            string? value = runnerChoices[runnerBox.SelectedIndex].Value;
+            if (value == PickRunner)
+            {
+                string? folder = await PickFolderAsync(L.T("Escolha a pasta do Proton ou do Wine"));
+                if (folder is null || !GameRunners.IsRunner(folder))
+                {
+                    LoadRunner(profile);
+                    if (folder is not null) { runnerStatus.Foreground = Palette.Warn; runnerStatus.Text = L.T("Esta pasta não é um Proton nem um Wine: falta o arquivo \"proton\" ou \"bin/wine\" dentro dela."); }
+                    return;
+                }
+                value = folder;
+            }
+            profile.Runner = value; SaveProfile(current, profile); LoadRunner(profile);
+            protonName = value is not null && Path.IsPathFullyQualified(value) ? Path.GetFileName(value) : (UmuProton ?? (() => LinuxGameExtras.UmuProtonName()))();
+            runnerStatus.Foreground = Palette.Faint; runnerStatus.Text = L.T("Salvo. Vale na próxima vez que o jogo abrir.");
+        };
+        protonBox.Children.Add(new Border { Height = 12 }); protonBox.Children.Add(UiKit.Label(L.T("PREFIXO DO WINE (O \"C:\" DO JOGO)")));
+        var pickPrefix = new Button { Name = "BtnPrefixPick", Content = L.T("Escolher pasta…"), FontSize = 11, Padding = new Thickness(12, 5), Margin = new Thickness(8, 0, 0, 0) };
+        var defaultPrefix = new Button { Name = "BtnPrefixDefault", Content = L.T("Padrão"), FontSize = 11, Padding = new Thickness(12, 5), Margin = new Thickness(8, 0, 0, 0) };
+        ToolTip.SetTip(pickPrefix, L.T("Use uma pasta vazia ou um prefixo que já existe (de outro launcher, por exemplo). Saves e instalações do prefixo anterior não são movidos."));
+        pickPrefix.Click += async (_, _) =>
+        {
+            if (profile is null || await PickFolderAsync(L.T("Escolha a pasta do prefixo do Wine")) is not { } folder) return;
+            if (GameRunners.PrefixProblem(folder) is { } problem) { runnerStatus.Foreground = Palette.Warn; runnerStatus.Text = problem; return; }
+            profile.WinePrefix = folder; SaveProfile(current, profile); LoadRunner(profile);
+            runnerStatus.Foreground = Palette.Faint; runnerStatus.Text = L.T("Salvo. Vale na próxima vez que o jogo abrir.");
+        };
+        defaultPrefix.Click += (_, _) => { if (profile is null) return; profile.WinePrefix = null; SaveProfile(current, profile); LoadRunner(profile); runnerStatus.Foreground = Palette.Faint; runnerStatus.Text = L.T("Prefixo padrão do Ilmenyx de volta."); };
+        var prefixRow = new Grid { ColumnDefinitions = new("*,Auto,Auto"), Margin = new Thickness(0, 6, 0, 0) };
+        Grid.SetColumn(pickPrefix, 1); Grid.SetColumn(defaultPrefix, 2);
+        prefixRow.Children.Add(prefixText); prefixRow.Children.Add(pickPrefix); prefixRow.Children.Add(defaultPrefix);
+        protonBox.Children.Add(prefixRow); protonBox.Children.Add(runnerStatus);
         protonId.LostFocus += (_, _) => { if (current is { IsWindowsManual: true } cg && profile?.ProtonGameId is { Length: >= 3 } typed) FetchArtLater(cg, typed); };
         protonId.TextChanged += (_, _) =>
         {
@@ -469,10 +526,12 @@ public sealed class LauncherPage : Grid
         heroScrim.IsVisible = heroArt; title.Foreground = heroArt ? Brushes.White : Palette.Fg; sub.Foreground = heroArt ? GameArt.OnImageMuted : Palette.Muted;
         chkPlan.IsChecked = p.HighPerfPlan; chkGpu.IsChecked = p.GpuHigh && multiGpu; chkGameMode.IsChecked = p.GameMode; chkMango.IsChecked = p.MangoHud; UpdateFlatpakMango(g); chkGuard.IsChecked = p.FullscreenGuard; chkGuard.IsVisible = multiGpu && gpuVendor == "NVIDIA";
         modeChips!.Select(p.WinMode); resChips!.Select(p.Res); hzChips!.Select(p.Hz); styleChips!.Select(p.Style); gfxPresetChips!.Select(p.GfxPreset ?? ""); gfxUpChips!.Select(p.GfxUpscaling ?? ""); extra.Text = p.Extra; exePath.Text = p.ExePath ?? g.ExePath ?? "";
-        protonBox.IsVisible = g.IsWindowsManual; protonId.Text = p.ProtonGameId ?? ""; protonIdStatus.Text = "";
+        protonBox.IsVisible = g.IsWindowsManual; protonId.Text = p.ProtonGameId ?? ""; protonIdStatus.Text = ""; runnerStatus.Text = "";
+        if (g.IsWindowsManual) LoadRunner(p);
         removeGame.IsVisible = renameGame.IsVisible = g.Store == "Manual";
         chkWayland.IsChecked = p.ProtonWayland; chkLowLat.IsChecked = p.LowLatency; extrasBox.IsVisible = g.IsSteam || g.IsWindowsManual;
-        protonName = g.IsSteam ? steam.CompatToolName(g.Id) : g.IsWindowsManual ? (UmuProton ?? (() => LinuxGameExtras.UmuProtonName()))() : null;
+        protonName = g.IsSteam ? steam.CompatToolName(g.Id) : !g.IsWindowsManual ? null
+            : p.Runner is { Length: > 0 } chosen && Path.IsPathFullyQualified(chosen) ? Path.GetFileName(chosen) : (UmuProton ?? (() => LinuxGameExtras.UmuProtonName()))();
         RebuildHelpers();
         steamBox.IsVisible = g.IsSteam; steamNow.Text = g.IsSteam ? L.T("Opções atuais na Steam: ") + (steam.GetLaunchOptions(g.Id) is { Length: > 0 } cur ? cur : L.T("(nenhuma)")) : "";
         gfxNote.Text = g.IsSteam ? L.T("Os argumentos e variáveis só passam a valer na Steam depois de Aplicar nas opções da Steam (a Steam é fechada nessa hora). Depois, o Jogar abre pela Steam normalmente.")
@@ -555,6 +614,37 @@ public sealed class LauncherPage : Grid
             dir = Path.GetDirectoryName(dir);
         }
         return Path.GetFileNameWithoutExtension(exe);
+    }
+
+    /// <summary>Fills the Proton/Wine list (automatic, latest GE, what is on this PC, the profile's own folder, pick a folder) and the prefix line.</summary>
+    private void LoadRunner(GameProfile p)
+    {
+        bool was = loading; loading = true;
+        var found = (Runners ?? (() => GameRunners.Find()))();
+        runnerChoices = [(L.T("Automático (UMU-Proton, recomendado)"), null), (L.T("GE-Proton mais recente (baixa na primeira vez)"), GameRunners.LatestGe),
+            .. found.Select(r => (r.Name + (r.Wine ? " (Wine)" : ""), (string?)r.Path))];
+        if (p.Runner is { Length: > 0 } own && own != GameRunners.LatestGe && found.All(r => r.Path != own))
+            runnerChoices.Add((Path.GetFileName(own) + (GameRunners.IsRunner(own) ? L.T(" (pasta escolhida)") : L.T(" (não encontrado: o jogo abre no automático)")), own));
+        runnerChoices.Add((L.T("Escolher pasta…"), PickRunner));
+        runnerBox.ItemsSource = runnerChoices.Select(c => c.Label).ToList();
+        runnerBox.SelectedIndex = Math.Max(0, runnerChoices.FindIndex(c => c.Value == (p.Runner is { Length: > 0 } r ? r : null)));
+        string? exe = p.ExePath ?? current?.ExePath;
+        string prefix = p.WinePrefix is { Length: > 0 } w ? w : exe is null ? "" : LinuxGameLauncher.ProtonEnvironment(exe, p.ProtonGameId, LinuxGameLauncher.DefaultPrefixRoot())[0].Value;
+        prefixText.Text = (p.WinePrefix is { Length: > 0 } ? "" : L.T("Padrão: ")) + prefix; ToolTip.SetTip(prefixText, prefix);
+        loading = was;
+    }
+
+    /// <summary>Test seam: the "Baixar versão…" window (default: the real one, which talks to GitHub).</summary>
+    public Func<RunnerDownloadDialog>? RunnerDialog { get; set; }
+
+    /// <summary>Test seam: the Proton/Wine builds offered (default: what is found on this PC).</summary>
+    public Func<IReadOnlyList<GameRunner>>? Runners { get; set; }
+
+    private async Task<string?> PickFolderAsync(string title)
+    {
+        if (owner() is not { } window) return null;
+        var folders = await window.StorageProvider.OpenFolderPickerAsync(new Avalonia.Platform.Storage.FolderPickerOpenOptions { Title = title, AllowMultiple = false });
+        return folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
     }
 
     /// <summary>System file chooser for the game's executable (Linux program, AppImage, script or Windows .exe). Null when cancelled.</summary>
