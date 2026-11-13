@@ -752,6 +752,22 @@ public sealed class UiSmokeApp : Application
         Click(host, "BtnPrefixDefault");
         if (page.Profile!.WinePrefix is not null || !Find<Button>(host, "BtnPrefixPick").IsVisible) throw new InvalidOperationException("Prefix controls missing.");
         Console.WriteLine("PASS game runner and prefix: automatic by default, GE-Proton choice saved and undone, prefix shown with pick/default");
+        // "Baixar versão…": the window lists releases (fake catalog here, no network), downloads the chosen one and the game starts using it.
+        string fakeRunners = Directory.CreateTempSubdirectory("ilx-smoke-runners").FullName;
+        page.RunnerDialog = () => new RunnerDownloadDialog(
+            (repo, _) => Task.FromResult<IReadOnlyList<RunnerRelease>>([new("GE-Proton11-12", "https://github.com/x", 566859228, "https://github.com/y"), new("GE-Proton11-11", "https://github.com/x", 564789552, "https://github.com/y")]),
+            (release, progress, _) => { string f = Path.Combine(fakeRunners, release.Name); Directory.CreateDirectory(f); File.WriteAllText(Path.Combine(f, "proton"), ""); progress.Report(1); return Task.FromResult(f); });
+        Click(host, "BtnRunnerDownload");
+        await Until(() => host.OwnedWindows.OfType<RunnerDownloadDialog>().Any(d => d.IsVisible && Find<ListBox>(d, "RunnerVersions").ItemCount == 2));
+        var fetch = host.OwnedWindows.OfType<RunnerDownloadDialog>().Single();
+        if (Find<Button>(fetch, "BtnRunnerDownloadGo").IsEnabled) throw new InvalidOperationException("Baixar must wait for a chosen version.");
+        if (Find<ListBox>(fetch, "RunnerVersions").Items[0] is not string first || !first.Contains("541 MB")) throw new InvalidOperationException("Version rows must show the size.");
+        Find<ListBox>(fetch, "RunnerVersions").SelectedIndex = 0; Click(fetch, "BtnRunnerDownloadGo");
+        await Until(() => !fetch.IsVisible && page.Profile!.Runner == Path.Combine(fakeRunners, "GE-Proton11-12") && Find<TextBlock>(host, "LRunnerStatus").Text!.Contains("baixado e selecionado"));
+        if (Find<ComboBox>(host, "LRunner").SelectedItem is not string picked || !picked.StartsWith("GE-Proton11-12", StringComparison.Ordinal)) throw new InvalidOperationException("The downloaded build must be selected in the list.");
+        Find<ComboBox>(host, "LRunner").SelectedIndex = 0; await Until(() => page.Profile!.Runner is null);
+        Directory.Delete(fakeRunners, true);
+        Console.WriteLine("PASS runner download window: versions listed with size, download selects the build for the game");
         Click(host, "BtnRenameGame");
         await Until(() => Find<TextBlock>(host, "LTitle").Text == "Silksong (teste)" && Ilmenyx.Core.IlmenyxSettings.Load(settingsPath).CustomGames.Any(c => c.Exe == winExe && c.Name == "Silksong (teste)"));
         if (page.Profile!.ProtonGameId != "1234567") throw new InvalidOperationException("Renaming must keep the game's profile.");

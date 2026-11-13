@@ -304,7 +304,20 @@ public sealed class LauncherPage : Grid
         // Which Proton or Wine runs the game, and where its "C:" drive (Wine prefix) lives. Automatic unless the user chooses.
         protonBox.Children.Add(new Border { Height = 12 }); protonBox.Children.Add(UiKit.Label(L.T("VERSÃO DO PROTON OU WINE")));
         AutomationProperties.SetName(runnerBox, L.T("Versão do Proton ou Wine"));
-        protonBox.Children.Add(new Border { Height = 6 }); protonBox.Children.Add(runnerBox);
+        var fetchRunner = new Button { Name = "BtnRunnerDownload", Content = L.T("Baixar versão…"), FontSize = 11, Padding = new Thickness(12, 5), Margin = new Thickness(8, 0, 0, 0) };
+        ToolTip.SetTip(fetchRunner, L.T("Baixa uma versão específica do GE-Proton ou do Proton (UMU-Proton) pelo GitHub e já seleciona para este jogo."));
+        fetchRunner.Click += async (_, _) =>
+        {
+            if (profile is null || owner() is not { } window) return;
+            var dialog = (RunnerDialog ?? (() => new RunnerDownloadDialog()))();
+            await dialog.ShowDialog(window);
+            if (dialog.Installed is not { } folder || profile is null) return;
+            profile.Runner = folder; SaveProfile(current, profile); LoadRunner(profile); protonName = Path.GetFileName(folder);
+            runnerStatus.Foreground = Palette.Faint; runnerStatus.Text = L.T($"{Path.GetFileName(folder)} baixado e selecionado para este jogo.");
+        };
+        var runnerRow = new Grid { ColumnDefinitions = new("*,Auto"), Margin = new Thickness(0, 6, 0, 0) };
+        Grid.SetColumn(fetchRunner, 1); runnerRow.Children.Add(runnerBox); runnerRow.Children.Add(fetchRunner);
+        protonBox.Children.Add(runnerRow);
         runnerBox.SelectionChanged += async (_, _) =>
         {
             if (loading || profile is null || runnerBox.SelectedIndex < 0 || runnerBox.SelectedIndex >= runnerChoices.Count) return;
@@ -618,6 +631,9 @@ public sealed class LauncherPage : Grid
         prefixText.Text = (p.WinePrefix is { Length: > 0 } ? "" : L.T("Padrão: ")) + prefix; ToolTip.SetTip(prefixText, prefix);
         loading = was;
     }
+
+    /// <summary>Test seam: the "Baixar versão…" window (default: the real one, which talks to GitHub).</summary>
+    public Func<RunnerDownloadDialog>? RunnerDialog { get; set; }
 
     /// <summary>Test seam: the Proton/Wine builds offered (default: what is found on this PC).</summary>
     public Func<IReadOnlyList<GameRunner>>? Runners { get; set; }
