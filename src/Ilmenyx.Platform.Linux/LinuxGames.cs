@@ -446,8 +446,16 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
         if (exe.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
         {
             // Windows game: Proton through umu-launcher (system copy first, else the one in the package), with a prefix per game.
-            wrappers.Add(find("umu-run") ?? throw new InvalidOperationException(L.T("Este é um jogo de Windows e o umu-launcher (Proton fora da Steam) não foi encontrado.")));
-            proton.AddRange(ProtonEnvironment(exe, p.ProtonGameId, prefixRoot ?? DefaultPrefixRoot()));
+            // The profile may name the prefix and the Proton build; a plain Wine chosen there runs the game directly, without umu.
+            var umu = ProtonEnvironment(exe, p.ProtonGameId, prefixRoot ?? DefaultPrefixRoot()).ToList();
+            if (p.WinePrefix is { Length: > 0 } ownPrefix && Path.IsPathFullyQualified(ownPrefix)) umu[0] = new("WINEPREFIX", ownPrefix);
+            if (GameRunners.WineBin(p.Runner) is { } wine) { wrappers.Add(wine); proton.Add(umu[0]); }
+            else
+            {
+                wrappers.Add(find("umu-run") ?? throw new InvalidOperationException(L.T("Este é um jogo de Windows e o umu-launcher (Proton fora da Steam) não foi encontrado.")));
+                proton.AddRange(umu);
+                if (p.Runner is { Length: > 0 } runner && (runner == GameRunners.LatestGe || GameRunners.IsProton(runner))) proton.Add(new("PROTONPATH", runner));
+            }
             if (GameLaunchOptions.GuardApplies(p, gpuVendor)) proton.Add(new(GameLaunchOptions.GuardVariable, GameLaunchOptions.GuardValue));
         }
         if (wrappers.Count > 0) { program = wrappers[0]; args.AddRange(wrappers.Skip(1)); args.Add(exe); }
