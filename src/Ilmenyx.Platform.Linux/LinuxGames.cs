@@ -99,7 +99,7 @@ public sealed class LinuxGameLibrary(string? home = null, Func<IReadOnlyList<str
                 catch (Exception e) when (e is IOException or UnauthorizedAccessException) { continue; }
                 if (n is null) continue;
                 string? program = Path.IsPathFullyQualified(n.Program) ? n.Program : BoundedProcess.FindSystem(n.Program);
-                if (program is null || !IsRunnableFile(program)) continue; // uninstalled leftovers stay out
+                if (program is null || !IsRunnableFile(HostSpawn.HostPath(program))) continue; // uninstalled leftovers stay out (in Flatpak, /usr/bin/flatpak is under /run/host)
                 yield return new LibGame("Linux", id, n.Name, "", program, null, NativeGames.JoinArguments(n.Arguments), n.Kind, n.Icon);
             }
         }

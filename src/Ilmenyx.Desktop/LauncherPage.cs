@@ -162,11 +162,11 @@ public sealed class LauncherPage : Grid
         var confirm = UiKit.Primary("BtnAddExeConfirm", L.T("Adicionar"), 14, 6);
         confirm.Click += async (_, _) =>
         {
-            string path = addPath.Text?.Trim() ?? "";
+            string path = DocumentPortal.RealPath(addPath.Text?.Trim() ?? "");
             if (!LinuxGameLibrary.IsRunnableFile(path) && !LinuxGameLibrary.IsWindowsExe(path)) { addStatus.Text = L.T("Escolha um jogo: um executável do Linux ou um .exe de Windows (que roda com Proton). Use Procurar… para abrir o explorador de arquivos."); return; }
             if (!settings.CustomGames.Any(c => c.Exe == path))
             {
-                void add(IlmenyxSettings s) { if (!s.CustomGames.Any(c => c.Exe == path)) s.CustomGames.Add(new() { Name = LinuxGameLibrary.IsWindowsExe(path) ? GameNameFromFolder(path) : Path.GetFileNameWithoutExtension(path), Exe = path }); }
+                void add(IlmenyxSettings s) { if (!s.CustomGames.Any(c => c.Exe == path)) s.CustomGames.Add(new() { Name = LinuxGameLibrary.IsWindowsExe(path) ? GameNameFromFolder(DocumentPortal.HostPath(path)) : Path.GetFileNameWithoutExtension(path), Exe = path }); }
                 if (Save(add) is { } fresh) settings.CustomGames = fresh.CustomGames; else add(settings);
             }
             addStatus.Text = "Adicionado."; await ScanAsync(); Select(games.FirstOrDefault(g => g.Store == "Manual" && g.Id == path));
@@ -440,6 +440,12 @@ public sealed class LauncherPage : Grid
         count.Text = L.T("Procurando seus jogos…");
         try
         {
+            // Games added through the Flatpak file chooser before 0.34.2 were saved under a portal alias: random name, no cover, lone file.
+            if (settings.CustomGames.Any(c => DocumentPortal.IsAlias(c.Exe)))
+            {
+                bool move(IlmenyxSettings s) => DocumentPortal.Migrate(s, x => DocumentPortal.RealPath(x), GameNameFromFolder);
+                if (Save(s => move(s)) is { } fresh) { settings.CustomGames = fresh.CustomGames; settings.GameProfiles = fresh.GameProfiles; } else move(settings);
+            }
             games = await library.ScanAsync(settings.CustomGames.ToList(), lifetime);
             Filter();
             count.Text = games.Count == 0 ? L.T("Nenhum jogo encontrado. Use + Adicionar executável para incluir um à mão.") : $"{games.Count} {(games.Count == 1 ? L.T("jogo") : L.T("jogos"))} · {string.Join(" · ", games.GroupBy(g => g.Kind ?? g.Store).Select(x => $"{x.Key} {x.Count()}"))}";
@@ -660,7 +666,7 @@ public sealed class LauncherPage : Grid
             Title = L.T("Escolha o executável do jogo"), AllowMultiple = false, SuggestedStartLocation = start,
             FileTypeFilter = [new(L.T("Jogos (Linux e Windows)")) { Patterns = ["*.exe", "*.EXE", "*.x86_64", "*.x86", "*.sh", "*.AppImage", "*"] }, new(L.T("Todos os arquivos")) { Patterns = ["*"] }],
         });
-        return files.Count > 0 ? files[0].TryGetLocalPath() : null;
+        return files.Count > 0 && files[0].TryGetLocalPath() is { } local ? DocumentPortal.RealPath(local) : null;
     }
 
     /// <summary>Artwork of a library game: Steam's local cache; for a hand-added Windows game with a Steam ID, that ID's local Steam
@@ -754,14 +760,14 @@ public sealed class LauncherPage : Grid
     }
 
     /// <summary>Fills the Steam ID of the selected Windows game from its name (automatic: only when empty, quietly when nothing is found).</summary>
-    private async Task LookUpSteamIdAsync(bool automatic)
+    private async Task LookUpSteamIdAsync(bool automatic, bool renamed = false)
     {
         if (current is not { IsWindowsManual: true } game || profile is not { } p) return;
-        if (automatic && p.ProtonGameId is { Length: > 0 }) return;
+        if (automatic && !renamed && p.ProtonGameId is { Length: > 0 }) return;
         protonIdStatus.Foreground = Palette.Faint; protonIdStatus.Text = L.T("Buscando o ID Steam…");
         var find = FindSteamId ?? ((n, ct) => SteamIds.FindAsync(n, ct));
         var found = await find(game.Name, lifetime);
-        if (found is null && GameNameFromFolder(game.Id) is { } folderName && folderName != game.Name) found = await find(folderName, lifetime); // "MK10" → "Mortal Kombat XL"
+        if (found is null && !renamed && GameNameFromFolder(game.Id) is { } folderName && folderName != game.Name) found = await find(folderName, lifetime); // "MK10" → "Mortal Kombat XL"
         if (current != game) return;
         if (found is { } f)
         {
@@ -787,6 +793,7 @@ public sealed class LauncherPage : Grid
         if (Save(rename) is { } fresh) settings.CustomGames = fresh.CustomGames; else rename(settings);
         await ScanAsync(); Select(games.FirstOrDefault(g => g.Store == "Manual" && g.Id == exe));
         status.Text = L.T("Nome alterado.");
+        await LookUpSteamIdAsync(automatic: true, renamed: true); // a new name means a new search for the ID and the cover; no match keeps the saved ID
     }
 
     /// <summary>Removes the selected hand-added game (and its profile) from the library after confirmation. Never deletes files.</summary>

@@ -41,6 +41,8 @@ Fora do Flatpak nada disso é usado: o comportamento nativo é idêntico (testes
 | `--filesystem=host-os:ro`, `--filesystem=host-etc:ro` | achar os programas do sistema e ler os arquivos do sistema (só leitura) |
 | `--talk-name=org.freedesktop.Flatpak` | a ponte `flatpak-spawn --host`. **Isto dá ao app o mesmo alcance de um programa comum do usuário fora do sandbox**: o Flatpak aqui serve para instalar e atualizar, não como isolamento de segurança. É o mesmo nível do AppImage e do pacote .tar.gz. |
 | `--filesystem=home` | bibliotecas da Steam/Heroic/Lutris, logs do MangoHud, relatórios exportados |
+| `--filesystem=host` | jogos em outros discos (`/mnt`, `/media`, `/run/media`): sem isso o seletor de arquivos entrega só um atalho de um arquivo, com nome aleatório |
+| `--filesystem=/var/lib/flatpak/exports:ro` | listar na biblioteca os jogos Flatpak instalados para todo o sistema (só leitura) |
 
 Por essa ponte, este Flatpak **não seria aceito no Flathub como está** (o Flathub recusa `org.freedesktop.Flatpak` sem justificativa
 especial). Ele é distribuído como arquivo `.flatpak` na release.
