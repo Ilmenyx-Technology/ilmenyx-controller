@@ -31,6 +31,11 @@ finish-args:
   - --own-name=org.kde.StatusNotifierItem-2-1
   # Steam and game libraries, Heroic/Lutris folders, MangoHud logs and exported reports.
   - --filesystem=home
+  # Games on other drives (/mnt, /media, /run/media): without this the file chooser hands over a one-file alias with a random folder
+  # name, so the game gets a wrong name, no cover and cannot find its own data files. No real widening: the app already runs host programs.
+  - --filesystem=host
+  # Menu entries of Flatpak games installed for the whole system (the library lists them).
+  - --filesystem=/var/lib/flatpak/exports:ro
 modules:
   - name: ilmenyx
     buildsystem: simple
