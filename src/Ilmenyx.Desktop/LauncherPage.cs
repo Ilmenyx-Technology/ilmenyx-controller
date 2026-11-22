@@ -1026,7 +1026,8 @@ public sealed class LauncherPage : Grid
                 string? picture = null;
                 try { if (d.Icon.Length > 0) picture = await ArtCache.AchievementIconAsync(source.AppId, d.Icon, ct); }
                 catch (Exception e) when (e is HttpRequestException or TaskCanceledException or IOException) { }
-                await DesktopNotification.SendAsync(L.T("Conquista desbloqueada"), d.Name + (d.Description.Length > 0 ? " — " + d.Description : "") + "\n" + g.Name, CancellationToken.None, picture);
+                await DesktopNotification.SendAsync(L.T("Conquista desbloqueada"), d.Name + (d.Description.Length > 0 ? " — " + d.Description : "") + "\n" + g.Name, CancellationToken.None, picture, urgent: true);
+                _ = DesktopNotification.PlaySoundAsync();
                 Avalonia.Threading.Dispatcher.UIThread.Post(() => { if (current == g) status.Text = L.T("Conquista desbloqueada: ") + d.Name; });
             }, ct);
         }

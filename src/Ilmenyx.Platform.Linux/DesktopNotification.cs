@@ -11,15 +11,31 @@ public static class DesktopNotification
 
     /// <summary>Shows a system notification; false when notify-send is missing or fails (the app then uses its own toast).</summary>
     /// <param name="icon">Image file shown in the notification (an achievement icon); the app icon when null.</param>
-    public static async Task<bool> SendAsync(string title, string body, CancellationToken ct = default, string? icon = null)
+    /// <param name="urgent">Critical urgency, so the desktop shows it over fullscreen windows.</param>
+    public static async Task<bool> SendAsync(string title, string body, CancellationToken ct = default, string? icon = null, bool urgent = false)
     {
         if (BoundedProcess.Find("notify-send") is null) return false;
         try
         {
-            var (code, _) = await BoundedProcess.RunAsync("notify-send", ["--app-name=Ilmenyx Controller", "--icon=" + (icon is { Length: > 0 } && Path.IsPathFullyQualified(icon) ? icon : IconName), title, body], TimeSpan.FromSeconds(5), 4096, ct);
+            List<string> args = ["--app-name=Ilmenyx Controller", "--icon=" + (icon is { Length: > 0 } && Path.IsPathFullyQualified(icon) ? icon : IconName)];
+            // Critical urgency is what makes Plasma show the notice over a fullscreen game; normal ones only reach the history.
+            if (urgent) args.AddRange(["--urgency=critical", "--expire-time=8000"]);
+            args.AddRange([title, body]);
+            var (code, _) = await BoundedProcess.RunAsync("notify-send", args, TimeSpan.FromSeconds(5), 4096, ct);
             return code == 0;
         }
         catch (Exception e) when (e is IOException or FileNotFoundException or Win32Exception or OperationCanceledException) { return false; }
+    }
+
+    /// <summary>Plays the freedesktop "complete" sound with pw-play or paplay (the notification sound hint is ignored by Plasma); silent when no file or player exists.</summary>
+    public static async Task PlaySoundAsync(CancellationToken ct = default)
+    {
+        // shortcut: the /run/host path (Flatpak sees the host /usr there) is untested, check it in a Flatpak build.
+        var file = new[] { "/usr/share/sounds/freedesktop/stereo/complete.oga", "/run/host/usr/share/sounds/freedesktop/stereo/complete.oga" }.FirstOrDefault(File.Exists);
+        var player = new[] { "pw-play", "paplay" }.FirstOrDefault(p => BoundedProcess.Find(p) is not null);
+        if (file is null || player is null) return;
+        try { await BoundedProcess.RunAsync(player, [file], TimeSpan.FromSeconds(5), 1024, ct); }
+        catch (Exception e) when (e is IOException or FileNotFoundException or Win32Exception or OperationCanceledException) { }
     }
 
     /// <summary>
