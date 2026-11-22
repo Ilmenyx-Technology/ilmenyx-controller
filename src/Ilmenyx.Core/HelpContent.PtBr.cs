@@ -164,6 +164,15 @@ public static partial class HelpContent
                 Q("wayland", "O que é \"Proton nativo no Wayland (experimental)\"?", "Faz o jogo de Windows abrir direto no Wayland, sem passar pelo XWayland (variável PROTON_ENABLE_WAYLAND=1). Vem desligada e só entra quando a sessão é Wayland e o jogo usa GE-Proton ou UMU-Proton 10 ou mais novo; o Proton oficial da Valve não documenta essa opção. Embaixo da opção aparece se ela está em uso ou por que ficou de fora. Se o jogo abrir com janela errada, sem cursor ou sem controle, desmarque."),
                 Q("lowlatency", "O que é \"Baixa latência (experimental)\"?", "Libera o NVIDIA Reflex para jogos de Windows (PROTON_ENABLE_NVAPI=1, pelo DXVK-NVAPI). Depois, ligue a opção Reflex no menu do jogo. Só serve para placas NVIDIA com o driver proprietário; para AMD e Intel o Proton não documenta uma opção equivalente, então nada é ligado. As duas opções experimentais nunca entram junto com opções que brigam com elas, pela mesma tabela da página Compatibilidade.")),
 
+            S("achievements", "games", "Conquistas",
+                "Mostra as conquistas dos seus jogos num lugar só, inclusive das cópias de Windows que rodam sem a Steam.",
+                [
+                    "Jogos da Steam: aparecem as conquistas que a Steam já guardou neste PC.",
+                    "Jogos de Windows adicionados ao Ilmenyx que trazem o emulador da Steam (steam_emu.ini, steam_settings): o Ilmenyx lê as conquistas que o jogo grava.",
+                    "Jogando pelo Ilmenyx, cada conquista nova aparece como notificação do sistema, com nome e ícone.",
+                    "Clique num jogo para ver a lista: desbloqueadas primeiro, com a data; as outras mostram quantos jogadores já têm.",
+                ],
+                Q("where", "Por que um jogo não aparece?", "Só entram jogos com conquistas que o Ilmenyx consegue ler: jogos da Steam cuja lista a Steam já guardou neste PC e jogos de Windows adicionados ao Ilmenyx com o emulador da Steam. Jogos da Epic e da GOG ainda não entram. Um jogo de Windows precisa ser jogado pelo Ilmenyx uma vez para as conquistas começarem a contar.")),
             S("compat", "games", "Compatibilidade",
                 "Diz se um jogo roda bem no Linux: nota do ProtonDB, selo do Steam Deck, anti-cheat e o que funcionou para quem tem hardware parecido com o seu.",
                 [
@@ -403,8 +412,8 @@ public static partial class HelpContent
                 "Se aparecer o botão amarelo \"Liberar sensores da CPU\" aqui no menu, clique nele para ver a temperatura e o consumo da CPU. O sistema pede a sua senha uma vez (o Ilmenyx nunca a vê), e dá para desfazer depois."),
             new("diag", "system", ["system", "sensors", "gpu", "disks", "energy", "net", "procs"], "Diagnóstico",
                 "Aqui ficam os detalhes do PC: Sistema (as peças), Sensores, GPU, Discos (saúde), Energia (bateria), Rede (teste de lag) e Processos (o que está usando a CPU). Estas páginas só leem: nada é alterado."),
-            new("games", "launcher", ["launcher"], "Jogos",
-                "Os jogos da Steam, do Heroic e do Lutris aparecem sozinhos; + Adicionar executável inclui outro, até um .exe de Windows (roda com o Proton), e Instalar jogo de Windows roda o instalador de um jogo. No perfil de cada jogo dá para ligar GPU dedicada, MangoHud (FPS na tela) e GameMode."),
+            new("games", "launcher", ["launcher", "achievements"], "Jogos",
+                "Os jogos da Steam, do Heroic e do Lutris aparecem sozinhos; + Adicionar executável inclui outro, até um .exe de Windows (roda com o Proton), e Instalar jogo de Windows roda o instalador de um jogo. No perfil de cada jogo dá para ligar GPU dedicada, MangoHud (FPS na tela) e GameMode. Conquistas da Steam e das cópias de Windows num lugar só; jogando pelo Ilmenyx, cada conquista nova vira notificação, com nome e ícone."),
             new("compat", "compat", ["compat", "gamecheck"], "Compatibilidade e Jogo não abre?",
                 "Antes de jogar, Compatibilidade mostra se o jogo roda bem no Linux: nota do ProtonDB, selo do Steam Deck e anti-cheat. Se a Steam, o Proton ou um Flatpak não abre, Jogo não abre? confere as causas comuns sem mudar nada e mostra o comando de cada correção."),
             new("fps", "fps", ["fps", "bottleneck"], "Estimativa de FPS e gargalo",

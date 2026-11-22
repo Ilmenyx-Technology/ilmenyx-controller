@@ -260,6 +260,30 @@ public sealed class CompatOnline
 
     private string ArtFolder => Path.Combine(cacheFolder, "art");
 
+    /// <summary>The game's achievements from Steam's public list (names in <paramref name="steamLanguage"/>, icons, global rate), cached 7 days.</summary>
+    public async Task<IReadOnlyList<AchievementDef>> AchievementsAsync(string appId, string steamLanguage, CancellationToken ct = default)
+    {
+        string id = Id(appId), lang = steamLanguage.All(char.IsAsciiLetter) ? steamLanguage : "english";
+        var (code, body) = await GetCachedAsync($"ach-{id}-{lang}", $"https://api.steampowered.com/IPlayerService/GetGameAchievements/v1/?appid={id}&language={lang}", 2 << 20, ct);
+        return code == HttpStatusCode.OK ? Achievements.ParseSteamList(body) : [];
+    }
+
+    /// <summary>One achievement icon on disk (downloaded once from the Steam CDN, at most 512 KB, image signature checked); null when unavailable.</summary>
+    public async Task<string?> AchievementIconAsync(string appId, string file, CancellationToken ct = default)
+    {
+        string id = Id(appId);
+        if (file.Length is < 5 or > 80 || !file.All(c => char.IsAsciiLetterOrDigit(c) || c is '.' or '_' or '-') || file.StartsWith('.')) return null;
+        string path = Path.Combine(cacheFolder, "achievements", id, file);
+        try { if (File.Exists(path)) return path; } catch (IOException) { return null; }
+        using var limit = CancellationTokenSource.CreateLinkedTokenSource(ct); limit.CancelAfter(TimeSpan.FromSeconds(20));
+        using var resp = await http.GetAsync(Achievements.IconUrl(id, file), HttpCompletionOption.ResponseHeadersRead, limit.Token);
+        if (!resp.IsSuccessStatusCode || resp.Content.Headers.ContentLength is > 512 * 1024) return null;
+        var bytes = await resp.Content.ReadAsByteArrayAsync(limit.Token);
+        if (bytes.Length > 512 * 1024 || !IsImage(bytes)) return null;
+        try { Directory.CreateDirectory(Path.GetDirectoryName(path)!); string tmp = path + ".tmp"; await File.WriteAllBytesAsync(tmp, bytes, ct); File.Move(tmp, path, overwrite: true); return path; }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return null; }
+    }
+
     /// <summary>Artwork already on disk from an earlier allowed lookup (no network). Null when absent or not an image.</summary>
     public string? CachedArt(string appId)
     {

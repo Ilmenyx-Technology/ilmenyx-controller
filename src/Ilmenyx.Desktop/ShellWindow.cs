@@ -119,7 +119,7 @@ public sealed partial class ShellWindow : Window
     private static readonly Dictionary<string, string> NavIcons = new()
     {
         ["dash"] = Icons.Overview, ["system"] = Icons.System, ["sensors"] = Icons.Sensors, ["gpu"] = Icons.Gpu, ["disks"] = Icons.Disks, ["energy"] = Icons.Energy, ["net"] = Icons.Network,
-        ["procs"] = Icons.Processes, ["launcher"] = Icons.Games, ["compat"] = Icons.Compat, ["gamecheck"] = Icons.Validate, ["fps"] = Icons.Fps, ["bottleneck"] = Icons.Bottleneck, ["bench"] = Icons.Bench, ["oc"] = Icons.Oc,
+        ["procs"] = Icons.Processes, ["launcher"] = Icons.Games, ["achievements"] = Icons.Achievements, ["compat"] = Icons.Compat, ["gamecheck"] = Icons.Validate, ["fps"] = Icons.Fps, ["bottleneck"] = Icons.Bottleneck, ["bench"] = Icons.Bench, ["oc"] = Icons.Oc,
         ["overlay"] = Icons.Overlay, ["validate"] = Icons.Validate, ["stress"] = Icons.Stress, ["makerports"] = Icons.Ports, ["makerdrv"] = Icons.SerialDrivers, ["optimize"] = Icons.Optimize, ["cleanup"] = Icons.Broom,
         ["lighting"] = Icons.Lighting, ["startup"] = Icons.Startup, ["apps"] = Icons.Apps, ["driver"] = Icons.Drivers, ["nvdriver"] = Icons.Gpu, ["report"] = Icons.Report, ["blocked"] = Icons.Blocked, ["tools"] = Icons.About, ["help"] = Icons.Help,
     };
@@ -184,7 +184,7 @@ public sealed partial class ShellWindow : Window
             items.Children.Add(head); items.Children.Add(list);
         }
         Group(L.T("DIAGNÓSTICO"), ("system", L.T("Sistema")), ("sensors", L.T("Sensores")), ("gpu", "GPU"), ("disks", L.T("Discos")), ("energy", L.T("Energia")), ("net", L.T("Rede")), ("procs", L.T("Processos")));
-        Group(L.T("JOGOS"), ("launcher", L.T("Jogos")), ("compat", L.T("Compatibilidade")), ("gamecheck", L.T("Jogo não abre?")), ("fps", L.T("Estimativa de FPS")), ("bottleneck", L.T("Detector de gargalo")));
+        Group(L.T("JOGOS"), ("launcher", L.T("Jogos")), ("achievements", L.T("Conquistas")), ("compat", L.T("Compatibilidade")), ("gamecheck", L.T("Jogo não abre?")), ("fps", L.T("Estimativa de FPS")), ("bottleneck", L.T("Detector de gargalo")));
         Group(L.T("DESEMPENHO"), ("bench", "Benchmark"), ("oc", "OC"), ("overlay", "Overlay"), ("validate", L.T("Validações reduzidas")), ("stress", "Stress test"));
         Group("MAKER", ("makerports", L.T("Portas")), ("makerdrv", L.T("Drivers seriais")));
         Group(L.T("FERRAMENTAS"), ("optimize", L.T("Otimiza")), ("cleanup", L.T("Liberar espaço")), ("lighting", L.T("Integração")), ("startup", L.T("Inicialização")), ("apps", L.T("Instalar apps")), ("driver", "Drivers"), ("nvdriver", L.T("Driver NVIDIA")), ("report", L.T("Relatório")), ("blocked", L.T("Bloqueados (!)")), ("tools", L.T("Requisitos e sobre")));

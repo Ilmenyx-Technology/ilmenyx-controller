@@ -160,6 +160,15 @@ public static partial class HelpContent
                 Q("wayland", "What is \"Native Proton on Wayland (experimental)\"?", "Makes the Windows game open directly on Wayland, without going through XWayland (PROTON_ENABLE_WAYLAND=1 variable). It comes off and only applies when the session is Wayland and the game uses GE-Proton or UMU-Proton 10 or newer; Valve's official Proton doesn't document this option. Below the option it says whether it's in use or why it was left out. If the game opens with the wrong window, no cursor or no controller, uncheck it."),
                 Q("lowlatency", "What is \"Low latency (experimental)\"?", "Enables NVIDIA Reflex for Windows games (PROTON_ENABLE_NVAPI=1, through DXVK-NVAPI). Then turn on the Reflex option in the game's menu. Only for NVIDIA cards with the proprietary driver; for AMD and Intel, Proton doesn't document an equivalent option, so nothing is turned on. The two experimental options never go together with options that conflict with them, using the same table as the Compatibility page.")),
 
+            S("achievements", "games", "Achievements",
+                "Shows your games' achievements in one place, including Windows copies that run without Steam.",
+                [
+                    "Steam games: the achievements Steam has already stored on this PC show up.",
+                    "Windows games added to Ilmenyx that carry the Steam emulator (steam_emu.ini, steam_settings): Ilmenyx reads the achievements the game saves.",
+                    "When you play through Ilmenyx, each new achievement shows up as a system notification, with its name and icon.",
+                    "Click a game to see the list: unlocked ones first, with the date; the others show how many players have them.",
+                ],
+                Q("where", "Why is a game missing?", "Only games whose achievements Ilmenyx can read are listed: Steam games whose list Steam has already stored on this PC, and Windows games added to Ilmenyx that carry the Steam emulator. Epic and GOG games are not included yet. A Windows game has to be played through Ilmenyx once for its achievements to start counting.")),
             S("compat", "games", "Compatibility",
                 "Tells whether a game runs well on Linux: ProtonDB rating, Steam Deck badge, anti-cheat and what worked for people with hardware like yours.",
                 [
@@ -399,8 +408,8 @@ public static partial class HelpContent
                 "If the yellow \"Unlock CPU sensors\" button shows up here in the menu, click it to see the CPU temperature and power. The system asks for your password once (Ilmenyx never sees it), and you can undo it later."),
             new("diag", "system", ["system", "sensors", "gpu", "disks", "energy", "net", "procs"], "Diagnostics",
                 "Here are the PC's details: System (the parts), Sensors, GPU, Disks (health), Power (battery), Network (lag test) and Processes (what's using the CPU). These pages only read: nothing is changed."),
-            new("games", "launcher", ["launcher"], "Games",
-                "Games from Steam, Heroic and Lutris show up by themselves; + Add executable adds another one, even a Windows .exe (runs with Proton), and Install Windows game runs a game's installer. In each game's profile you can turn on dedicated GPU, MangoHud (FPS on screen) and GameMode."),
+            new("games", "launcher", ["launcher", "achievements"], "Games",
+                "Games from Steam, Heroic and Lutris show up by themselves; + Add executable adds another one, even a Windows .exe (runs with Proton), and Install Windows game runs a game's installer. In each game's profile you can turn on dedicated GPU, MangoHud (FPS on screen) and GameMode. Achievements from Steam and from Windows copies in one place; when you play through Ilmenyx, each new achievement becomes a notification with its name and icon."),
             new("compat", "compat", ["compat", "gamecheck"], "Compatibility and Game won't open?",
                 "Before playing, Compatibility shows whether the game runs well on Linux: ProtonDB rating, Steam Deck badge and anti-cheat. If Steam, Proton or a Flatpak won't open, Game won't open? checks the common causes without changing anything and shows the command for each fix."),
             new("fps", "fps", ["fps", "bottleneck"], "FPS estimate and bottleneck",

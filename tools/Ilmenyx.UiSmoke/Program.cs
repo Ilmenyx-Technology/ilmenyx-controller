@@ -643,6 +643,7 @@ public sealed class UiSmokeApp : Application
         if (!shell.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "MakerChipState_ch341" && t.Text!.Length > 0)) throw new InvalidOperationException("Chip family state missing.");
         Console.WriteLine("PASS maker pages: serial ports listed (or honest empty state) without opening any port; chip family modules, environment checks and official pages (not opened)");
         if (OperatingSystem.IsLinux()) await LauncherAsync(shell, desktop);
+        if (OperatingSystem.IsLinux()) await AchievementsAsync(shell);
         await StressAsync(shell, desktop);
         await NetworkAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await OptimizeAsync(shell, desktop);
@@ -854,6 +855,39 @@ public sealed class UiSmokeApp : Application
         await Until(() => shell.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "LGameCount" && !t.Text!.StartsWith("Procurando")));
         await Task.Delay(200); Capture(shell, "shell-launcher.png");
         Console.WriteLine("PASS launcher page: library scan, manual executable validation, Windows game named by folder with Steam ID found and path shown, removal keeps files, Esc/← Biblioteca return to the full library, profile persistence, Steam launch options with backup, helper, stubbed launch; real library read-only");
+    }
+    private static async Task AchievementsAsync(ShellWindow shell)
+    {
+        // Fakes only: no Steam files, no network, no icons.
+        AchievementSource Src(string store, string id, string name, AchievementOrigin o) => new(new LibGame(store, id, name, "/nao/existe"), id, o, []);
+        var steam = Src("Steam", "100", "Jogo Steam", AchievementOrigin.Steam); var emu = Src("Manual", "200", "Jogo Emulador", AchievementOrigin.Emulator);
+        var at = new DateTimeOffset(2026, 3, 4, 12, 0, 0, TimeSpan.Zero);
+        AchievementDef D(string id, string name, bool hidden = false) => new(id, name, "Descricao " + id, "", "", hidden);
+        var views = new Dictionary<string, AchievementView>
+        {
+            ["100"] = new(steam, [D("s3", "Nome Real Secreto", true), D("s2", "Sem data"), D("s1", "Com data")],
+                new Dictionary<string, AchievementUnlock> { ["s2"] = new("s2", null), ["s1"] = new("s1", at) }),
+            ["200"] = new(emu, [D("e1", "Emu um"), D("e2", "Emu dois"), D("e3", "Emu tres", true)], new Dictionary<string, AchievementUnlock> { ["e1"] = new("e1", null) }),
+            ["300"] = new(Src("Steam", "300", "Jogo Vazio", AchievementOrigin.Steam), [], new Dictionary<string, AchievementUnlock>()),
+        };
+        var page = new AchievementsPage(_ => Task.FromResult<IReadOnlyList<AchievementSource>>([steam, emu, views["300"].Source]), (s, _) => Task.FromResult(views[s.AppId]), (_, _, _) => Task.FromResult<string?>(null), CancellationToken.None);
+        var host = new Window { Width = 1100, Height = 800, Content = page }; host.Show();
+        await Until(() => page.Views.Count == 2 && Find<TextBlock>(host, "AchSummary").Text == "2 jogos · 3 de 6 conquistas");
+        if (host.GetVisualDescendants().OfType<Button>().Count(b => b.Name?.StartsWith("Ach_") == true) != 2 || host.GetVisualDescendants().OfType<Control>().Any(c => c.Name == "Ach_300"))
+            throw new InvalidOperationException("Achievements list must hold exactly the two games with achievements.");
+        Click(host, "Ach_200");
+        await Until(() => Find<TextBlock>(host, "AchGameTitle").Text == "Jogo Emulador");
+        Click(host, "Ach_100");
+        await Until(() => Find<TextBlock>(host, "AchGameTitle").Text == "Jogo Steam");
+        var ids = host.GetVisualDescendants().OfType<Control>().Where(c => c.Name?.StartsWith("AchItem_") == true).Select(c => c.Name!).ToList();
+        if (!ids.SequenceEqual(["AchItem_s1", "AchItem_s2", "AchItem_s3"])) throw new InvalidOperationException("Unlocked achievements must come first, newest first: " + string.Join(",", ids));
+        var texts = host.GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text).ToList();
+        if (texts.Contains("Nome Real Secreto") || !texts.Contains("Conquista secreta")) throw new InvalidOperationException("A locked secret achievement must hide its name.");
+        var empty = new AchievementsPage(_ => Task.FromResult<IReadOnlyList<AchievementSource>>([]), (s, _) => Task.FromResult(views[s.AppId]), (_, _, _) => Task.FromResult<string?>(null), CancellationToken.None);
+        host.Content = empty;
+        await Until(() => host.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "AchEmpty"));
+        host.Close();
+        Console.WriteLine("PASS achievements page: two fake games listed (empty one hidden), summary 2 jogos · 3 de 6 conquistas, row switches detail, unlocked first, secret name hidden, empty state (the real page is not opened: it may query Steam online)");
     }
     private sealed class FakeStress : Ilmenyx.Core.IStressEngine
     {
