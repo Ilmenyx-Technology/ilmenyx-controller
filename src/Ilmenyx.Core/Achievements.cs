@@ -82,6 +82,22 @@ public static class Achievements
         return result;
     }
 
+    /// <summary>Goldberg's own definition list (steam_settings/achievements.json): an array of {name, displayName, description, hidden, icon, icongray}.</summary>
+    public static string GoldbergDefinitions(IReadOnlyList<AchievementDef> defs) => JsonSerializer.Serialize(
+        defs.Select(d => new Dictionary<string, string> { ["name"] = d.Id, ["displayName"] = d.Name, ["description"] = d.Description, ["hidden"] = d.Hidden ? "1" : "0", ["icon"] = d.Icon, ["icongray"] = d.IconGray }),
+        new JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+
+    /// <summary>True only for a JSON array whose items all have a string "name" (the format Goldberg reads; the object format it ignores is false).</summary>
+    public static bool IsGoldbergDefinitionList(string json)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            return doc.RootElement.ValueKind == JsonValueKind.Array && doc.RootElement.EnumerateArray().All(i => i.ValueKind == JsonValueKind.Object && i.TryGetProperty("name", out var n) && n.ValueKind == JsonValueKind.String);
+        }
+        catch (JsonException) { return false; }
+    }
+
     /// <summary>The Steam AppID written in an emulator settings file (steam_emu.ini "AppId=", or steam_appid.txt holding only the number).</summary>
     public static string? ParseAppId(string text)
     {
