@@ -953,6 +953,8 @@ public sealed class LauncherPage : Grid
         launching = CancellationTokenSource.CreateLinkedTokenSource(lifetime); play.Content = L.T("Parar acompanhamento");
         playProgress.IsVisible = true; status.Text = L.T($"Abrindo {g.Name}…");
         if (p.MangoHud && OperatingSystem.IsLinux()) MangoHudLogReader.EnsureConfig(settings); // overlay + FPS log ready without visiting the Overlay page
+        using var watch = CancellationTokenSource.CreateLinkedTokenSource(launching.Token);
+        _ = WatchAchievementsAsync(g, p, watch.Token);
         try
         {
             var session = await launch(g, p, gpuVendor, t => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
@@ -964,7 +966,32 @@ public sealed class LauncherPage : Grid
             // Measured on this PC (MangoHud log of this launch): kept locally for the FPS page, at most FpsSession.MaxEntries sessions.
             if (session is { IsValid: true }) { if (Save(s => s.AddFpsSession(session)) is { } fresh) settings.FpsSessions = fresh.FpsSessions; else settings.AddFpsSession(session); }
         }
-        finally { launching.Dispose(); launching = null; play.Content = L.T("Jogar"); playProgress.IsVisible = false; }
+        finally { watch.Cancel(); launching.Dispose(); launching = null; play.Content = L.T("Jogar"); playProgress.IsVisible = false; }
+    }
+
+    /// <summary>
+    /// Windows copy without Steam that carries a Steam emulator: while it runs, each new achievement in its save becomes a system
+    /// notification with the achievement's name and icon (Steam games are left to Steam's own notice).
+    /// </summary>
+    private async Task WatchAchievementsAsync(LibGame g, GameProfile p, CancellationToken ct)
+    {
+        if (!g.IsWindowsManual || !OperatingSystem.IsLinux()) return;
+        string[] roots = steamRoot is null ? [] : [steamRoot];
+        try
+        {
+            if (await Task.Run(() => AchievementFiles.Find(g, p, roots), ct) is not { Origin: AchievementOrigin.Emulator } source) return;
+            IReadOnlyList<AchievementDef> defs = [];
+            _ = Task.Run(async () => { try { defs = (await AchievementFiles.LoadAsync(source, roots, Achievements.SteamLanguage(L.Current), ArtCache.AchievementsAsync, ct)).Defs; } catch (OperationCanceledException) { } }, ct);
+            await AchievementFiles.WatchAsync(source, () => defs, async d =>
+            {
+                string? picture = null;
+                try { if (d.Icon.Length > 0) picture = await ArtCache.AchievementIconAsync(source.AppId, d.Icon, ct); }
+                catch (Exception e) when (e is HttpRequestException or TaskCanceledException or IOException) { }
+                await DesktopNotification.SendAsync(L.T("Conquista desbloqueada"), d.Name + (d.Description.Length > 0 ? " — " + d.Description : "") + "\n" + g.Name, CancellationToken.None, picture);
+                Avalonia.Threading.Dispatcher.UIThread.Post(() => { if (current == g) status.Text = L.T("Conquista desbloqueada: ") + d.Name; });
+            }, ct);
+        }
+        catch (OperationCanceledException) { }
     }
 }
 

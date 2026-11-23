@@ -26,6 +26,7 @@ public sealed partial class ShellWindow
         pages["net"] = (L.T("Rede"), NetPage, null);
         pages["procs"] = (L.T("Processos"), () => new ProcessTable(usage), null);
         pages["launcher"] = (L.T("Jogos"), () => LauncherPage.Create(() => this, stop.Token), null);
+        pages["achievements"] = (L.T("Conquistas"), () => { var a = AchievementsPage.Create(stop.Token); a.Margin = new Thickness(0, 4, 8, 12); return a; }, null);
         pages["compat"] = (L.T("Compatibilidade"), () =>
         {
             string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
