@@ -24,9 +24,9 @@ public sealed class AchievementToast : Window
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromMilliseconds(16) };
     private readonly System.Diagnostics.Stopwatch clock = System.Diagnostics.Stopwatch.StartNew();
 
-    /// <summary>Top-left of the toast in physical pixels: bottom-right of the working area with a margin in DIP, scaling-aware. Pure, so it is unit tested.</summary>
-    public static PixelPoint ToastPosition(PixelRect workingArea, double scaling, double widthDip, double heightDip, double marginDip = 24) =>
-        new(workingArea.Right - (int)Math.Round((widthDip + marginDip) * scaling), workingArea.Bottom - (int)Math.Round((heightDip + marginDip) * scaling));
+    /// <summary>Top-left of the toast in physical pixels: top-right of the working area with a margin in DIP, scaling-aware. Pure, so it is unit tested.</summary>
+    public static PixelPoint ToastPosition(PixelRect workingArea, double scaling, double widthDip, double marginDip = 24) =>
+        new(workingArea.Right - (int)Math.Round((widthDip + marginDip) * scaling), workingArea.Y + (int)Math.Round(marginDip * scaling));
 
     public static bool TryShow(string title, string description, string game, string? iconPath)
     {
@@ -40,7 +40,7 @@ public sealed class AchievementToast : Window
             X11.SetNotificationHints(handle.Handle);
             var screen = toast.Screens.Primary;
             if (screen is null) { toast.Close(); return false; }
-            toast.Position = ToastPosition(screen.WorkingArea, screen.Scaling, toast.Width, toast.Height);
+            toast.Position = ToastPosition(screen.WorkingArea, screen.Scaling, toast.Width);
             toast.Show();
             toast.Begin();
             return true;
@@ -75,10 +75,10 @@ public sealed class AchievementToast : Window
         shine.Background = new LinearGradientBrush { StartPoint = new RelativePoint(0, 0.5, RelativeUnit.Relative), EndPoint = new RelativePoint(1, 0.5, RelativeUnit.Relative),
             GradientStops = { new GradientStop(Colors.Transparent, 0), new GradientStop(Color.FromArgb(0x30, 255, 255, 255), 0.5), new GradientStop(Colors.Transparent, 1) } };
         var inner = new Grid { Children = { row, shine } };
-        card.Height = CardH; card.VerticalAlignment = VerticalAlignment.Bottom; card.CornerRadius = new CornerRadius(14); card.ClipToBounds = true;
+        card.Height = CardH; card.VerticalAlignment = VerticalAlignment.Top; card.CornerRadius = new CornerRadius(14); card.ClipToBounds = true;
         card.Background = Palette.Panel; card.BorderBrush = Palette.Accent; card.BorderThickness = new Thickness(1); card.Child = inner;
         card.BoxShadow = new BoxShadows(new BoxShadow { Blur = 16, Color = Color.FromArgb(0x55, 0, 0, 0) });
-        card.Opacity = 0; card.RenderTransform = new TranslateTransform(0, Slide);
+        card.Opacity = 0; card.RenderTransform = new TranslateTransform(0, -Slide);
         Content = new Grid { Children = { card } };
     }
 
@@ -94,7 +94,7 @@ public sealed class AchievementToast : Window
         double In = Math.Clamp(ms / 250, 0, 1), fade = Math.Clamp((ms - (VisibleMs - 500)) / 300, 0, 1);
         double eased = new CubicEaseOut().Ease(In);
         card.Opacity = eased * (1 - fade);
-        ((TranslateTransform)card.RenderTransform!).Y = Slide * (1 - eased) + Slide * 0.3 * fade;
+        ((TranslateTransform)card.RenderTransform!).Y = -Slide * (1 - eased) - Slide * 0.3 * fade;
         double s = 0.6 + 0.4 * new BackEaseOut().Ease(Math.Clamp((ms - 120) / 350, 0, 1));
         iconFrame.RenderTransform = new ScaleTransform(s, s);
         double sweep = Math.Clamp((ms - 400) / 700, 0, 1);
@@ -109,10 +109,24 @@ public sealed class AchievementToast : Window
         [DllImport("libX11.so.6")] private static extern nint XOpenDisplay(nint name);
         [DllImport("libX11.so.6")] private static extern nint XInternAtom(nint display, string name, int onlyIfExists);
         [DllImport("libX11.so.6")] private static extern int XChangeProperty(nint display, nint window, nint property, nint type, int format, int mode, nint[] data, int count);
+        [DllImport("libX11.so.6")] private static extern int XChangeWindowAttributes(nint display, nint window, nint valueMask, ref XSetWindowAttributes attributes);
         [DllImport("libX11.so.6")] private static extern int XFlush(nint display);
         [DllImport("libX11.so.6")] private static extern int XCloseDisplay(nint display);
 
-        /// <summary>Sets _NET_WM_WINDOW_TYPE_NOTIFICATION and the ABOVE/SKIP_TASKBAR/SKIP_PAGER states while the window is still unmapped, so the window manager reads them as its initial state.</summary>
+        // Xlib XSetWindowAttributes on LP64: unsigned long/long are nint, int/Bool are int (Sequential gives the right padding).
+        [StructLayout(LayoutKind.Sequential)]
+        private struct XSetWindowAttributes
+        {
+            public nint BackgroundPixmap, BackgroundPixel, BorderPixmap, BorderPixel;
+            public int BitGravity, WinGravity, BackingStore;
+            public nint BackingPlanes, BackingPixel;
+            public int SaveUnder;
+            public nint EventMask, DoNotPropagateMask;
+            public int OverrideRedirect;
+            public nint Colormap, Cursor;
+        }
+
+        /// <summary>Makes the window override-redirect, sets _NET_WM_WINDOW_TYPE_NOTIFICATION and the ABOVE/SKIP_TASKBAR/SKIP_PAGER states while the window is still unmapped, so the window manager reads them as its initial state.</summary>
         public static void SetNotificationHints(nint window)
         {
             var d = XOpenDisplay(0);
@@ -125,6 +139,10 @@ public sealed class AchievementToast : Window
                 XChangeProperty(d, window, Atom("_NET_WM_WINDOW_TYPE"), atomType, 32, PropModeReplace, [Atom("_KDE_NET_WM_WINDOW_TYPE_CRITICAL_NOTIFICATION"), Atom("_NET_WM_WINDOW_TYPE_NOTIFICATION")], 2);
                 XChangeProperty(d, window, Atom("_NET_WM_STATE"), atomType, 32, PropModeReplace,
                     [Atom("_NET_WM_STATE_ABOVE"), Atom("_NET_WM_STATE_SKIP_TASKBAR"), Atom("_NET_WM_STATE_SKIP_PAGER")], 3);
+                // Override-redirect windows are stacked above managed ones by X11 compositors (like menus/tooltips): the portable way to sit above a fullscreen game
+                // (GNOME Mutter, Xfwm, Cinnamon...). The WM then does not position it, so the Position set by the caller is what shows.
+                var attrs = new XSetWindowAttributes { OverrideRedirect = 1 };
+                XChangeWindowAttributes(d, window, (nint)(1L << 9), ref attrs); // CWOverrideRedirect
                 XFlush(d);
             }
             finally { XCloseDisplay(d); }
