@@ -23,8 +23,8 @@ comando** (`ilmenyx`), em **português, inglês e espanhol**.
 
 | | |
 |---|---|
-| ![Sensores](docs/imagens/sensores.png) | ![Estimativa de FPS](docs/imagens/estimativa-fps.png) |
-| ![Por que o jogo não abre?](docs/imagens/jogo-nao-abre.png) | ![Tema claro](docs/imagens/visao-geral-claro.png) |
+| ![Sensores](docs/imagens/sensores.png) | ![Por que o jogo não abre?](docs/imagens/jogo-nao-abre.png) |
+| ![Tema claro](docs/imagens/visao-geral-claro.png) | |
 
 ---
 
@@ -49,7 +49,7 @@ placa de vídeo e o que aconteceu (a página **Relatório** do app gera um resum
 | Área | O que você encontra |
 |---|---|
 | **Diagnóstico** | Visão geral ao vivo, sistema, sensores, GPU, discos (com SMART importado), energia/bateria, rede e processos |
-| **Jogos** | Biblioteca (Steam, Lutris, Heroic), compatibilidade (ProtonDB, Steam Deck, anti-cheat e relatos de quem tem hardware parecido), estimativa de FPS e análise de gargalo |
+| **Jogos** | Biblioteca (Steam, Lutris, Heroic; ocultar jogos, capa própria, estados Abrindo/Em execução e Fechar jogo), FPS medido na prática por jogo (cartão Desempenho medido, veja [docs/fps-medido.md](docs/fps-medido.md)), conquistas com aviso por cima do jogo (inclusive cópias com emulador Goldberg, veja [docs/conquistas-emulador.md](docs/conquistas-emulador.md)), compatibilidade (ProtonDB, Steam Deck, anti-cheat e relatos de quem tem hardware parecido), "Meu PC roda isso?" (requisitos do jogo comparados com o seu hardware, veja [docs/meu-pc-roda.md](docs/meu-pc-roda.md)) e análise de gargalo |
 | **Desempenho** | Benchmarks de CPU, memória, GPU (Vulkan) e disco; verificador de overclock; overlay; testes de estresse |
 | **Maker** | Portas seriais e drivers de placas (CH340, CP210x, FTDI) |
 | **Ferramentas** | Otimizações reversíveis, ZRAM, RGB via OpenRGB, apps de inicialização, instalação de apps (Flatpak), driver NVIDIA, relatórios HTML/JSON |

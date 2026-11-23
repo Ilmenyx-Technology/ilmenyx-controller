@@ -57,7 +57,7 @@ AMD, `/sys/class/drm/card*/device/` e `sensors`). Valor inventado é bug grave. 
 ## 4. Interface (só leitura)
 
 Abra `dotnet src/Ilmenyx.Desktop/bin/Release/net10.0/Ilmenyx.Desktop.dll` e confira as páginas **Visão geral**, **GPU**,
-**Sensores**, **Jogos/Estimativa de FPS**, **Overlay** e **Verificação OC**. Os comandos de OC aparecem como texto e
+**Sensores**, **Jogos/Meu PC roda isso?**, **Overlay** e **Verificação OC**. Os comandos de OC aparecem como texto e
 nunca são executados. Capture as telas para as evidências.
 
 ## 5. Carga curta de GPU (SOMENTE com autorização explícita do dono)

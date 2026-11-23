@@ -12,7 +12,7 @@ coletor de lixo).
 | Lixo parado, média das páginas | 11,3 MB/s | **1,4 MB/s** |
 | Minimizado | 5,8 % · 10,2 MB/s | 4,4 % · 1,3 MB/s |
 | Memória (RSS) depois de abrir todas as páginas | 402 MB | 362 MB |
-| Abrir a Estimativa de FPS | 32,8 MB/s | 5,0 MB/s |
+| Abrir a Estimativa de FPS (página removida em 23/11/2026) | 32,8 MB/s | 5,0 MB/s |
 
 ## O que pesava e o que mudou
 - **Monitor de uso (1 s, em todas as páginas):** lia ~300 arquivos de `/proc` por segundo com leitura assíncrona, ~32 KB de lixo por

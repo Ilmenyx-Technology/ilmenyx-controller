@@ -18,6 +18,8 @@ public static class MangoHudLogReader
         return Path.Combine(data, "ilmenyx", "mangohud");
     }
 
+    public static string MeasureConfigPath() => Path.Combine(Path.GetDirectoryName(Ilmenyx.Core.IlmenyxSettings.DefaultPath())!, "mangohud-medir.conf");
+
     public static string ConfigPath() => Path.Combine(Path.GetDirectoryName(Ilmenyx.Core.IlmenyxSettings.DefaultPath())!, "mangohud.conf");
 
     /// <summary>FPS statistics when a log was written within <see cref="MaxAge"/>; otherwise null (no game under MangoHud is running).</summary>
@@ -54,30 +56,48 @@ public static class MangoHudLogReader
     /// </summary>
     public static MangoHudSessionStats? ReadSession(string folder, DateTimeOffset since)
     {
+        MangoHudSessionStats? best = null;
+        foreach (var file in Candidates(folder, since))
+            if (ReadText(file) is { } text && MangoHudSession.Summarize(text) is { } stats && (best is null || stats.Samples > best.Samples)) best = stats;
+        return best;
+    }
+
+    /// <summary>
+    /// Practice statistics (<see cref="MangoHudPlay"/>) of the game's own log written since <paramref name="since"/>. Logs whose process prefix matches
+    /// <paramref name="processName"/> come first and logs of other processes (launcher, web helper) are left out; when none matches, the
+    /// longest usable log is used. Null when none counts.
+    /// </summary>
+    public static PlayStats? ReadPlay(string folder, DateTimeOffset since, string? processName)
+    {
+        var files = Candidates(folder, since).ToList();
+        if (files.Any(f => MangoHudPlay.LogMatches(f.Name, processName))) files = files.Where(f => MangoHudPlay.LogMatches(f.Name, processName)).ToList();
+        PlayStats? best = null;
+        foreach (var file in files)
+            if (ReadText(file) is { } text && MangoHudPlay.Summarize(text) is { } stats && (best is null || stats.ValidSeconds > best.ValidSeconds)) best = stats;
+        return best;
+    }
+
+    private static List<FileInfo> Candidates(string folder, DateTimeOffset since)
+    {
         try
         {
-            if (!Directory.Exists(folder)) return null;
-            MangoHudSessionStats? best = null;
-            foreach (var file in new DirectoryInfo(folder).EnumerateFiles("*.csv").Take(512).Where(f => new DateTimeOffset(f.LastWriteTimeUtc, TimeSpan.Zero) >= since - TimeSpan.FromSeconds(2))
-                         .OrderByDescending(f => f.LastWriteTimeUtc).Take(16))
-            {
-                try
-                {
-                    using var stream = new FileStream(file.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-                    string text;
-                    if (stream.Length <= SessionMaxBytes) text = new StreamReader(stream, Encoding.UTF8).ReadToEnd();
-                    else
-                    {
-                        var head = new byte[HeadBytes]; stream.ReadExactly(head);
-                        stream.Position = stream.Length - SessionMaxBytes; var tail = new byte[SessionMaxBytes]; stream.ReadExactly(tail);
-                        string tailText = Encoding.UTF8.GetString(tail);
-                        text = Encoding.UTF8.GetString(head) + "\n" + tailText[(tailText.IndexOf('\n') + 1)..];
-                    }
-                    if (MangoHudSession.Summarize(text) is { } stats && (best is null || stats.Samples > best.Samples)) best = stats;
-                }
-                catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
-            }
-            return best;
+            if (!Directory.Exists(folder)) return [];
+            return new DirectoryInfo(folder).EnumerateFiles("*.csv").Take(512).Where(f => new DateTimeOffset(f.LastWriteTimeUtc, TimeSpan.Zero) >= since - TimeSpan.FromSeconds(2))
+                .OrderByDescending(f => f.LastWriteTimeUtc).Take(16).ToList();
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return []; }
+    }
+
+    private static string? ReadText(FileInfo file)
+    {
+        try
+        {
+            using var stream = new FileStream(file.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            if (stream.Length <= SessionMaxBytes) return new StreamReader(stream, Encoding.UTF8).ReadToEnd();
+            var head = new byte[HeadBytes]; stream.ReadExactly(head);
+            stream.Position = stream.Length - SessionMaxBytes; var tail = new byte[SessionMaxBytes]; stream.ReadExactly(tail);
+            string tailText = Encoding.UTF8.GetString(tail);
+            return Encoding.UTF8.GetString(head) + "\n" + tailText[(tailText.IndexOf('\n') + 1)..];
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return null; }
     }
@@ -99,6 +119,31 @@ public static class MangoHudLogReader
             return path;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException) { return null; }
+    }
+
+    /// <summary>The log-only config of "Medir FPS" (hidden overlay), rewritten when its text changed. Null when it cannot be written.</summary>
+    [System.Runtime.Versioning.SupportedOSPlatform("linux")]
+    public static string? EnsureMeasureConfig(string? path = null, string? logFolder = null)
+    {
+        path ??= MeasureConfigPath(); logFolder ??= DefaultFolder();
+        try
+        {
+            string text = Ilmenyx.Core.MangoHudConfig.BuildMeasureOnly(logFolder);
+            if (!File.Exists(path) || File.ReadAllText(path) != text) WriteConfig(path, text, logFolder);
+            return path;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException) { return null; }
+    }
+
+    /// <summary>Every launch now leaves a log: keeps the newest <paramref name="keep"/> CSVs of the Ilmenyx folder and deletes the older ones (only *.csv, only that folder).</summary>
+    public static void Prune(string folder, int keep = 30)
+    {
+        try
+        {
+            if (!Directory.Exists(folder)) return;
+            foreach (var f in new DirectoryInfo(folder).EnumerateFiles("*.csv").OrderByDescending(f => f.LastWriteTimeUtc).Skip(keep).ToList()) f.Delete();
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
     }
 
     /// <summary>Writes Ilmenyx's own MangoHud config (0600, atomic). The user's MangoHud.conf is never touched.</summary>

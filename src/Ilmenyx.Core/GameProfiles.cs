@@ -23,6 +23,9 @@ public sealed class GameProfile
     public bool GpuHigh { get; set; }
     public bool GameMode { get; set; }
     public bool MangoHud { get; set; }
+    /// <summary>Measure the FPS of each session without showing anything: when MangoHud is not ticked, the launcher injects it with a hidden overlay
+    /// (config of its own, log only). On by default; off for games with anti-cheat or that do not accept MangoHud. Steam and store games are not injected.</summary>
+    public bool MeasureFps { get; set; } = true;
     public string? ExePath { get; set; }
     public string WinMode { get; set; } = "default";   // default | full | borderless | window
     public string Res { get; set; } = "default";       // default | 1280x720 | 1920x1080 | 2560x1440 | 3840x2160
@@ -53,6 +56,14 @@ public sealed class GameProfile
     public List<HelperProgram> Helpers { get; set; } = [];
     /// <summary>Files and folders Ilmenyx created next to a game's Steam emulator (steam_settings/achievements.json...), so "Desfazer" removes only those.</summary>
     public List<string> AchievementFixFiles { get; set; } = [];
+    /// <summary>Custom cover chosen by the user: a copy inside the app cache (never the user's original file). Used for tile and hero.</summary>
+    public string? CoverPath { get; set; }
+    /// <summary>Steam AppID found by name only to fetch the cover of a manual game that is not a .exe (Proton settings stay .exe-only).</summary>
+    public string? ArtSteamId { get; set; }
+    /// <summary>Steam IDs the user refused at "Você quis dizer…?" for this game; never suggested again (cleared when the game is renamed).</summary>
+    public List<string> RejectedSteamIds { get; set; } = [];
+    /// <summary>Independent copy: a launch keeps the profile as it was when the game opened, whatever the user changes while it runs.</summary>
+    public GameProfile Clone() => System.Text.Json.JsonSerializer.Deserialize<GameProfile>(System.Text.Json.JsonSerializer.Serialize(this))!;
 }
 
 /// <summary>Manually added executable (ELF, script, AppImage).</summary>
@@ -184,10 +195,14 @@ public sealed record BenchRunEntry(DateTimeOffset At, string Kind, string Summar
 /// </summary>
 /// <see cref="Preset"/> (Baixo/Médio/Alto/Ultra) and <see cref="Upscaling"/> (Native/Quality/Performance) are what the user said they use in
 /// that game (Jogos page, profile); null = not informed. Only sessions with a known preset feed the personal correction factor.
+/// <param name="P10Fps">Sessions from the practice method (see <see cref="MangoHudPlay"/>) also keep the range of the 1 s windows (P10 to P90), the
+/// seconds that counted (<see cref="ValidSeconds"/>; null = old simple-average session, which the library no longer shows), the loading stutters
+/// left out (<see cref="Stalls"/>) and, when the quality has no preset, a short note ("Unity nível 2"). AvgFps is then the typical FPS (median of the windows).</param>
 /// <param name="CappedAt">FPS limit the session sat on (vsync at the screen's rate, or the game's own limit): the PC may do more, so the
 /// session is a lower bound and does not adjust the estimate.</param>
 public sealed record FpsSession(string Game, DateTimeOffset At, double AvgFps, double Low1Fps, double DurationSeconds, string? Gpu, string? Resolution,
-    string? Preset = null, string? Upscaling = null, double? CappedAt = null)
+    string? Preset = null, string? Upscaling = null, double? CappedAt = null,
+    double? P10Fps = null, double? P90Fps = null, double? ValidSeconds = null, int? Stalls = null, string? QualityNote = null)
 {
     public const int MaxEntries = 50;
     public const double MinSeconds = 30;
@@ -198,6 +213,8 @@ public sealed class IlmenyxSettings
 {
     public Dictionary<string, GameProfile> GameProfiles { get; set; } = [];
     public List<CustomGame> CustomGames { get; set; } = [];
+    /// <summary>LibGame.Key of games the user hid from the library (nothing is removed; profiles stay).</summary>
+    public List<string> HiddenGames { get; set; } = [];
     /// <summary>Folder for the temporary Windows of "Instalar jogo de Windows" (null = the default in ~/.local/share/ilmenyx).</summary>
     public string? InstallerTempFolder { get; set; }
     /// <summary>Original values of user-level tweaks before the first change ("&lt;absent&gt;" = unknown), so "Restaurar originais" can undo them.</summary>
@@ -235,8 +252,6 @@ public sealed class IlmenyxSettings
     public bool TourOffered { get; set; }
     /// <summary>FPS measured in game sessions started by the Launcher with MangoHud (newest first, at most <see cref="FpsSession.MaxEntries"/>). Never sent anywhere.</summary>
     public List<FpsSession> FpsSessions { get; set; } = [];
-    /// <summary>Calibration of this PC for the FPS estimate (short GPU scene + CPU GameSim), null = never calibrated. Never sent anywhere.</summary>
-    public FpsCalibration? FpsCalibration { get; set; }
 
     public void AddFpsSession(FpsSession session)
     {
@@ -262,7 +277,7 @@ public sealed class IlmenyxSettings
             if (!File.Exists(path)) return new();
             if (new FileInfo(path).Length < 4 << 20 && JsonSerializer.Deserialize<IlmenyxSettings>(File.ReadAllText(path)) is { } loaded)
             {
-                loaded.GameProfiles ??= []; loaded.CustomGames ??= []; loaded.TweakBackup ??= []; loaded.BenchRuns ??= []; // hand-edited files ("x": null)
+                loaded.GameProfiles ??= []; loaded.CustomGames ??= []; loaded.HiddenGames ??= []; loaded.TweakBackup ??= []; loaded.BenchRuns ??= []; // hand-edited files ("x": null)
                 loaded.FpsSessions = (loaded.FpsSessions ?? []).Where(x => x is not null && x.IsValid).Take(FpsSession.MaxEntries).ToList();
                 return loaded;
             }

@@ -15,7 +15,7 @@ namespace Ilmenyx.Desktop;
 /// <summary>
 /// Achievement toast drawn by Ilmenyx itself: a borderless, non-focusable window that stays above a fullscreen game. Only on the X11 backend
 /// (also XWayland), where the window type CRITICAL_NOTIFICATION (KDE) / NOTIFICATION is set before the window is mapped so KWin keeps it above fullscreen windows.
-/// <see cref="TryShow"/> returns false elsewhere (native Wayland, errors) and the caller falls back to the system notification. UI thread only.
+/// <see cref="TryShow"/> queues them and returns false elsewhere (native Wayland, errors) and the caller falls back to the system notification. UI thread only.
 /// </summary>
 public sealed class AchievementToast : Window
 {
@@ -28,21 +28,44 @@ public sealed class AchievementToast : Window
     public static PixelPoint ToastPosition(PixelRect workingArea, double scaling, double widthDip, double marginDip = 24) =>
         new(workingArea.Right - (int)Math.Round((widthDip + marginDip) * scaling), workingArea.Y + (int)Math.Round(marginDip * scaling));
 
-    public static bool TryShow(string title, string description, string game, string? iconPath)
+    private sealed record Pending(string Title, string Description, string Game, string? IconPath, Action? Shown);
+    private static readonly ToastQueue<Pending> queue = new();
+
+    /// <summary>
+    /// Shows the toast now, or after the ones already on screen (one at a time, <see cref="VisibleMs"/> each). <paramref name="shown"/> runs when this toast
+    /// actually appears (the sound goes there: one per toast). False when no toast can be drawn here; the caller then uses the system notification.
+    /// </summary>
+    public static bool TryShow(string title, string description, string game, string? iconPath, Action? shown = null)
     {
         if (!OperatingSystem.IsLinux()) return false;
+        var item = new Pending(title, description, game, iconPath, shown);
+        if (!queue.Offer(item)) return true;
+        if (Display(item)) return true;
+        Next(); // nothing can be drawn: free the queue
+        return false;
+    }
+
+    private static void Next()
+    {
+        while (queue.TryNext(out var item)) if (Display(item)) return;
+    }
+
+    private static bool Display(Pending p)
+    {
         AchievementToast? toast = null;
         try
         {
-            toast = new AchievementToast(title, description, game, iconPath);
+            toast = new AchievementToast(p.Title, p.Description, p.Game, p.IconPath);
             // The platform window already exists here (Avalonia creates it in the constructor); anything but an X11 window means native Wayland.
             if (toast.TryGetPlatformHandle() is not { HandleDescriptor: "XID" } handle) { toast.Close(); return false; }
             X11.SetNotificationHints(handle.Handle);
             var screen = toast.Screens.Primary;
             if (screen is null) { toast.Close(); return false; }
             toast.Position = ToastPosition(screen.WorkingArea, screen.Scaling, toast.Width);
+            toast.Closed += (_, _) => Next();
             toast.Show();
             toast.Begin();
+            p.Shown?.Invoke();
             return true;
         }
         catch (Exception)
@@ -147,5 +170,34 @@ public sealed class AchievementToast : Window
             }
             finally { XCloseDisplay(d); }
         }
+    }
+}
+
+/// <summary>One-at-a-time queue: <see cref="Offer"/> says whether the item can be shown now; <see cref="TryNext"/> gives the next one or frees the slot. Bounded.</summary>
+public sealed class ToastQueue<T>(int max = 20)
+{
+    private readonly Queue<T> waiting = new(); private bool busy;
+    public bool Offer(T item)
+    {
+        if (!busy) { busy = true; return true; }
+        if (waiting.Count < max) waiting.Enqueue(item);
+        return false;
+    }
+    public bool TryNext(out T item)
+    {
+        if (waiting.TryDequeue(out item!)) return true;
+        busy = false; return false;
+    }
+}
+
+/// <summary>Games of this app that are running now (set by the library page from the game's process), read by pages that only make sense with the game open.</summary>
+public static class RunningGames
+{
+    private static readonly HashSet<string> keys = [];
+    public static event Action? Changed;
+    public static bool Contains(string key) => keys.Contains(key);
+    public static void Set(string key, bool running)
+    {
+        if (running ? keys.Add(key) : keys.Remove(key)) Changed?.Invoke();
     }
 }
