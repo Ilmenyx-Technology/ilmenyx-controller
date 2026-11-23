@@ -83,12 +83,28 @@ public sealed class LauncherPage : Grid
     /// <summary>A control that is disabled (with the reason as its tip) while the selected game is live.</summary>
     private void LockWhileLive(Control c, string why) { liveLocks.Add((c, ToolTip.GetTip(c), why)); ToolTip.SetShowOnDisabled(c, true); }
 
+    private readonly Dictionary<CheckBox, TextBlock> changeNotes = [];
+    /// <summary>A launch-only setting changed under a live game: says so next to the control and in the status line (the card notice alone sits above the group and is easy to miss).</summary>
+    private void NoteLiveChange(CheckBox c)
+    {
+        if (loading || !IsLive(current?.Key)) return;
+        string text = L.T($"{(c.Content as string ?? "").Split(" (")[0]}: vale na próxima vez que o jogo abrir.");
+        if (!changeNotes.TryGetValue(c, out var n))
+        {
+            n = new TextBlock { Name = "LChangeNote_" + c.Name, Foreground = Palette.AccentText, FontSize = 11, FontStyle = FontStyle.Italic, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(28, -2, 0, 6) };
+            if (c.Parent is Panel p) p.Children.Insert(p.Children.IndexOf(c) + 1, n);
+            changeNotes[c] = n;
+        }
+        n.Text = text; n.IsVisible = true; status.Text = text;
+    }
+
     private bool IsLive(string? key) => key is not null && (following.ContainsKey(key) || running.Contains(key));
 
     private void UpdateLive()
     {
         bool live = IsLive(current?.Key);
         foreach (var n in liveNotes) n.IsVisible = live;
+        if (!live) foreach (var n in changeNotes.Values) n.IsVisible = false;
         foreach (var (c, tip, why) in liveLocks) { c.IsEnabled = !live; ToolTip.SetTip(c, live ? why : tip); }
         foreach (var undo in achFixBox.GetVisualDescendants().OfType<Button>()) undo.IsEnabled = !live;
         if (TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() is Control { IsEffectivelyEnabled: false }) (play.IsEnabled ? play : backToLibrary).Focus();
@@ -351,7 +367,7 @@ public sealed class LauncherPage : Grid
         if (hero.Child is Grid layers) layers.Children.Insert(0, heroScrim);
 
         ToolTip.SetTip(chkGuard, L.T("Em notebooks com duas GPUs, jogos de Windows em tela cheia sem vsync podem travar a tela inteira (só reiniciando). Com a proteção, o Proton sincroniza os quadros com o monitor; o FPS fica limitado à taxa da tela. Vale quando o jogo usa a GPU dedicada NVIDIA."));
-        foreach (var c in new[] { chkPlan, chkGpu, chkGameMode, chkMango, chkMeasure, chkGuard }) { c.Margin = new Thickness(0, 0, 0, 6); c.FontSize = 13; c.IsCheckedChanged += (_, _) => SaveFromControls(); }
+        foreach (var c in new[] { chkPlan, chkGpu, chkGameMode, chkMango, chkMeasure, chkGuard }) { c.Margin = new Thickness(0, 0, 0, 6); c.FontSize = 13; c.IsCheckedChanged += (_, _) => { SaveFromControls(); NoteLiveChange(c); }; }
         // Experimental Proton options (off by default): each asks before turning on and shows whether it applies to this game and session.
         ToolTip.SetTip(chkWayland, L.T("Faz o jogo de Windows abrir direto no Wayland, sem passar pelo XWayland (PROTON_ENABLE_WAYLAND=1). Pode melhorar a fluidez e o HDR, mas é experimental: alguns jogos abrem com janela errada, sem cursor ou sem controle. Só vale numa sessão Wayland com GE-Proton ou UMU-Proton 10 ou mais novo."));
         ToolTip.SetTip(chkLowLat, L.T("Libera o NVIDIA Reflex nos jogos que têm essa opção no menu (PROTON_ENABLE_NVAPI=1, pelo DXVK-NVAPI). Diminui o atraso entre o clique e a imagem; depois ligue o Reflex no menu do jogo. Só para placas NVIDIA com o driver proprietário."));
@@ -684,6 +700,7 @@ public sealed class LauncherPage : Grid
         ApplyLayout(force: true);
         if (!settings.GameProfiles.TryGetValue(SettingsKey(g), out var p)) { p = new GameProfile(); settings.GameProfiles[SettingsKey(g)] = p; }
         loading = true; profile = p;
+        foreach (var n in changeNotes.Values) n.IsVisible = false;
         title.Text = g.Name; sub.Text = g.InstallDir.Length > 0 ? $"{g.Subtitle} · {g.InstallDir}" : g.ExePath is { } exe ? $"{g.Subtitle} · {exe} {g.Args}".TrimEnd() : g.Subtitle;
         var art = ArtFor(g, hero: true); heroArt = art is not null;
         if (art is null && g.Store == "Manual")
