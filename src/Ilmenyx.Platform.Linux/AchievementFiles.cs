@@ -120,6 +120,15 @@ public static class AchievementFiles
     /// <summary>A Steam emulator next to the executable or in the game folder (steam_emu.ini, steam_settings, *.cdx...).</summary>
     public static bool HasEmulator(params string[] folders) => folders.Distinct().Any(d => Search(d, 4, n => EmulatorMarks.Contains(n, StringComparer.OrdinalIgnoreCase)) is not null);
 
+    /// <summary>True for a copy whose steam_api(64).dll is Valve's own (no emulator): the game finds no Steam and never records achievements.</summary>
+    public static bool HasOriginalSteamApiOnly(string gameFolder)
+    {
+        var dlls = SearchAll(gameFolder, 4, n => n.Equals("steam_api.dll", StringComparison.OrdinalIgnoreCase) || n.Equals("steam_api64.dll", StringComparison.OrdinalIgnoreCase))
+            .Where(f => { try { var i = new FileInfo(f); return i.LinkTarget is null && i.Length is > 0 and <= 16 << 20; } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return false; } }).ToList();
+        try { return dlls.Count > 0 && !HasEmulator(gameFolder) && !dlls.Any(d => ContainsAscii(d, SettingsDir)) && dlls.Any(d => ContainsAscii(d, "[S_API] SteamAPI_Init()")); }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return false; }
+    }
+
     /// <summary>AppID written by the emulator settings in the game folder (steam_emu.ini, steam_appid.txt, steam_settings/steam_appid.txt).</summary>
     public static string? EmulatorAppId(string gameDir)
     {

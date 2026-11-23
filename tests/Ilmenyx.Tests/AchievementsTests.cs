@@ -170,4 +170,25 @@ public sealed class AchievementsTests
         }
         finally { Directory.Delete(plain, true); Directory.Delete(marked, true); }
     }
+
+    [Fact]
+    public void OriginalSteamApiOnly_NeedsValveDllWithoutEmulator()
+    {
+        string Make(string? dllText, string? extra = null)
+        {
+            string d = Directory.CreateTempSubdirectory("ilmx-orig").FullName;
+            if (dllText is not null) File.WriteAllText(Path.Combine(d, "steam_api64.dll"), "MZ\0" + dllText);
+            if (extra is not null) File.WriteAllText(Path.Combine(d, extra), "x");
+            return d;
+        }
+        var dirs = new[] { Make("[S_API] SteamAPI_Init(): Loaded local"), Make("[S_API] SteamAPI_Init() steam_settings"), Make("[S_API] SteamAPI_Init()", "steam_emu.ini"), Make(null) };
+        try
+        {
+            Assert.True(AchievementFiles.HasOriginalSteamApiOnly(dirs[0]));
+            Assert.False(AchievementFiles.HasOriginalSteamApiOnly(dirs[1]));
+            Assert.False(AchievementFiles.HasOriginalSteamApiOnly(dirs[2]));
+            Assert.False(AchievementFiles.HasOriginalSteamApiOnly(dirs[3]));
+        }
+        finally { foreach (var d in dirs) Directory.Delete(d, true); }
+    }
 }
