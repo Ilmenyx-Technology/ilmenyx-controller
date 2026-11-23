@@ -104,6 +104,7 @@ Pascal|gtx 1060 mobile|1280|1670
 Pascal|gtx 1070 mobile|2048|1645
 Pascal|gtx 1080 mobile|2560|1733
 Pascal|mx150|384|1532
+Turing|gtx 1630|512|1785
 Turing|gtx 1650|896|1665
 Turing|gtx 1650 super|1280|1725
 Turing|gtx 1660|1408|1785

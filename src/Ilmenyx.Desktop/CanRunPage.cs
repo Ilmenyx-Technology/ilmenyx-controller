@@ -213,10 +213,12 @@ public sealed class CanRunPage : StackPanel
             new SelectableTextBlock { Name = name, Text = text.Length > 0 ? text : L.T("A Steam não publica esta lista."), TextWrapping = TextWrapping.Wrap, FontSize = 12, Foreground = Palette.Muted } } };
     }
 
-    private static (string Text, string Mark, IBrush Brush) StatusLook(ReqStatus s) => s switch
+    private static (string Text, string Mark, IBrush Brush) StatusLook(ReqStatus s, bool shared) => s switch
     {
-        ReqStatus.MeetsRec => (L.T("Atende o recomendado"), "✓", Palette.Success),
-        ReqStatus.MeetsMin => (L.T("Atende o mínimo"), "✓", Palette.AccentText),
+        ReqStatus.MeetsRec => (shared ? L.T("Atende (compartilhada)") : L.T("Atende o recomendado"), "✓", Palette.Success),
+        ReqStatus.MeetsMin => (shared ? L.T("Atende (compartilhada)") : L.T("Atende o mínimo"), "✓", Palette.AccentText),
+        ReqStatus.NearRec => (shared ? L.T("No limite (compartilhada)") : L.T("No limite do recomendado"), "≈", Palette.Warn),
+        ReqStatus.NearMin => (shared ? L.T("No limite (compartilhada)") : L.T("No limite do mínimo"), "≈", Palette.Warn),
         ReqStatus.Below => (L.T("Abaixo do mínimo"), "✗", Palette.Error),
         _ => (L.T("Não deu para comparar"), "?", Palette.Muted),
     };
@@ -239,7 +241,7 @@ public sealed class CanRunPage : StackPanel
 
     private static Border ItemCard(CanRunItem it)
     {
-        var (text, mark, brush) = StatusLook(it.Status);
+        var (text, mark, brush) = StatusLook(it.Status, it.Shared);
         if (it.Basis is { } basis) text += " · " + CanRunCompare.BasisLabel(basis);
         var title = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, Children = { new TextBlock { Text = mark, FontSize = 16, FontWeight = FontWeight.Bold, Foreground = brush, VerticalAlignment = VerticalAlignment.Center },
             new TextBlock { Text = it.Title, FontSize = 14, FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center } } };

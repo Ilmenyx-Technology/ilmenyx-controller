@@ -1446,15 +1446,18 @@ public sealed class UiSmokeApp : Application
         // "Meu PC roda isso?" with fake services: no network, no real hardware. Elden Ring → AppID 1245620 with an English requirements block.
         string root = Path.Combine(Program.OutputDirectory, "canrun-fixture"); if (Directory.Exists(root)) Directory.Delete(root, true); Directory.CreateDirectory(root);
         int fetches = 0; bool hang = false;
+        var pcNow = new Ilmenyx.Core.LocalPc("AMD Ryzen 5 5600 6-Core Processor", "NVIDIA GeForce RTX 3060", 12UL << 30, false, (long)(15.5 * 1073741824), 200L << 30, "home", true);
+        const string limitMin = "<strong>Minimum:</strong><ul><li><strong>Processor:</strong> Intel Core i7-4770 / AMD FX-9590</li><li><strong>Memory:</strong> 8 GB RAM</li><li><strong>Graphics:</strong> NVIDIA GeForce GTX 1630 / AMD Radeon RX 6400 (4 GB VRAM)</li><li><strong>Storage:</strong> 20 GB available space</li></ul>";
+        const string limitRec = "<strong>Recommended:</strong><ul><li><strong>Processor:</strong> Intel Core i5-9600K / AMD Ryzen 5 3600</li><li><strong>Memory:</strong> 16 GB RAM</li><li><strong>Graphics:</strong> NVIDIA GeForce RTX 3060 / AMD Radeon RX 6600XT (8 GB VRAM)</li></ul>";
         string html = "<strong>Minimum:</strong><br><ul><li><strong>OS *:</strong> Windows 10<br></li><li><strong>Processor:</strong> Intel Core i5-8400 or AMD Ryzen 5 1600<br></li><li><strong>Memory:</strong> 8 GB RAM<br></li>"
             + "<li><strong>Graphics:</strong> NVIDIA GeForce GTX 1060 6GB or AMD Radeon RX 580<br></li><li><strong>DirectX:</strong> Version 12<br></li><li><strong>Storage:</strong> 60 GB available space<br></li></ul>";
         string rec = "<strong>Recommended:</strong><br><ul><li><strong>Processor:</strong> Intel Core i7-8700K / AMD Ryzen 5 3600<br></li><li><strong>Memory:</strong> 16 GB RAM<br></li><li><strong>Graphics:</strong> NVIDIA GeForce RTX 3070<br></li></ul>";
         var services = new CanRunServices(
             (name, ct) => Task.FromResult<(string, string)?>(name.Equals("Elden Ring", StringComparison.OrdinalIgnoreCase) ? ("1245620", "ELDEN RING") : null),
             (name, ct) => Task.FromResult<IReadOnlyList<(string, string)>>([("1245620", "ELDEN RING")]),
-            async (id, ct) => { fetches++; if (hang) await Task.Delay(Timeout.Infinite, ct); return (Ilmenyx.Core.RequirementsFetch.Ok, new Ilmenyx.Core.GameRequirements(id, "ELDEN RING", DateTimeOffset.UtcNow, html, rec, "", "")); },
+            async (id, ct) => { fetches++; if (hang) await Task.Delay(Timeout.Infinite, ct); return (Ilmenyx.Core.RequirementsFetch.Ok, id == "777" ? new Ilmenyx.Core.GameRequirements(id, "Jogo no Limite", DateTimeOffset.UtcNow, limitMin, limitRec, "", "") : new Ilmenyx.Core.GameRequirements(id, "ELDEN RING", DateTimeOffset.UtcNow, html, rec, "", "")); },
             new Ilmenyx.Core.RequirementsCache(Path.Combine(root, "cache")),
-            () => new Ilmenyx.Core.LocalPc("AMD Ryzen 5 5600 6-Core Processor", "NVIDIA GeForce RTX 3060", 12UL << 30, false, (long)(15.5 * 1073741824), 200L << 30, "home", true),
+            () => pcNow,
             () => [("570", "Dota 2")]);
         var page = new CanRunPage(services, CancellationToken.None);
         var host = new Window { Width = 1000, Height = 900, Content = new ScrollViewer { Content = page } }; host.Show();
@@ -1476,6 +1479,15 @@ public sealed class UiSmokeApp : Application
         hang = true; Find<TextBox>(host, "CanRunSearch").Text = "https://store.steampowered.com/app/999999/X/"; Click(host, "BtnCanRunSearch");
         await Until(() => Find<Button>(host, "BtnCanRunCancel").IsVisible); Click(host, "BtnCanRunCancel");
         await Until(() => page.StatusText == "Busca cancelada." && Find<Button>(host, "BtnCanRunSearch").IsEnabled);
+        // Second reported case: i5-1135G7 + Iris Xe (integrated, shared memory). "No limite" is neither a pass nor a fail; the memory is shared with the RAM.
+        hang = false; pcNow = new Ilmenyx.Core.LocalPc("11th Gen Intel(R) Core(TM) i5-1135G7 @ 2.40GHz", "Iris Xe Graphics", 0, true, (long)(15.3 * 1073741824), 100L << 30, "home", true, "8086:9A49");
+        Find<TextBox>(host, "CanRunSearch").Text = "777"; Click(host, "BtnCanRunSearch");
+        await Until(() => host.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text == "Jogo no Limite"));
+        string TextOf(string key) => string.Join("|", host.GetVisualDescendants().OfType<Border>().First(b => b.Name == "CanRunItem_" + key).GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text));
+        if (!Find<TextBlock>(host, "CanRunVerdict").Text!.StartsWith("Roda no mínimo, no limite em: Placa de vídeo", StringComparison.Ordinal)) throw new InvalidOperationException("Limit headline: " + Find<TextBlock>(host, "CanRunVerdict").Text);
+        if (!TextOf("cpu").Contains("No limite do recomendado · por modelo") || !TextOf("gpu").Contains("No limite do mínimo") || !TextOf("vram").Contains("No limite (compartilhada)") || !TextOf("vram").Contains("Compartilhada com a RAM"))
+            throw new InvalidOperationException("Limit cards: " + TextOf("cpu") + " // " + TextOf("gpu") + " // " + TextOf("vram"));
+        await Task.Delay(300); Capture(host, "canrun-limit.png");
         host.Close();
         Find<Button>(shell, "Navcanrun").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await Until(() => shell.GetVisualDescendants().OfType<CanRunPage>().Any(p => p.IsVisible));
@@ -2663,6 +2675,22 @@ public sealed class UiSmokeApp : Application
         Check(Play() == "Em execução" && Find<Button>(host, "BtnCloseGame").IsVisible, "after stopping, the game stays 'Em execução' (opened by us, no longer followed) and can be closed");
         Check(NotesShown() >= 3, "live notices must stay while the game runs without following");
         Console.WriteLine("PASS games QA: Parar acompanhamento confirms (explained, Continuar focused, double click = one dialog), declining keeps following, confirming stops it and the game stays Em execução");
+
+        // The same state as seen by the real flow once the launcher is done: running only because the 2 s process check found it (nothing followed).
+        // Changing a launch-only setting must say so next to the control and in the status line, not only in the card notice above the group.
+        {
+            var box = Find<CheckBox>(host, haveMango ? "LChkMango" : "LChkPlan"); string stem = box.Name!, label = ((string)box.Content!).Split(" (")[0];
+            Check(!Find<Button>(host, "BtnStopWatch").IsVisible && Play() == "Em execução", "detection-only state expected");
+            bool was = box.IsChecked == true; box.IsChecked = !was; await Task.Delay(150);
+            string want = label + ": vale na próxima vez que o jogo abrir.";
+            var near = Find<TextBlock>(host, "LChangeNote_" + stem);
+            Check(near.IsEffectivelyVisible && near.Text == want, "notice next to the control: " + near.Text);
+            Check(Find<TextBlock>(host, "LStatus").Text == want, "status line: " + Find<TextBlock>(host, "LStatus").Text);
+            Check(Find<TextBlock>(host, "LLiveNote0").IsEffectivelyVisible, "card notice");
+            box.BringIntoView(); await Task.Delay(250); Capture(host, "games-qa-live-change-dark.png");
+            box.IsChecked = was; await Task.Delay(100);
+            Console.WriteLine("PASS games QA: a launch-only setting changed while the game runs (found by the process check) says so next to the control and in the status line");
+        }
 
         // State: window close with a game open but no longer followed.
         host.Close(); var closeAsk = await Ask();

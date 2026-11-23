@@ -203,7 +203,7 @@ public sealed class HardwareIndexTests
     public void OldPcFallsBelowOnlyWithEnoughDataAndOtherwiseStaysUnsure()
     {
         var r = CanRunCompare.Compare(GameRequirementsParser.Parse(UserMin), GameRequirementsParser.Parse(UserRec), Pc("Intel Core2 Duo 2.4 Ghz", "GeForce 8600 GT", ramGib: 3.9));
-        Assert.Equal(ReqStatus.MeetsMin, Item(r, "cpu").Status);   // 14.2 vs the minimum 14.2; against the recommended 18.4 it is 0.77, inside the 0.85 margin of spec data: not "below"
+        Assert.Equal(ReqStatus.NearRec, Item(r, "cpu").Status);   // 14.2 meets the minimum 14.2; against the recommended 18.4 it is 0.77, inside the 0.70 band of spec data: "at the limit", not "below"
         Assert.Equal(ReqStatus.Below, Item(r, "gpu").Status);      // 0.4 vs 1.1 (8800 GTS): far below even with spec data
         Assert.Equal(CanRunVerdict.BelowMinimum, r.Verdict);
     }
@@ -225,7 +225,7 @@ public sealed class HardwareIndexTests
     {
         var req = GameRequirementsParser.Parse(Html("Graphics", "GeForce GTX 750 Ti"));
         var near = CanRunCompare.Compare(req, GameRequirement.Empty, Pc("AMD Ryzen 5 5600 6-Core Processor", "GeForce GTX 750"));   // 5.8 vs 6.7: 0.86
-        Assert.Equal(ReqStatus.Unknown, Item(near, "gpu").Status);
+        Assert.Equal(ReqStatus.NearMin, Item(near, "gpu").Status); Assert.Contains("±14%", Item(near, "gpu").Note);
         var far = CanRunCompare.Compare(req, GameRequirement.Empty, Pc("AMD Ryzen 5 5600 6-Core Processor", "Radeon HD 5770"));    // 3.7 vs 6.7
         Assert.Equal(ReqStatus.Below, Item(far, "gpu").Status);
     }
@@ -243,5 +243,38 @@ public sealed class HardwareIndexTests
         Assert.Equal(ReqStatus.Below, Item(slow, "cpu").Status);
         var cores = CanRunCompare.Compare(GameRequirementsParser.Parse(Html("Processor", "4 cores / 8 threads")), GameRequirement.Empty, Pc("AMD Ryzen 5 5600 6-Core Processor", "x"));
         Assert.Equal(ReqStatus.Unknown, Item(cores, "cpu").Status);   // no clock, no model: not guessed
+    }
+
+    // Second reported case: i5-1135G7 + Iris Xe (80 EU), 15.3 GB RAM.
+    private const string Case2Min = "<ul><li><strong>Processor:</strong> Intel Core i7-4770 / AMD FX-9590</li><li><strong>Memory:</strong> 8 GB RAM</li><li><strong>Graphics:</strong> NVIDIA GeForce GTX 1630 / AMD Radeon RX 6400 (4 GB VRAM)</li></ul>";
+    private const string Case2Rec = "<ul><li><strong>Processor:</strong> Intel Core i5-9600K / AMD Ryzen 5 3600</li><li><strong>Memory:</strong> 16 GB RAM</li><li><strong>Graphics:</strong> NVIDIA GeForce RTX 3060 / AMD Radeon RX 6600XT (8 GB VRAM)</li></ul>";
+
+    [Fact]
+    public void SecondReportedCaseCpuIsByModelAndGpuIsAtTheLimit()
+    {
+        var r = CanRunCompare.Compare(GameRequirementsParser.Parse(Case2Min), GameRequirementsParser.Parse(Case2Rec),
+            Pc("11th Gen Intel(R) Core(TM) i5-1135G7 @ 2.40GHz", "Iris Xe Graphics", "8086:9A49", igpu: true));
+        var cpu = Item(r, "cpu"); var gpu = Item(r, "gpu"); var vram = Item(r, "vram");
+        Assert.Equal(ReqStatus.NearRec, cpu.Status); Assert.Equal(RatingBasis.Model, cpu.Basis);       // 55 meets 41 / 32 (min); rec 66 / 62: 0.83 and 0.89, the best (3600) is at the limit
+        Assert.Equal(ReqStatus.NearMin, gpu.Status); Assert.Contains("diferença", gpu.Note);   // 8.1 vs GTX 1630 11.0 (spec): 0.74 inside the 0.70 band; vs RX 6400 22: far below Assert.Contains("±", gpu.Note);
+        Assert.Equal(ReqStatus.NearRec, vram.Status); Assert.True(vram.Shared); Assert.StartsWith("Compartilhada com a RAM", vram.Local); Assert.Contains("mais lenta", vram.Note);   // ~7.65 GB: meets 4, short of 8
+        Assert.Equal(CanRunVerdict.Minimum, r.Verdict); Assert.Contains("no limite em: Placa de vídeo", r.Headline);
+    }
+
+    [Fact]
+    public void SharedVramUsesHalfTheRamAndIsNeverBelow()
+    {
+        var big = CanRunCompare.Compare(GameRequirementsParser.Parse(Case2Min), GameRequirement.Empty, Pc("Intel Core i5-1135G7", "Iris Xe Graphics", "8086:9A49", ramGib: 31, igpu: true));
+        Assert.Equal(ReqStatus.MeetsMin, Item(big, "vram").Status); Assert.True(Item(big, "vram").Shared);
+        var tiny = CanRunCompare.Compare(GameRequirementsParser.Parse(Case2Min), GameRequirement.Empty, Pc("Intel Core i5-1135G7", "Iris Xe Graphics", "8086:9A49", ramGib: 4, igpu: true));
+        Assert.Equal(ReqStatus.Unknown, Item(tiny, "vram").Status);   // 2 GB estimated for 4 GB asked: not compared, never "below"
+        var small = CanRunCompare.Compare(GameRequirementsParser.Parse(Case2Min), GameRequirement.Empty, Pc("Intel Core i5-1135G7", "Iris Xe Graphics", "8086:9A49", ramGib: 6, igpu: true));
+        Assert.Equal(ReqStatus.NearMin, Item(small, "vram").Status);  // 3 GB for 4 GB
+    }
+
+    [Fact]
+    public void RequirementModelsOfTheSecondCaseAreInTheTables()
+    {
+        foreach (var m in new[] { "Intel Core i7-4770", "AMD FX-9590", "Intel Core i5-9600K", "AMD Ryzen 5 3600" }) Assert.Equal(RatingBasis.Model, CpuIndexer.Rate(m)!.Basis);
     }
 }

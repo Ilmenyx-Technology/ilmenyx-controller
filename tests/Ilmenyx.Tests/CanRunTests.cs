@@ -151,7 +151,8 @@ public sealed class CanRunTests : IDisposable
     public void IntegratedGpuNeverGetsAGuessedVram()
     {
         var r = CanRunCompare.Compare(GameRequirementsParser.Parse(EnMin), GameRequirement.Empty, Pc(gpu: "Intel Iris Xe", vramGib: 0.25, igpu: true));
-        Assert.Equal(ReqStatus.Unknown, Item(r, "vram").Status); Assert.Equal("—", Item(r, "vram").Local);
+        Assert.True(Item(r, "vram").Shared); Assert.StartsWith("Compartilhada com a RAM", Item(r, "vram").Local);   // the sysfs figure is ignored; half of the 15.5 GB RAM is the estimate
+        Assert.NotEqual(ReqStatus.Below, Item(r, "vram").Status);
         var none = CanRunCompare.Compare(GameRequirementsParser.Parse(EnMin), GameRequirement.Empty, Pc(vramGib: 0, freeGib: null));
         Assert.Equal(ReqStatus.Unknown, Item(none, "vram").Status); Assert.Equal(ReqStatus.Unknown, Item(none, "storage").Status);
     }

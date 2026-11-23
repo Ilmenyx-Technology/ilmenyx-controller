@@ -44,13 +44,14 @@ O que não é reconhecido (linha sem rótulo, observações, rede, som) fica em 
 |---|---|
 | RAM | Total lido pelo sistema contra o pedido, com tolerância de 90% (o sistema lê um pouco menos que o instalado). |
 | Armazenamento | Espaço livre do disco da pasta pessoal contra o pedido; a página avisa que não é necessariamente o disco de instalação. |
-| VRAM | Só quando o driver informa e a GPU não é integrada (a VRAM de iGPU não é deduzida), tolerância de 95%. |
-| Processador, placa de vídeo | **Índice de desempenho relativo em jogos** (RTX 4070 = 100; Ryzen 7 7700X = 100), calculado em três níveis de confiança (seção abaixo). O PC atende se o índice dele alcança o da alternativa mais fraca **avaliável**. Abaixo disso, só vale "abaixo do mínimo" se **todas** as alternativas foram avaliadas e a distância passa da margem do nível de confiança; senão é "não deu para comparar", nunca "abaixo" sem dados. |
+| VRAM dedicada | Só quando o driver informa, tolerância de 95%. |
+| VRAM de placa integrada | A iGPU usa a RAM do sistema: a página mostra **"Compartilhada com a RAM (~X GB estimados)"** e compara com **metade da RAM instalada** (`SharedVramFraction` = 0,5; o que o driver costuma liberar; o número do sysfs da iGPU continua ignorado). Estimativa ≥ pedido: **"Atende (compartilhada)"**; entre 60% do pedido e o pedido: **"No limite (compartilhada)"**; abaixo de 60%: não deu para comparar. **Nunca "abaixo"** por VRAM de iGPU. A nota lembra que memória compartilhada é mais lenta que VRAM dedicada. |
+| Processador, placa de vídeo | **Índice de desempenho relativo em jogos** (RTX 4070 = 100; Ryzen 7 7700X = 100), calculado em três níveis de confiança (seção abaixo). O PC atende se o índice dele alcança o da alternativa mais fraca **avaliável**. Abaixo disso, só vale "abaixo do mínimo" se **todas** as alternativas foram avaliadas e a distância passa da margem do nível de confiança; entre a margem e o pedido o resultado é **"No limite"**, e "não deu para comparar" fica só para quando falta dado (algum modelo pedido fora das tabelas, sem outra alternativa que decida). Nunca "abaixo" sem dados. |
 | Casamento de nomes | Âncoras (`GameCatalog`): a chave precisa estar inteira ("1600" não casa em "i5-11600K"), sem sufixo que muda o chip (Ti, SUPER, XT, Laptop, Mobile; em CPU também H/U/P/Y/M/T e X3D). Tabela de especificações: o nome normalizado (sem fabricante, memória, "or better"/"ou superior"; "GTX1060" = "GTX 1060") tem de ser igual à chave; variantes têm chave própria e nunca são fundidas. Nome genérico de iGPU ("Radeon Graphics") nunca casa pelo nome. |
 | API gráfica | Só informativa: DirectX 9 a 11 rodam no Linux pelo DXVK e DirectX 12 pelo VKD3D-Proton, ambos exigem Vulkan (1.3 nas versões atuais). A página diz se a biblioteca Vulkan está instalada; a versão que o driver anuncia não é lida aqui. |
 | Sistema | Só informativo: pedido de Windows mostra que o jogo roda pelo Proton, sem garantia. |
 
-Resultado por item: **atende o recomendado**, **atende o mínimo**, **abaixo do mínimo** ou **não deu para comparar**. Quando a lista recomendada
+Resultado por item: **atende o recomendado**, **atende o mínimo**, **no limite do recomendado**, **no limite do mínimo** (amarelo: os dois lados são conhecidos e a diferença para o pedido é pequena, com a nota "±x%"; nem passa nem falha), **abaixo do mínimo** ou **não deu para comparar**. Quando a lista recomendada
 não cita um item, ele não pede mais que o mínimo.
 
 Resumo geral (só os itens numéricos e indexados: processador, placa de vídeo, VRAM, RAM, armazenamento):
@@ -58,6 +59,8 @@ Resumo geral (só os itens numéricos e indexados: processador, placa de vídeo,
 - **Abaixo do mínimo em: …** se algum item ficou abaixo do mínimo.
 - **Sem dados suficientes** se menos de dois itens puderam ser comparados.
 - **Roda no recomendado** se todos os itens comparados atendem o recomendado e há lista recomendada.
+- **Roda no mínimo, no limite em: …** se o mínimo foi atendido mas algum item está no limite do mínimo.
+- **Roda no mínimo; no limite do recomendado em: …** se todos atendem o mínimo e só falta chegar ao recomendado por pouco.
 - **Roda no mínimo** nos demais casos.
 
 Itens não comparados aparecem contados ("N item(ns) não deu para comparar"); eles não puxam o resumo para cima nem para baixo.
@@ -99,8 +102,8 @@ Haswell conferem com as âncoras; Nehalem, Sandy, Ivy, Broadwell, Core 2, K8, K1
 Pentium 4/D/Dual-Core, Athlon 64/X2/II/X4, Phenom/Phenom II, FX, Core i3/i5/i7/i9 da 1ª à 14ª geração, Core Ultra (séries 1 e 2), Ryzen 1000 a 9000 e móveis. Requisito "família + GHz"
 usa a mesma fórmula com o clock que o jogo informa; "N GHz" sem família usa o IPC de Core 2 (o mais antigo, para não superestimar o pedido). "4 cores / 8 threads" sem clock fica "não deu para comparar".
 
-**Margens por confiança (o lado mais fraco decide).** Por modelo: atende com razão ≥ 1; abaixo se < 1. Por especificação: abaixo só com razão < 0,85. Estimado por família: abaixo só com razão < 0,6.
-Entre a margem e 1, "não deu para comparar". **Família antiga sem modelo na tabela** (GeForce 8/9/200 teto 4, 400/500 e Radeon HD 2000–6000 teto 8): atende "estimado" se o PC tem ≥ 2× o teto da
+**Margens por confiança (o lado mais fraco decide).** Atende com razão (PC / pedido) ≥ 1. Abaixo disso a faixa "no limite" vai até: por modelo 0,85; por especificação 0,70 (erro médio do ajuste 15%, máximo 45%); estimado por família 0,6. Abaixo da faixa é "abaixo".
+Entre a margem e 1 é **"No limite"** (a razão mostra o "±x%" da nota). Com várias alternativas ("A / B"), vale a mais próxima do PC que está avaliada; o rótulo de confiança é o dessa alternativa. **Família antiga sem modelo na tabela** (GeForce 8/9/200 teto 4, 400/500 e Radeon HD 2000–6000 teto 8): atende "estimado" se o PC tem ≥ 2× o teto da
 família; nunca "abaixo". A página mostra o nível junto do status ("por modelo", "por especificação", "estimado por família") e explica na nota.
 
 ## Limites
