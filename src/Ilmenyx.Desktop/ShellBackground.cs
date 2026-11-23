@@ -39,6 +39,7 @@ public partial class ShellWindow
     {
         tempAlert.LimitC = appSettings.TempAlertC;
         usage.Updated += OnUsageInBackground;
+        LauncherPage.GuardClose(this, () => pages.TryGetValue("launcher", out var e) ? e.Page as LauncherPage : null);
         PropertyChanged += (_, e) =>
         {
             if (e.Property == WindowStateProperty && WindowState == WindowState.Minimized && appSettings.MinimizeToTray && tray is { IsVisible: true }) Hide();

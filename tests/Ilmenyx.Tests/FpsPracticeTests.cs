@@ -153,6 +153,8 @@ public sealed class FpsPracticeTests : IDisposable
         Assert.Null(GameQualityDetector.ParseUnityReg(reg, "[Software\\\\Nobody\\\\Game]", "user.reg"));
         var p = GameQualityDetector.ParseUnityPrefs("<unity_prefs><pref name=\"UnityGraphicsQuality\" type=\"int\">3</pref><pref name=\"Screenmanager Resolution Width\" type=\"int\">2560</pref><pref name=\"Screenmanager Resolution Height\" type=\"int\">1440</pref></unity_prefs>", "prefs")!;
         Assert.Equal(("nível 3", "2560x1440"), (p.Level, p.Resolution));
+        var both = GameQualityDetector.ParseUnityPrefs("<unity_prefs><pref name=\"Screenmanager Resolution Width Default\" type=\"int\">800</pref><pref name=\"Screenmanager Resolution Width\" type=\"int\">1920</pref><pref name=\"Screenmanager Resolution Height Default\" type=\"int\">600</pref><pref name=\"Screenmanager Resolution Height\" type=\"int\">1080</pref></unity_prefs>", "prefs")!;
+        Assert.Equal("1920x1080", both.Resolution); // the "... Default" keys are not the current resolution
 
         string game = Path.Combine(root, "game"); Directory.CreateDirectory(Path.Combine(game, "Some Game_Data")); File.WriteAllText(Path.Combine(game, "Some Game_Data", "app.info"), "Some Studio\nSome Game\n");
         Assert.Equal(("Some Studio", "Some Game"), GameQualityDetector.ReadAppInfo(Path.Combine(game, "Some Game.exe")));

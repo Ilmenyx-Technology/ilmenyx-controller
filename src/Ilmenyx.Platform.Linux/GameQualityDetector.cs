@@ -151,7 +151,7 @@ public static class GameQualityDetector
     public static DetectedQuality? ParseUnityPrefs(string xml, string file)
     {
         int? level = null, w = null, h = null;
-        foreach (Match m in Regex.Matches(xml.Length > MaxFile ? xml[..(int)MaxFile] : xml, "name=\"(UnityGraphicsQuality|Screenmanager Resolution Width|Screenmanager Resolution Height)[^\"]*\" type=\"int\">(-?\\d+)<").Take(64))
+        foreach (Match m in Regex.Matches(xml.Length > MaxFile ? xml[..(int)MaxFile] : xml, "name=\"(UnityGraphicsQuality|Screenmanager Resolution Width|Screenmanager Resolution Height)(?:_h\\d+)?\" type=\"int\">(-?\\d+)<").Take(64))
         {
             if (!int.TryParse(m.Groups[2].Value, out int v)) continue;
             switch (m.Groups[1].Value) { case "UnityGraphicsQuality": level = v; break; case "Screenmanager Resolution Width": w = v; break; default: h = v; break; }

@@ -21,6 +21,7 @@ public sealed class GamesWindow : Window
         Icon = AppIcon.Window; Title = L.T("Jogos — Ilmenyx Controller"); Width = 1180; Height = 780; MinWidth = 900; MinHeight = 560; Background = Palette.Bg;
         Page = LauncherPage.Create(() => this, lifetime.Token);
         Content = new Border { Padding = new Thickness(20, 16, 12, 0), Child = Page };
+        LauncherPage.GuardClose(this, () => Page);
         Closed += (_, _) => lifetime.Cancel(); // a game being followed stops being followed; its temporary changes are undone
     }
 

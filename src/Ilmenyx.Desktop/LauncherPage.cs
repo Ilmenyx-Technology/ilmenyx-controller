@@ -34,6 +34,8 @@ public sealed class LauncherPage : Grid
     // Per game key: the follow-up of a launch (RunAsync), the achievement watch, and the games whose process was seen running.
     private readonly Dictionary<string, CancellationTokenSource> following = [], watchers = [];
     private readonly HashSet<string> running = [], opened = [], launched = [];
+    private readonly Button closeGame = new() { Name = "BtnCloseGame", Content = L.T("Fechar jogo"), FontSize = 11, Padding = new Thickness(12, 6), IsVisible = false, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(16, 0, 0, 0) };
+    private readonly HashSet<string> closing = [];
     private readonly Button stopWatch = new() { Name = "BtnStopWatch", Content = L.T("Parar acompanhamento"), FontSize = 11, Padding = new Thickness(12, 6), IsVisible = false, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(16, 0, 0, 0) };
     private Avalonia.Threading.DispatcherTimer? poller; private bool attached, ticking;
     /// <summary>Whether a game's process exists (game, executable). Default: <see cref="GameProcesses"/> on /proc. Settable for fixtures.</summary>
@@ -282,6 +284,9 @@ public sealed class LauncherPage : Grid
         // Empty state of the full-page library (nothing installed or nothing matches the search), under the search box.
         Grid.SetColumn(emptyBox, 0); Grid.SetColumnSpan(emptyBox, 3); Grid.SetRow(emptyBox, 1); emptyBox.Margin = new Thickness(0, 84, 0, 0); emptyBox.IsVisible = false; Children.Add(emptyBox);
         play.Click += async (_, _) => await PlayAsync();
+        closeGame.Click += async (_, _) => await CloseGameAsync();
+        AutomationProperties.SetLiveSetting(status, AutomationLiveSetting.Polite); // screen readers hear Abrindo…, Em execução, Encerrado and errors
+        AutomationProperties.SetLiveSetting(suggestText, AutomationLiveSetting.Polite);
         stopWatch.Click += (_, _) =>
         {
             if (current is not { } c) return;
@@ -316,7 +321,7 @@ public sealed class LauncherPage : Grid
         ToolTip.SetTip(hideGame, L.T("Esconde o jogo da biblioteca sem apagar nada. Marque Mostrar ocultos para vê-lo de novo."));
         hideGame.Click += (_, _) => ToggleHideCurrent();
         Grid.SetColumn(hideGame, 3); bottom.Children.Add(hideGame);
-        var playRow = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Bottom, Children = { stopWatch, play } };
+        var playRow = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Bottom, Children = { stopWatch, closeGame, play } };
         Grid.SetColumn(playRow, 4); bottom.Children.Add(playRow);
         var heroTop = new DockPanel { Children = { backToLibrary, heroTags } }; heroTags.Margin = new Thickness(10, 0, 0, 0);
         var heroContent = new Grid { RowDefinitions = new("Auto,*,Auto"), Children = { heroTop } };
@@ -1274,9 +1279,76 @@ public sealed class LauncherPage : Grid
         play.Content = on ? L.T("Em execução") : opening ? L.T("Abrindo…") : L.T("Jogar");
         play.IsEnabled = !opening && !on;
         stopWatch.IsVisible = k is not null && (opening || watchers.ContainsKey(k));
+        closeGame.IsVisible = on && !closing.Contains(k!);
         playProgress.IsVisible = opening && !on && !opened.Contains(k!);
         if (playFocus && !play.IsEnabled) (stopWatch.IsVisible ? stopWatch : backToLibrary).Focus();
         else if (stopFocus && !stopWatch.IsVisible) (play.IsEnabled ? play : backToLibrary).Focus();
+    }
+
+    /// <summary>"Fechar jogo": confirmation, SIGTERM to the game's own processes, up to 10 s of waiting, then a second confirmation for SIGKILL.</summary>
+    private async Task CloseGameAsync()
+    {
+        if (current is not { } g || owner() is not { } window || !closing.Add(g.Key)) return;
+        string key = g.Key;
+        void Say(string text) { if (current?.Key == key) status.Text = text; }
+        try
+        {
+            closeGame.IsVisible = false;
+            if (!await ConfirmDialog.AskAsync(window, L.T("Fechar jogo"), L.T($"Fechar {g.Name}? O progresso que não foi salvo no jogo pode ser perdido."), L.T("Fechar jogo"), L.T("Cancelar"))) return;
+            Say(L.T($"Fechando {g.Name}…"));
+            Task<IReadOnlyList<int>> Find(CancellationToken ct) => GameProcesses.FindAsync("/proc", g, ExeOf(g), ct);
+            bool gone = await GameCloser.CloseAsync(Find, GameCloser.SignalAsync, false, TimeSpan.FromSeconds(10), lifetime);
+            if (!gone)
+            {
+                if (!await ConfirmDialog.AskAsync(window, L.T("Forçar fechamento"), L.T($"{g.Name} não fechou em 10 s. Forçar o fechamento encerra o jogo na hora e o progresso não salvo é perdido."), L.T("Forçar fechamento"), L.T("Cancelar")))
+                { Say(L.T($"{g.Name} continua aberto.")); return; }
+                gone = await GameCloser.CloseAsync(Find, GameCloser.SignalAsync, true, TimeSpan.FromSeconds(3), lifetime);
+            }
+            Say(gone ? L.T($"{g.Name} foi fechado.") : L.T($"{g.Name} continua aberto: o sistema não encerrou o processo."));
+            ApplyRunning(g, !gone);
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception e) when (e is IOException or System.ComponentModel.Win32Exception or TimeoutException or FileNotFoundException) { Say(L.T("Não consegui fechar o jogo: ") + e.Message); }
+        finally { closing.Remove(key); UpdateButtons(); }
+    }
+
+    /// <summary>Name of a game that is open or being followed (the window must not close silently over it), or null.</summary>
+    public string? ActiveGameName => following.Keys.Concat(running).Select(k => games.FirstOrDefault(x => x.Key == k)?.Name).FirstOrDefault(n => n is not null);
+
+    /// <summary>Stops following every game and waits (at most <paramref name="limit"/>) for the undo of temporary changes (power profile) to finish.</summary>
+    public async Task ReleaseAsync(TimeSpan limit)
+    {
+        foreach (var f in following.Values.ToList()) f.Cancel();
+        var end = DateTime.UtcNow + limit;
+        while (following.Count > 0 && DateTime.UtcNow < end) await Task.Delay(50);
+    }
+
+    /// <summary>
+    /// Window close guard: with a game open or followed, asks first; on "Fechar o Ilmenyx" the following stops, the power profile is restored
+    /// (3 s at most) and the window closes. Closing the window quits the app (the tray only takes over on minimise), so there is no hide case.
+    /// </summary>
+    public static void GuardClose(Window w, Func<LauncherPage?> page)
+    {
+        bool allowed = false, asking = false;
+        w.Closing += (_, e) =>
+        {
+            if (allowed || page() is not { ActiveGameName: { } name } p) return;
+            e.Cancel = true;
+            if (asking) return;
+            asking = true;
+            _ = Ask();
+            async Task Ask()
+            {
+                try
+                {
+                    if (!w.IsVisible) w.Show();
+                    if (!await ConfirmDialog.AskAsync(w, L.T("Fechar o Ilmenyx"), L.T($"O jogo {name} continua aberto. O Ilmenyx vai parar o acompanhamento e restaurar o perfil de energia."), L.T("Fechar o Ilmenyx"), L.T("Cancelar"))) return;
+                    await p.ReleaseAsync(TimeSpan.FromSeconds(3));
+                    allowed = true; w.Close();
+                }
+                finally { asking = false; }
+            }
+        };
     }
 
     private void EndWatch(string key)
