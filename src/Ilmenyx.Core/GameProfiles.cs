@@ -190,10 +190,14 @@ public sealed record BenchRunEntry(DateTimeOffset At, string Kind, string Summar
 /// </summary>
 /// <see cref="Preset"/> (Baixo/Médio/Alto/Ultra) and <see cref="Upscaling"/> (Native/Quality/Performance) are what the user said they use in
 /// that game (Jogos page, profile); null = not informed. Only sessions with a known preset feed the personal correction factor.
+/// <param name="P10Fps">Sessions from the practice method (see <see cref="MangoHudPlay"/>) also keep the range of the 1 s windows (P10 to P90), the
+/// seconds that counted (<see cref="ValidSeconds"/>; null = old simple-average session, which the library no longer shows), the loading stutters
+/// left out (<see cref="Stalls"/>) and, when the quality has no preset, a short note ("Unity nível 2"). AvgFps is then the typical FPS (median of the windows).</param>
 /// <param name="CappedAt">FPS limit the session sat on (vsync at the screen's rate, or the game's own limit): the PC may do more, so the
 /// session is a lower bound and does not adjust the estimate.</param>
 public sealed record FpsSession(string Game, DateTimeOffset At, double AvgFps, double Low1Fps, double DurationSeconds, string? Gpu, string? Resolution,
-    string? Preset = null, string? Upscaling = null, double? CappedAt = null)
+    string? Preset = null, string? Upscaling = null, double? CappedAt = null,
+    double? P10Fps = null, double? P90Fps = null, double? ValidSeconds = null, int? Stalls = null, string? QualityNote = null)
 {
     public const int MaxEntries = 50;
     public const double MinSeconds = 30;

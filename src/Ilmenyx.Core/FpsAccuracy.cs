@@ -201,8 +201,19 @@ public static class MangoHudSession
     /// </summary>
     public static MangoHudSessionStats? Summarize(string text)
     {
+        var (rows, gpu) = ParseRows(text);
+        if (rows.Count == 0) return null;
+        var fps = rows.Select(r => r.Fps).ToList(); var frames = rows.Select(r => r.Ms).ToList();
+        var worst = frames.OrderByDescending(x => x).Take(Math.Max(1, frames.Count / 100)).Average();
+        double avg = fps.Average();
+        return new(avg, 1000.0 / worst, Math.Max(0, rows[^1].T - rows[0].T), fps.Count, gpu, Cap(avg, fps));
+    }
+
+    /// <summary>The valid rows of a MangoHud CSV (fps, frametime in ms, elapsed in s) and the GPU name of its header.</summary>
+    public static (List<(double Fps, double Ms, double T)> Rows, string? Gpu) ParseRows(string text)
+    {
         int fpsCol = -1, frameCol = -1, elapsedCol = -1, gpuCol = -1, count = 0; bool header = false, specValues = false; string? gpu = null;
-        var fps = new List<double>(); var frames = new List<double>(); double first = double.NaN, last = double.NaN;
+        var rows = new List<(double, double, double)>();
         foreach (string raw in text.Split('\n'))
         {
             if (++count > MangoHudLog.MaxRows + 8) break;
@@ -219,15 +230,9 @@ public static class MangoHudSession
             if (frameCol < 0 || elapsedCol < 0 || f.Length <= Math.Max(frameCol, elapsedCol)) continue;
             if (double.TryParse(f[fpsCol], NumberStyles.Float, CultureInfo.InvariantCulture, out double v) && double.TryParse(f[frameCol], NumberStyles.Float, CultureInfo.InvariantCulture, out double ms)
                 && double.TryParse(f[elapsedCol], NumberStyles.Float, CultureInfo.InvariantCulture, out double ns) && v > 0 && v < 10000 && ms > 0 && ms < 10000)
-            {
-                fps.Add(v); frames.Add(ms);
-                double s = ns / 1e9; if (double.IsNaN(first)) first = s; last = s;
-            }
+                rows.Add((v, ms, ns / 1e9));
         }
-        if (fps.Count == 0) return null;
-        var worst = frames.OrderByDescending(x => x).Take(Math.Max(1, frames.Count / 100)).Average();
-        double avg = fps.Average();
-        return new(avg, 1000.0 / worst, Math.Max(0, last - first), fps.Count, gpu, Cap(avg, fps));
+        return (rows, gpu);
     }
 
     private static string? CleanGpu(string value)

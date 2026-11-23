@@ -613,10 +613,15 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
             int quiet = 0;
             while (quiet < 6) { await Task.Delay(1000, ct); running = await GameProcesses.FindAsync(procRoot, g, p.ExePath ?? g.ExePath, ct); quiet = running.Count == 0 ? quiet + 1 : 0; }
             if (!p.MangoHud) { status(L.T($"{g.Name} encerrado. Ajustes temporários desfeitos.")); return null; }
-            var session = MangoHudSession.ToSession(MangoHudLogReader.ReadSession(MangoHudLogReader.DefaultFolder(), started), g.Name, DateTimeOffset.UtcNow, p.Res, p.GfxPreset, p.GfxUpscaling);
+            // Quality in effect: what the user chose wins; otherwise what the game's own settings file says (read-only, 3 s at most).
+            var det = await GameQualityDetector.DetectAsync(g.Name, exe, GameQualityDetector.Prefixes(g, p, exe), TimeSpan.FromSeconds(3));
+            string? preset = p.GfxPreset is { Length: > 0 } ? p.GfxPreset : det?.Preset, res = p.Res != "default" ? p.Res : det?.Resolution;
+            string? note = preset is null && det is { Level.Length: > 0 } ? det.Engine + " " + det.Level : null;
+            var session = MangoHudPlay.ToSession(MangoHudLogReader.ReadPlay(MangoHudLogReader.DefaultFolder(), started, exe is null ? null : Path.GetFileNameWithoutExtension(exe)),
+                g.Name, DateTimeOffset.UtcNow, res, preset, p.GfxUpscaling, note);
             status(session is null
-                ? L.T($"{g.Name} encerrado. Ajustes temporários desfeitos. Sessão não registrada: sem log do MangoHud na pasta do Ilmenyx (gere a configuração na página Overlay) ou sessão com menos de {FpsSession.MinSeconds:0} s.")
-                : L.T($"{g.Name} encerrado. Ajustes temporários desfeitos. Medido: {session.AvgFps:0} FPS médio (1% low {session.Low1Fps:0}) — salvo na Estimativa de FPS.")
+                ? L.T($"{g.Name} encerrado. Ajustes temporários desfeitos. Sessão não registrada: sem log do MangoHud na pasta do Ilmenyx (gere a configuração na página Overlay) ou menos de {MangoHudPlay.MinValidSeconds:0} s de jogo (os {MangoHudPlay.SkipStart:0} s iniciais e os {MangoHudPlay.SkipEnd:0} s finais não contam).")
+                : L.T($"{g.Name} encerrado. Ajustes temporários desfeitos. Medido: {session.AvgFps:0} FPS típico (1% low {session.Low1Fps:0}) — salvo no desempenho medido do jogo.")
                   + (session.CappedAt is { } cap ? L.T($" Limitado a {cap:0} FPS (vsync ou limite do jogo): o PC pode render mais. Para medir o máximo, desligue o vsync no jogo.") : ""));
             return session;
         }
