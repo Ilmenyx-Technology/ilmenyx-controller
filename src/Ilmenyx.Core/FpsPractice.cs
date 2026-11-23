@@ -22,14 +22,13 @@ public static class MangoHudPlay
         var (rows, gpu) = MangoHudSession.ParseRows(text);
         if (rows.Count == 0) return null;
         double end = rows[^1].T - SkipEnd, prev = 0;
-        var win = new SortedDictionary<int, (double Frames, double Dt)>(); var ms = new List<double>(); int stalls = 0; bool inStall = false;
+        var win = new SortedDictionary<int, (double Frames, double Dt)>(); int stalls = 0; bool inStall = false;
         foreach (var (fps, frame, t) in rows)
         {
             double dt = Math.Min(t - prev, 2); prev = t;
             if (t < SkipStart || t > end || dt <= 0) continue;
             if (frame > StallMs) { if (!inStall) stalls++; inStall = true; continue; }
             inStall = false;
-            ms.Add(frame);
             int k = (int)t; var w = win.GetValueOrDefault(k);
             win[k] = (w.Frames + fps * dt, w.Dt + dt);
         }
@@ -38,8 +37,9 @@ public static class MangoHudPlay
         var perWindow = win.Values.Where(w => w.Dt >= 0.5).Select(w => w.Frames / w.Dt).Order().ToList();
         if (perWindow.Count == 0) return null;
         double median = Percentile(perWindow, 50);
-        double worst = ms.OrderByDescending(x => x).Take(Math.Max(1, ms.Count / 100)).Average();
-        return new(median, Percentile(perWindow, 10), Percentile(perWindow, 90), 1000.0 / worst, valid, stalls, gpu, MangoHudSession.Cap(median, perWindow));
+        // 1% low = the worst 1% of the 1-second windows: MangoHud logs one frame per 100 ms sample, so a lone hitch frame (a room transition
+        // nobody feels) used to drag the "worst 1% of frames" down to single digits.
+        return new(median, Percentile(perWindow, 10), Percentile(perWindow, 90), Percentile(perWindow, 1), valid, stalls, gpu, MangoHudSession.Cap(median, perWindow));
     }
 
     /// <summary>Percentile by linear interpolation of an ascending list.</summary>
@@ -89,11 +89,24 @@ public static class FpsHistory
 {
     public const int PerGroup = 10;
 
-    /// <summary>Median of the values weighted by time: the first value where the accumulated weight reaches half of the total.</summary>
+    /// <summary>
+    /// Median of the values weighted by time: the value at which half of the play time is reached. When the time below the crossing value is
+    /// already 40–50 % of the total (two sessions of similar length, e.g. 63 and 102 FPS), the median is ambiguous, so the two neighbours are
+    /// averaged by their time (~83) instead of picking the larger one.
+    /// </summary>
     public static double WeightedMedian(IEnumerable<(double Value, double Weight)> items)
     {
-        var l = items.OrderBy(i => i.Value).ToList(); double half = l.Sum(i => i.Weight) / 2, acc = 0;
-        foreach (var (v, w) in l) { acc += w; if (acc >= half) return v; }
+        var l = items.Where(i => i.Weight > 0).OrderBy(i => i.Value).ToList();
+        if (l.Count == 0) return double.NaN;
+        double total = l.Sum(i => i.Weight), acc = 0;
+        for (int i = 0; i < l.Count; i++)
+        {
+            double before = acc; acc += l[i].Weight;
+            if (acc < total / 2) continue;
+            if (i > 0 && before >= 0.4 * total)
+                return (l[i - 1].Value * l[i - 1].Weight + l[i].Value * l[i].Weight) / (l[i - 1].Weight + l[i].Weight);
+            return l[i].Value;
+        }
         return l[^1].Value;
     }
 

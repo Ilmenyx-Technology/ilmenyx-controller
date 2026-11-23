@@ -30,8 +30,9 @@ O log inclui launcher, menus e carregamentos, que têm FPS muito diferente do jo
    (carregamento) saem da média e são contados à parte (travadas).
 3. **Janelas de 1 s.** FPS da janela = quadros / tempo da janela (quadros = FPS da amostra × intervalo entre amostras), não média
    de FPS por amostra.
-4. **Resultado da sessão.** FPS típico = mediana das janelas; faixa = P10 a P90; 1% low = 1000 / média dos piores 1 % dos frametimes
-   restantes (mesmo método do overlay). Vale com **60 s válidos** ou mais (`MangoHudPlay.MinValidSeconds`).
+4. **Resultado da sessão.** FPS típico = mediana das janelas; faixa = P10 a P90; 1% low = o pior 1 % das janelas de 1 s (P1). Antes era a
+   média dos piores 1 % dos frametimes, mas o MangoHud registra um quadro por amostra de 100 ms e um único quadro de transição de sala
+   (que ninguém sente) derrubava o valor para um dígito (Hollow Knight, 2026-11-23: 8 FPS sem engasgo perceptível). Vale com **60 s válidos** ou mais (`MangoHudPlay.MinValidSeconds`).
    `FpsSession.MinSeconds` (30 s) continua só para ler sessões antigas, que não aparecem mais no cartão (média simples sem segundos válidos).
    Uma sessão presa num limite comum (vsync, limitador) é marcada: o PC pode render mais.
 
@@ -40,7 +41,7 @@ Poucos segundos de menu a 500 FPS não mexem na mediana.
 ## Várias sessões
 
 Por jogo: agrupa por **resolução + qualidade**; usa as últimas 10 sessões do grupo; FPS típico = mediana ponderada pelo tempo válido
-das medianas das sessões (idem para P10, P90 e 1% low). Mostra número de sessões e horas. Só entra a GPU atual (a da sessão mais
+das medianas das sessões: o valor em que se chega à metade do tempo jogado; quando o tempo abaixo dele já é 40–50 % do total (duas sessões de duração parecida, 63 e 102 FPS), a mediana é ambígua e os dois vizinhos entram na média ponderada pelo tempo (~83), em vez de ficar com o maior (idem para P10, P90 e 1% low). Mostra número de sessões e horas. Só entra a GPU atual (a da sessão mais
 recente), então trocar de placa não mistura histórico.
 
 ## Qualidade usada no jogo (detecção)
@@ -63,6 +64,7 @@ resolução do perfil, quando não for "Padrão", prevalece sobre a detectada.
 ## Limites conhecidos
 
 - Os arquivos do motor podem estar defasados (jogo que não salvou ainda, ou que usa outro arquivo): a detecção é só uma pista.
-- Frametime em amostras de 100 ms enxerga um quadro por amostra: o 1% low é uma estimativa, igual ao overlay.
+- Frametime em amostras de 100 ms enxerga um quadro por amostra: por isso o 1% low usa janelas de 1 s; engasgos curtos dentro de um segundo
+  ficam diluídos.
 - Jogos que o MangoHud não consegue injetar (alguns Vulkan/anti-cheat) não geram log.
 - Não testado com jogos reais ainda: `Sem_teste.md` (FPS-MEDIDO-01, QUALITY-DETECT-01).

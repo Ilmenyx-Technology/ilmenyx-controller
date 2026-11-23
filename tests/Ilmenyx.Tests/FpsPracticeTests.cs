@@ -85,6 +85,7 @@ public sealed class FpsPracticeTests : IDisposable
     {
         Assert.Equal(60, FpsHistory.WeightedMedian([(30, 1), (60, 1), (90, 1)]));
         Assert.Equal(90, FpsHistory.WeightedMedian([(30, 100), (90, 1000)])); // long session weighs more
+        Assert.InRange(FpsHistory.WeightedMedian([(102, 166), (63, 162)]), 80, 86); // two similar sessions: between them, not the larger (real case, 2026-11-23)
         var sessions = new List<FpsSession>
         {
             S(100, 600, 1), S(40, 100, 2), S(41, 100, 3), // newest first: 100 FPS for 10 min dominates two short ones
