@@ -165,7 +165,7 @@ public static partial class HelpContent
                 [
                     "Steam games: the achievements Steam has already stored on this PC show up.",
                     "Windows games added to Ilmenyx that carry the Steam emulator (steam_emu.ini, steam_settings): Ilmenyx reads the achievements the game saves.",
-                    "When you play through Ilmenyx, each new achievement shows up as a system notification, with its name and icon.",
+                    "When you play through Ilmenyx, each new achievement shows up as an animated toast over the game, with its name and icon (or as a system notification when the toast cannot be shown). Use View toast to preview it.",
                     "Click a game to see the list: unlocked ones first, with the date; the others show how many players have them.",
                 ],
                 Q("where", "Why is a game missing?", "Only games whose achievements Ilmenyx can read are listed: Steam games whose list Steam has already stored on this PC, and Windows games added to Ilmenyx that carry the Steam emulator. Epic and GOG games are not included yet. A Windows game has to be played through Ilmenyx once for its achievements to start counting.")),

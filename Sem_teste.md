@@ -141,3 +141,4 @@ Os IDs são citados pelo app (página Bloqueados e CLI); não renomear.
 |---|---|---|
 | WIN-01 / WIN-02 / SIM-02 | Versão para Windows e comparação de GameSim Linux × Windows | O Ilmenyx Controller é só para Linux; o projeto original para Windows segue no upstream |
 | IO-01 | Benchmarks de carregamento de jogo e de rede com carga | Exigem metodologia própria antes de qualquer execução |
+| ACH-TOAST-01 | Aviso animado de conquista por cima de jogo em tela cheia (KWin X11/XWayland, tipo de janela NOTIFICATION) | NÃO TESTADO até a verificação ao vivo; no backend Wayland nativo e no GNOME o app recai na notificação do sistema (NÃO TESTADO) |

@@ -165,7 +165,7 @@ public static partial class HelpContent
                 [
                     "Juegos de Steam: aparecen los logros que Steam ya guardó en este PC.",
                     "Juegos de Windows agregados a Ilmenyx que traen el emulador de Steam (steam_emu.ini, steam_settings): Ilmenyx lee los logros que guarda el juego.",
-                    "Al jugar con Ilmenyx, cada logro nuevo aparece como notificación del sistema, con su nombre e icono.",
+                    "Al jugar con Ilmenyx, cada logro nuevo aparece en un aviso animado sobre el juego, con su nombre e icono (o como notificación del sistema si el aviso no puede mostrarse). En Ver aviso compruebas cómo se ve.",
                     "Haz clic en un juego para ver la lista: primero los desbloqueados, con la fecha; los demás muestran cuántos jugadores los tienen.",
                 ],
                 Q("where", "¿Por qué no aparece un juego?", "Solo entran los juegos cuyos logros Ilmenyx puede leer: juegos de Steam cuya lista Steam ya guardó en este PC y juegos de Windows agregados a Ilmenyx con el emulador de Steam. Los juegos de Epic y GOG aún no entran. Un juego de Windows debe jugarse una vez con Ilmenyx para que sus logros empiecen a contar.")),

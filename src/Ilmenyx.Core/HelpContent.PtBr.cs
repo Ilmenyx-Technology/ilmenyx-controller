@@ -169,7 +169,7 @@ public static partial class HelpContent
                 [
                     "Jogos da Steam: aparecem as conquistas que a Steam já guardou neste PC.",
                     "Jogos de Windows adicionados ao Ilmenyx que trazem o emulador da Steam (steam_emu.ini, steam_settings): o Ilmenyx lê as conquistas que o jogo grava.",
-                    "Jogando pelo Ilmenyx, cada conquista nova aparece como notificação do sistema, com nome e ícone.",
+                    "Jogando pelo Ilmenyx, cada conquista nova aparece num aviso animado por cima do jogo, com nome e ícone (ou como notificação do sistema, se o aviso não puder aparecer). Em Ver aviso você confere como ele fica.",
                     "Clique num jogo para ver a lista: desbloqueadas primeiro, com a data; as outras mostram quantos jogadores já têm.",
                 ],
                 Q("where", "Por que um jogo não aparece?", "Só entram jogos com conquistas que o Ilmenyx consegue ler: jogos da Steam cuja lista a Steam já guardou neste PC e jogos de Windows adicionados ao Ilmenyx com o emulador da Steam. Jogos da Epic e da GOG ainda não entram. Um jogo de Windows precisa ser jogado pelo Ilmenyx uma vez para as conquistas começarem a contar.")),

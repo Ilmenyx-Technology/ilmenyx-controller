@@ -106,7 +106,11 @@ public sealed class AchievementsPage : Grid
         shown = v; detail.Children.Clear();
         string where = v.Source.Origin == AchievementOrigin.Steam ? L.T("Conquistas registradas pela Steam neste PC.")
             : L.T("Cópia sem Steam: o Ilmenyx lê as conquistas que o jogo grava e avisa quando uma sai enquanto você joga por aqui.");
+        var preview = new Button { Name = "BtnAchPreview", Content = L.T("Ver aviso"), Padding = new Thickness(14, 8), FontSize = 12, HorizontalAlignment = HorizontalAlignment.Left };
+        ToolTip.SetTip(preview, L.T("Mostra o aviso de conquista em 3 segundos, para você conferir por cima do jogo."));
+        preview.Click += async (_, _) => await PreviewAsync(v, preview);
         detail.Children.Add(new TextBlock { Name = "AchGameTitle", Text = v.Source.Game.Name, FontSize = 22, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap });
+        detail.Children.Add(preview);
         detail.Children.Add(new TextBlock { Text = L.T($"{v.Unlocked} de {v.Defs.Count} conquistas ({(v.Defs.Count == 0 ? 0 : 100.0 * v.Unlocked / v.Defs.Count):0}%)") + " · " + where, Foreground = Palette.Muted, FontSize = 12.5, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 6) });
         var culture = CultureInfo.GetCultureInfo(L.Current);
         // Unlocked first (newest on top), then the rest in the game's order.
@@ -131,6 +135,25 @@ public sealed class AchievementsPage : Grid
         var card = UiKit.Card(row, new Thickness(0)); card.Name = "AchItem_" + d.Id; card.Padding = new Thickness(12, 10);
         AutomationProperties.SetName(card, (secret ? L.T("Conquista secreta") : d.Name) + (got ? " — " + L.T("desbloqueada") : " — " + L.T("bloqueada")));
         return card;
+    }
+
+    private async Task PreviewAsync(AchievementView v, Button button)
+    {
+        if (v.Defs.Count == 0) return;
+        button.IsEnabled = false;
+        try
+        {
+            await Task.Delay(3000, lifetime);
+            var d = v.Defs.FirstOrDefault(x => v.Unlocks.ContainsKey(x.Id)) ?? v.Defs[0];
+            string? picture = null;
+            try { if (d.Icon.Length > 0) picture = await icon(v.Source.AppId, d.Icon, lifetime); }
+            catch (Exception e) when (e is HttpRequestException or TaskCanceledException or IOException) { }
+            _ = DesktopNotification.PlaySoundAsync();
+            if (!AchievementToast.TryShow(d.Name, d.Description, v.Source.Game.Name, picture))
+                await DesktopNotification.SendAsync(L.T("Conquista desbloqueada"), d.Name + (d.Description.Length > 0 ? " — " + d.Description : "") + "\n" + v.Source.Game.Name, lifetime, picture, urgent: true);
+        }
+        catch (OperationCanceledException) { }
+        finally { button.IsEnabled = true; }
     }
 
     private async Task LoadIconAsync(string appId, string file, Image target)
