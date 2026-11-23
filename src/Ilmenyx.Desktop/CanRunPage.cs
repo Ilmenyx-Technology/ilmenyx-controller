@@ -240,6 +240,7 @@ public sealed class CanRunPage : StackPanel
     private static Border ItemCard(CanRunItem it)
     {
         var (text, mark, brush) = StatusLook(it.Status);
+        if (it.Basis is { } basis) text += " · " + CanRunCompare.BasisLabel(basis);
         var title = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, Children = { new TextBlock { Text = mark, FontSize = 16, FontWeight = FontWeight.Bold, Foreground = brush, VerticalAlignment = VerticalAlignment.Center },
             new TextBlock { Text = it.Title, FontSize = 14, FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center } } };
         var facts = new WrapPanel { Margin = new Thickness(0, 8, 0, 0), Children = { Fact(L.T("MÍNIMO"), it.Minimum), Fact(L.T("RECOMENDADO"), it.Recommended), Fact(L.T("ESTE PC"), it.Local) } };

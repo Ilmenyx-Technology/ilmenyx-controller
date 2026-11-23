@@ -138,8 +138,8 @@ public sealed class CanRunTests : IDisposable
     [Fact]
     public void ModelsMissingFromTheTableAreNeverGuessed()
     {
-        // i3-9100 / FX-8350 are not in the table: with a weak PC the CPU stays "?", not "below". A PC unknown to the table is "?" too.
-        var req = GameRequirementsParser.Parse("<li><strong>Processor:</strong> Intel Core i3-9100 or AMD FX-8350</li><li><strong>Memory:</strong> 8 GB RAM</li><li><strong>Graphics:</strong> GeForce GTX 1060</li>");
+        // Elbrus / Loongson are in no table: with a weak PC the CPU stays "?", not "below". A PC unknown to the table is "?" too.
+        var req = GameRequirementsParser.Parse("<li><strong>Processor:</strong> Elbrus 8C or Loongson 3A5000</li><li><strong>Memory:</strong> 8 GB RAM</li><li><strong>Graphics:</strong> GeForce GTX 1060</li>");
         var weak = CanRunCompare.Compare(req, GameRequirement.Empty, Pc(cpu: "Intel Core i5-8400"));
         Assert.Equal(ReqStatus.Unknown, Item(weak, "cpu").Status);
         var strange = CanRunCompare.Compare(req, GameRequirement.Empty, Pc(cpu: "Loongson 3A5000", gpu: "Matrox G200eR2"));

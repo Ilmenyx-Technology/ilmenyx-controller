@@ -6,13 +6,13 @@ using System.Globalization;
 namespace Ilmenyx.Core;
 
 /// <summary>What was read from this PC (read-only). Zero/null = could not be read; nothing is guessed from it.</summary>
-public sealed record LocalPc(string CpuName, string GpuName, ulong GpuVramBytes, bool GpuIntegrated, long RamBytes, long? FreeBytes, string FreeLabel, bool VulkanLoader);
+public sealed record LocalPc(string CpuName, string GpuName, ulong GpuVramBytes, bool GpuIntegrated, long RamBytes, long? FreeBytes, string FreeLabel, bool VulkanLoader, string? GpuPciId = null);
 
 public enum ReqStatus { Unknown, Below, MeetsMin, MeetsRec }
 public enum CanRunVerdict { NoData, BelowMinimum, Minimum, Recommended }
 
 /// <summary><paramref name="Counts"/>: false for items that only inform (system, graphics API) and never decide the verdict.</summary>
-public sealed record CanRunItem(string Key, string Title, string Minimum, string Recommended, string Local, ReqStatus Status, string Note, bool Counts);
+public sealed record CanRunItem(string Key, string Title, string Minimum, string Recommended, string Local, ReqStatus Status, string Note, bool Counts, RatingBasis? Basis = null);
 
 public sealed record CanRunReport(IReadOnlyList<CanRunItem> Items, CanRunVerdict Verdict, IReadOnlyList<string> BelowTitles, int NotCompared, string Headline);
 
@@ -68,43 +68,76 @@ public static class CanRunCompare
             (min.Os ?? rec.Os) is { } os && os.Contains("Linux", StringComparison.OrdinalIgnoreCase) && !os.Contains("Windows", StringComparison.OrdinalIgnoreCase)
                 ? L.T("Versão para Linux publicada pelo desenvolvedor.") : L.T("Pede Windows: no Linux o jogo roda pelo Proton (Steam Play), sem garantia."), false);
 
-    // --- indexed parts (CPU, GPU): relative gaming performance tables, RTX 4070 / Ryzen 7 7700X = 100 -------------------------------------
-
-    /// <summary>true = the PC reaches the lowest known alternative; false = it does not and every alternative is known; null = cannot tell.</summary>
-    internal static bool? ReachesIndex(double? local, IReadOnlyList<string> alternatives, Func<string, (string Key, double Index)?> match)
-    {
-        if (alternatives.Count == 0 || local is null) return null;
-        var found = alternatives.Select(a => match(a)).ToList();
-        var known = found.Where(f => f is not null).Select(f => f!.Value.Index).ToList();
-        if (known.Count == 0) return null;
-        if (local.Value >= known.Min()) return true;
-        return known.Count == alternatives.Count ? false : null;
-    }
+    // --- indexed parts (CPU, GPU): relative gaming performance, RTX 4070 / Ryzen 7 7700X = 100 -----------------------------------------------
+    // Local and requirement are rated by GpuIndexer/CpuIndexer: catalog anchor (model) > specification formula > family estimate.
 
     private static string Join(IReadOnlyList<string> alts) => string.Join(" / ", alts);
 
-    private static CanRunItem Indexed(string key, string title, GameRequirement min, GameRequirement rec, Func<GameRequirement, IReadOnlyList<string>> sel, string localName,
-        (string Key, double Index)? local, Func<string, (string Key, double Index)?> match, string unknownLocal)
+    private enum Eval { Unsure, Below, Meets }
+    private readonly record struct Judged(Eval Result, RatingBasis? Basis, bool Cap);
+
+    /// <summary>"Below" needs a margin that grows as the data gets weaker: the weakest side of the pair decides. Anything between the margin and 1.0 is "cannot tell".</summary>
+    internal static double BelowMargin(RatingBasis b) => b switch { RatingBasis.Model => 1.0, RatingBasis.Spec => 0.85, _ => 0.6 };
+    /// <summary>Unknown model of an old family: the PC must be at least this many times the family's ceiling to count as "meets".</summary>
+    internal const double OldFamilyMargin = 2.0;
+
+    private static Judged Judge(Rating? local, IReadOnlyList<string> alternatives, Func<string, Rating?> rate)
     {
-        bool? m = ReachesIndex(local?.Index, sel(min), match), r = ReachesIndex(local?.Index, sel(rec), match);
+        if (alternatives.Count == 0 || local is null) return new(Eval.Unsure, null, false);
+        bool unrated = false, allBelow = true, cap = false; RatingBasis? best = null, worst = null;
+        foreach (var alt in alternatives)
+        {
+            var r = rate(alt);
+            if (r is null) { unrated = true; allBelow = false; continue; }
+            var basis = (RatingBasis)Math.Min((int)r.Basis, (int)local.Basis);
+            worst = worst is null ? basis : (RatingBasis)Math.Min((int)worst, (int)basis);
+            double ratio = local.Index / r.Index;
+            if (r.OldFamilyCap) { allBelow = false; if (ratio >= OldFamilyMargin) { best = basis; cap = true; } continue; }
+            if (ratio >= 1) { if (best is null || basis > best || cap) { best = basis; cap = false; } continue; }
+            if (ratio >= BelowMargin(basis)) allBelow = false;
+        }
+        if (best is not null) return new(Eval.Meets, best, cap);
+        return allBelow && !unrated ? new(Eval.Below, worst, false) : new(Eval.Unsure, null, false);
+    }
+
+    private static bool? Ok(Judged j) => j.Result switch { Eval.Meets => true, Eval.Below => false, _ => null };
+
+    public static string BasisLabel(RatingBasis b) => b switch
+    {
+        RatingBasis.Model => L.T("por modelo"), RatingBasis.Spec => L.T("por especificação"), _ => L.T("estimado por família"),
+    };
+
+    private static CanRunItem Indexed(string key, string title, GameRequirement min, GameRequirement rec, Func<GameRequirement, IReadOnlyList<string>> sel, string localName,
+        Rating? local, Func<string, Rating?> rate, string unknownLocal)
+    {
+        var jm = Judge(local, sel(min), rate); var jr = Judge(local, sel(rec), rate);
+        var status = Merge(Ok(jm), Ok(jr), sel(min).Count > 0, sel(rec).Count > 0);
+        var decisive = status == ReqStatus.MeetsRec ? jr : jm;
+        RatingBasis? basis = status == ReqStatus.Unknown ? null : decisive.Basis;
         string note = local is null ? unknownLocal
-            : (m is null && sel(min).Count > 0) || (r is null && sel(rec).Count > 0) ? L.T("Algum modelo pedido não está na tabela de desempenho relativo do Ilmenyx: não deu para comparar com ele.")
-            : L.T("Comparado pelo desempenho relativo em jogos (tabela aproximada do Ilmenyx), não por clock ou núcleos.");
-        return new(key, title, Join(sel(min)), Join(sel(rec)), localName, Merge(m, r, sel(min).Count > 0, sel(rec).Count > 0), note, true);
+            : status == ReqStatus.Unknown ? ((sel(min).Count > 0 || sel(rec).Count > 0) ? L.T("Algum modelo pedido não está nas tabelas do Ilmenyx, ou a diferença é pequena demais para decidir sem o modelo exato: não deu para comparar.") : "")
+            : decisive.Cap ? L.T("O modelo pedido não está nas tabelas, mas é de uma família bem antiga e este PC é de uma geração muito mais nova: atende (estimado).")
+            : basis switch
+            {
+                RatingBasis.Model => L.T("Comparado pelo desempenho relativo em jogos (tabela aproximada do Ilmenyx), não por clock ou núcleos."),
+                RatingBasis.Spec => L.T("Comparado pela especificação (unidades de processamento e clock, ajustados pela arquitetura) ou pelo clock que o jogo informa; é uma estimativa."),
+                _ => L.T("Estimado pela família e geração do modelo, sem o modelo exato; é uma estimativa."),
+            };
+        return new(key, title, Join(sel(min)), Join(sel(rec)), localName, status, note, true, basis);
     }
 
     private static CanRunItem Cpu(GameRequirement min, GameRequirement rec, LocalPc pc)
     {
-        var local = pc.CpuName.Length == 0 ? null : GameCatalog.CpuMatchWhole(pc.CpuName);
-        return Indexed("cpu", L.T("Processador"), min, rec, g => g.CpuAlternatives, pc.CpuName.Length == 0 ? "—" : pc.CpuName, local, a => GameCatalog.CpuMatchWhole(a),
-            L.T("O processador deste PC não está na tabela de desempenho relativo: não deu para comparar."));
+        var local = pc.CpuName.Length == 0 ? null : CpuIndexer.Rate(pc.CpuName);
+        return Indexed("cpu", L.T("Processador"), min, rec, g => g.CpuAlternatives, pc.CpuName.Length == 0 ? "—" : pc.CpuName, local, CpuIndexer.Rate,
+            L.T("O processador deste PC não está nas tabelas do Ilmenyx: não deu para comparar."));
     }
 
     private static CanRunItem Gpu(GameRequirement min, GameRequirement rec, LocalPc pc)
     {
-        var local = pc.GpuName.Length == 0 ? null : GameCatalog.GpuMatchWhole(pc.GpuName);
-        return Indexed("gpu", L.T("Placa de vídeo"), min, rec, g => g.GpuAlternatives, pc.GpuName.Length == 0 ? "—" : GpuLabel(pc.GpuName), local, a => GameCatalog.GpuMatchWhole(a),
-            L.T("A placa de vídeo deste PC não está na tabela de desempenho relativo (ou o nome é genérico): não deu para comparar."));
+        var local = pc.GpuName.Length == 0 && pc.GpuPciId is null ? null : GpuIndexer.Rate(pc.GpuName, pc.GpuPciId);
+        return Indexed("gpu", L.T("Placa de vídeo"), min, rec, g => g.GpuAlternatives, pc.GpuName.Length == 0 ? "—" : GpuLabel(pc.GpuName), local, a => GpuIndexer.Rate(a, null, requirement: true),
+            L.T("A placa de vídeo deste PC não está nas tabelas do Ilmenyx (ou o nome é genérico e o ID PCI não identifica o modelo): não deu para comparar."));
     }
 
     internal static string GpuLabel(string raw)
