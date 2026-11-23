@@ -90,9 +90,31 @@ public static class GameRequirementsParser
         return unit.ToUpperInvariant() switch { "TB" => v * 1024, "MB" or "MIB" => v / 1024, _ => v };
     }
 
-    /// <summary>Splits a processor/graphics line into the alternatives the game accepts ("A or B / C").</summary>
-    public static IReadOnlyList<string> Alternatives(string value) =>
-        Split.Split(value).Select(x => x.Trim(' ', '.', ',')).Where(x => x.Length >= 3).Take(8).ToList();
+    private static readonly Regex VendorOr = new(@"\b(Intel|AMD)\s+(?:or|ou|/)\s+(Intel|AMD)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+    private static readonly Regex CoresThreads = new(@"(\d+)\s*cores?\s*(?:/|and|e|,)\s*(\d+)\s*threads?", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+    private const string Tail = @"(?:better|higher|faster|superior|melhor|equivalent[e]?|equal|similar|above|up|more|\+)";
+    private static readonly Regex TailNoise = new(@"(?:\s+(?:or|ou|and|e)\s+|\s+)?" + Tail + @"\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+    private static readonly Regex OnlyNoise = new(@"^(?:" + Tail + @"|equivalent\s+or\s+better|or\s+" + Tail + @")$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+    /// <summary>
+    /// Splits a processor/graphics line into the alternatives the game accepts ("A or B / C"). Trademark signs, label leftovers (":") and
+    /// "/ better", "or equivalent", "ou superior" tails are dropped; "Intel or AMD" without a model and "4 cores / 8 threads" stay one alternative.
+    /// </summary>
+    public static IReadOnlyList<string> Alternatives(string value)
+    {
+        string v = Regex.Replace(value.Replace("®", "").Replace("™", "").Replace("©", ""), @"\((?:R|TM)\)", "", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        v = VendorOr.Replace(v.Trim(' ', ':', ';', '-', '–', '.', ','), "$1 & $2");
+        v = CoresThreads.Replace(v, "$1 cores $2 threads");
+        var list = new List<string>();
+        foreach (var part in Split.Split(v))
+        {
+            string x = part.Trim(' ', '.', ',', ':', ';', '-', '–');
+            if (x.Length < 3 || OnlyNoise.IsMatch(x)) continue;
+            x = TailNoise.Replace(x, "").Trim(' ', '.', ',', ':', ';', '-', '–');
+            if (x.Length >= 3) list.Add(x);
+        }
+        return list.Take(8).ToList();
+    }
 
     public static GameRequirement Parse(string html)
     {
@@ -104,7 +126,7 @@ public static class GameRequirementsParser
         {
             int colon = line.IndexOf(':');
             var kind = colon is > 0 and <= 40 ? Classify(line[..colon]) : Kind.Other;
-            string value = kind == Kind.Other ? line : line[(colon + 1)..].Trim();
+            string value = kind == Kind.Other ? line : line[(colon + 1)..].Trim(' ', ':', ';');
             bool used = true;
             switch (kind)
             {

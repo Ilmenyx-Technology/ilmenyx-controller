@@ -70,7 +70,7 @@ public sealed partial class ShellWindow
         long? free = null;
         try { free = new DriveInfo(home).AvailableFreeSpace; } catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException) { }
         var u = usage.Last;
-        return new LocalPc(u?.CpuModel ?? "", gpu?.Name ?? "", gpu?.VramBytes ?? 0, gpu?.Integrated ?? false, u?.MemoryTotal ?? 0, free, L.T("sua pasta pessoal"), gpu?.Apis.Contains("Vulkan") == true);
+        return new LocalPc(u?.CpuModel ?? "", gpu?.Name ?? "", gpu?.VramBytes ?? 0, gpu?.Integrated ?? false, u?.MemoryTotal ?? 0, free, L.T("sua pasta pessoal"), gpu?.Apis.Contains("Vulkan") == true, gpu is { VendorId.Length: > 0, DeviceId.Length: > 0 } ? $"{gpu.VendorId}:{gpu.DeviceId}" : null);
     }
 
     private static IReadOnlyList<(string Id, string Name)> SteamLibraryNow() =>

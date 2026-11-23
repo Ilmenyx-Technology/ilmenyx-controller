@@ -74,13 +74,13 @@ public static class GameCatalog
     /// muda o chip (Ti, SUPER, XT, Laptop, Mobile) que a tabela não conhece; nome genérico de iGPU nunca casa. Sem entrada = null, nunca um palpite.
     /// </summary>
     public static (string Key, double Index)? GpuMatchWhole(string name) => LookupWhole(GpuIndex, name);
-    public static (string Key, double Index)? CpuMatchWhole(string name) => LookupWhole(CpuIndex, ShortCpuName(name));
+    public static (string Key, double Index)? CpuMatchWhole(string name) => LookupWhole(CpuIndex, ShortCpuName(name), @"(?!\s?(?:HQ|HK|HX|H|U|P|Y|M|T|X3D)\b)");   // "11400H" is not the desktop 11400
 
-    private static (string Key, double Index)? LookupWhole((string Key, double Index)[] table, string name)
+    private static (string Key, double Index)? LookupWhole((string Key, double Index)[] table, string name, string notFollowedBy = "")
     {
         name = System.Text.RegularExpressions.Regex.Replace(name, @"\b(GTX|RTX|GT|RX)(?=\d)", "$1 ", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
         var hit = table.Where(t => !AmbiguousKeys.Contains(t.Key) && System.Text.RegularExpressions.Regex.IsMatch(name,
-                    @"(?<![A-Za-z0-9])" + System.Text.RegularExpressions.Regex.Escape(t.Key) + @"(?![0-9])(?!\s?(?:Ti|SUPER|XTX|XT|GRE|Laptop|Mobile|Max-Q)\b)",
+                    @"(?<![A-Za-z0-9])" + System.Text.RegularExpressions.Regex.Escape(t.Key) + @"(?![0-9])(?!\s?(?:Ti|SUPER|XTX|XT|GRE|Laptop|Mobile|Max-Q)\b)" + notFollowedBy,
                     System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant))
             .OrderByDescending(t => t.Key.Length).FirstOrDefault();
         return hit.Key == null ? null : hit;
@@ -109,7 +109,7 @@ public static class GameCatalog
     {
         string s = name.Replace("AMD", "").Replace("Intel(R)", "").Replace("(R)", "").Replace("(TM)", "").Replace("Core(TM)", "Core");
         int i = s.IndexOf("-Core", StringComparison.OrdinalIgnoreCase);
-        if (i > 0) s = s[..s.LastIndexOf(' ', i)];       // "Ryzen 7 7700X 8-Core Processor" → "Ryzen 7 7700X"
+        if (i > 0 && s.LastIndexOf(' ', i) >= 0) s = s[..s.LastIndexOf(' ', i)];       // "Ryzen 7 7700X 8-Core Processor" → "Ryzen 7 7700X"
         s = s.Replace("Processor", "").Replace("CPU", "");
         s = System.Text.RegularExpressions.Regex.Replace(s, @"\d+th Gen\s*", ""); // "13th Gen Core i7-13700K"
         int at = s.IndexOf('@');
