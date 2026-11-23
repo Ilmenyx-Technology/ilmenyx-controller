@@ -105,4 +105,90 @@ public sealed class AchievementsTests
         build(new W(bw)); bw.Write((byte)8); bw.Flush();
         return ms.ToArray();
     }
+
+    private static readonly AchievementDef[] Defs = [new("CHARMED", "Afortunado", "Adquira seu primeiro Amuleto", "a.jpg", "b.jpg", false), new("SECRET", "S", "", "", "", true)];
+
+    private static string Game(bool marker, out string dll)
+    {
+        string root = Path.Combine(Path.GetTempPath(), "ilmx-ach-" + Guid.NewGuid().ToString("N"));
+        string dir = Path.Combine(root, "data", "Plugins"); Directory.CreateDirectory(dir);
+        dll = Path.Combine(dir, "steam_api64.dll");
+        File.WriteAllBytes(dll, Encoding.ASCII.GetBytes("MZ..." + (marker ? "steam_settings" : "nothing") + "..."));
+        return root;
+    }
+
+    [Fact]
+    public void Goldberg_definitions_use_the_array_format_and_round_trip()
+    {
+        string json = Achievements.GoldbergDefinitions(Defs);
+        Assert.True(Achievements.IsGoldbergDefinitionList(json));
+        Assert.Contains("\"displayName\": \"Afortunado\"", json);
+        using var doc = System.Text.Json.JsonDocument.Parse(json);
+        Assert.Equal(("CHARMED", "0", "b.jpg"), (doc.RootElement[0].GetProperty("name").GetString(), doc.RootElement[0].GetProperty("hidden").GetString(), doc.RootElement[0].GetProperty("icongray").GetString()));
+        Assert.Equal("1", doc.RootElement[1].GetProperty("hidden").GetString());
+        Assert.True(Achievements.IsGoldbergDefinitionList("[]"));
+        Assert.False(Achievements.IsGoldbergDefinitionList("""{"CHARMED":{}}"""));
+        Assert.False(Achievements.IsGoldbergDefinitionList("""[{"id":1}]"""));
+        Assert.False(Achievements.IsGoldbergDefinitionList("nope"));
+    }
+
+    [Fact]
+    public void PrepareEmulator_creates_files_next_to_a_marked_dll_and_undo_removes_only_them()
+    {
+        string root = Game(true, out string dll);
+        try
+        {
+            var made = AchievementFiles.PrepareEmulator(root, "367520", Defs);
+            string settings = Path.Combine(Path.GetDirectoryName(dll)!, "steam_settings");
+            Assert.Equal([settings, Path.Combine(settings, "achievements.json"), Path.Combine(settings, "steam_appid.txt")], made);
+            Assert.Equal("367520\n", File.ReadAllText(Path.Combine(settings, "steam_appid.txt")));
+            Assert.True(Achievements.IsGoldbergDefinitionList(File.ReadAllText(Path.Combine(settings, "achievements.json"))));
+            Assert.Empty(AchievementFiles.PrepareEmulator(root, "367520", Defs)); // already there
+            File.WriteAllText(Path.Combine(settings, "other.txt"), "x");
+            AchievementFiles.UndoEmulator([.. made, dll, Path.Combine(settings, "other.txt")]);
+            Assert.True(File.Exists(dll)); Assert.True(File.Exists(Path.Combine(settings, "other.txt"))); Assert.False(File.Exists(Path.Combine(settings, "achievements.json")));
+            Assert.True(Directory.Exists(settings)); // not empty: kept
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [Fact]
+    public void PrepareEmulator_ignores_dlls_without_the_marker_empty_lists_and_never_overwrites()
+    {
+        string plain = Game(false, out _);
+        string marked = Game(true, out string dll);
+        try
+        {
+            Assert.Empty(AchievementFiles.PrepareEmulator(plain, "1", Defs));
+            Assert.False(Directory.Exists(Path.Combine(plain, "data", "Plugins", "steam_settings")));
+            Assert.Empty(AchievementFiles.PrepareEmulator(marked, "1", []));
+            string settings = Path.Combine(Path.GetDirectoryName(dll)!, "steam_settings"); Directory.CreateDirectory(settings);
+            File.WriteAllText(Path.Combine(settings, "achievements.json"), """{"CHARMED":{}}""");
+            Assert.Empty(AchievementFiles.PrepareEmulator(marked, "1", Defs));
+            Assert.Equal("""{"CHARMED":{}}""", File.ReadAllText(Path.Combine(settings, "achievements.json")));
+            Assert.False(File.Exists(Path.Combine(settings, "steam_appid.txt")));
+        }
+        finally { Directory.Delete(plain, true); Directory.Delete(marked, true); }
+    }
+
+    [Fact]
+    public void OriginalSteamApiOnly_NeedsValveDllWithoutEmulator()
+    {
+        string Make(string? dllText, string? extra = null)
+        {
+            string d = Directory.CreateTempSubdirectory("ilmx-orig").FullName;
+            if (dllText is not null) File.WriteAllText(Path.Combine(d, "steam_api64.dll"), "MZ\0" + dllText);
+            if (extra is not null) File.WriteAllText(Path.Combine(d, extra), "x");
+            return d;
+        }
+        var dirs = new[] { Make("[S_API] SteamAPI_Init(): Loaded local"), Make("[S_API] SteamAPI_Init() steam_settings"), Make("[S_API] SteamAPI_Init()", "steam_emu.ini"), Make(null) };
+        try
+        {
+            Assert.True(AchievementFiles.HasOriginalSteamApiOnly(dirs[0]));
+            Assert.False(AchievementFiles.HasOriginalSteamApiOnly(dirs[1]));
+            Assert.False(AchievementFiles.HasOriginalSteamApiOnly(dirs[2]));
+            Assert.False(AchievementFiles.HasOriginalSteamApiOnly(dirs[3]));
+        }
+        finally { foreach (var d in dirs) Directory.Delete(d, true); }
+    }
 }

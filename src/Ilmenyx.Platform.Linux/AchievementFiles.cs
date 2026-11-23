@@ -120,6 +120,15 @@ public static class AchievementFiles
     /// <summary>A Steam emulator next to the executable or in the game folder (steam_emu.ini, steam_settings, *.cdx...).</summary>
     public static bool HasEmulator(params string[] folders) => folders.Distinct().Any(d => Search(d, 4, n => EmulatorMarks.Contains(n, StringComparer.OrdinalIgnoreCase)) is not null);
 
+    /// <summary>True for a copy whose steam_api(64).dll is Valve's own (no emulator): the game finds no Steam and never records achievements.</summary>
+    public static bool HasOriginalSteamApiOnly(string gameFolder)
+    {
+        var dlls = SearchAll(gameFolder, 4, n => n.Equals("steam_api.dll", StringComparison.OrdinalIgnoreCase) || n.Equals("steam_api64.dll", StringComparison.OrdinalIgnoreCase))
+            .Where(f => { try { var i = new FileInfo(f); return i.LinkTarget is null && i.Length is > 0 and <= 16 << 20; } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return false; } }).ToList();
+        try { return dlls.Count > 0 && !HasEmulator(gameFolder) && !dlls.Any(d => ContainsAscii(d, SettingsDir)) && dlls.Any(d => ContainsAscii(d, "[S_API] SteamAPI_Init()")); }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return false; }
+    }
+
     /// <summary>AppID written by the emulator settings in the game folder (steam_emu.ini, steam_appid.txt, steam_settings/steam_appid.txt).</summary>
     public static string? EmulatorAppId(string gameDir)
     {
@@ -148,8 +157,10 @@ public static class AchievementFiles
         if (files.Length == 0) yield return Path.Combine(dir, $"UserGameStats_0_{appId}.bin"); // list without unlocks yet: still a game with achievements
     }
 
-    /// <summary>Breadth-first search for a file or folder name, a few levels deep, never following links; null when absent.</summary>
-    private static string? Search(string root, int depth, Func<string, bool> match)
+    private static string? Search(string root, int depth, Func<string, bool> match) => SearchAll(root, depth, match).FirstOrDefault();
+
+    /// <summary>Breadth-first search for files or folders by name, a few levels deep, never following links.</summary>
+    private static IEnumerable<string> SearchAll(string root, int depth, Func<string, bool> match)
     {
         var level = new List<string> { root };
         for (int d = 0; d <= depth && level.Count > 0; d++)
@@ -157,19 +168,66 @@ public static class AchievementFiles
             var next = new List<string>();
             foreach (var dir in level.Take(200))
             {
-                try
+                List<FileSystemInfo> entries;
+                try { entries = [.. new DirectoryInfo(dir).EnumerateFileSystemInfos()]; }
+                catch (Exception e) when (e is IOException or UnauthorizedAccessException or System.Security.SecurityException) { continue; }
+                foreach (var e in entries)
                 {
-                    foreach (var e in new DirectoryInfo(dir).EnumerateFileSystemInfos())
-                    {
-                        if (match(e.Name)) return e.FullName;
-                        if (e is DirectoryInfo { LinkTarget: null } sub) next.Add(sub.FullName);
-                    }
+                    if (match(e.Name)) yield return e.FullName;
+                    if (e is DirectoryInfo { LinkTarget: null } sub) next.Add(sub.FullName);
                 }
-                catch (Exception e) when (e is IOException or UnauthorizedAccessException or System.Security.SecurityException) { }
             }
             level = next;
         }
-        return null;
+    }
+
+    private const string SettingsDir = "steam_settings";
+
+    /// <summary>
+    /// Goldberg only records an achievement defined in steam_settings/achievements.json next to its steam_api(64).dll; repacks often leave the
+    /// folder elsewhere or in a format it ignores. Creates the missing definition list (and steam_appid.txt) next to each Goldberg-family dll
+    /// (one that contains "steam_settings"). Never overwrites or deletes anything. Returns what it created (empty when nothing was needed).
+    /// </summary>
+    public static IReadOnlyList<string> PrepareEmulator(string gameFolder, string appId, IReadOnlyList<AchievementDef> defs)
+    {
+        var created = new List<string>();
+        if (defs.Count == 0 || appId.Length == 0 || !appId.All(char.IsAsciiDigit)) return created;
+        string json = Achievements.GoldbergDefinitions(defs);
+        foreach (var dll in SearchAll(gameFolder, 4, n => n.Equals("steam_api.dll", StringComparison.OrdinalIgnoreCase) || n.Equals("steam_api64.dll", StringComparison.OrdinalIgnoreCase)).ToList())
+        {
+            try
+            {
+                var info = new FileInfo(dll);
+                if (info.LinkTarget is not null || info.Length is 0 or > 16 << 20 || !ContainsAscii(dll, SettingsDir)) continue;
+                string settings = Path.Combine(info.DirectoryName!, SettingsDir), list = Path.Combine(settings, "achievements.json"), appIdFile = Path.Combine(settings, "steam_appid.txt");
+                // shortcut: an existing list in another format is left alone (never overwritten), even if Goldberg ignores it; the user fixes it by hand.
+                if (File.Exists(list) || new DirectoryInfo(settings).LinkTarget is not null) continue;
+                if (!Directory.Exists(settings)) { Directory.CreateDirectory(settings); created.Add(settings); }
+                string tmp = list + ".tmp";
+                File.WriteAllText(tmp, json, new System.Text.UTF8Encoding(false));
+                File.Move(tmp, list); created.Add(list);
+                if (!File.Exists(appIdFile)) { File.WriteAllText(appIdFile, appId + "\n"); created.Add(appIdFile); }
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+        }
+        return created;
+    }
+
+    /// <summary>Removes what <see cref="PrepareEmulator"/> created: those files, then the folder only if empty. Other paths are refused.</summary>
+    public static void UndoEmulator(IReadOnlyList<string> created)
+    {
+        static bool Allowed(string f) => Path.IsPathFullyQualified(f) && Path.GetFileName(f) is SettingsDir or "achievements.json" or "steam_appid.txt"
+            && (Path.GetFileName(f) == SettingsDir || Path.GetFileName(Path.GetDirectoryName(f)) == SettingsDir);
+        foreach (var f in created.Where(Allowed).Where(f => Path.GetFileName(f) != SettingsDir))
+            try { if (new FileInfo(f) is { Exists: true, LinkTarget: null }) File.Delete(f); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+        foreach (var d in created.Where(Allowed).Where(f => Path.GetFileName(f) == SettingsDir))
+            try { if (new DirectoryInfo(d) is { Exists: true, LinkTarget: null } di && !di.EnumerateFileSystemInfos().Any()) Directory.Delete(d); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+    }
+
+    private static bool ContainsAscii(string file, string text)
+    {
+        var needle = System.Text.Encoding.ASCII.GetBytes(text);
+        return File.ReadAllBytes(file).AsSpan().IndexOf(needle) >= 0;
     }
 
     private static byte[]? ReadSmall(string file)

@@ -51,6 +51,8 @@ public sealed class GameProfile
     /// <summary>Experimental, off by default: NVIDIA Reflex availability through NVAPI (NVIDIA proprietary driver only). See <see cref="GameExtras"/>.</summary>
     public bool LowLatency { get; set; }
     public List<HelperProgram> Helpers { get; set; } = [];
+    /// <summary>Files and folders Ilmenyx created next to a game's Steam emulator (steam_settings/achievements.json...), so "Desfazer" removes only those.</summary>
+    public List<string> AchievementFixFiles { get; set; } = [];
 }
 
 /// <summary>Manually added executable (ELF, script, AppImage).</summary>

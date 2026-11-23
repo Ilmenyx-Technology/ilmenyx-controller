@@ -62,6 +62,8 @@ public sealed class LauncherPage : Grid
     private readonly TextBox exePath = new() { Name = "LExePath", PlaceholderText = L.T("/caminho/completo/do/executavel") };
     private readonly TextBox extra = new() { Name = "LExtra", PlaceholderText = L.T("ex.: -novid -high +fps_max 0") };
     private readonly TextBox protonId = new() { Name = "LProtonId", PlaceholderText = L.T("ID Steam do jogo (opcional), ex.: 307780"), MaxLength = 10 };
+    private readonly StackPanel achFixBox = new() { Name = "LAchFixBox", IsVisible = false, Margin = new Thickness(0, 10, 0, 0) };
+    private bool launchStarted;
     private readonly StackPanel protonBox = new() { Name = "LProtonBox", IsVisible = false, Margin = new Thickness(0, 10, 0, 0) };
     private readonly ComboBox runnerBox = new() { Name = "LRunner", HorizontalAlignment = HorizontalAlignment.Stretch, FontSize = 12 };
     private readonly TextBlock prefixText = new() { Name = "LPrefix", FontSize = 11.5, FontFamily = IlmenyxTheme.Mono, Foreground = Palette.Muted, TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center };
@@ -305,7 +307,7 @@ public sealed class LauncherPage : Grid
             Children =
             {
                 CardTitle(Icons.Oc, L.T("DESEMPENHO")), chkPlan, chkGpu, chkGameMode, chkMango, mangoFlatpakBox, chkGuard, extrasBox, exeText, new Border { Height = 6 }, exePath, new Border { Height = 8 },
-                new WrapPanel { ItemSpacing = 8, LineSpacing = 6, Children = { browseExe, setExe, recommended } }, protonBox,
+                new WrapPanel { ItemSpacing = 8, LineSpacing = 6, Children = { browseExe, setExe, recommended } }, protonBox, achFixBox,
                 new TextBlock { Text = L.T("O perfil de energia vale só durante o jogo e volta ao anterior. Prioridade de processo elevada exige privilégios no Linux; o GameMode cuida disso quando instalado. O executável é descoberto sozinho; se errar, informe o caminho certo."), Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0) }
             }
         });
@@ -564,7 +566,7 @@ public sealed class LauncherPage : Grid
         chkWayland.IsChecked = p.ProtonWayland; chkLowLat.IsChecked = p.LowLatency; extrasBox.IsVisible = g.IsSteam || g.IsWindowsManual;
         protonName = g.IsSteam ? steam.CompatToolName(g.Id) : !g.IsWindowsManual ? null
             : p.Runner is { Length: > 0 } chosen && Path.IsPathFullyQualified(chosen) ? Path.GetFileName(chosen) : (UmuProton ?? (() => LinuxGameExtras.UmuProtonName()))();
-        RebuildHelpers();
+        RebuildHelpers(); RebuildAchFix();
         steamBox.IsVisible = g.IsSteam; steamNow.Text = g.IsSteam ? L.T("Opções atuais na Steam: ") + (steam.GetLaunchOptions(g.Id) is { Length: > 0 } cur ? cur : L.T("(nenhuma)")) : "";
         gfxNote.Text = g.IsSteam ? L.T("Os argumentos e variáveis só passam a valer na Steam depois de Aplicar nas opções da Steam (a Steam é fechada nessa hora). Depois, o Jogar abre pela Steam normalmente.")
             : g.LaunchUri is not null ? L.T("Esta loja abre o jogo por um atalho que não aceita argumentos: use as opções de inicialização da própria loja. Desempenho e programas auxiliares funcionam normalmente.")
@@ -843,6 +845,23 @@ public sealed class LauncherPage : Grid
         profile.ExePath = path; SaveProfile(current, profile); ShowExe(current, profile); status.Text = L.T("Executável definido.");
     }
 
+    private void RebuildAchFix()
+    {
+        achFixBox.Children.Clear();
+        achFixBox.IsVisible = profile is { AchievementFixFiles.Count: > 0 };
+        if (profile is not { AchievementFixFiles.Count: > 0 }) return;
+        var undo = new Button { Name = "BtnAchUndo", Content = L.T("Desfazer"), FontSize = 11, Padding = new Thickness(10, 4) };
+        var grid = new Grid { ColumnDefinitions = new("*,Auto") };
+        var text = new TextBlock { Text = L.T("Lista de conquistas criada pelo Ilmenyx na pasta do jogo"), Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center };
+        Grid.SetColumn(undo, 1); grid.Children.Add(text); grid.Children.Add(undo);
+        undo.Click += (_, _) =>
+        {
+            if (profile is null) return;
+            AchievementFiles.UndoEmulator(profile.AchievementFixFiles); profile.AchievementFixFiles = []; SaveProfile(current, profile); RebuildAchFix();
+        };
+        achFixBox.Children.Add(grid);
+    }
+
     private void RebuildHelpers()
     {
         helpers.Children.Clear();
@@ -954,9 +973,14 @@ public sealed class LauncherPage : Grid
         playProgress.IsVisible = true; status.Text = L.T($"Abrindo {g.Name}…");
         if (p.MangoHud && OperatingSystem.IsLinux()) MangoHudLogReader.EnsureConfig(settings); // overlay + FPS log ready without visiting the Overlay page
         using var watch = CancellationTokenSource.CreateLinkedTokenSource(launching.Token);
-        _ = WatchAchievementsAsync(g, p, watch.Token);
+        launchStarted = false;
+        var ready = new TaskCompletionSource();
+        _ = WatchAchievementsAsync(g, p, ready, watch.Token);
         try
         {
+            // The emulator reads its settings at startup: wait a little for the achievement list so the fix is in place for this launch.
+            await Task.WhenAny(ready.Task, Task.Delay(TimeSpan.FromSeconds(5), launching.Token));
+            launchStarted = true;
             var session = await launch(g, p, gpuVendor, t => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                 {
                     status.Text = t;
@@ -973,25 +997,44 @@ public sealed class LauncherPage : Grid
     /// Windows copy without Steam that carries a Steam emulator: while it runs, each new achievement in its save becomes a system
     /// notification with the achievement's name and icon (Steam games are left to Steam's own notice).
     /// </summary>
-    private async Task WatchAchievementsAsync(LibGame g, GameProfile p, CancellationToken ct)
+    private async Task WatchAchievementsAsync(LibGame g, GameProfile p, TaskCompletionSource ready, CancellationToken ct)
     {
-        if (!g.IsWindowsManual || !OperatingSystem.IsLinux()) return;
+        if (!g.IsWindowsManual || !OperatingSystem.IsLinux()) { ready.TrySetResult(); return; }
         string[] roots = steamRoot is null ? [] : [steamRoot];
         try
         {
-            if (await Task.Run(() => AchievementFiles.Find(g, p, roots), ct) is not { Origin: AchievementOrigin.Emulator } source) return;
+            if (await Task.Run(() => AchievementFiles.Find(g, p, roots), ct) is not { Origin: AchievementOrigin.Emulator } source) { ready.TrySetResult(); return; }
             IReadOnlyList<AchievementDef> defs = [];
-            _ = Task.Run(async () => { try { defs = (await AchievementFiles.LoadAsync(source, roots, Achievements.SteamLanguage(L.Current), ArtCache.AchievementsAsync, ct)).Defs; } catch (OperationCanceledException) { } }, ct);
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    defs = (await AchievementFiles.LoadAsync(source, roots, Achievements.SteamLanguage(L.Current), ArtCache.AchievementsAsync, ct)).Defs;
+                    var made = defs.Count == 0 ? [] : AchievementFiles.PrepareEmulator(AchievementFiles.GameFolder(g.ExePath!), source.AppId, defs);
+                    if (made.Count > 0)
+                        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                        {
+                            p.AchievementFixFiles = [.. p.AchievementFixFiles, .. made]; SaveProfile(g, p);
+                            if (current == g) { RebuildAchFix(); status.Text = L.T("Conquistas preparadas: o Ilmenyx criou a lista de conquistas que o emulador do jogo precisa.") + (launchStarted ? L.T(" Vale na próxima vez que o jogo abrir.") : ""); }
+                        });
+                }
+                catch (OperationCanceledException) { }
+                finally { ready.TrySetResult(); }
+            }, ct);
             await AchievementFiles.WatchAsync(source, () => defs, async d =>
             {
                 string? picture = null;
                 try { if (d.Icon.Length > 0) picture = await ArtCache.AchievementIconAsync(source.AppId, d.Icon, ct); }
                 catch (Exception e) when (e is HttpRequestException or TaskCanceledException or IOException) { }
-                await DesktopNotification.SendAsync(L.T("Conquista desbloqueada"), d.Name + (d.Description.Length > 0 ? " — " + d.Description : "") + "\n" + g.Name, CancellationToken.None, picture);
+                var shown = await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() => AchievementToast.TryShow(d.Name, d.Description, g.Name, picture));
+                // With our own toast the system notice only goes to the history (low urgency); otherwise it is critical so it pops over the game.
+                await DesktopNotification.SendAsync(L.T("Conquista desbloqueada"), d.Name + (d.Description.Length > 0 ? " — " + d.Description : "") + "\n" + g.Name, CancellationToken.None, picture, urgent: !shown, quiet: shown);
+                _ = DesktopNotification.PlaySoundAsync();
                 Avalonia.Threading.Dispatcher.UIThread.Post(() => { if (current == g) status.Text = L.T("Conquista desbloqueada: ") + d.Name; });
             }, ct);
         }
         catch (OperationCanceledException) { }
+        finally { ready.TrySetResult(); }
     }
 }
 

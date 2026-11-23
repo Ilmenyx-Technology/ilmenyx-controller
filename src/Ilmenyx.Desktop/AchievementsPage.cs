@@ -29,6 +29,7 @@ public sealed class AchievementsPage : Grid
     private readonly List<AchievementView> views = [];
     public IReadOnlyList<AchievementView> Views => views;
     private AchievementView? shown;
+    private readonly Func<IReadOnlyList<LibGame>>? noEmulator;
 
     public static AchievementsPage Create(CancellationToken lifetime)
     {
@@ -36,19 +37,23 @@ public sealed class AchievementsPage : Grid
         var library = new LinuxGameLibrary(home);
         var online = new CompatOnline(CompatPaths.Folder());
         var roots = library.SteamRoots().ToList();
+        IReadOnlyList<LibGame> original = [];
         return new AchievementsPage(
             async ct =>
             {
                 var settings = IlmenyxSettings.Load(IlmenyxSettings.DefaultPath());
                 var games = await library.ScanAsync(settings.CustomGames.ToList(), ct);
-                return games.Select(g => AchievementFiles.Find(g, settings.GameProfiles.GetValueOrDefault(g.Key), roots)).OfType<AchievementSource>().ToList();
+                var found = games.Select(g => (g, s: AchievementFiles.Find(g, settings.GameProfiles.GetValueOrDefault(g.Key), roots))).ToList();
+                original = found.Where(x => x.s is null && x.g.IsWindowsManual && x.g.ExePath is { } e && AchievementFiles.HasOriginalSteamApiOnly(AchievementFiles.GameFolder(e))).Select(x => x.g).ToList();
+                return found.Select(x => x.s).OfType<AchievementSource>().ToList();
             },
             (s, ct) => AchievementFiles.LoadAsync(s, roots, Achievements.SteamLanguage(L.Current), online.AchievementsAsync, ct),
-            online.AchievementIconAsync, lifetime);
+            online.AchievementIconAsync, lifetime, () => original);
     }
 
-    public AchievementsPage(Func<CancellationToken, Task<IReadOnlyList<AchievementSource>>> sources, LoadFunc load, Func<string, string, CancellationToken, Task<string?>> icon, CancellationToken lifetime)
+    public AchievementsPage(Func<CancellationToken, Task<IReadOnlyList<AchievementSource>>> sources, LoadFunc load, Func<string, string, CancellationToken, Task<string?>> icon, CancellationToken lifetime, Func<IReadOnlyList<LibGame>>? noEmulator = null)
     {
+        this.noEmulator = noEmulator;
         this.sources = sources; this.load = load; this.icon = icon; this.lifetime = lifetime;
         ColumnDefinitions = new("300,20,*"); RowDefinitions = new("Auto,*");
         var refresh = new Button { Name = "BtnAchRefresh", Content = L.T("Atualizar"), Padding = new Thickness(14, 8), FontSize = 12 };
@@ -75,10 +80,12 @@ public sealed class AchievementsPage : Grid
             views.Add(v); list.Children.Add(Row(v));
             if (shown is null || shown.Source.Game.Key == v.Source.Game.Key) Show(v);
         }
+        var plain = noEmulator?.Invoke() ?? [];
+        foreach (var g in plain) list.Children.Add(PlainRow(g));
         int total = views.Sum(v => v.Defs.Count), got = views.Sum(v => v.Unlocked);
-        summary.Text = views.Count == 0 ? L.T("Nenhum jogo com conquistas encontrado.")
+        summary.Text = views.Count == 0 && plain.Count == 0 ? L.T("Nenhum jogo com conquistas encontrado.")
             : L.T($"{views.Count} jogos · {got} de {total} conquistas");
-        if (views.Count == 0)
+        if (views.Count == 0 && plain.Count == 0)
             detail.Children.Add(UiKit.Card(new TextBlock { Name = "AchEmpty", TextWrapping = TextWrapping.Wrap, Foreground = Palette.Muted, FontSize = 13,
                 Text = L.T("Aparecem aqui os jogos da Steam que a Steam já guardou neste PC e os jogos de Windows adicionados ao Ilmenyx que trazem o emulador da Steam (steam_emu.ini, steam_settings). Jogue uma vez pelo Ilmenyx para as conquistas começarem a contar.") }));
     }
@@ -99,6 +106,25 @@ public sealed class AchievementsPage : Grid
         return b;
     }
 
+    private Button PlainRow(LibGame g)
+    {
+        var b = new Button
+        {
+            Name = "AchPlain_" + g.Key, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch, Padding = new Thickness(12, 10),
+            Content = new StackPanel { Children = {
+                new TextBlock { Text = g.Name, FontWeight = FontWeight.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis },
+                new TextBlock { Text = L.T("Sem conquistas nesta cópia"), FontSize = 11.5, Foreground = Palette.Muted } } },
+        };
+        b.Click += (_, _) =>
+        {
+            shown = null; detail.Children.Clear();
+            detail.Children.Add(new TextBlock { Name = "AchGameTitle", Text = g.Name, FontSize = 22, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap });
+            detail.Children.Add(new TextBlock { Name = "AchNoEmulator", TextWrapping = TextWrapping.Wrap, Foreground = Palette.Muted, FontSize = 13,
+                Text = L.T("Esta cópia não registra conquistas: ela usa a biblioteca original da Steam, sem emulador, e só conta conquistas com a Steam aberta e o jogo na sua conta. O Ilmenyx não instala emuladores.") });
+        };
+        return b;
+    }
+
     private static string Origin(AchievementSource s) => s.Origin == AchievementOrigin.Steam ? "Steam" : L.T("Ilmenyx");
 
     private void Show(AchievementView v)
@@ -106,7 +132,11 @@ public sealed class AchievementsPage : Grid
         shown = v; detail.Children.Clear();
         string where = v.Source.Origin == AchievementOrigin.Steam ? L.T("Conquistas registradas pela Steam neste PC.")
             : L.T("Cópia sem Steam: o Ilmenyx lê as conquistas que o jogo grava e avisa quando uma sai enquanto você joga por aqui.");
+        var preview = new Button { Name = "BtnAchPreview", Content = L.T("Ver aviso"), Padding = new Thickness(14, 8), FontSize = 12, HorizontalAlignment = HorizontalAlignment.Left };
+        ToolTip.SetTip(preview, L.T("Mostra o aviso de conquista em 3 segundos, para você conferir por cima do jogo."));
+        preview.Click += async (_, _) => await PreviewAsync(v, preview);
         detail.Children.Add(new TextBlock { Name = "AchGameTitle", Text = v.Source.Game.Name, FontSize = 22, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap });
+        detail.Children.Add(preview);
         detail.Children.Add(new TextBlock { Text = L.T($"{v.Unlocked} de {v.Defs.Count} conquistas ({(v.Defs.Count == 0 ? 0 : 100.0 * v.Unlocked / v.Defs.Count):0}%)") + " · " + where, Foreground = Palette.Muted, FontSize = 12.5, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 6) });
         var culture = CultureInfo.GetCultureInfo(L.Current);
         // Unlocked first (newest on top), then the rest in the game's order.
@@ -131,6 +161,25 @@ public sealed class AchievementsPage : Grid
         var card = UiKit.Card(row, new Thickness(0)); card.Name = "AchItem_" + d.Id; card.Padding = new Thickness(12, 10);
         AutomationProperties.SetName(card, (secret ? L.T("Conquista secreta") : d.Name) + (got ? " — " + L.T("desbloqueada") : " — " + L.T("bloqueada")));
         return card;
+    }
+
+    private async Task PreviewAsync(AchievementView v, Button button)
+    {
+        if (v.Defs.Count == 0) return;
+        button.IsEnabled = false;
+        try
+        {
+            await Task.Delay(3000, lifetime);
+            var d = v.Defs.FirstOrDefault(x => v.Unlocks.ContainsKey(x.Id)) ?? v.Defs[0];
+            string? picture = null;
+            try { if (d.Icon.Length > 0) picture = await icon(v.Source.AppId, d.Icon, lifetime); }
+            catch (Exception e) when (e is HttpRequestException or TaskCanceledException or IOException) { }
+            _ = DesktopNotification.PlaySoundAsync();
+            if (!AchievementToast.TryShow(d.Name, d.Description, v.Source.Game.Name, picture))
+                await DesktopNotification.SendAsync(L.T("Conquista desbloqueada"), d.Name + (d.Description.Length > 0 ? " — " + d.Description : "") + "\n" + v.Source.Game.Name, lifetime, picture, urgent: true);
+        }
+        catch (OperationCanceledException) { }
+        finally { button.IsEnabled = true; }
     }
 
     private async Task LoadIconAsync(string appId, string file, Image target)
