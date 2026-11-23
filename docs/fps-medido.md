@@ -8,7 +8,7 @@ calibração. Código: `src/Ilmenyx.Core/FpsPractice.cs` (`MangoHudPlay`, `FpsHi
 
 Só em sessões abertas pelo Ilmenyx, em dois modos:
 
-- **Medir FPS** (padrão, por jogo): com o MangoHud desmarcado, o lançador injeta o MangoHud com o overlay escondido (`no_display=1`) e uma
+- **Medir FPS** (padrão, por jogo): com o MangoHud desmarcado, o lançador injeta o MangoHud com o overlay totalmente transparente (`alpha=0`, `background_alpha=0`; o `no_display=1` não grava log no MangoHud 0.8.4) e uma
   configuração própria só de log, `~/.config/ilmenyx/mangohud-medir.conf`; o seu `MangoHud.conf` nunca é lido nem alterado. Usa o MangoHud do
   sistema ou o do pacote (em jogo Flatpak, a extensão do runtime). Sem MangoHud o jogo abre normalmente e o Ilmenyx avisa que não mede.
   Desligue em jogos com anti-cheat ou incompatíveis com MangoHud. O lançamento guarda uma cópia do perfil: mudar opções com o jogo aberto

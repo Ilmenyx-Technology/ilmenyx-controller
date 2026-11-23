@@ -56,10 +56,10 @@ public sealed class MeasureFpsTests
     public void LogOnlyConfigHidesTheOverlayAndLogsToTheIlmenyxFolder()
     {
         string text = MangoHudConfig.BuildMeasureOnly("/home/u/.local/share/ilmenyx/mangohud");
-        Assert.Contains("no_display=1\n", text); Assert.Contains("output_folder=/home/u/.local/share/ilmenyx/mangohud\n", text); Assert.Contains("autostart_log=1\n", text);
+        Assert.DoesNotContain("no_display", text); Assert.Contains("alpha=0\n", text); Assert.Contains("background_alpha=0\n", text); Assert.Contains("output_folder=/home/u/.local/share/ilmenyx/mangohud\n", text); Assert.Contains("autostart_log=1\n", text);
         Assert.DoesNotContain("position=", text); Assert.DoesNotContain("toggle_hud", text);
         Assert.Throws<ArgumentException>(() => MangoHudConfig.BuildMeasureOnly("relativo"));
-        Assert.Throws<ArgumentException>(() => MangoHudConfig.BuildMeasureOnly("/x\nno_display=0"));
+        Assert.Throws<ArgumentException>(() => MangoHudConfig.BuildMeasureOnly("/x\nalpha=1"));
     }
 
     [Fact]
@@ -73,7 +73,7 @@ public sealed class MeasureFpsTests
             string path = Path.Combine(dir, "mangohud-medir.conf"), logs = Path.Combine(dir, "logs");
             Assert.Equal(path, MangoHudLogReader.EnsureMeasureConfig(path, logs));
             var first = File.GetLastWriteTimeUtc(path);
-            Assert.Contains("no_display=1", File.ReadAllText(path)); Assert.True(Directory.Exists(logs));
+            Assert.Contains("background_alpha=0", File.ReadAllText(path)); Assert.True(Directory.Exists(logs));
             Thread.Sleep(20); MangoHudLogReader.EnsureMeasureConfig(path, logs);
             Assert.Equal(first, File.GetLastWriteTimeUtc(path));
             Assert.Equal("fps_only\n", File.ReadAllText(user));
