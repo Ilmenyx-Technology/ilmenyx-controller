@@ -31,6 +31,8 @@ public sealed class LauncherPage : Grid
     private readonly CancellationToken lifetime;
     private readonly IlmenyxSettings settings;
     private IReadOnlyList<LibGame> games = [];
+    /// <summary>Entries joined into a visible game (same program), by the visible game's key. Display only: settings and profiles keep them.</summary>
+    private IReadOnlyDictionary<string, IReadOnlyList<LibGame>> merged = new Dictionary<string, IReadOnlyList<LibGame>>();
     private LibGame? current; private GameProfile? profile;
     // Per game key: the follow-up of a launch (RunAsync), the achievement watch, and the games whose process was seen running.
     private readonly Dictionary<string, CancellationTokenSource> following = [], watchers = [];
@@ -53,6 +55,7 @@ public sealed class LauncherPage : Grid
     private readonly TextBlock empty = new() { Name = "LEmpty", Text = L.T("Escolha um jogo na lista."), Foreground = Palette.Muted };
     private readonly ScrollViewer detail = new() { Name = "LDetail", IsVisible = false };
     private readonly TextBlock title = new() { Name = "LTitle", FontSize = 32, FontWeight = FontWeight.Bold, TextWrapping = TextWrapping.Wrap };
+    private readonly TextBlock also = new() { Name = "LAlso", FontSize = 11.5, TextWrapping = TextWrapping.Wrap, MaxLines = 2, TextTrimming = TextTrimming.CharacterEllipsis, IsVisible = false };
     private readonly TextBlock sub = new() { Name = "LSub", Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap };
     private readonly Button play = UiKit.Primary("BtnPlay", L.T("Jogar"), 40, 14);
     // Visual feedback between JOGAR and the game's window (Proton can take a while): a moving bar until the game process is seen.
@@ -235,7 +238,7 @@ public sealed class LauncherPage : Grid
         search.TextChanged += (_, _) => Filter();
         showHidden.IsCheckedChanged += (_, _) =>
         {
-            if (current is { } g && showHidden.IsChecked != true && settings.HiddenGames.Contains(g.Key)) Select(null); else Filter();
+            if (current is { } g && showHidden.IsChecked != true && IsHidden(g)) Select(null); else Filter();
             UpdateCount();
         };
         var addPath = new TextBox { Name = "LAddPath", PlaceholderText = L.T("/caminho/completo/do/jogo") };
@@ -325,7 +328,7 @@ public sealed class LauncherPage : Grid
         sub.FontSize = 12.5; sub.MaxLines = 2; sub.TextTrimming = TextTrimming.CharacterEllipsis; sub.Margin = new Thickness(0, 4, 0, 0);
         play.VerticalAlignment = VerticalAlignment.Bottom; play.Margin = new Thickness(16, 0, 0, 0); play.FontSize = 14;
         // Title and subtitle on top, the actions wrap underneath them: at 900 px wide or with 150-200% text the row must not push Jogar out of the column.
-        var bottom = new Grid { RowDefinitions = new("Auto,Auto"), VerticalAlignment = VerticalAlignment.Bottom, Children = { new StackPanel { VerticalAlignment = VerticalAlignment.Bottom, Children = { title, sub } } } };
+        var bottom = new Grid { RowDefinitions = new("Auto,Auto"), VerticalAlignment = VerticalAlignment.Bottom, Children = { new StackPanel { VerticalAlignment = VerticalAlignment.Bottom, Children = { title, sub, also } } } };
         // Games the user added by hand can leave the library again (the files on disk are never touched).
         ToolTip.SetTip(removeGame, L.T("Tira o jogo da biblioteca do Ilmenyx. Os arquivos do jogo não são apagados."));
         removeGame.Click += async (_, _) => await RemoveCurrentAsync();
@@ -575,17 +578,29 @@ public sealed class LauncherPage : Grid
                 bool move(IlmenyxSettings s) => DocumentPortal.Migrate(s, x => DocumentPortal.RealPath(x), GameNameFromFolder);
                 if (Save(s => move(s)) is { } fresh) { settings.CustomGames = fresh.CustomGames; settings.GameProfiles = fresh.GameProfiles; } else move(settings);
             }
-            games = await library.ScanAsync(settings.CustomGames.ToList(), lifetime);
+            var groups = GameDedup.Group(await library.ScanAsync(settings.CustomGames.ToList(), lifetime),
+                x => DocumentPortal.IsAlias(x) ? (DocumentPortal.HostPath(x) is var host && host != x ? host : null) : x, ProfileData);
+            games = groups.Select(x => x.Game).ToList(); merged = groups.Where(x => x.Merged.Count > 0).ToDictionary(x => x.Game.Key, x => x.Merged);
             Filter();
             UpdateCount();
         }
         catch (OperationCanceledException) { count.Text = L.T("Busca cancelada."); }
     }
 
-    private List<LibGame> Visible() => GameCovers.Visible(games, settings.HiddenGames, showHidden.IsChecked == true).ToList();
+    private IReadOnlyList<LibGame> MergedOf(LibGame g) => merged.GetValueOrDefault(g.Key) ?? [];
+
+    /// <summary>Profile data of an entry, to pick which of two hand-added duplicates stays visible: FPS sessions by name, own cover.</summary>
+    private int ProfileData(LibGame g) => settings.FpsSessions.Count(f => string.Equals(f.Game, g.Name, StringComparison.OrdinalIgnoreCase)) + (OwnCover(g) is null ? 0 : 1);
+
+    /// <summary>Hidden keys, where hiding any entry of a joined group hides the group (the other entry does not bring it back).</summary>
+    private HashSet<string> HiddenKeys() => GameDedup.HiddenKeys(settings.HiddenGames, merged);
+
+    private bool IsHidden(LibGame g) => HiddenKeys().Contains(g.Key);
+
+    private List<LibGame> Visible() => GameCovers.Visible(games, HiddenKeys(), showHidden.IsChecked == true).ToList();
     private List<LibGame> Shown() { string q = (search.Text ?? "").Trim(); return Visible().Where(g => q.Length == 0 || g.Name.Contains(q, StringComparison.CurrentCultureIgnoreCase)).ToList(); }
 
-    private int HiddenCount() => showHidden.IsChecked == true ? 0 : games.Count(g => settings.HiddenGames.Contains(g.Key));
+    private int HiddenCount() => showHidden.IsChecked == true ? 0 : games.Count(IsHidden);
 
     private void UpdateCount()
     {
@@ -605,7 +620,7 @@ public sealed class LauncherPage : Grid
         {
             var item = Tile(g, g.Key == big, g.Key == keep);
             AutomationProperties.SetName(item, g.Name + " (" + g.Subtitle + ")");
-            if (settings.HiddenGames.Contains(g.Key)) item.Opacity = 0.55;
+            if (IsHidden(g)) item.Opacity = 0.55;
             var game = g; item.Click += (_, _) => { Select(game); FocusTile(game); };
             if (g.Key == big || columns == 1) { list.Children.Add(item); row = null; continue; }
             if (row is null || col >= columns) { row = new Grid { ColumnDefinitions = new(string.Join(",8,", Enumerable.Repeat("*", columns))), Margin = new Thickness(0, 0, 0, 8) }; list.Children.Add(row); col = 0; }
@@ -665,7 +680,7 @@ public sealed class LauncherPage : Grid
     public void Select(LibGame? g)
     {
         current = g; HideSuggestion();
-        if (g is null) { profile = null; ApplyLayout(force: true); UpdateButtons(); return; }
+        if (g is null) { profile = null; also.IsVisible = false; ApplyLayout(force: true); UpdateButtons(); return; }
         ApplyLayout(force: true);
         if (!settings.GameProfiles.TryGetValue(SettingsKey(g), out var p)) { p = new GameProfile(); settings.GameProfiles[SettingsKey(g)] = p; }
         loading = true; profile = p;
@@ -678,13 +693,14 @@ public sealed class LauncherPage : Grid
         }
         coverReset.IsVisible = p.CoverPath is { Length: > 0 }; coverStatus.Text = "";
         hero.Background = art is null ? UiKit.HeroBrush() : new ImageBrush { Source = art, Stretch = Stretch.UniformToFill };
-        heroScrim.IsVisible = heroArt; title.Foreground = heroArt ? Brushes.White : Palette.Fg; sub.Foreground = heroArt ? GameArt.OnImageMuted : Palette.Muted;
+        heroScrim.IsVisible = heroArt; title.Foreground = heroArt ? Brushes.White : Palette.Fg; sub.Foreground = also.Foreground = heroArt ? GameArt.OnImageMuted : Palette.Muted;
+        also.IsVisible = MergedOf(g).Count > 0; also.Text = also.IsVisible ? L.T("Também aparece como: ") + GameDedup.AlsoAppearsAs(MergedOf(g)) : "";
         chkPlan.IsChecked = p.HighPerfPlan; chkGpu.IsChecked = p.GpuHigh && multiGpu; chkGameMode.IsChecked = p.GameMode; chkMango.IsChecked = p.MangoHud; chkMeasure.IsChecked = p.MeasureFps; UpdateFlatpakMango(g); UpdateMeasure(); chkGuard.IsChecked = p.FullscreenGuard; chkGuard.IsVisible = multiGpu && gpuVendor == "NVIDIA";
         modeChips!.Select(p.WinMode); resChips!.Select(p.Res); hzChips!.Select(p.Hz); styleChips!.Select(p.Style); gfxPresetChips!.Select(p.GfxPreset ?? ""); gfxUpChips!.Select(p.GfxUpscaling ?? ""); extra.Text = p.Extra; exePath.Text = p.ExePath ?? g.ExePath ?? "";
         protonBox.IsVisible = g.IsWindowsManual; protonId.Text = p.ProtonGameId ?? ""; protonIdStatus.Text = ""; runnerStatus.Text = "";
         if (g.IsWindowsManual) LoadRunner(p);
         removeGame.IsVisible = renameGame.IsVisible = g.Store == "Manual"; gameShortcut.IsVisible = true;
-        hideGame.IsVisible = g.Store != "Manual"; hideGame.Content = settings.HiddenGames.Contains(g.Key) ? L.T("Mostrar na biblioteca") : L.T("Ocultar da biblioteca");
+        hideGame.IsVisible = g.Store != "Manual" || IsHidden(g); hideGame.Content = IsHidden(g) ? L.T("Mostrar na biblioteca") : L.T("Ocultar da biblioteca");
         chkWayland.IsChecked = p.ProtonWayland; chkLowLat.IsChecked = p.LowLatency; extrasBox.IsVisible = g.IsSteam || g.IsWindowsManual;
         protonName = g.IsSteam ? steam.CompatToolName(g.Id) : !g.IsWindowsManual ? null
             : p.Runner is { Length: > 0 } chosen && Path.IsPathFullyQualified(chosen) ? Path.GetFileName(chosen) : (UmuProton ?? (() => LinuxGameExtras.UmuProtonName()))();
@@ -701,7 +717,7 @@ public sealed class LauncherPage : Grid
 
     private void RefreshMeasured()
     {
-        fpsGroups = current is { } g ? FpsHistory.Build(settings.FpsSessions, g.Name) : [];
+        fpsGroups = current is { } g ? FpsHistory.Build(settings.FpsSessions, g.Name, sameGame: MergedOf(g).Select(m => m.Name).ToList()) : [];
         bool any = fpsGroups.Count > 0;
         fpsEmpty.IsVisible = !any; fpsBig.IsVisible = fpsRange.IsVisible = fpsInfo.IsVisible = any; fpsGroupBox.IsVisible = fpsGroups.Count > 1;
         if (!any)
@@ -1071,18 +1087,21 @@ public sealed class LauncherPage : Grid
         p.ArtSteamId = f.Id; SaveProfile(game, p); FetchArtLater(game, f.Id);
     }
 
-    private string? CoverOf(LibGame g) => settings.GameProfiles.TryGetValue(SettingsKey(g), out var gp) && gp.CoverPath is { Length: > 0 } c ? c : null;
+    private string? OwnCover(LibGame g) => settings.GameProfiles.TryGetValue(SettingsKey(g), out var gp) && gp.CoverPath is { Length: > 0 } c ? c : null;
+
+    /// <summary>The game's own cover, else that of an entry joined into it.</summary>
+    private string? CoverOf(LibGame g) => OwnCover(g) ?? MergedOf(g).Select(OwnCover).FirstOrDefault(c => c is not null);
 
     /// <summary>The menu entry's icon: the game's own, or that of a Linux entry that starts the same program as a manual game.</summary>
-    private string? IconFor(LibGame g) => g.Icon ?? (g.Store == "Manual" ? games.FirstOrDefault(n => n.Store == "Linux" && n.Icon is not null && n.ExePath is not null && n.ExePath == (g.ExePath ?? g.Id))?.Icon : null);
+    private string? IconFor(LibGame g) => g.Icon ?? MergedOf(g).FirstOrDefault(n => n.Icon is not null)?.Icon;
 
     /// <summary>Hides (or shows again) the selected game that is not manual. Profile and settings stay; hiding selects the next visible game.</summary>
     private void ToggleHideCurrent()
     {
-        if (current is not { } g || g.Store == "Manual") return;
-        string key = g.Key; bool hide = !settings.HiddenGames.Contains(key);
+        if (current is not { } g || g.Store == "Manual" && !IsHidden(g)) return;
+        string key = g.Key; bool hide = !IsHidden(g); var keys = MergedOf(g).Select(m => m.Key).Append(key).ToList();
         var shown = Shown(); int at = shown.FindIndex(x => x.Key == key);
-        void set(IlmenyxSettings s) { s.HiddenGames.RemoveAll(k => k == key); if (hide) s.HiddenGames.Add(key); }
+        void set(IlmenyxSettings s) { s.HiddenGames.RemoveAll(keys.Contains); if (hide) s.HiddenGames.Add(key); }
         if (Save(set) is { } fresh) settings.HiddenGames = fresh.HiddenGames; else set(settings);
         if (hide && showHidden.IsChecked != true)
         {
@@ -1130,7 +1149,7 @@ public sealed class LauncherPage : Grid
     private void ResetCover()
     {
         if (current is not { } g) return;
-        string key = SettingsKey(g); string? old = CoverOf(g);
+        string key = SettingsKey(g); string? old = OwnCover(g);
         void clear(IlmenyxSettings s) { if (s.GameProfiles.TryGetValue(key, out var gp)) gp.CoverPath = null; }
         if (Save(clear) is { } fresh) settings.GameProfiles = fresh.GameProfiles; else clear(settings);
         try { if (old is not null && Path.GetDirectoryName(old) == GameCovers.Folder()) File.Delete(old); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
@@ -1255,7 +1274,7 @@ public sealed class LauncherPage : Grid
     public async Task PlayByKeyAsync(string key)
     {
         if (games.Count == 0) await ScanAsync(); // shortcut: a scan already started by Loaded may run twice, only costs time
-        if (games.FirstOrDefault(g => g.Key == key) is not { } game) { count.Text = L.T("O atalho aponta para um jogo que não está mais na biblioteca. Crie o atalho de novo."); return; }
+        if (games.FirstOrDefault(g => g.Key == key || MergedOf(g).Any(m => m.Key == key)) is not { } game) { count.Text = L.T("O atalho aponta para um jogo que não está mais na biblioteca. Crie o atalho de novo."); return; }
         Select(game);
         if (!following.ContainsKey(game.Key)) await PlayAsync(); // already running: PlayAsync says so
     }

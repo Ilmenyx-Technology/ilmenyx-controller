@@ -114,9 +114,11 @@ public static class FpsHistory
     /// Groups of one game (by resolution and quality), newest group first. Only practice sessions count (old simple-average ones have no
     /// valid seconds); only the current GPU (default: the one of the newest session); at most <see cref="PerGroup"/> sessions per group.
     /// </summary>
-    public static List<FpsGroup> Build(IEnumerable<FpsSession> sessions, string game, string? currentGpu = null)
+    public static List<FpsGroup> Build(IEnumerable<FpsSession> sessions, string game, string? currentGpu = null, IReadOnlyCollection<string>? sameGame = null)
     {
-        var mine = sessions.Where(s => s is { ValidSeconds: >= MangoHudPlay.MinValidSeconds, P10Fps: not null, P90Fps: not null } && string.Equals(s.Game, game, StringComparison.OrdinalIgnoreCase))
+        // sameGame: names of library entries joined with this one (same program), whose sessions count too.
+        bool named(string? n) => string.Equals(n, game, StringComparison.OrdinalIgnoreCase) || sameGame?.Contains(n ?? "", StringComparer.OrdinalIgnoreCase) == true;
+        var mine = sessions.Where(s => s is { ValidSeconds: >= MangoHudPlay.MinValidSeconds, P10Fps: not null, P90Fps: not null } && named(s.Game))
             .OrderByDescending(s => s.At).ToList();
         if (mine.Count == 0) return [];
         string? gpu = currentGpu ?? mine[0].Gpu;
