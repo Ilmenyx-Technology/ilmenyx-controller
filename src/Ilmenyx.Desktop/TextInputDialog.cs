@@ -13,12 +13,12 @@ namespace Ilmenyx.Desktop;
 /// <summary>Asks for one line of text (e.g. a game's name). Escape or closing the window returns null; empty text is not accepted.</summary>
 public sealed class TextInputDialog : Window
 {
-    public TextInputDialog(string title, string label, string initial, int maxLength = 80, string? ok = null)
+    public TextInputDialog(string title, string label, string initial, int maxLength = 80, string? ok = null, string inputName = "InputText")
     {
         Icon = AppIcon.Window; Title = title; Width = 460; MinWidth = 340; SizeToContent = SizeToContent.Height; CanResize = false; WindowStartupLocation = WindowStartupLocation.CenterOwner;
         Background = Palette.Panel; Foreground = Palette.Fg;
         KeyboardNavigation.SetTabNavigation(this, KeyboardNavigationMode.Cycle);
-        var box = new TextBox { Name = "InputText", Text = initial, MaxLength = maxLength };
+        var box = new TextBox { Name = inputName, Text = initial, MaxLength = maxLength };
         AutomationProperties.SetName(box, label);
         var okButton = new Button { Name = "InputOk", Content = ok ?? L.T("Salvar"), IsDefault = true, Padding = new Thickness(20, 8) };
         var cancel = new Button { Name = "InputCancel", Content = L.T("Cancelar"), IsCancel = true, Padding = new Thickness(20, 8) };
@@ -35,6 +35,6 @@ public sealed class TextInputDialog : Window
         Opened += (_, _) => { box.Focus(); box.SelectAll(); };
     }
 
-    public static Task<string?> AskAsync(Window owner, string title, string label, string initial) =>
-        new TextInputDialog(title, label, initial).ShowDialog<string?>(owner);
+    public static Task<string?> AskAsync(Window owner, string title, string label, string initial, int maxLength = 80, string? ok = null, string inputName = "InputText") =>
+        new TextInputDialog(title, label, initial, maxLength, ok, inputName).ShowDialog<string?>(owner);
 }

@@ -149,7 +149,7 @@ public static partial class HelpContent
                 [
                     "Os jogos da Steam, do Heroic (Epic e GOG) e do Lutris aparecem sozinhos; Atualizar lista procura de novo.",
                     "Para outro jogo, clique em + Adicionar executável e use Procurar… para escolher o arquivo: um programa do Linux ou um .exe de Windows.",
-                    "Escolha o jogo e ajuste o perfil: GPU dedicada, MangoHud, GameMode, perfil de energia e argumentos. Perfil para mais FPS liga as opções recomendadas.",
+                    "Escolha o jogo e ajuste o perfil: GPU dedicada, MangoHud, GameMode, perfil de energia e argumentos. Perfil para mais FPS liga as opções recomendadas. Algo que não é jogo apareceu na lista? Selecione e clique em Ocultar da biblioteca; Mostrar ocultos traz de volta. Em Capa, escolha uma imagem do computador ou um link https para trocar a capa de qualquer jogo.",
                     "Clique em Jogar. Nos jogos da Steam, os argumentos só valem depois de Aplicar nas opções da Steam.",
                     "Tem só o instalador (setup.exe) de um jogo de Windows? Clique em Instalar jogo de Windows, escolha o instalador e a pasta do jogo e siga as dicas da janela.",
                 ],

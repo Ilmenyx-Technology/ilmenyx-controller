@@ -53,6 +53,10 @@ public sealed class GameProfile
     public List<HelperProgram> Helpers { get; set; } = [];
     /// <summary>Files and folders Ilmenyx created next to a game's Steam emulator (steam_settings/achievements.json...), so "Desfazer" removes only those.</summary>
     public List<string> AchievementFixFiles { get; set; } = [];
+    /// <summary>Custom cover chosen by the user: a copy inside the app cache (never the user's original file). Used for tile and hero.</summary>
+    public string? CoverPath { get; set; }
+    /// <summary>Steam AppID found by name only to fetch the cover of a manual game that is not a .exe (Proton settings stay .exe-only).</summary>
+    public string? ArtSteamId { get; set; }
 }
 
 /// <summary>Manually added executable (ELF, script, AppImage).</summary>
@@ -198,6 +202,8 @@ public sealed class IlmenyxSettings
 {
     public Dictionary<string, GameProfile> GameProfiles { get; set; } = [];
     public List<CustomGame> CustomGames { get; set; } = [];
+    /// <summary>LibGame.Key of games the user hid from the library (nothing is removed; profiles stay).</summary>
+    public List<string> HiddenGames { get; set; } = [];
     /// <summary>Folder for the temporary Windows of "Instalar jogo de Windows" (null = the default in ~/.local/share/ilmenyx).</summary>
     public string? InstallerTempFolder { get; set; }
     /// <summary>Original values of user-level tweaks before the first change ("&lt;absent&gt;" = unknown), so "Restaurar originais" can undo them.</summary>
@@ -262,7 +268,7 @@ public sealed class IlmenyxSettings
             if (!File.Exists(path)) return new();
             if (new FileInfo(path).Length < 4 << 20 && JsonSerializer.Deserialize<IlmenyxSettings>(File.ReadAllText(path)) is { } loaded)
             {
-                loaded.GameProfiles ??= []; loaded.CustomGames ??= []; loaded.TweakBackup ??= []; loaded.BenchRuns ??= []; // hand-edited files ("x": null)
+                loaded.GameProfiles ??= []; loaded.CustomGames ??= []; loaded.HiddenGames ??= []; loaded.TweakBackup ??= []; loaded.BenchRuns ??= []; // hand-edited files ("x": null)
                 loaded.FpsSessions = (loaded.FpsSessions ?? []).Where(x => x is not null && x.IsValid).Take(FpsSession.MaxEntries).ToList();
                 return loaded;
             }

@@ -136,6 +136,8 @@ Os IDs são citados pelo app (página Bloqueados e CLI); não renomear.
 | MAKER-01 / MAKER-02 | Placa serial USB real (CH340, CP210x, FTDI, Arduino, ESP); brltty e ModemManager atrapalhando | NÃO TESTADO | Nenhuma placa conectada nos testes | Conectar uma placa e abrir Maker · Portas |
 | SENS-UNDO | Desfazer a liberação de sensores e persistência após reiniciar | NÃO TESTADO | Só a liberação foi feita de verdade (RAPL Intel no Dell) | Liberar, reiniciar, conferir; depois Desfazer |
 | ZRAM-01 | Aplicar e desfazer o ZRAM de verdade | NÃO TESTADO | Plano e scripts testados com fixtures de 5 famílias de distros | Aplicar numa máquina de teste e desfazer |
+| LIB-HIDE-01 | Ocultar e mostrar jogos da biblioteca (jogo de loja/menu), caixa Mostrar ocultos | NÃO TESTADO | Build, testes de filtro e de JSON dos ajustes OK; uso real na janela não executado | Ocultar um jogo de menu (ex.: um Flatpak), conferir contagem e Mostrar ocultos, reiniciar o app |
+| LIB-COVER-01 | Capa própria (arquivo ou link https), busca automática de capa para AppImage/script manual | NÃO TESTADO | Cópia/validação e URL testadas com arquivos temporários; seletor de arquivos (inclusive no Flatpak), download real e busca na Steam não executados | Escolher imagem e link num jogo, remover capa, adicionar um AppImage e ver a capa; repetir no Flatpak |
 
 ## Fora do escopo agora
 

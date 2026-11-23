@@ -145,7 +145,7 @@ public static partial class HelpContent
                 [
                     "Games from Steam, Heroic (Epic and GOG) and Lutris show up by themselves; Refresh list looks again.",
                     "For another game, click + Add executable and use Browse… to choose the file: a Linux program or a Windows .exe.",
-                    "Choose the game and adjust the profile: dedicated GPU, MangoHud, GameMode, power profile and arguments. Profile for more FPS turns on the recommended options.",
+                    "Choose the game and adjust the profile: dedicated GPU, MangoHud, GameMode, power profile and arguments. Profile for more FPS turns on the recommended options. Something that is not a game showed up in the list? Select it and click Hide from library; Show hidden brings it back. Under Cover, pick an image from your computer or an https link to change any game's cover.",
                     "Click Play. For Steam games, the arguments only apply after Apply to Steam options.",
                     "Do you only have a Windows game's installer (setup.exe)? Click Install Windows game, choose the installer and the game's folder and follow the window's tips.",
                 ],

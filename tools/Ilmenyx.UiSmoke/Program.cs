@@ -814,6 +814,7 @@ public sealed class UiSmokeApp : Application
         Click(host, "LGame_Steam_100");
         await Until(() => host.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "LTitle" && t.Text == "Game One") && Find<StackPanel>(host, "LSteamBox").IsVisible);
         if (Find<Button>(host, "BtnRemoveGame").IsVisible) throw new InvalidOperationException("Steam games are removed in Steam, not here.");
+        if (!Find<Button>(host, "BtnHideGame").IsVisible || !Find<Button>(host, "BtnCoverFile").IsVisible) throw new InvalidOperationException("A store game must offer Ocultar da biblioteca and Escolher imagem.");
         // Console-style library: Esc leaves the selected game and the library fills the page; clicking a cover opens it again.
         Find<Button>(host, "LGame_Steam_100").Focus();
         Find<Button>(host, "LGame_Steam_100").RaiseEvent(new Avalonia.Input.KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = Avalonia.Input.Key.Escape });

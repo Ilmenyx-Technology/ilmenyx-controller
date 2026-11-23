@@ -72,6 +72,12 @@ public sealed class LauncherPage : Grid
     private const string PickRunner = "\0pick"; // the "Escolher pasta…" entry of the runner list
     private readonly TextBlock protonIdStatus = new() { Name = "LProtonIdStatus", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) };
     private readonly Button removeGame = new() { Name = "BtnRemoveGame", Content = L.T("Remover"), FontSize = 11, Padding = new Thickness(12, 6), IsVisible = false };
+    private readonly Button hideGame = new() { Name = "BtnHideGame", Content = L.T("Ocultar da biblioteca"), FontSize = 11, Padding = new Thickness(12, 6), IsVisible = false };
+    private readonly CheckBox showHidden = new() { Name = "LShowHidden", Content = L.T("Mostrar ocultos"), FontSize = 12 };
+    private readonly Button coverFile = new() { Name = "BtnCoverFile", Content = L.T("Escolher imagem…"), FontSize = 11, Padding = new Thickness(12, 6) };
+    private readonly Button coverUrl = new() { Name = "BtnCoverUrl", Content = L.T("Usar link…"), FontSize = 11, Padding = new Thickness(12, 6) };
+    private readonly Button coverReset = new() { Name = "BtnCoverReset", Content = L.T("Remover capa"), FontSize = 11, Padding = new Thickness(12, 6), IsVisible = false };
+    private readonly TextBlock coverStatus = new() { Name = "LCoverStatus", Foreground = Palette.Muted, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0) };
     private readonly Button gameShortcut = new() { Name = "BtnGameShortcut", Content = L.T("Criar atalho"), FontSize = 11, Padding = new Thickness(12, 6), IsVisible = false };
     /// <summary>Folder for a new shortcut (true = desktop, false = app menu); null = none. Settable for fixtures; default the user's real folders.</summary>
     public Func<bool, string?>? ShortcutFolder { get; init; }
@@ -175,6 +181,11 @@ public sealed class LauncherPage : Grid
             }, BoundedProcess.Find).ShowDialog(window);
         };
         search.TextChanged += (_, _) => Filter();
+        showHidden.IsCheckedChanged += (_, _) =>
+        {
+            if (current is { } g && showHidden.IsChecked != true && settings.HiddenGames.Contains(g.Key)) Select(null); else Filter();
+            UpdateCount();
+        };
         var addPath = new TextBox { Name = "LAddPath", PlaceholderText = L.T("/caminho/completo/do/jogo") };
         AutomationProperties.SetName(addPath, L.T("Caminho completo do executável do jogo"));
         var addStatus = new TextBlock { Name = "LAddStatus", Foreground = Palette.Muted, FontSize = 11, TextWrapping = TextWrapping.Wrap };
@@ -206,7 +217,7 @@ public sealed class LauncherPage : Grid
 
         var searchBox = new Grid { Children = { search, SearchIcon() } };
         search.Padding = new Thickness(34, 7, 10, 7);
-        var tools = new StackPanel { Margin = new Thickness(0, 0, 0, 12), Spacing = 8, Children = { searchBox, addBox } };
+        var tools = new StackPanel { Margin = new Thickness(0, 0, 0, 12), Spacing = 8, Children = { searchBox, showHidden, addBox } };
         // The empty-library card sits over this column: keep it below the add box, or it covers Procurar…/Adicionar (seen 2026-11-12).
         tools.SizeChanged += (_, _) => emptyBox.Margin = new Thickness(0, 84 + (addBox.IsVisible ? addBox.Bounds.Height + tools.Spacing : 0), 0, 0);
         var left = new Grid { RowDefinitions = new("Auto,Auto,*") };
@@ -270,6 +281,11 @@ public sealed class LauncherPage : Grid
         Grid.SetColumn(renameGame, 2); bottom.Children.Add(renameGame);
         removeGame.Margin = new Thickness(8, 0, 0, 0);
         Grid.SetColumn(removeGame, 3); bottom.Children.Add(removeGame);
+        // Games that are not manual cannot be removed (they come from a store or a menu entry): they can be hidden instead.
+        hideGame.VerticalAlignment = VerticalAlignment.Bottom; hideGame.Margin = new Thickness(8, 0, 0, 0);
+        ToolTip.SetTip(hideGame, L.T("Esconde o jogo da biblioteca sem apagar nada. Marque Mostrar ocultos para vê-lo de novo."));
+        hideGame.Click += (_, _) => ToggleHideCurrent();
+        Grid.SetColumn(hideGame, 3); bottom.Children.Add(hideGame);
         Grid.SetColumn(play, 4); bottom.Children.Add(play);
         var heroTop = new DockPanel { Children = { backToLibrary, heroTags } }; heroTags.Margin = new Thickness(10, 0, 0, 0);
         var heroContent = new Grid { RowDefinitions = new("Auto,*,Auto"), Children = { heroTop } };
@@ -429,7 +445,14 @@ public sealed class LauncherPage : Grid
             }
         });
         status.Margin = new Thickness(4, 12, 0, 4);
-        detail.Content = new StackPanel { Margin = new Thickness(0, 0, 8, 0), Children = { hero, playProgress, status, UiKit.SectionHeader(L.T("Perfil do jogo")), perf, gfx, help } };
+                coverFile.Click += async (_, _) => await ChooseCoverFileAsync();
+        coverUrl.Click += async (_, _) => await ChooseCoverUrlAsync();
+        coverReset.Click += (_, _) => ResetCover();
+        ToolTip.SetTip(coverFile, L.T("Copia a imagem para o cache do Ilmenyx; o arquivo original não é usado nem alterado."));
+        ToolTip.SetTip(coverUrl, L.T("Baixa a imagem do link (só https) quando você confirma."));
+        var coverCard = UiKit.Card(new StackPanel { Children = { CardTitle(Icons.Games, L.T("CAPA")), new WrapPanel { ItemSpacing = 8, LineSpacing = 6, Children = { coverFile, coverUrl, coverReset } }, coverStatus } });
+        coverCard.Margin = new Thickness(0, 12, 0, 0);
+        detail.Content = new StackPanel { Margin = new Thickness(0, 0, 8, 0), Children = { hero, playProgress, status, coverCard, UiKit.SectionHeader(L.T("Perfil do jogo")), perf, gfx, help } };
         Grid.SetColumn(detail, 2); Grid.SetRow(detail, 1); Children.Add(detail);
     }
 
@@ -476,16 +499,25 @@ public sealed class LauncherPage : Grid
             }
             games = await library.ScanAsync(settings.CustomGames.ToList(), lifetime);
             Filter();
-            count.Text = games.Count == 0 ? L.T("Nenhum jogo encontrado. Use + Adicionar executável para incluir um à mão.") : $"{games.Count} {(games.Count == 1 ? L.T("jogo") : L.T("jogos"))} · {string.Join(" · ", games.GroupBy(g => g.Kind ?? g.Store).Select(x => $"{x.Key} {x.Count()}"))}";
+            UpdateCount();
         }
         catch (OperationCanceledException) { count.Text = L.T("Busca cancelada."); }
     }
 
+    private List<LibGame> Visible() => GameCovers.Visible(games, settings.HiddenGames, showHidden.IsChecked == true).ToList();
+    private List<LibGame> Shown() { string q = (search.Text ?? "").Trim(); return Visible().Where(g => q.Length == 0 || g.Name.Contains(q, StringComparison.CurrentCultureIgnoreCase)).ToList(); }
+
+    private void UpdateCount()
+    {
+        var v = Visible();
+        count.Text = v.Count == 0 ? L.T("Nenhum jogo encontrado. Use + Adicionar executável para incluir um à mão.") : $"{v.Count} {(v.Count == 1 ? L.T("jogo") : L.T("jogos"))} · {string.Join(" · ", v.GroupBy(g => g.Kind ?? g.Store).Select(x => $"{x.Key} {x.Count()}"))}";
+    }
+
     private void Filter()
     {
-        string q = (search.Text ?? "").Trim(); string? keep = current?.Key;
+        string? keep = current?.Key;
         list.Children.Clear();
-        var shown = games.Where(g => q.Length == 0 || g.Name.Contains(q, StringComparison.CurrentCultureIgnoreCase)).ToList();
+        var shown = Shown();
         // Asymmetric grid: the selected game (or the first one) is a wide featured tile, the others pair up below it.
         string? big = current is null ? null : shown.Any(g => g.Key == keep) ? keep : shown.FirstOrDefault()?.Key; // browsing: all covers equal
         Grid? row = null; int col = 0;
@@ -493,6 +525,7 @@ public sealed class LauncherPage : Grid
         {
             var item = Tile(g, g.Key == big, g.Key == keep);
             AutomationProperties.SetName(item, g.Name + " (" + g.Subtitle + ")");
+            if (settings.HiddenGames.Contains(g.Key)) item.Opacity = 0.55;
             var game = g; item.Click += (_, _) => { Select(game); FocusTile(game); };
             if (g.Key == big || columns == 1) { list.Children.Add(item); row = null; continue; }
             if (row is null || col >= columns) { row = new Grid { ColumnDefinitions = new(string.Join(",8,", Enumerable.Repeat("*", columns))), Margin = new Thickness(0, 0, 0, 8) }; list.Children.Add(row); col = 0; }
@@ -510,7 +543,7 @@ public sealed class LauncherPage : Grid
             Spacing = 2,
             Children =
             {
-                GameArt.Cover(art, g.Name, appIcon: art is null && g.Icon is not null ? GameArt.FromFile(nativeArt.Icon(g.Icon), false) : null, height: current is null ? 118 : large ? (columns == 1 ? 104 : 128) : (columns == 1 ? 0 : 68)),
+                GameArt.Cover(art, g.Name, appIcon: art is null && IconFor(g) is { } icon ? GameArt.FromFile(nativeArt.Icon(icon), false) : null, height: current is null ? 118 : large ? (columns == 1 ? 104 : 128) : (columns == 1 ? 0 : 68)),
                 new TextBlock { Text = g.Name, FontSize = large ? 13.5 : 12.5, FontWeight = FontWeight.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(2, 6, 2, 0), Foreground = selected ? Palette.AccentText : Palette.Fg },
                 new TextBlock { Text = g.Subtitle, FontSize = 11, Foreground = Palette.Faint, Margin = new Thickness(2, 0, 2, 0) },
             },
@@ -555,7 +588,12 @@ public sealed class LauncherPage : Grid
         loading = true; profile = p;
         title.Text = g.Name; sub.Text = g.InstallDir.Length > 0 ? $"{g.Subtitle} · {g.InstallDir}" : g.ExePath is { } exe ? $"{g.Subtitle} · {exe} {g.Args}".TrimEnd() : g.Subtitle;
         var art = ArtFor(g, hero: true); heroArt = art is not null;
-        if (art is null && g.IsWindowsManual && p.ProtonGameId is { Length: > 0 } artId) FetchArtLater(g, artId);
+        if (art is null && g.Store == "Manual")
+        {
+            if ((p.ProtonGameId ?? p.ArtSteamId) is { Length: > 0 } artId) FetchArtLater(g, artId);
+            else if (!g.IsWindowsManual && p.CoverPath is null && artTried.Add("lookup:" + g.Key)) _ = LookUpSteamIdAsync(automatic: true); // cover only; Proton settings stay .exe-only
+        }
+        coverReset.IsVisible = p.CoverPath is { Length: > 0 }; coverStatus.Text = "";
         hero.Background = art is null ? UiKit.HeroBrush() : new ImageBrush { Source = art, Stretch = Stretch.UniformToFill };
         heroScrim.IsVisible = heroArt; title.Foreground = heroArt ? Brushes.White : Palette.Fg; sub.Foreground = heroArt ? GameArt.OnImageMuted : Palette.Muted;
         chkPlan.IsChecked = p.HighPerfPlan; chkGpu.IsChecked = p.GpuHigh && multiGpu; chkGameMode.IsChecked = p.GameMode; chkMango.IsChecked = p.MangoHud; UpdateFlatpakMango(g); chkGuard.IsChecked = p.FullscreenGuard; chkGuard.IsVisible = multiGpu && gpuVendor == "NVIDIA";
@@ -563,6 +601,7 @@ public sealed class LauncherPage : Grid
         protonBox.IsVisible = g.IsWindowsManual; protonId.Text = p.ProtonGameId ?? ""; protonIdStatus.Text = ""; runnerStatus.Text = "";
         if (g.IsWindowsManual) LoadRunner(p);
         removeGame.IsVisible = renameGame.IsVisible = g.Store == "Manual"; gameShortcut.IsVisible = true;
+        hideGame.IsVisible = g.Store != "Manual"; hideGame.Content = settings.HiddenGames.Contains(g.Key) ? L.T("Mostrar na biblioteca") : L.T("Ocultar da biblioteca");
         chkWayland.IsChecked = p.ProtonWayland; chkLowLat.IsChecked = p.LowLatency; extrasBox.IsVisible = g.IsSteam || g.IsWindowsManual;
         protonName = g.IsSteam ? steam.CompatToolName(g.Id) : !g.IsWindowsManual ? null
             : p.Runner is { Length: > 0 } chosen && Path.IsPathFullyQualified(chosen) ? Path.GetFileName(chosen) : (UmuProton ?? (() => LinuxGameExtras.UmuProtonName()))();
@@ -701,13 +740,14 @@ public sealed class LauncherPage : Grid
     /// cache or the image already downloaded for it (Steam CDN, kept in the Compatibility cache).</summary>
     private Bitmap? ArtFor(LibGame g, bool hero)
     {
+        if (CoverOf(g) is { } cover && GameArt.FromFile(cover, hero) is { } custom) return custom;
         if (g.IsSteam) return GameArt.Steam(steamRoot, g.Id, hero);
         if (g.Store == "Linux")
         {
             if (nativeArt.Cached(g.Id) is { } shot) return GameArt.FromFile(shot, hero);
             FetchNativeArtLater(g); return null;
         }
-        if (!g.IsWindowsManual || !settings.GameProfiles.TryGetValue(SettingsKey(g), out var gp) || gp.ProtonGameId is not { Length: > 0 } id) return null;
+        if (g.Store != "Manual" || !settings.GameProfiles.TryGetValue(SettingsKey(g), out var gp) || (gp.ProtonGameId ?? gp.ArtSteamId) is not { Length: > 0 } id) return null;
         return GameArt.Steam(steamRoot, id, hero) ?? GameArt.FromFile(ArtCache.CachedArt(id), hero);
     }
 
@@ -790,7 +830,8 @@ public sealed class LauncherPage : Grid
     /// <summary>Fills the Steam ID of the selected Windows game from its name (automatic: only when empty, quietly when nothing is found).</summary>
     private async Task LookUpSteamIdAsync(bool automatic, bool renamed = false)
     {
-        if (current is not { IsWindowsManual: true } game || profile is not { } p) return;
+        if (current is not { Store: "Manual" } game || profile is not { } p) return;
+        if (!game.IsWindowsManual) { if (automatic) await LookUpArtIdAsync(game, p, renamed); return; }
         if (automatic && !renamed && p.ProtonGameId is { Length: > 0 }) return;
         protonIdStatus.Foreground = Palette.Faint; protonIdStatus.Text = L.T("Buscando o ID Steam…");
         var find = FindSteamId ?? ((n, ct) => SteamIds.FindAsync(n, ct));
@@ -805,6 +846,87 @@ public sealed class LauncherPage : Grid
             FetchArtLater(game, f.Id);
         }
         else protonIdStatus.Text = automatic ? "" : p.ProtonGameId is { Length: > 0 } kept ? L.T($"Nenhum jogo com esse nome na loja Steam. O ID {kept} continua salvo.") : L.T("Nenhum jogo com esse nome na loja Steam. Digite o ID no campo.");
+    }
+
+    /// <summary>Non-.exe manual game: finds the Steam ID by name only for the cover (kept in ArtSteamId, never in the Proton settings).</summary>
+    private async Task LookUpArtIdAsync(LibGame game, GameProfile p, bool renamed)
+    {
+        if (!renamed && p.ArtSteamId is { Length: > 0 }) return;
+        var find = FindSteamId ?? ((n, ct) => SteamIds.FindAsync(n, ct));
+        if (await find(game.Name, lifetime) is not { } f || current != game) return;
+        p.ArtSteamId = f.Id; SaveProfile(game, p); FetchArtLater(game, f.Id);
+    }
+
+    private string? CoverOf(LibGame g) => settings.GameProfiles.TryGetValue(SettingsKey(g), out var gp) && gp.CoverPath is { Length: > 0 } c ? c : null;
+
+    /// <summary>The menu entry's icon: the game's own, or that of a Linux entry that starts the same program as a manual game.</summary>
+    private string? IconFor(LibGame g) => g.Icon ?? (g.Store == "Manual" ? games.FirstOrDefault(n => n.Store == "Linux" && n.Icon is not null && n.ExePath is not null && n.ExePath == (g.ExePath ?? g.Id))?.Icon : null);
+
+    /// <summary>Hides (or shows again) the selected game that is not manual. Profile and settings stay; hiding selects the next visible game.</summary>
+    private void ToggleHideCurrent()
+    {
+        if (current is not { } g || g.Store == "Manual") return;
+        string key = g.Key; bool hide = !settings.HiddenGames.Contains(key);
+        var shown = Shown(); int at = shown.FindIndex(x => x.Key == key);
+        void set(IlmenyxSettings s) { s.HiddenGames.RemoveAll(k => k == key); if (hide) s.HiddenGames.Add(key); }
+        if (Save(set) is { } fresh) settings.HiddenGames = fresh.HiddenGames; else set(settings);
+        if (hide && showHidden.IsChecked != true)
+        {
+            var after = Shown(); Select(after.Count == 0 ? null : after[Math.Min(Math.Max(at, 0), after.Count - 1)]);
+        }
+        else Select(g);
+        UpdateCount();
+    }
+
+    private async Task ChooseCoverFileAsync()
+    {
+        if (current is not { } g || owner() is not { } window) return;
+        var files = await window.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = L.T("Escolha a imagem da capa"), AllowMultiple = false,
+            FileTypeFilter = [new(L.T("Imagens")) { Patterns = ["*.png", "*.jpg", "*.jpeg", "*.webp", "*.PNG", "*.JPG", "*.JPEG", "*.WEBP"] }],
+        });
+        if (files.Count == 0 || files[0].TryGetLocalPath() is not { } local) return;
+        string real = DocumentPortal.RealPath(local), source = File.Exists(real) ? real : local; // the portal alias still reads inside Flatpak
+        await ApplyCoverAsync(g, () => Task.Run(() => GameCovers.CopyLocal(source, GameCovers.Folder(), g.Key)));
+    }
+
+    private async Task ChooseCoverUrlAsync()
+    {
+        if (current is not { } g || owner() is not { } window) return;
+        string? text = await TextInputDialog.AskAsync(window, L.T("Capa por link"), L.T("Link https:// da imagem (PNG, JPEG ou WebP, até 8 MB). O Ilmenyx baixa só quando você confirma."), "", 2048, L.T("Usar"), "LCoverUrl");
+        if (string.IsNullOrWhiteSpace(text)) return;
+        await ApplyCoverAsync(g, () => { var url = GameCovers.ValidateUrl(text); return GameCovers.DownloadAsync(url, GameCovers.Folder(), g.Key, lifetime); });
+    }
+
+    private async Task ApplyCoverAsync(LibGame g, Func<Task<string>> make)
+    {
+        string path;
+        coverStatus.Foreground = Palette.Muted; coverStatus.Text = L.T("Preparando a capa…");
+        try { path = await make(); }
+        catch (CoverException e) { coverStatus.Foreground = Palette.Warn; coverStatus.Text = L.T("Não consegui usar esta imagem: ") + e.Message; return; }
+        string key = SettingsKey(g);
+        void set(IlmenyxSettings s) { if (!s.GameProfiles.TryGetValue(key, out var gp)) s.GameProfiles[key] = gp = new(); gp.CoverPath = path; }
+        if (Save(set) is { } fresh) settings.GameProfiles = fresh.GameProfiles; else set(settings);
+        RefreshCover(g, path);
+    }
+
+    private void ResetCover()
+    {
+        if (current is not { } g) return;
+        string key = SettingsKey(g); string? old = CoverOf(g);
+        void clear(IlmenyxSettings s) { if (s.GameProfiles.TryGetValue(key, out var gp)) gp.CoverPath = null; }
+        if (Save(clear) is { } fresh) settings.GameProfiles = fresh.GameProfiles; else clear(settings);
+        try { if (old is not null && Path.GetDirectoryName(old) == GameCovers.Folder()) File.Delete(old); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+        RefreshCover(g, old);
+        coverStatus.Foreground = Palette.Muted; coverStatus.Text = L.T("Capa removida.");
+    }
+
+    /// <summary>Repaints tile and hero after the cover changed (the decoded copies of the old file leave the session cache).</summary>
+    private void RefreshCover(LibGame g, string? changed)
+    {
+        GameArt.Forget(changed);
+        if (current?.Key == g.Key) { Select(g); coverStatus.Foreground = Palette.Muted; coverStatus.Text = CoverOf(g) is null ? "" : L.T("Capa definida."); } else Filter();
     }
 
     /// <summary>Renames the selected hand-added game in the library (its profile and files stay the same).</summary>
@@ -1068,6 +1190,13 @@ internal static class GameArt
         lock (Cache) if (Cache.TryGetValue(key, out var hit) && hit is not null) return hit;
         lock (Cache) Cache.Remove(key);
         return Load(path, hero ? 1280 : 460);
+    }
+
+    /// <summary>Drops the decoded copies of a file (a cover that was replaced or removed).</summary>
+    public static void Forget(string? path)
+    {
+        if (path is null) return;
+        lock (Cache) foreach (var k in Cache.Keys.Where(k => k.StartsWith(path + "|", StringComparison.Ordinal)).ToList()) Cache.Remove(k);
     }
 
     private static Bitmap? Load(string path, int width)
