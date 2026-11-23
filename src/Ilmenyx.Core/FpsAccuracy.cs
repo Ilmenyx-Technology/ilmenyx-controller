@@ -1,99 +1,13 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
-// Methodology and limits: docs/fps-estimativa.md.
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Ilmenyx.Core;
 
-/// <summary>How specific the catalog match for a GPU or CPU was.</summary>
-public enum HardwareMatch { Desktop, Laptop, Integrated, Generic }
-
-public enum FpsConfidence { Medium, Low, VeryLow }
-
-/// <summary>Confidence of the local estimate for this PC, the relative spread of the range and the short reasons shown to the user.</summary>
-public sealed record FpsAssessment(FpsConfidence Confidence, double Spread, IReadOnlyList<string> Reasons)
-{
-    public string ConfidenceText => Confidence switch { FpsConfidence.Medium => L.T("confiança média"), FpsConfidence.Low => L.T("confiança baixa"), _ => L.T("confiança muito baixa") };
-}
-
-/// <summary>Estimated FPS range around the central estimate. Never a measurement.</summary>
-public sealed record FpsRange(double Low, double High, double Center)
-{
-    public string Text => Low == High ? Fmt(Low) : Fmt(Low) + "–" + Fmt(High);
-    private static string Fmt(double v) => v.ToString("0", CultureInfo.InvariantCulture);
-}
-
 public static class FpsAccuracy
 {
-    /// <summary>Relative spread with GPU and CPU both desktop entries at the reference (RTX 4070 / Ryzen 7 7700X).</summary>
-    public const double BaseSpread = 0.15, LowSpread = 0.25, MaxSpread = 0.5;
-    /// <summary>More than this many halvings/doublings away from the reference GPU lowers the confidence one step.</summary>
-    public const double FarFromReference = 3.5;
-
-    private static readonly Regex MobileChip = new(@"\b(G[KMP]|TU|GA|AD|GB)\d{3}M\b", RegexOptions.CultureInvariant);
-    private static readonly Regex MobileSuffix = new(@"\b(Laptop|Mobile|Max-Q|Max-P)\b|\bRX \d{4}[MS]\b|\b\d{3,4}MX?\b", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
-    private static readonly Regex LaptopCpu = new(@"\d{3,5}(U|H|HS|HX|HQ|HK|HL|P|Y|G\d)\b|Custom APU|Core Ultra \d \d{3}[UHV]\b", RegexOptions.CultureInvariant);
-
-    /// <summary>Kind of match for a GPU: generic integrated names (several different chips share them), integrated, laptop or desktop.</summary>
-    public static HardwareMatch ClassifyGpu(string gpuName, string key, bool integrated = false)
-    {
-        if (key is "Radeon(TM) Graphics" or "Radeon Graphics" or "UHD Graphics") return HardwareMatch.Generic;
-        if (integrated || key.Contains("HD Graphics", StringComparison.Ordinal) || key.StartsWith("Iris", StringComparison.Ordinal) || key.StartsWith("Vega", StringComparison.Ordinal)
-            || key is "Mendocino" or "Steam Deck" or "VanGogh" or "Van Gogh" || Regex.IsMatch(key, @"^Radeon \d{3}M$", RegexOptions.CultureInvariant)) return HardwareMatch.Integrated;
-        if (key.StartsWith("MX", StringComparison.Ordinal) || MobileSuffix.IsMatch(key) || MobileSuffix.IsMatch(gpuName) || MobileChip.IsMatch(gpuName)) return HardwareMatch.Laptop;
-        return HardwareMatch.Desktop;
-    }
-
-    /// <summary>Readable GPU name: the marketing name inside pci.ids brackets ("GM108M [GeForce 940MX]" → "940MX"), else the short name.</summary>
-    public static string DisplayGpuName(string gpuName)
-    {
-        int a = gpuName.IndexOf('['), b = gpuName.LastIndexOf(']');
-        string s = a >= 0 && b > a + 1 ? gpuName[(a + 1)..b] : gpuName;
-        string shortName = GameCatalog.ShortGpuName(s);
-        return shortName.Length > 0 ? shortName : gpuName.Trim();
-    }
-
-    public static bool IsLaptopCpu(string cpuName) => LaptopCpu.IsMatch(GameCatalog.ShortCpuName(cpuName));
-
-    /// <summary>
-    /// Confidence and spread from the kind of match and the distance to the reference parts. Desktop GPU + desktop CPU = medium (±15 %);
-    /// laptop/integrated GPU, generic GPU name or laptop CPU = low (±25 %); each halving away from the reference widens the range,
-    /// and very far from the reference lowers the confidence one more step.
-    /// </summary>
-    public static FpsAssessment Assess(HardwareMatch gpu, double gpuIdx, bool laptopCpu, double cpuIdx)
-    {
-        var reasons = new List<string>();
-        bool weak = gpu != HardwareMatch.Desktop || laptopCpu;
-        double spread = weak ? LowSpread : BaseSpread;
-        switch (gpu)
-        {
-            case HardwareMatch.Laptop: reasons.Add(L.T("GPU de notebook: o limite de energia/temperatura do modelo muda o resultado")); break;
-            case HardwareMatch.Integrated: reasons.Add(L.T("GPU integrada: divide memória e energia com a CPU; RAM em canal único derruba o FPS")); break;
-            case HardwareMatch.Generic: reasons.Add(L.T("nome genérico da GPU integrada: pode ser chips bem diferentes")); spread += 0.1; break;
-        }
-        if (laptopCpu) reasons.Add(L.T("CPU de notebook: o clock sustentado depende de refrigeração e do limite de energia"));
-        double gpuDist = Math.Abs(Math.Log2(Math.Max(gpuIdx, 0.1) / 100)), cpuDist = Math.Abs(Math.Log2(Math.Max(cpuIdx, 0.1) / 100));
-        spread += 0.04 * gpuDist + 0.03 * cpuDist;
-        var level = weak ? FpsConfidence.Low : FpsConfidence.Medium;
-        if (gpuDist > FarFromReference)
-        {
-            level = level == FpsConfidence.Medium ? FpsConfidence.Low : FpsConfidence.VeryLow;
-            reasons.Add(L.T("muito longe da GPU de referência (RTX 4070): a escala por índice erra mais"));
-        }
-        if (reasons.Count == 0) reasons.Add(L.T("GPU e CPU de desktop na tabela; a faixa cobre versões do jogo, drivers e cenas diferentes"));
-        return new(level, Math.Min(spread, MaxSpread), reasons);
-    }
-
-    /// <summary>Range around the central estimate; an engine FPS cap is never exceeded.</summary>
-    public static FpsRange Range(FpsEstimate e, GameInfo g, FpsAssessment a)
-    {
-        double lo = Math.Max(1, Math.Round(e.Avg * (1 - a.Spread))), hi = Math.Max(lo, Math.Round(e.Avg * (1 + a.Spread)));
-        if (g.EngineCap > 0 && hi > g.EngineCap) { hi = g.EngineCap; lo = Math.Min(lo, hi); }
-        return new(lo, hi, e.Avg);
-    }
-
     /// <summary>Game name for matching: lower-case ASCII letters and digits only (accents, ™, ®, punctuation and spaces dropped).</summary>
     public static string NormalizeName(string name)
     {
@@ -124,54 +38,6 @@ public static class FpsAccuracy
     /// <summary>Newest valid session for the catalog game, if any.</summary>
     public static FpsSession? LatestSession(IEnumerable<FpsSession> sessions, string catalogName) =>
         sessions.Where(s => s.IsValid && SameGame(catalogName, s.Game)).OrderByDescending(s => s.At).FirstOrDefault();
-}
-
-/// <summary>Local hardware facts the FPS page uses for alerts. Null = could not be read (no alert is shown from a guess).</summary>
-public sealed record FpsContext(string GpuName, string GpuVendorId, string GpuDeviceId, string GpuDriver, bool GpuIntegrated, ulong GpuVramBytes,
-    string? OtherIntegratedGpu, bool? OnBattery, int ProfilesWithPrime, int Profiles, string GpuDriverVersion = "", int? GpuMaxCoreMHz = null);
-
-public sealed record FpsAlert(string Title, string Text);
-
-public static class FpsAlerts
-{
-    public const ulong LowVram = 4UL << 30;
-
-    /// <summary>On battery when a battery is present and mains is off, or a battery reports "Discharging".</summary>
-    public static bool? OnBattery(IReadOnlyList<BatteryInput> batteries, bool? mainsOnline)
-    {
-        if (batteries.Count == 0) return null;
-        if (mainsOnline == false || batteries.Any(b => b.Status == "Discharging")) return true;
-        return mainsOnline is null && batteries.All(b => b.Status is "" or "Unknown") ? null : false;
-    }
-
-    /// <summary>NVIDIA GPU older than Turing (PCI device below 0x1E00: Kepler, Maxwell, Pascal, Volta).</summary>
-    public static bool NvidiaPreTuring(string vendorId, string deviceId) =>
-        vendorId.Equals("10de", StringComparison.OrdinalIgnoreCase) && int.TryParse(deviceId, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int dev) && dev < 0x1E00;
-
-    public static List<FpsAlert> Build(FpsContext c)
-    {
-        var alerts = new List<FpsAlert>();
-        string gpu = FpsAccuracy.DisplayGpuName(c.GpuName);
-        bool nvidia = c.GpuVendorId.Equals("10de", StringComparison.OrdinalIgnoreCase);
-        if (nvidia && c.GpuDriver == "nouveau")
-            alerts.Add(new(L.T("Driver nouveau na GeForce"), L.T("O nouveau roda bem abaixo do driver NVIDIA (na maioria das GeForce não sobe o clock)") +
-                (NvidiaPreTuring(c.GpuVendorId, c.GpuDeviceId) ? L.T(" e, nesta geração (anterior à Turing), em geral não oferece Vulkan, que o Proton/DXVK exige.") : ".") +
-                L.T(" A estimativa assume o driver NVIDIA; instale-o pela página Drivers.")));
-        else if (!c.GpuIntegrated && c.GpuDriver.Length == 0 && c.GpuVendorId.Length > 0)
-            alerts.Add(new(L.T("GPU sem driver"), L.T($"Nenhum driver está carregado para a {gpu}: os jogos não vão usá-la.")));
-        if (!c.GpuIntegrated && c.GpuVramBytes > 0 && c.GpuVramBytes < LowVram)
-            alerts.Add(new(L.T($"{(c.GpuVramBytes / 1073741824.0).ToString("0.#", CultureInfo.InvariantCulture)} GB de VRAM"), L.T("Texturas no Alto/Ultra passam da memória da placa: travadas e queda de FPS. Use texturas no Médio ou Baixo.")));
-        if (c.OnBattery == true)
-            alerts.Add(new(L.T("Notebook na bateria"), L.T("Na bateria o sistema limita CPU e GPU; o FPS fica abaixo da estimativa até ligar o carregador.")));
-        if (!c.GpuIntegrated && c.OtherIntegratedGpu is { Length: > 0 } igpu)
-        {
-            string i = FpsAccuracy.DisplayGpuName(igpu);
-            alerts.Add(new(L.T("Notebook com duas GPUs"), c.ProfilesWithPrime == 0
-                ? L.T($"Nenhum perfil de jogo força a placa dedicada (PRIME offload, página Jogos): sem isso o jogo roda na {i} e o FPS fica muito abaixo desta estimativa, que é para a {gpu}.")
-                : L.T($"Jogos sem a GPU dedicada (PRIME) ligada no perfil rodam na {i}, bem abaixo desta estimativa ({c.ProfilesWithPrime} de {c.Profiles} perfis com PRIME).")));
-        }
-        return alerts;
-    }
 }
 
 /// <summary>Whole-session statistics from a MangoHud CSV. Gpu = the GPU name MangoHud wrote in the log header, when present.

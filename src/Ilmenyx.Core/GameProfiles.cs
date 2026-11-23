@@ -243,8 +243,6 @@ public sealed class IlmenyxSettings
     public bool TourOffered { get; set; }
     /// <summary>FPS measured in game sessions started by the Launcher with MangoHud (newest first, at most <see cref="FpsSession.MaxEntries"/>). Never sent anywhere.</summary>
     public List<FpsSession> FpsSessions { get; set; } = [];
-    /// <summary>Calibration of this PC for the FPS estimate (short GPU scene + CPU GameSim), null = never calibrated. Never sent anywhere.</summary>
-    public FpsCalibration? FpsCalibration { get; set; }
 
     public void AddFpsSession(FpsSession session)
     {
