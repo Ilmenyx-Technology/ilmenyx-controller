@@ -12,11 +12,12 @@ namespace Ilmenyx.Platform.Linux;
 /// </summary>
 public static class SingleInstance
 {
-    /// <summary>Flatpak shares only $XDG_RUNTIME_DIR/app/ID between copies of the app; null when there is no runtime folder (then no guard).</summary>
+    /// <summary>Flatpak shares only $XDG_RUNTIME_DIR/app/ID between copies of the app, so every package (Flatpak, AppImage, tar.gz) uses that
+    /// same path: with two installed, a click on either one brings back the window already open. Null when there is no runtime folder (then no guard).</summary>
     /// <param name="name">Another window kind (the games window) gets its own socket, so it can run beside the full app.</param>
     public static string? DefaultPath(string appId, string name = "") =>
         Environment.GetEnvironmentVariable("XDG_RUNTIME_DIR") is { Length: > 0 } run && Directory.Exists(run)
-            ? HostSpawn.InFlatpak ? Path.Combine(run, "app", appId, $"ilmenyx{name}.sock") : Path.Combine(run, $"ilmenyx-controller{name}.sock") : null;
+            ? Path.Combine(run, "app", appId, $"ilmenyx{name}.sock") : null;
 
     public const int MaxMessage = 4096;
 
@@ -43,7 +44,9 @@ public static class SingleInstance
     {
         try
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            string dir = Path.GetDirectoryName(path)!;
+            if (OperatingSystem.IsWindows()) Directory.CreateDirectory(dir);
+            else Directory.CreateDirectory(dir, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute); // as private as the folder Flatpak creates
             File.Delete(path);
             var server = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
             server.Bind(new UnixDomainSocketEndPoint(path)); server.Listen(4);

@@ -17,6 +17,7 @@ public sealed class SingleInstanceTests
             using var stop = new CancellationTokenSource();
             var woke = new TaskCompletionSource();
             SingleInstance.Listen(path, () => woke.TrySetResult(), stop.Token);
+            if (!OperatingSystem.IsWindows()) Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute, File.GetUnixFileMode(Path.GetDirectoryName(path)!));
             Assert.True(SingleInstance.TryHandOff(path));
             await woke.Task.WaitAsync(TimeSpan.FromSeconds(5));
             stop.Cancel();
