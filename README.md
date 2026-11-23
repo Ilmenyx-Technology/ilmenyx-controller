@@ -23,8 +23,8 @@ Portuguese and Spanish**.
 
 | | |
 |---|---|
-| ![Sensors](docs/imagens/sensores.png) | ![FPS estimate](docs/imagens/estimativa-fps.png) |
-| ![Why won't the game start?](docs/imagens/jogo-nao-abre.png) | ![Light theme](docs/imagens/visao-geral-claro.png) |
+| ![Sensors](docs/imagens/sensores.png) | ![Why won't the game start?](docs/imagens/jogo-nao-abre.png) |
+| ![Light theme](docs/imagens/visao-geral-claro.png) | |
 
 <sub>Screenshots in Portuguese; the app follows your system language or the one you pick in the header.</sub>
 
@@ -51,7 +51,7 @@ distro, your graphics card and what happened (the app's **Report** page builds a
 | Area | What you get |
 |---|---|
 | **Diagnostics** | Live overview, system, sensors, GPU, disks (with imported SMART), power/battery, network and processes |
-| **Games** | Library (Steam, Lutris, Heroic), compatibility (ProtonDB, Steam Deck, anti-cheat and reports from people with similar hardware), FPS estimate and bottleneck analysis |
+| **Games** | Library (Steam, Lutris, Heroic), compatibility (ProtonDB, Steam Deck, anti-cheat and reports from people with similar hardware), "Can my PC run it?" (game requirements compared with your hardware, see [docs/meu-pc-roda.md](docs/meu-pc-roda.md)) and bottleneck analysis |
 | **Performance** | CPU, memory, GPU (Vulkan) and disk benchmarks; overclock checker; overlay; stress tests |
 | **Maker** | Serial ports and board drivers (CH340, CP210x, FTDI) |
 | **Tools** | Reversible tweaks, ZRAM, RGB through OpenRGB, startup apps, app installer (Flatpak), NVIDIA driver, HTML/JSON reports |
