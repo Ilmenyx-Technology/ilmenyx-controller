@@ -25,4 +25,20 @@ public sealed class SingleInstanceTests
         }
         finally { Directory.Delete(dir, true); }
     }
+
+    [Fact]
+    public async Task SecondLaunchCanSayWhichGameToOpen()
+    {
+        string dir = Directory.CreateTempSubdirectory("ilx-inst").FullName, path = Path.Combine(dir, "ilmenyx-jogos.sock");
+        try
+        {
+            using var stop = new CancellationTokenSource();
+            var got = new TaskCompletionSource<string>();
+            SingleInstance.Listen(path, (string m) => got.TrySetResult(m), stop.Token);
+            Assert.True(SingleInstance.TryHandOff(path, "play\nManual:/mnt/Jogos/Hollow Knight/hollow_knight.exe"));
+            Assert.Equal("play\nManual:/mnt/Jogos/Hollow Knight/hollow_knight.exe", await got.Task.WaitAsync(TimeSpan.FromSeconds(5)));
+            stop.Cancel();
+        }
+        finally { Directory.Delete(dir, true); }
+    }
 }

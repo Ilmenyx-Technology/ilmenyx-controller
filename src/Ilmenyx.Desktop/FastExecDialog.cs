@@ -33,6 +33,22 @@ public sealed class FastExecDialog : Window
 
         var installer = new TextBox { Name = "FxInstaller", PlaceholderText = L.T("/caminho/do/setup.exe") };
         var destination = new TextBox { Name = "FxDestination", Text = FastExec.DefaultDestination() };
+        // Where the throwaway Windows lives while the installer runs: it holds the whole game until the move, so a small disk needs another.
+        string savedTemp = IlmenyxSettings.Load(IlmenyxSettings.DefaultPath()).InstallerTempFolder ?? "";
+        var temp = new TextBox { Name = "FxTemp", Text = tempRoot ?? (savedTemp.Length > 0 ? savedTemp : FastExec.TempRoot()) };
+        var tempFree = new TextBlock { Name = "FxTempFree", FontSize = 11, Foreground = Palette.Faint, TextWrapping = TextWrapping.Wrap };
+        void ShowFree() => tempFree.Text = FastExec.FreeBytes((temp.Text ?? "").Trim()) is { } free
+            ? L.T($"Livre nesse disco: {free / 1e9:0.#} GB. Precisa caber o jogo inteiro; o Windows temporário é apagado no fim.") : L.T("Escolha uma pasta que exista.");
+        ShowFree(); temp.TextChanged += (_, _) => ShowFree();
+        AutomationProperties.SetName(temp, L.T("Pasta do Windows temporário"));
+        var pickTemp = new Button { Name = "FxPickTemp", Content = L.T("Procurar…"), FontSize = 12, Padding = new Thickness(14, 6) };
+        pickTemp.Click += async (_, _) =>
+        {
+            var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = L.T("Pasta do Windows temporário"), AllowMultiple = false });
+            if (folders.Count == 0 || folders[0].TryGetLocalPath() is not { } p) return;
+            temp.Text = p;
+            try { IlmenyxSettings.Update(IlmenyxSettings.DefaultPath(), s => s.InstallerTempFolder = p); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { } // remembered for next time
+        };
         AutomationProperties.SetName(installer, L.T("Instalador do Windows")); AutomationProperties.SetName(destination, L.T("Pasta onde o jogo vai ficar"));
         var pickInstaller = new Button { Name = "FxPickInstaller", Content = L.T("Procurar…"), FontSize = 12, Padding = new Thickness(14, 6) };
         var pickDestination = new Button { Name = "FxPickDestination", Content = L.T("Procurar…"), FontSize = 12, Padding = new Thickness(14, 6) };
@@ -121,15 +137,16 @@ public sealed class FastExecDialog : Window
                 finally { start.IsEnabled = true; Busy(false); }
                 if ((wine = PlainWine.Find()) is null) { status.Foreground = Palette.Warn; status.Text = L.T("O Wine comum foi baixado, mas não ficou utilizável. Escolha um Proton."); return; }
             }
-            try { plan = FastExec.Plan((installer.Text ?? "").Trim(), (destination.Text ?? "").Trim(), find, tempRoot, geProton: mode.SelectedIndex == 2, protonPath: mode.SelectedIndex == 1 ? ClassicProton.Folder(classicRoot) : null, wineBin: wine); }
+            string root = FastExec.TempRootIn((temp.Text ?? "").Trim());
+            try { plan = FastExec.Plan((installer.Text ?? "").Trim(), (destination.Text ?? "").Trim(), find, root, geProton: mode.SelectedIndex == 2, protonPath: mode.SelectedIndex == 1 ? ClassicProton.Folder(classicRoot) : null, wineBin: wine); }
             catch (Exception e) when (e is ArgumentException or InvalidOperationException) { status.Foreground = Palette.Warn; status.Text = e.Message; return; }
-            start.IsEnabled = false; installer.IsEnabled = destination.IsEnabled = pickInstaller.IsEnabled = pickDestination.IsEnabled = false; results.Children.Clear(); ToolTip.SetTip(status, null);
+            start.IsEnabled = false; installer.IsEnabled = destination.IsEnabled = pickInstaller.IsEnabled = pickDestination.IsEnabled = temp.IsEnabled = pickTemp.IsEnabled = false; results.Children.Clear(); ToolTip.SetTip(status, null);
             close.Content = L.T("Cancelar"); var cts = running = new CancellationTokenSource();
             var since = DateTime.UtcNow.AddSeconds(-2);
             bool finished = false; Busy(true);
             try
             {
-                FastExec.CleanupStale(tempRoot);
+                FastExec.CleanupStale(root);
                 FastExec.Prepare(plan);
                 status.Foreground = Palette.Muted; status.Text = L.T("Preparando o Windows temporário…");
                 await Task.Run(() => FastExec.StageInstaller(plan));
@@ -137,7 +154,7 @@ public sealed class FastExecDialog : Window
                 status.Text = L.T("Instalador em execução") + (wine is null ? "" : $" ({PlainWine.Name(wine)})") + L.T(". A primeira janela pode levar até um minuto.");
                 int code = await this.run(plan, cts.Token);
                 status.Text = code == 0 ? L.T("Instalador finalizado.") : L.T($"O instalador terminou com o código {code}.") + (mode.SelectedIndex != 3 ? L.T(" Em erro de descompactação (ISDone, CRC), tente \"Wine comum (Soda)\".") : "");
-                if (code != 0 && FastExec.LatestLog(tempRoot) is { } log) ToolTip.SetTip(status, "Registro: " + log);
+                if (code != 0 && FastExec.LatestLog(root) is { } log) ToolTip.SetTip(status, "Registro: " + log);
                 finished = code == 0; // a failed installer leaves a half-installed game: do not move it, just clean up
             }
             catch (OperationCanceledException) { status.Text = L.T("Instalação cancelada."); }
@@ -159,7 +176,7 @@ public sealed class FastExecDialog : Window
             }
             if (!keep) await Task.Run(() => FastExec.Cleanup(plan));
             Busy(false); running = null; close.Content = L.T("Fechar");
-            start.IsEnabled = true; installer.IsEnabled = destination.IsEnabled = pickInstaller.IsEnabled = pickDestination.IsEnabled = true;
+            start.IsEnabled = true; installer.IsEnabled = destination.IsEnabled = pickInstaller.IsEnabled = pickDestination.IsEnabled = temp.IsEnabled = pickTemp.IsEnabled = true;
             if (keep) return;
             ToolTip.SetTip(status, L.T("O Windows temporário foi apagado; só ficou o jogo, em ") + plan.Destination + ".");
             var found = moved.Count > 0 ? FastExec.ExecutablesIn(moved) : FastExec.NewExecutables(plan.Destination, since);
@@ -180,6 +197,7 @@ public sealed class FastExecDialog : Window
             UiKit.PageHeader(L.T("Executar instalador do Windows"), L.T("Roda o instalador num Windows descartável. No fim, só o jogo fica.")),
             UiKit.Label(L.T("INSTALADOR (.EXE)")), Field(installer, pickInstaller),
             UiKit.Label(L.T("PASTA ONDE O JOGO VAI FICAR NO FINAL")), Field(destination, pickDestination),
+            UiKit.Label(L.T("ONDE FICA O WINDOWS TEMPORÁRIO DURANTE A INSTALAÇÃO")), Field(temp, pickTemp), tempFree,
             tips, ge, progress, status, results } };
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 14, 0, 0), Children = { close, start } };
         var dock = new DockPanel { Margin = new Thickness(22, 18) };

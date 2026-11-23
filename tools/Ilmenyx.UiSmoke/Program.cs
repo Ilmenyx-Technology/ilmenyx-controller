@@ -750,6 +750,7 @@ public sealed class UiSmokeApp : Application
         {
             FindSteamId = (name, _) => Task.FromResult<(string, string)?>(name == "Hollow Knight - Silksong" ? ("1030300", "Hollow Knight: Silksong") : null),
             ConfirmRemove = _ => Task.FromResult(true), UmuProton = () => null, AskName = _ => Task.FromResult<string?>("Silksong (teste)"), FetchArt = (_, _) => Task.FromResult<string?>(null),
+            ShortcutFolder = desktop => Path.Combine(root, desktop ? "desktop" : "menu"),
         };
         host = new Window { Width = 1100, Height = 800, Content = page }; host.Show();
         await Until(() => page.Games.Count == 1);
@@ -835,6 +836,18 @@ public sealed class UiSmokeApp : Application
         Click(host, "BtnPlay");
         await Until(() => launched == "Steam:100|full" && Find<TextBlock>(host, "LStatus").Text == "stub launched" && Find<Button>(host, "BtnPlay").Content!.ToString() == "Jogar");
         if (Ilmenyx.Core.IlmenyxSettings.Load(settingsPath).FpsSessions is not [{ Game: "Game One", AvgFps: 61.5 }]) throw new InvalidOperationException("Measured session returned by the launch was not kept in the settings.");
+        // Shortcut of this game: a menu entry that opens it through Ilmenyx ("--play KEY"), and "--play" on the page presses Jogar.
+        if (!Find<Button>(host, "BtnGameShortcut").IsVisible) throw new InvalidOperationException("A game must offer Criar atalho.");
+        var gameKey = "Steam:100";
+        string? entry = page.CreateShortcut(false, page.Games.First(g => g.Key == gameKey));
+        if (entry is null || !File.ReadAllText(entry).Contains(" --play " + gameKey + "\n") || !File.ReadAllText(entry).Contains("Name=Game One"))
+            throw new InvalidOperationException("The game shortcut must open this game through Ilmenyx: " + (entry is null ? "none" : File.ReadAllText(entry)));
+        if (page.CreateShortcut(true, null) is not { } gamesEntry || !File.ReadAllText(gamesEntry).Contains(" --games\n")) throw new InvalidOperationException("The library shortcut must open the games window.");
+        launched = null; await page.PlayByKeyAsync(gameKey);
+        if (launched is null || !launched.StartsWith(gameKey + "|", StringComparison.Ordinal)) throw new InvalidOperationException("Opening from the shortcut must start that game: " + launched);
+        await page.PlayByKeyAsync("Manual:/nao/existe.exe");
+        if (!Find<TextBlock>(host, "LGameCount").Text!.Contains("não está mais na biblioteca")) throw new InvalidOperationException("A shortcut to a removed game must say so.");
+        Console.WriteLine("PASS game shortcuts: menu entry plays the game through Ilmenyx, library entry opens the games window, a stale shortcut is explained");
         host.Close();
         // The real shell page reads the real libraries (Steam, Lutris, Heroic) without launching, writing or closing anything.
         Find<Button>(shell, "Navlauncher").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));

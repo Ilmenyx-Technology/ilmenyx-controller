@@ -26,6 +26,31 @@ public static class FastExec
         return Path.Combine(data, "ilmenyx", "fastexec");
     }
 
+    public const string TempFolderName = "ilmenyx-instalacao-temporaria";
+
+    /// <summary>
+    /// Root for the temporary Windows in a folder the user chose (another disk with room for the whole game). Always a subfolder of its
+    /// own: <see cref="CleanupStale"/> deletes every "fx-" folder in the root, which must never be a folder holding the user's files.
+    /// </summary>
+    public static string TempRootIn(string? chosen)
+    {
+        if (chosen is not { Length: > 1 } c || !Path.IsPathFullyQualified(c)) return TempRoot();
+        string full = Path.GetFullPath(c).TrimEnd('/');
+        return full == TempRoot() || Path.GetFileName(full) == TempFolderName ? full : Path.Combine(full, TempFolderName);
+    }
+
+    /// <summary>Free bytes on the disk that holds <paramref name="folder"/> (its nearest existing parent); null when unknown.</summary>
+    public static long? FreeBytes(string folder)
+    {
+        try
+        {
+            string? dir = Path.IsPathFullyQualified(folder) ? Path.GetFullPath(folder) : null;
+            while (dir is not null && !Directory.Exists(dir)) dir = Path.GetDirectoryName(dir);
+            return dir is null ? null : new DriveInfo(dir).AvailableFreeSpace;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException) { return null; }
+    }
+
     public static string DefaultDestination() => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Jogos");
 
     /// <summary>Command and environment for one run. Throws when the installer or the destination is not acceptable, or umu is missing.</summary>

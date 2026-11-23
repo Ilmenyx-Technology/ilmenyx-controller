@@ -70,6 +70,9 @@ public sealed class LauncherPage : Grid
     private const string PickRunner = "\0pick"; // the "Escolher pasta…" entry of the runner list
     private readonly TextBlock protonIdStatus = new() { Name = "LProtonIdStatus", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) };
     private readonly Button removeGame = new() { Name = "BtnRemoveGame", Content = L.T("Remover"), FontSize = 11, Padding = new Thickness(12, 6), IsVisible = false };
+    private readonly Button gameShortcut = new() { Name = "BtnGameShortcut", Content = L.T("Criar atalho"), FontSize = 11, Padding = new Thickness(12, 6), IsVisible = false };
+    /// <summary>Folder for a new shortcut (true = desktop, false = app menu); null = none. Settable for fixtures; default the user's real folders.</summary>
+    public Func<bool, string?>? ShortcutFolder { get; init; }
     private readonly Button renameGame = new() { Name = "BtnRenameGame", Content = L.T("Renomear"), FontSize = 11, Padding = new Thickness(12, 6), IsVisible = false };
     private static readonly SteamAppLookup SteamIds = new();
     /// <summary>Steam ID search by name (default: the Steam store search). Settable for fixtures, so tests never go online.</summary>
@@ -107,6 +110,20 @@ public sealed class LauncherPage : Grid
     private UiKit.ChipGroup<string>? modeChips, resChips, styleChips, gfxPresetChips, gfxUpChips; private UiKit.ChipGroup<int>? hzChips;
     public IReadOnlyList<LibGame> Games => games;
     public GameProfile? Profile => profile;
+
+    /// <summary>The page with the real library and launcher (full app and the games-only window).</summary>
+    public static LauncherPage Create(Func<Window?> owner, CancellationToken lifetime)
+    {
+        string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var gpus = new LinuxGpuCollector().Collect(PciIds.Load());
+        // PRIME variables depend on the driver, not only the vendor: NVIDIA on nouveau is offloaded with DRI_PRIME like Mesa GPUs.
+        string vendor = gpus.Count > 0 ? (gpus[0].Card.Vendor == "NVIDIA" && gpus[0].Raw.Driver != "nvidia" ? "NVIDIA-Mesa" : gpus[0].Card.Vendor) : "";
+        bool multi = gpus.Count(x => !x.Raw.Integrated) + gpus.Count(x => x.Raw.Integrated) > 1;
+        // Manual games: the experimental Proton options (when they apply) and, with the Otimiza option on, the bigger shader cache variables.
+        return new LauncherPage(new LinuxGameLibrary(home), new SteamInfo(home), IlmenyxSettings.DefaultPath(),
+            (g, p, v, status, learned, ct) => new LinuxGameLauncher().RunAsync(g, p, v, status, learned, ct,
+                LinuxGameExtras.ManualContext(g, p, v, multi, LinuxGameExtras.UmuProtonName(home)), new LinuxShaderCache(home).IsOn), owner, vendor, multi, lifetime) { Margin = new Thickness(0, 4, 8, 12) };
+    }
 
     public LauncherPage(LinuxGameLibrary library, SteamInfo steam, string settingsPath, LaunchFunc launch, Func<Window?> owner, string gpuVendor, bool multiGpu, CancellationToken lifetime)
     {
@@ -177,7 +194,11 @@ public sealed class LauncherPage : Grid
         addBox.Children.Add(addPath); addBox.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { browseAdd, confirm } }); addBox.Children.Add(addStatus);
 
         // Page header: title, library summary (live text) and the library actions.
-        var header = UiKit.PageHeader(L.T("Jogos"), null, new WrapPanel { ItemSpacing = 8, LineSpacing = 6, HorizontalAlignment = HorizontalAlignment.Right, Children = { scan, add, installWin } });
+        // A menu/desktop entry that opens only this page, in its own light window (no monitor, no tray), for whoever just wants to play.
+        var gamesShortcut = new Button { Name = "BtnGamesShortcut", Content = L.T("Atalho dos Jogos"), Padding = new Thickness(14, 8), FontSize = 12 };
+        ToolTip.SetTip(gamesShortcut, L.T("Cria um atalho que abre só os Jogos, numa janela leve, sem o resto do Ilmenyx."));
+        gamesShortcut.Flyout = ShortcutMenu(desktop => CreateShortcut(desktop, null));
+        var header = UiKit.PageHeader(L.T("Jogos"), null, new WrapPanel { ItemSpacing = 8, LineSpacing = 6, HorizontalAlignment = HorizontalAlignment.Right, Children = { scan, add, installWin, gamesShortcut } });
         count.FontSize = 12.5; ((StackPanel)header.Children[0]).Children.Add(count);
         Grid.SetColumnSpan(header, 3); Children.Add(header);
 
@@ -231,7 +252,7 @@ public sealed class LauncherPage : Grid
         title.FontSize = 26; title.MaxLines = 2; title.TextTrimming = TextTrimming.CharacterEllipsis;
         sub.FontSize = 12.5; sub.MaxLines = 2; sub.TextTrimming = TextTrimming.CharacterEllipsis; sub.Margin = new Thickness(0, 4, 0, 0);
         play.VerticalAlignment = VerticalAlignment.Bottom; play.Margin = new Thickness(16, 0, 0, 0); play.FontSize = 14;
-        var bottom = new Grid { ColumnDefinitions = new("*,Auto,Auto,Auto"), VerticalAlignment = VerticalAlignment.Bottom, Children = { new StackPanel { VerticalAlignment = VerticalAlignment.Bottom, Children = { title, sub } } } };
+        var bottom = new Grid { ColumnDefinitions = new("*,Auto,Auto,Auto,Auto"), VerticalAlignment = VerticalAlignment.Bottom, Children = { new StackPanel { VerticalAlignment = VerticalAlignment.Bottom, Children = { title, sub } } } };
         // Games the user added by hand can leave the library again (the files on disk are never touched).
         removeGame.VerticalAlignment = VerticalAlignment.Bottom; removeGame.Margin = new Thickness(16, 0, 0, 0);
         ToolTip.SetTip(removeGame, L.T("Tira o jogo da biblioteca do Ilmenyx. Os arquivos do jogo não são apagados."));
@@ -239,10 +260,15 @@ public sealed class LauncherPage : Grid
         renameGame.VerticalAlignment = VerticalAlignment.Bottom; renameGame.Margin = new Thickness(16, 0, 0, 0);
         ToolTip.SetTip(renameGame, L.T("Muda o nome que aparece na biblioteca."));
         renameGame.Click += async (_, _) => await RenameCurrentAsync();
-        Grid.SetColumn(renameGame, 1); bottom.Children.Add(renameGame);
+        gameShortcut.VerticalAlignment = VerticalAlignment.Bottom; gameShortcut.Margin = new Thickness(16, 0, 0, 0);
+        ToolTip.SetTip(gameShortcut, L.T("Atalho que abre este jogo direto pelo Ilmenyx, com o perfil daqui."));
+        gameShortcut.Flyout = ShortcutMenu(desktop => CreateShortcut(desktop, current));
+        Grid.SetColumn(gameShortcut, 1); bottom.Children.Add(gameShortcut);
+        renameGame.Margin = new Thickness(8, 0, 0, 0);
+        Grid.SetColumn(renameGame, 2); bottom.Children.Add(renameGame);
         removeGame.Margin = new Thickness(8, 0, 0, 0);
-        Grid.SetColumn(removeGame, 2); bottom.Children.Add(removeGame);
-        Grid.SetColumn(play, 3); bottom.Children.Add(play);
+        Grid.SetColumn(removeGame, 3); bottom.Children.Add(removeGame);
+        Grid.SetColumn(play, 4); bottom.Children.Add(play);
         var heroTop = new DockPanel { Children = { backToLibrary, heroTags } }; heroTags.Margin = new Thickness(10, 0, 0, 0);
         var heroContent = new Grid { RowDefinitions = new("Auto,*,Auto"), Children = { heroTop } };
         Grid.SetRow(bottom, 2); heroContent.Children.Add(bottom);
@@ -534,7 +560,7 @@ public sealed class LauncherPage : Grid
         modeChips!.Select(p.WinMode); resChips!.Select(p.Res); hzChips!.Select(p.Hz); styleChips!.Select(p.Style); gfxPresetChips!.Select(p.GfxPreset ?? ""); gfxUpChips!.Select(p.GfxUpscaling ?? ""); extra.Text = p.Extra; exePath.Text = p.ExePath ?? g.ExePath ?? "";
         protonBox.IsVisible = g.IsWindowsManual; protonId.Text = p.ProtonGameId ?? ""; protonIdStatus.Text = ""; runnerStatus.Text = "";
         if (g.IsWindowsManual) LoadRunner(p);
-        removeGame.IsVisible = renameGame.IsVisible = g.Store == "Manual";
+        removeGame.IsVisible = renameGame.IsVisible = g.Store == "Manual"; gameShortcut.IsVisible = true;
         chkWayland.IsChecked = p.ProtonWayland; chkLowLat.IsChecked = p.LowLatency; extrasBox.IsVisible = g.IsSteam || g.IsWindowsManual;
         protonName = g.IsSteam ? steam.CompatToolName(g.Id) : !g.IsWindowsManual ? null
             : p.Runner is { Length: > 0 } chosen && Path.IsPathFullyQualified(chosen) ? Path.GetFileName(chosen) : (UmuProton ?? (() => LinuxGameExtras.UmuProtonName()))();
@@ -865,6 +891,59 @@ public sealed class LauncherPage : Grid
         }
         catch (OperationCanceledException) { status.Text = "Cancelado."; }
         finally { button.IsEnabled = true; }
+    }
+
+    /// <summary>Opens a game from a shortcut ("--play KEY"): selects it and presses Jogar.</summary>
+    public async Task PlayByKeyAsync(string key)
+    {
+        if (games.Count == 0) await ScanAsync(); // shortcut: a scan already started by Loaded may run twice, only costs time
+        if (games.FirstOrDefault(g => g.Key == key) is not { } game) { count.Text = L.T("O atalho aponta para um jogo que não está mais na biblioteca. Crie o atalho de novo."); return; }
+        Select(game);
+        if (launching is null) await PlayAsync();
+    }
+
+    private static MenuFlyout ShortcutMenu(Func<bool, string?> create)
+    {
+        var menu = new MenuFlyout();
+        foreach (var (label, desktop) in new[] { (L.T("No menu de aplicativos"), false), (L.T("Na área de trabalho"), true) })
+        {
+            var item = new MenuItem { Header = label };
+            item.Click += (_, _) => create(desktop);
+            menu.Items.Add(item);
+        }
+        return menu;
+    }
+
+    /// <summary>Writes a shortcut that opens <paramref name="game"/> (null = the games-only window) and says where. Returns the file.</summary>
+    public string? CreateShortcut(bool desktop, LibGame? game)
+    {
+        string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        string? folder = ShortcutFolder is { } pick ? pick(desktop) : desktop ? AppShortcuts.DesktopFolder(home) : AppShortcuts.MenuFolder(home);
+        var target = game is null ? count : status;
+        if (folder is null) { target.Text = L.T("Não achei a pasta da área de trabalho. Use o menu de aplicativos."); return null; }
+        var self = AppShortcuts.SelfCommand(DesktopBackend.AppId);
+        string text = game is null
+            ? AppShortcuts.Entry(L.T("Jogos — Ilmenyx Controller"), [.. self, AppShortcuts.GamesArg], DesktopBackend.AppId, L.T("Biblioteca de jogos do Ilmenyx Controller"), DesktopBackend.AppId)
+            : AppShortcuts.Entry(game.Name, [.. self, AppShortcuts.PlayArg, game.Key], ShortcutIcon(game), L.T($"Abre {game.Name} pelo Ilmenyx Controller, com o perfil do jogo"), DesktopBackend.AppId);
+        try
+        {
+            string path = AppShortcuts.Write(folder, game is null ? "ilmenyx-jogos.desktop" : AppShortcuts.GameFileName(game.Key), text);
+            target.Text = desktop ? L.T("Atalho criado na área de trabalho. Se o sistema perguntar, permita abrir.") : L.T("Atalho criado no menu de aplicativos.");
+            ToolTip.SetTip(target, path);
+            return path;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { target.Text = L.T("Não consegui criar o atalho: ") + e.Message; return null; }
+    }
+
+    /// <summary>The game's own menu icon, else its cover (Steam cache or the art Ilmenyx downloaded), else the Ilmenyx icon.</summary>
+    private string ShortcutIcon(LibGame g)
+    {
+        if (g.Icon is { Length: > 0 } icon) return icon;
+        if (g.IsSteam && steamRoot is not null && g.Id.All(char.IsAsciiDigit))
+            foreach (var n in new[] { g.Id + "_icon.jpg", g.Id + "_library_600x900.jpg", Path.Combine(g.Id, "library_600x900.jpg"), g.Id + "_header.jpg" })
+                if (Path.Combine(steamRoot, "appcache", "librarycache", n) is var f && File.Exists(f)) return f;
+        if (settings.GameProfiles.GetValueOrDefault(SettingsKey(g))?.ProtonGameId is { Length: > 0 } id && ArtCache.CachedArt(id) is { } art) return art;
+        return DesktopBackend.AppId;
     }
 
     private async Task PlayAsync()

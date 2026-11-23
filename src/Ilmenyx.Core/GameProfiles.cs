@@ -196,6 +196,8 @@ public sealed class IlmenyxSettings
 {
     public Dictionary<string, GameProfile> GameProfiles { get; set; } = [];
     public List<CustomGame> CustomGames { get; set; } = [];
+    /// <summary>Folder for the temporary Windows of "Instalar jogo de Windows" (null = the default in ~/.local/share/ilmenyx).</summary>
+    public string? InstallerTempFolder { get; set; }
     /// <summary>Original values of user-level tweaks before the first change ("&lt;absent&gt;" = unknown), so "Restaurar originais" can undo them.</summary>
     public Dictionary<string, string?> TweakBackup { get; set; } = [];
     // "HowManyFpsKey" (the HowManyFPS API key, removed on 2026-11-08) may still be in old files: unknown keys are ignored on load and
