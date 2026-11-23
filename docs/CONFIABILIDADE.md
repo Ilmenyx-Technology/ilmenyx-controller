@@ -184,9 +184,9 @@ adiar a montagem das partes da Visão geral que não aparecem na primeira tela.
 
 A comparação de requisitos usa texto publicado pelo desenvolvedor e uma tabela aproximada de desempenho relativo; “atende o recomendado” não é promessa de FPS.
 A página não mede nem estima FPS (a estimativa e a calibração foram removidas em 23/11/2026; histórico em `fps-estimativa-metodos.md`).
-**Contorno:** conferir o ProtonDB e priorizar **“Medido neste PC”** de sessão MangoHud real.
-Essa é a fonte mais confiável para o desempenho daquela sessão, mas o fluxo completo com jogo continua NÃO TESTADO.
-A sessão vale para as configurações usadas, não muda ao trocar o preset da estimativa.
+**Contorno:** conferir o ProtonDB e priorizar o cartão **Desempenho medido** (sessão real do jogo aberto pelo Ilmenyx, ver `fps-medido.md`).
+Essa é a fonte mais confiável para o desempenho daquela sessão; uma sessão real foi gravada no KDE Plasma Wayland (2026-11-23), o resto do fluxo continua parcial (FPS-MEDIDO-01 em Sem_teste.md).
+A sessão vale para as configurações usadas (resolução e qualidade ficam em grupos separados).
 O 1% low usa registros de 100 ms e pode suavizar engasgos; não equivale a capturar cada quadro.
 O método também registra risco de gravações concorrentes em `settings.json` sobrescreverem campos;
 a equipe deve corrigir/testar persistência antes de prometer preservação de toda sessão.
@@ -213,8 +213,8 @@ Relatórios locais também não são automaticamente anônimos.
 ## Prioridades sugeridas: maior ganho de confiança por esforço
 
 1. **Validar um jogo real de ponta a ponta.** Com autorização do dono, usar Steam + Launcher + MangoHud;
-   conferir PRIME, CSV, “Medido neste PC”, opções e restauração. Resolve várias lacunas com uma sessão dirigida.
-   Guardar resolução, preset, driver, duração e comparação com contador; depois medir erro da estimativa.
+   conferir PRIME, CSV, Desempenho medido, opções e restauração. Resolve várias lacunas com uma sessão dirigida.
+   Guardar resolução, qualidade, driver, duração e comparação com o contador do MangoHud.
 2. **Testar correção de sensores e Desfazer na máquina disponível.** Dono acompanha a janela polkit;
    equipe registra antes/depois, RAPL em watts e restauração. Fecha uma lacuna real com escopo pequeno,
    sem confundir testes falsos com alteração de permissão bem-sucedida.

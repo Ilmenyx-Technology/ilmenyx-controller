@@ -51,7 +51,7 @@ distro, your graphics card and what happened (the app's **Report** page builds a
 | Area | What you get |
 |---|---|
 | **Diagnostics** | Live overview, system, sensors, GPU, disks (with imported SMART), power/battery, network and processes |
-| **Games** | Library (Steam, Lutris, Heroic), compatibility (ProtonDB, Steam Deck, anti-cheat and reports from people with similar hardware), "Can my PC run it?" (game requirements compared with your hardware, see [docs/meu-pc-roda.md](docs/meu-pc-roda.md)) and bottleneck analysis |
+| **Games** | Library (Steam, Lutris, Heroic; hide games, custom cover, Opening/Running states and Close game), FPS measured in real play per game (Measured performance card, see [docs/fps-medido.md](docs/fps-medido.md)), achievements with a toast over the game (including copies with the Goldberg emulator, see [docs/conquistas-emulador.md](docs/conquistas-emulador.md)), compatibility (ProtonDB, Steam Deck, anti-cheat and reports from people with similar hardware), "Can my PC run it?" (game requirements compared with your hardware, see [docs/meu-pc-roda.md](docs/meu-pc-roda.md)) and bottleneck analysis |
 | **Performance** | CPU, memory, GPU (Vulkan) and disk benchmarks; overclock checker; overlay; stress tests |
 | **Maker** | Serial ports and board drivers (CH340, CP210x, FTDI) |
 | **Tools** | Reversible tweaks, ZRAM, RGB through OpenRGB, startup apps, app installer (Flatpak), NVIDIA driver, HTML/JSON reports |
