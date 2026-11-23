@@ -14,7 +14,7 @@ namespace Ilmenyx.Desktop;
 
 /// <summary>
 /// Achievement toast drawn by Ilmenyx itself: a borderless, non-focusable window that stays above a fullscreen game. Only on the X11 backend
-/// (also XWayland), where the window type NOTIFICATION is set before the window is mapped so KWin keeps it above fullscreen windows.
+/// (also XWayland), where the window type CRITICAL_NOTIFICATION (KDE) / NOTIFICATION is set before the window is mapped so KWin keeps it above fullscreen windows.
 /// <see cref="TryShow"/> returns false elsewhere (native Wayland, errors) and the caller falls back to the system notification. UI thread only.
 /// </summary>
 public sealed class AchievementToast : Window
@@ -121,7 +121,8 @@ public sealed class AchievementToast : Window
             {
                 nint Atom(string n) => XInternAtom(d, n, 0);
                 const int PropModeReplace = 0; nint atomType = 4; // XA_ATOM
-                XChangeProperty(d, window, Atom("_NET_WM_WINDOW_TYPE"), atomType, 32, PropModeReplace, [Atom("_NET_WM_WINDOW_TYPE_NOTIFICATION")], 1);
+                // KWin keeps an active fullscreen window above plain NOTIFICATION windows; its CRITICAL_NOTIFICATION layer sits above fullscreen. Other window managers skip the unknown KDE atom and use NOTIFICATION.
+                XChangeProperty(d, window, Atom("_NET_WM_WINDOW_TYPE"), atomType, 32, PropModeReplace, [Atom("_KDE_NET_WM_WINDOW_TYPE_CRITICAL_NOTIFICATION"), Atom("_NET_WM_WINDOW_TYPE_NOTIFICATION")], 2);
                 XChangeProperty(d, window, Atom("_NET_WM_STATE"), atomType, 32, PropModeReplace,
                     [Atom("_NET_WM_STATE_ABOVE"), Atom("_NET_WM_STATE_SKIP_TASKBAR"), Atom("_NET_WM_STATE_SKIP_PAGER")], 3);
                 XFlush(d);
