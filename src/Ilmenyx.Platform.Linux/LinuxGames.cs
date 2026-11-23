@@ -344,6 +344,7 @@ public static class GameProcesses
     public static IReadOnlyList<int> Find(string procRoot, LibGame g, string? exe)
     {
         var pids = new List<int>();
+        var buffer = new byte[65536]; // one buffer for every read of this scan
         try
         {
             foreach (var d in Directory.EnumerateDirectories(procRoot).Where(d => char.IsAsciiDigit(Path.GetFileName(d)[0])).Take(4096))
@@ -352,20 +353,27 @@ public static class GameProcesses
                 bool hit = false;
                 if (g.IsSteam)
                 {
-                    string env = ReadRaw(Path.Combine(d, "environ"), 65536);
+                    string env = ReadRaw(Path.Combine(d, "environ"), buffer, 65536);
                     hit = env.Split('\0').Any(e => e == $"SteamGameId={g.Id}" || e == $"SteamAppId={g.Id}");
                 }
+                else if (exe is not null && Path.GetFileName(exe) == "flatpak")
+                    hit = FlatpakApp(g) is { } app && ReadRaw(Path.Combine(d, "environ"), buffer, 65536).Split('\0').Contains("FLATPAK_ID=" + app);
                 else
                 {
-                    string cmd = ReadRaw(Path.Combine(d, "cmdline"), 16384).Replace('\0', ' ');
-                    bool flatpak = exe is not null && Path.GetFileName(exe) == "flatpak";
-                    hit = CommandLineHit(g, exe, cmd, flatpak ? ReadRaw(Path.Combine(d, "environ"), 65536).Split('\0') : null);
+                    var argv = ReadRaw(Path.Combine(d, "cmdline"), buffer, 16384).Split('\0', StringSplitOptions.RemoveEmptyEntries);
+                    hit = ArgvHit(g, exe, argv, ExeLink(d));
                 }
                 if (hit) pids.Add(pid);
             }
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
         return pids;
+    }
+
+    private static string? ExeLink(string procDir)
+    {
+        try { return File.ResolveLinkTarget(Path.Combine(procDir, "exe"), false)?.FullName; }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return null; }
     }
 
     /// <summary>
@@ -397,7 +405,34 @@ public static class GameProcesses
     {
         if (exe is not null && Path.GetFileName(exe) == "flatpak")
             return FlatpakApp(g) is { } app && environment is not null && environment.Contains("FLATPAK_ID=" + app);
-        return (g.InstallDir.Length > 3 && cmd.Contains(g.InstallDir.TrimEnd('/') + "/", StringComparison.Ordinal)) || (exe is { Length: > 3 } && cmd.Contains(exe, StringComparison.Ordinal));
+        // shortcut: ps gives one joined line, so a path with spaces only matches as the start of the line (argv[0]); /proc has the real argv.
+        string path = cmd.TrimStart();
+        return ArgvHit(g, exe, path.Split(' ', StringSplitOptions.RemoveEmptyEntries), null) || IsGamePath(g, exe, path.Split(" -", 2)[0].TrimEnd());
+    }
+
+    private static readonly string[] Interpreters = ["sh", "bash", "dash", "python", "python3", "perl", "env"];
+
+    /// <summary>A Windows path from Wine (Z:\g\game.exe) turned into the Linux path; anything else is returned as is.</summary>
+    private static string LinuxPath(string a) => a.Length > 2 && a[1] == ':' && char.IsAsciiLetter(a[0]) && a[2] == '\\' ? a[2..].Replace('\\', '/') : a;
+
+    private static bool IsGamePath(LibGame g, string? exe, string path)
+    {
+        path = LinuxPath(path);
+        return (g.InstallDir.Length > 3 && path.StartsWith(g.InstallDir.TrimEnd('/') + "/", StringComparison.Ordinal)) || (exe is { Length: > 3 } && path == exe);
+    }
+
+    /// <summary>
+    /// Whether a process is the game itself, not a tool that merely has its path on the command line (an editor, a terminal, a file manager):
+    /// the process binary or argv[0] is under the install folder or is the executable, or a Wine/Proton process whose argv names the game's .exe,
+    /// or an interpreter (sh, python...) running the game's script as argv[1].
+    /// </summary>
+    public static bool ArgvHit(LibGame g, string? exe, IReadOnlyList<string> argv, string? exeLink)
+    {
+        if (exeLink is not null && IsGamePath(g, exe, exeLink)) return true;
+        if (argv.Count == 0) return false;
+        if (IsGamePath(g, exe, argv[0])) return true;
+        if (argv.Skip(1).Any(a => a.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) && IsGamePath(g, exe, a))) return true;
+        return argv.Count > 1 && Interpreters.Contains(Path.GetFileName(argv[0])) && IsGamePath(g, exe, argv[1]);
     }
 
     public static string? FlatpakApp(LibGame g)
@@ -414,9 +449,9 @@ public static class GameProcesses
         catch (Exception e) when (e is IOException or FileNotFoundException or TimeoutException or System.ComponentModel.Win32Exception) { return []; }
     }
 
-    private static string ReadRaw(string path, int max)
+    private static string ReadRaw(string path, byte[] buffer, int max)
     {
-        try { using var s = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 1, false); var b = new byte[max]; int n = s.Read(b, 0, b.Length); return System.Text.Encoding.UTF8.GetString(b, 0, n); }
+        try { using var s = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 1, false); int n = s.Read(buffer, 0, Math.Min(max, buffer.Length)); return System.Text.Encoding.UTF8.GetString(buffer, 0, n); }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return ""; }
     }
 }
@@ -586,7 +621,7 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
             return session;
         }
         catch (OperationCanceledException) { status(L.T("Acompanhamento cancelado.")); }
-        catch (Exception e) when (e is InvalidOperationException or IOException or System.ComponentModel.Win32Exception or FormatException or ArgumentException) { status("Falhou: " + e.Message); }
+        catch (Exception e) when (e is InvalidOperationException or IOException or UnauthorizedAccessException or TimeoutException or System.ComponentModel.Win32Exception or FormatException or ArgumentException) { status("Falhou: " + e.Message); }
         finally
         {
             if (oldPlan is not null) await SetPowerProfileAsync(oldPlan, CancellationToken.None);

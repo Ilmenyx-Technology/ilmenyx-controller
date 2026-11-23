@@ -22,11 +22,11 @@ public static class DesktopNotification
             // Critical urgency is what makes Plasma show the notice over a fullscreen game; normal ones only reach the history.
             if (urgent) args.AddRange(["--urgency=critical", "--expire-time=8000"]);
             else if (quiet) args.Add("--urgency=low");
-            args.AddRange([title, body]);
+            args.AddRange(["--", title, body]); // "--": a title that starts with "-" is not an option
             var (code, _) = await BoundedProcess.RunAsync("notify-send", args, TimeSpan.FromSeconds(5), 4096, ct);
             return code == 0;
         }
-        catch (Exception e) when (e is IOException or FileNotFoundException or Win32Exception or OperationCanceledException) { return false; }
+        catch (Exception e) when (e is IOException or FileNotFoundException or Win32Exception or TimeoutException or OperationCanceledException) { return false; }
     }
 
     /// <summary>Plays the freedesktop "complete" sound with pw-play or paplay (the notification sound hint is ignored by Plasma); silent when no file or player exists.</summary>
@@ -38,7 +38,7 @@ public static class DesktopNotification
         var player = new[] { "pw-play", "paplay" }.FirstOrDefault(p => BoundedProcess.Find(p) is not null);
         if (file is null || player is null) return;
         try { await BoundedProcess.RunAsync(player, [file], TimeSpan.FromSeconds(5), 1024, ct); }
-        catch (Exception e) when (e is IOException or FileNotFoundException or Win32Exception or OperationCanceledException) { }
+        catch (Exception e) when (e is IOException or FileNotFoundException or Win32Exception or TimeoutException or OperationCanceledException) { }
     }
 
     /// <summary>
@@ -54,6 +54,6 @@ public static class DesktopNotification
                 "--method", "org.freedesktop.DBus.Properties.Get", "org.kde.StatusNotifierWatcher", "IsStatusNotifierHostRegistered"], TimeSpan.FromSeconds(3), 1024, ct);
             return code == 0 && output.Contains("true", StringComparison.Ordinal);
         }
-        catch (Exception e) when (e is IOException or FileNotFoundException or Win32Exception or OperationCanceledException) { return false; }
+        catch (Exception e) when (e is IOException or FileNotFoundException or Win32Exception or TimeoutException or OperationCanceledException) { return false; }
     }
 }

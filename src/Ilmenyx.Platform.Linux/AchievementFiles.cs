@@ -32,7 +32,7 @@ public static class AchievementFiles
             var files = steamRoots.SelectMany(r => StatsFiles(r, g.Id)).ToList();
             return files.Count > 0 ? new(g, g.Id, AchievementOrigin.Steam, files) : null;
         }
-        if (!g.IsWindowsManual || g.ExePath is not { } exe) return null;
+        if (!g.IsWindowsManual || (p?.ExePath ?? g.ExePath) is not { } exe) return null; // the same executable the launcher runs
         string gameDir = GameFolder(exe);
         bool emulator = HasEmulator(Path.GetDirectoryName(exe) ?? gameDir, gameDir);
         string? appId = EmulatorAppId(gameDir) ?? (emulator ? p?.ProtonGameId : null);

@@ -36,6 +36,7 @@ public static class GameCovers
             var info = new FileInfo(source);
             if (!info.Exists) throw new CoverException(L.T("o arquivo não existe."));
             if (info.LinkTarget is not null) throw new CoverException(L.T("o arquivo é um link simbólico."));
+            if (info.Length == 0) throw new CoverException(L.T("o arquivo está vazio ou não é um arquivo comum.")); // a FIFO or device reports 0 and would block the read
             if (info.Length > maxBytes) throw new CoverException(L.T("a imagem passa de 8 MB."));
             var bytes = File.ReadAllBytes(source);
             if (!CompatOnline.IsImage(bytes)) throw new CoverException(L.T("não é uma imagem PNG, JPEG ou WebP."));
@@ -44,13 +45,50 @@ public static class GameCovers
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { throw new CoverException(e.Message); }
     }
 
+    public const int MaxSide = 8192;
+
+    /// <summary>Width and height from the header of a PNG, JPEG or WebP (VP8, VP8L, VP8X) without decoding it; null when the header is not understood.</summary>
+    public static (int Width, int Height)? ImageSize(ReadOnlySpan<byte> b)
+    {
+        static int Be16(ReadOnlySpan<byte> x, int i) => (x[i] << 8) | x[i + 1];
+        static int Le16(ReadOnlySpan<byte> x, int i) => x[i] | (x[i + 1] << 8);
+        if (b.Length >= 24 && b[0] == 0x89 && b[1] == 'P' && b[12] == 'I' && b[13] == 'H' && b[14] == 'D' && b[15] == 'R')
+            return (System.Buffers.Binary.BinaryPrimitives.ReadInt32BigEndian(b[16..]), System.Buffers.Binary.BinaryPrimitives.ReadInt32BigEndian(b[20..]));
+        if (b.Length >= 4 && b[0] == 0xFF && b[1] == 0xD8)
+        {
+            for (int i = 2; i + 9 < b.Length;)
+            {
+                if (b[i] != 0xFF) { i++; continue; }
+                byte m = b[i + 1];
+                if (m is 0xFF) { i++; continue; }
+                if (m is >= 0xC0 and <= 0xCF and not (0xC4 or 0xC8 or 0xCC)) return (Be16(b, i + 7), Be16(b, i + 5));
+                if (m is 0xD8 or 0x01 or (>= 0xD0 and <= 0xD7)) { i += 2; continue; }
+                i += 2 + Be16(b, i + 2);
+            }
+            return null;
+        }
+        if (b.Length >= 30 && b[0] == 'R' && b[8] == 'W' && b[9] == 'E' && b[10] == 'B' && b[11] == 'P')
+        {
+            if (b[12] == 'V' && b[13] == 'P' && b[14] == '8' && b[15] == ' ' && b[23] == 0x9D) return (Le16(b, 26) & 0x3FFF, Le16(b, 28) & 0x3FFF);
+            if (b[12] == 'V' && b[13] == 'P' && b[14] == '8' && b[15] == 'L' && b[20] == 0x2F)
+            {
+                uint v = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(b[21..]);
+                return ((int)(v & 0x3FFF) + 1, (int)((v >> 14) & 0x3FFF) + 1);
+            }
+            if (b[12] == 'V' && b[13] == 'P' && b[14] == '8' && b[15] == 'X')
+                return ((b[24] | (b[25] << 8) | (b[26] << 16)) + 1, (b[27] | (b[28] << 8) | (b[29] << 16)) + 1);
+        }
+        return null;
+    }
+
     private static string Save(byte[] bytes, string folder, string gameKey, string ext)
     {
+        if (ImageSize(bytes) is { } size && (size.Width > MaxSide || size.Height > MaxSide)) throw new CoverException(L.T($"a imagem passa de {MaxSide} pixels de lado."));
         Directory.CreateDirectory(folder);
         string dest = Target(folder, gameKey, ext), tmp = dest + "." + Guid.NewGuid().ToString("N") + ".tmp";
         File.WriteAllBytes(tmp, bytes);
-        foreach (var old in Directory.GetFiles(folder, Path.GetFileNameWithoutExtension(dest) + ".*").Where(f => f != tmp && f != dest)) File.Delete(old);
-        File.Move(tmp, dest, overwrite: true);
+        File.Move(tmp, dest, overwrite: true); // the new cover is in place before the old ones (other extensions) go
+        foreach (var old in Directory.GetFiles(folder, Path.GetFileNameWithoutExtension(dest) + ".*").Where(f => f != dest)) File.Delete(old);
         return dest;
     }
 
