@@ -29,6 +29,8 @@ public sealed class AchievementsPage : Grid
     private readonly List<AchievementView> views = [];
     public IReadOnlyList<AchievementView> Views => views;
     private AchievementView? shown;
+    private readonly Button refresh;
+    private Button? previewButton; private AchievementView? previewView;
     private readonly Func<IReadOnlyList<LibGame>>? noEmulator;
 
     public static AchievementsPage Create(CancellationToken lifetime)
@@ -56,7 +58,7 @@ public sealed class AchievementsPage : Grid
         this.noEmulator = noEmulator;
         this.sources = sources; this.load = load; this.icon = icon; this.lifetime = lifetime;
         ColumnDefinitions = new("300,20,*"); RowDefinitions = new("Auto,*");
-        var refresh = new Button { Name = "BtnAchRefresh", Content = L.T("Atualizar"), Padding = new Thickness(14, 8), FontSize = 12 };
+        refresh = new Button { Name = "BtnAchRefresh", Content = L.T("Atualizar"), Padding = new Thickness(14, 8), FontSize = 12 };
         refresh.Click += async (_, _) => await RefreshAsync();
         var header = UiKit.PageHeader(L.T("Conquistas"), null, refresh);
         ((StackPanel)header.Children[0]).Children.Add(summary);
@@ -64,10 +66,31 @@ public sealed class AchievementsPage : Grid
         var left = new ScrollViewer { Content = list, Padding = new Thickness(0, 0, 8, 0) }; Grid.SetRow(left, 1); Children.Add(left);
         var right = new ScrollViewer { Content = detail, Padding = new Thickness(0, 0, 8, 12) }; Grid.SetRow(right, 1); Grid.SetColumn(right, 2); Children.Add(right);
         Loaded += async (_, _) => { if (views.Count == 0) await RefreshAsync(); };
+        AttachedToVisualTree += (_, _) => { RunningGames.Changed += SyncPreview; SyncPreview(); };
+        DetachedFromVisualTree += (_, _) => RunningGames.Changed -= SyncPreview;
     }
+
+    /// <summary>"Ver aviso" is only for a game that Ilmenyx opened and that is still running.</summary>
+    private void SyncPreview()
+    {
+        if (previewButton is null || previewView is null) return;
+        bool on = RunningGames.Contains(previewView.Source.Game.Key);
+        previewButton.IsEnabled = on && !previewBusy;
+        ToolTip.SetTip(previewButton, on ? L.T("Mostra o aviso de conquista em 3 segundos, para você conferir por cima do jogo.") : L.T("Abra o jogo pelo Ilmenyx para ver o aviso."));
+    }
+    private bool previewBusy;
 
     public async Task RefreshAsync()
     {
+        if (!refresh.IsEnabled) return; // a scan is already running
+        refresh.IsEnabled = false;
+        try { await ScanAsync(); }
+        finally { refresh.IsEnabled = true; }
+    }
+
+    private async Task ScanAsync()
+    {
+        previewButton = null; previewView = null;
         summary.Text = L.T("Procurando jogos com conquistas…"); list.Children.Clear(); detail.Children.Clear(); views.Clear();
         IReadOnlyList<AchievementSource> found;
         try { found = await sources(lifetime); }
@@ -117,7 +140,7 @@ public sealed class AchievementsPage : Grid
         };
         b.Click += (_, _) =>
         {
-            shown = null; detail.Children.Clear();
+            shown = null; previewButton = null; previewView = null; detail.Children.Clear();
             detail.Children.Add(new TextBlock { Name = "AchGameTitle", Text = g.Name, FontSize = 22, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap });
             detail.Children.Add(new TextBlock { Name = "AchNoEmulator", TextWrapping = TextWrapping.Wrap, Foreground = Palette.Muted, FontSize = 13,
                 Text = L.T("Esta cópia não registra conquistas: ela usa a biblioteca original da Steam, sem emulador, e só conta conquistas com a Steam aberta e o jogo na sua conta. O Ilmenyx não instala emuladores.") });
@@ -133,7 +156,7 @@ public sealed class AchievementsPage : Grid
         string where = v.Source.Origin == AchievementOrigin.Steam ? L.T("Conquistas registradas pela Steam neste PC.")
             : L.T("Cópia sem Steam: o Ilmenyx lê as conquistas que o jogo grava e avisa quando uma sai enquanto você joga por aqui.");
         var preview = new Button { Name = "BtnAchPreview", Content = L.T("Ver aviso"), Padding = new Thickness(14, 8), FontSize = 12, HorizontalAlignment = HorizontalAlignment.Left };
-        ToolTip.SetTip(preview, L.T("Mostra o aviso de conquista em 3 segundos, para você conferir por cima do jogo."));
+        previewButton = preview; previewView = v; SyncPreview();
         preview.Click += async (_, _) => await PreviewAsync(v, preview);
         detail.Children.Add(new TextBlock { Name = "AchGameTitle", Text = v.Source.Game.Name, FontSize = 22, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap });
         detail.Children.Add(preview);
@@ -165,21 +188,24 @@ public sealed class AchievementsPage : Grid
 
     private async Task PreviewAsync(AchievementView v, Button button)
     {
-        if (v.Defs.Count == 0) return;
-        button.IsEnabled = false;
+        if (v.Defs.Count == 0 || !RunningGames.Contains(v.Source.Game.Key)) return;
+        previewBusy = true; button.IsEnabled = false;
         try
         {
             await Task.Delay(3000, lifetime);
+            if (!RunningGames.Contains(v.Source.Game.Key)) return; // the game closed meanwhile
             var d = v.Defs.FirstOrDefault(x => v.Unlocks.ContainsKey(x.Id)) ?? v.Defs[0];
             string? picture = null;
             try { if (d.Icon.Length > 0) picture = await icon(v.Source.AppId, d.Icon, lifetime); }
             catch (Exception e) when (e is HttpRequestException or TaskCanceledException or IOException) { }
-            _ = DesktopNotification.PlaySoundAsync();
-            if (!AchievementToast.TryShow(d.Name, d.Description, v.Source.Game.Name, picture))
+            if (!AchievementToast.TryShow(d.Name, d.Description, v.Source.Game.Name, picture, () => _ = DesktopNotification.PlaySoundAsync()))
+            {
+                _ = DesktopNotification.PlaySoundAsync();
                 await DesktopNotification.SendAsync(L.T("Conquista desbloqueada"), d.Name + (d.Description.Length > 0 ? " — " + d.Description : "") + "\n" + v.Source.Game.Name, lifetime, picture, urgent: true);
+            }
         }
         catch (OperationCanceledException) { }
-        finally { button.IsEnabled = true; }
+        finally { previewBusy = false; if (ReferenceEquals(previewButton, button)) SyncPreview(); else button.IsEnabled = true; }
     }
 
     private async Task LoadIconAsync(string appId, string file, Image target)
