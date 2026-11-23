@@ -37,9 +37,7 @@ public sealed partial class ShellWindow
             { Profile = id => IlmenyxSettings.Load(IlmenyxSettings.DefaultPath()).GameProfiles.GetValueOrDefault("Steam:" + id) };
             return Scroll("CompatScroll", new CompatPage(services, () => this, stop.Token) { Margin = new Thickness(0, 4, 8, 12) });
         }, null);
-        pages["fps"] = (L.T("Estimativa de FPS"), () => new GamesFpsPage(IlmenyxSettings.Load(IlmenyxSettings.DefaultPath()), IlmenyxSettings.DefaultPath(),
-            () => (usage.Last?.CpuModel ?? "", new LinuxGpuCollector().Collect(PciIds.Load()).FirstOrDefault().Raw?.Name ?? ""), FpsContextNow,
-            OperatingSystem.IsLinux() ? FpsCalibratorReal.Create(FpsContextNow, () => usage.Last?.CpuTempC, GpuTemperatureCache()) : null) { Margin = new Thickness(0, 4, 0, 0) }, null); // scrolls by itself (sticky catalogue)
+        pages["canrun"] = (L.T("Meu PC roda isso?"), () => Scroll("CanRunScroll", new CanRunPage(CanRunServices.Real(LocalPcNow, SteamLibraryNow), stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["bottleneck"] = (L.T("Detector de gargalo"), () => Scroll("BottleneckScroll", new BottleneckPage(usage, stop.Token, OperatingSystem.IsLinux() ? () => MangoHudLogReader.Read(MangoHudLogReader.DefaultFolder(), DateTimeOffset.UtcNow) : null) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["stress"] = ("Stress test", () => Scroll("StressScroll", stressPage = new StressPage(new StressTester(), usage, () => this, () => usage.Last is { MemoryTotal: > 0, MemoryUsed: { } u } l ? l.MemoryTotal!.Value - u : 0, stop.Token, OperatingSystem.IsLinux() ? new VulkanGpuStress() : null, OperatingSystem.IsLinux() ? GpuTemperatureCache() : null) { Margin = new Thickness(0, 4, 8, 12) }), null);
         pages["bench"] = ("Benchmark", () => Scroll("BenchScroll", new BenchPage(OperatingSystem.IsLinux() ? BenchServices.Real() : throw new PlatformNotSupportedException(), usage, () => this, IlmenyxSettings.DefaultPath(), stop.Token) { Margin = new Thickness(0, 4, 8, 12) }), null);
@@ -63,19 +61,20 @@ public sealed partial class ShellWindow
         pages["help"] = (help[HelpKeys.HelpNav], HelpPage, null);
     }
 
-    /// <summary>Local facts for the FPS page alerts: the GPU games are estimated for, a second (integrated) GPU, battery state and PRIME in the game profiles. Read-only.</summary>
-    private static FpsContext? FpsContextNow()
+    /// <summary>What "Meu PC roda isso?" compares with: CPU/GPU names, RAM, free space of the home disk. Read-only, no sudo; runs off the UI thread.</summary>
+    private LocalPc LocalPcNow()
     {
-        if (!OperatingSystem.IsLinux()) return null;
-        var gpus = new LinuxGpuCollector().Collect(PciIds.Load());
-        if (gpus.Count == 0) return null;
-        var main = gpus[0].Raw;
-        var power = new LinuxPowerReader().Read();
-        var profiles = IlmenyxSettings.Load(IlmenyxSettings.DefaultPath()).GameProfiles.Values;
-        return new FpsContext(main.Name, main.VendorId, main.DeviceId, main.Driver, main.Integrated, main.VramBytes,
-            gpus.Skip(1).Select(g => g.Raw).FirstOrDefault(r => r.Integrated)?.Name, FpsAlerts.OnBattery(power.Batteries, power.MainsOnline),
-            profiles.Count(p => p.GpuHigh), profiles.Count, main.DriverVersion ?? "", main.MaxCoreMHz);
+        string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        GpuRaw? gpu = null;
+        if (OperatingSystem.IsLinux()) try { gpu = new LinuxGpuCollector().Collect(PciIds.Load()).FirstOrDefault().Raw; } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+        long? free = null;
+        try { free = new DriveInfo(home).AvailableFreeSpace; } catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException) { }
+        var u = usage.Last;
+        return new LocalPc(u?.CpuModel ?? "", gpu?.Name ?? "", gpu?.VramBytes ?? 0, gpu?.Integrated ?? false, u?.MemoryTotal ?? 0, free, L.T("sua pasta pessoal"), gpu?.Apis.Contains("Vulkan") == true);
     }
+
+    private static IReadOnlyList<(string Id, string Name)> SteamLibraryNow() =>
+        !OperatingSystem.IsLinux() ? [] : new LinuxGameLibrary().Steam().Where(g => g.IsSteam && g.Id.All(char.IsAsciiDigit)).DistinctBy(g => g.Id).Select(g => (g.Id, g.Name)).ToList();
 
     private Task<ReportData> GatherReportAsync(CancellationToken ct)
     {

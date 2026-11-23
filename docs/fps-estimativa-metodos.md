@@ -1,8 +1,10 @@
+> **Obsoleto (2026-11-23):** a página Estimativa de FPS e a calibração foram removidas; a página atual é "Meu PC roda isso?" (`meu-pc-roda.md`). Este texto fica como histórico.
+
 # Estimar o FPS sem API paga ou fechada: opções e recomendação
 
 Data: 2026-11-08. Para o mantenedor decidir. Contexto: a consulta à HowManyFPS foi **removida** (acesso à API exigia pedido
 formal). A página Estimativa de FPS agora é 100 % local. Este documento compara formas de estimar o FPS médio por jogo a partir
-do hardware do usuário, **sem** API paga ou com acesso restrito. O método atual está em [`fps-estimativa.md`](fps-estimativa.md).
+do hardware do usuário, **sem** API paga ou com acesso restrito. O método atual está em `fps-estimativa.md` (removido; consulte o histórico do git).
 
 > **Situação (2026-11-08, decisão do mantenedor): C, B e D IMPLEMENTADOS**, mais a trava de calibração e a correção dos jogos leves.
 > - **(c) Calibração com os benchmarks do Ilmenyx — implementado:** botão CALIBRAR AGORA (cena de GPU de 15 s + GameSim de uma thread

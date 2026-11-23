@@ -456,7 +456,7 @@ public sealed class UiSmokeApp : Application
         else if (Find<Button>(shell, "DashMetricPower").IsEnabled) throw new InvalidOperationException("Unavailable power metric must stay disabled.");
         Click(shell, "GoMemory"); await Until(() => shell.CurrentPage == "system");
         var expected = new (string Key, string Control)[] { ("dash", "OverviewChart"), ("system", "SysRefresh"), ("sensors", "RefreshSensors"), ("gpu", "GpuValidationNotice"), ("disks", "BtnDiskRefresh"), ("cleanup", "BtnCleanScan"),
-            ("energy", "BtnEnergyRefresh"), ("net", "BtnNetTest"), ("procs", "ProcessRows"), ("launcher", "BtnScanGames"), ("fps", "GameSourceTitle"), ("stress", "BtnStress"), ("optimize", "BtnOptimize"), ("apps", "BtnAppsInstall"), ("bottleneck", "BtnBnSession"), ("validate", "ValidateCpu"), ("makerports", "BtnMakerPortScan"), ("makerdrv", "BtnMakerDrvScan"), ("startup", "BtnStartupScan"), ("driver", "BtnDrvScan"), ("tools", "About") };
+            ("energy", "BtnEnergyRefresh"), ("net", "BtnNetTest"), ("procs", "ProcessRows"), ("launcher", "BtnScanGames"), ("canrun", "BtnCanRunSearch"), ("stress", "BtnStress"), ("optimize", "BtnOptimize"), ("apps", "BtnAppsInstall"), ("bottleneck", "BtnBnSession"), ("validate", "ValidateCpu"), ("makerports", "BtnMakerPortScan"), ("makerdrv", "BtnMakerDrvScan"), ("startup", "BtnStartupScan"), ("driver", "BtnDrvScan"), ("tools", "About") };
         foreach (var (key, control) in expected)
         {
             var nav = Find<Button>(shell, "Nav" + key);
@@ -647,7 +647,7 @@ public sealed class UiSmokeApp : Application
         await StressAsync(shell, desktop);
         await NetworkAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await OptimizeAsync(shell, desktop);
-        if (OperatingSystem.IsLinux()) await FpsAsync(shell, desktop);
+        if (OperatingSystem.IsLinux()) await CanRunAsync(shell);
         if (OperatingSystem.IsLinux()) await CompatAsync(desktop, Program.OutputDirectory);
         if (OperatingSystem.IsLinux()) await CompatTriageAsync(desktop, Program.OutputDirectory);
         if (OperatingSystem.IsLinux()) await SensorHelpAsync(desktop);
@@ -666,9 +666,8 @@ public sealed class UiSmokeApp : Application
         if (OperatingSystem.IsLinux()) await StartupDriversRedesignAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await GamingExtrasAsync(shell, desktop);
         await ThemeAsync(shell);
-        if (OperatingSystem.IsLinux()) await FpsScrollAndContrastAsync(shell);
+        if (OperatingSystem.IsLinux()) await CanRunLayoutAsync(shell);
         if (OperatingSystem.IsLinux()) await BlockedAndFullTourAsync(shell);
-        await FpsCalibrationGateAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await GameCheckAndZramAsync(shell, desktop);
         await ToastAsync(shell);
         Click(shell, "SortMemory"); await Until(() => Find<Button>(shell, "SortMemory").Content!.ToString()!.Contains('▼'));
@@ -1441,39 +1440,45 @@ public sealed class UiSmokeApp : Application
         Console.WriteLine("PASS overview: performance card from the local benchmark history with delta, real read-only health checklist, occupancy rings and recent events");
     }
     [System.Runtime.Versioning.SupportedOSPlatform("linux")]
-    private static async Task FpsAsync(ShellWindow shell, IClassicDesktopStyleApplicationLifetime desktop)
+    private static async Task CanRunAsync(ShellWindow shell)
     {
-        // The page is fully local (HowManyFPS was removed on 2026-11-08): no HTTP handler at all.
-        string root = Path.Combine(Program.OutputDirectory, "fps-fixture"); Directory.CreateDirectory(root);
-        string settingsPath = Path.Combine(root, "settings.json"); Window? host = null;
-        // A session measured on this PC (as the Launcher records it) for Dota 2; nothing is played.
-        var fixture = new Ilmenyx.Core.IlmenyxSettings(); fixture.AddFpsSession(new("Dota 2", new DateTimeOffset(2026, 11, 6, 21, 0, 0, TimeSpan.Zero), 87.4, 52, 1800, "NVIDIA GeForce RTX 4070", "1920x1080")); fixture.Save(settingsPath);
-        var ctx = new Ilmenyx.Core.FpsContext("NVIDIA GeForce RTX 4070", "10de", "2786", "nvidia", false, 2UL << 30, null, true, 0, 0);
-        var page = new GamesFpsPage(new Ilmenyx.Core.IlmenyxSettings(), settingsPath, () => ("AMD Ryzen 7 7700X 8-Core Processor", "NVIDIA GeForce RTX 4070"), () => ctx);
-        host = new Window { Width = 1100, Height = 900, Content = page }; host.Show(); // the page scrolls by itself (sticky catalogue)
-        await Until(() => page.Rows.Count > 20 && page.Rows.Any(r => r.Fps > 0));
-        if (page.GpuIndex != 100 || page.CpuIndex != 100) throw new InvalidOperationException("Hardware indices not resolved from the catalog tables.");
-        string CardFps(string name) => host.GetVisualDescendants().OfType<Border>().Single(b => b.Name == "Game_" + LauncherPage.SafeName(name)).GetVisualDescendants().OfType<TextBlock>().First(t => t.FontSize == 28).Text!;
-        // The local estimate is shown as a range around the table value (CS2 at 1080p/Alto on RTX 4070 + 7700X = 344 since the GPU index refit of 2026-11-10), never as a single number.
-        bool RangeAround(string text, double centre) => text.Split('–') is [var lo, var hi] && double.TryParse(lo, System.Globalization.CultureInfo.InvariantCulture, out double l) && double.TryParse(hi, System.Globalization.CultureInfo.InvariantCulture, out double h) && l < centre && centre < h;
-        await Until(() => host.GetVisualDescendants().OfType<Border>().Any(b => b.Name == "Game_" + LauncherPage.SafeName("Counter-Strike 2")));
-        if (page.Rows.Single(r => r.Name == "Counter-Strike 2").Fps != 344 || !RangeAround(CardFps("Counter-Strike 2"), 344)) throw new InvalidOperationException("CS2 estimate at 1080p/Alto should be a range around 344, got " + CardFps("Counter-Strike 2") + ".");
-        if (page.Assessment.Confidence != Ilmenyx.Core.FpsConfidence.Medium) throw new InvalidOperationException("Desktop GPU + CPU at the reference should give medium confidence.");
-        var dota = page.Rows.Single(r => r.Name == "Dota 2");
-        if (CardFps("Dota 2") != "87" || dota.Source != "MEDIDO NESTE PC" || !dota.Summary.StartsWith("Medido neste PC: 87 FPS (1% low 52) · última sessão", StringComparison.Ordinal)) throw new InvalidOperationException("Measured session must take priority over the estimate.");
-        if (page.Alerts.Select(a => a.Title).ToArray() is not ["2 GB de VRAM", "Notebook na bateria"] || !Find<StackPanel>(host, "FpsAlerts").IsVisible) throw new InvalidOperationException("VRAM and battery alerts expected.");
-        await Task.Delay(300); Capture(host, "fps-fixture.png");
-        foreach (var chip in host.GetVisualDescendants().OfType<Button>().Where(b => b.Content?.ToString() == "1440p")) chip.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        await Until(() => CardFps("Counter-Strike 2") is var t && !RangeAround(t, 344) && RangeAround(t, page.Rows.Single(r => r.Name == "Counter-Strike 2").Fps) && CardFps("Dota 2") == "87");
-        // No API key box, no query button, no mention of the removed service; the source card says the estimate is local.
-        if (host.GetVisualDescendants().OfType<Control>().Any(c => c.Name is "ApiKeyBox" or "BtnApiKey" or "BtnFpsQuery")) throw new InvalidOperationException("The removed HowManyFPS controls are still on the page.");
-        if (host.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text?.Contains("HowManyFPS", StringComparison.OrdinalIgnoreCase) == true || t.Text?.Contains("CONSULTAR API", StringComparison.Ordinal) == true)) throw new InvalidOperationException("A text still mentions the removed HowManyFPS API.");
-        if (Find<TextBlock>(host, "GameSourceTitle").Text != "Fonte: provisória (PC ainda não calibrado)" || !Find<TextBlock>(host, "GameSourceText").Text!.Contains("sem usar a internet", StringComparison.Ordinal)) throw new InvalidOperationException("Source card must say the estimate is local.");
+        // "Meu PC roda isso?" with fake services: no network, no real hardware. Elden Ring → AppID 1245620 with an English requirements block.
+        string root = Path.Combine(Program.OutputDirectory, "canrun-fixture"); if (Directory.Exists(root)) Directory.Delete(root, true); Directory.CreateDirectory(root);
+        int fetches = 0; bool hang = false;
+        string html = "<strong>Minimum:</strong><br><ul><li><strong>OS *:</strong> Windows 10<br></li><li><strong>Processor:</strong> Intel Core i5-8400 or AMD Ryzen 5 1600<br></li><li><strong>Memory:</strong> 8 GB RAM<br></li>"
+            + "<li><strong>Graphics:</strong> NVIDIA GeForce GTX 1060 6GB or AMD Radeon RX 580<br></li><li><strong>DirectX:</strong> Version 12<br></li><li><strong>Storage:</strong> 60 GB available space<br></li></ul>";
+        string rec = "<strong>Recommended:</strong><br><ul><li><strong>Processor:</strong> Intel Core i7-8700K / AMD Ryzen 5 3600<br></li><li><strong>Memory:</strong> 16 GB RAM<br></li><li><strong>Graphics:</strong> NVIDIA GeForce RTX 3070<br></li></ul>";
+        var services = new CanRunServices(
+            (name, ct) => Task.FromResult<(string, string)?>(name.Equals("Elden Ring", StringComparison.OrdinalIgnoreCase) ? ("1245620", "ELDEN RING") : null),
+            (name, ct) => Task.FromResult<IReadOnlyList<(string, string)>>([("1245620", "ELDEN RING")]),
+            async (id, ct) => { fetches++; if (hang) await Task.Delay(Timeout.Infinite, ct); return (Ilmenyx.Core.RequirementsFetch.Ok, new Ilmenyx.Core.GameRequirements(id, "ELDEN RING", DateTimeOffset.UtcNow, html, rec, "", "")); },
+            new Ilmenyx.Core.RequirementsCache(Path.Combine(root, "cache")),
+            () => new Ilmenyx.Core.LocalPc("AMD Ryzen 5 5600 6-Core Processor", "NVIDIA GeForce RTX 3060", 12UL << 30, false, (long)(15.5 * 1073741824), 200L << 30, "home", true),
+            () => [("570", "Dota 2")]);
+        var page = new CanRunPage(services, CancellationToken.None);
+        var host = new Window { Width = 1000, Height = 900, Content = new ScrollViewer { Content = page } }; host.Show();
+        await Until(() => Find<WrapPanel>(host, "CanRunLibrary").Children.Count == 1);
+        Find<TextBox>(host, "CanRunSearch").Text = "Elden Ring"; Click(host, "BtnCanRunSearch");
+        await Until(() => page.Report is not null);
+        if (fetches != 1 || page.Report!.Verdict != Ilmenyx.Core.CanRunVerdict.Minimum || Find<TextBlock>(host, "CanRunVerdict").Text != "Roda no mínimo") throw new InvalidOperationException("Elden Ring fixture should run at the minimum (RTX 3060 below the RTX 3070 recommended).");
+        foreach (var key in new[] { "cpu", "gpu", "ram", "vram", "storage", "api", "os" }) if (!host.GetVisualDescendants().OfType<Border>().Any(b => b.Name == "CanRunItem_" + key)) throw new InvalidOperationException("Missing item card " + key);
+        if (!Find<SelectableTextBlock>(host, "CanRunRawMin").Text!.Contains("Processor: Intel Core i5-8400", StringComparison.Ordinal) || host.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text?.Contains('<') == true && t.Name?.StartsWith("CanRunRaw") == true)) throw new InvalidOperationException("Original requirement text must be shown as plain text.");
+        if (!host.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "CanRunRecent_1245620")) throw new InvalidOperationException("The game must appear under 'Consultados antes'.");
+        await Task.Delay(300); Capture(host, "canrun-result.png");
+        // The same game by name again comes from the local copy: no second request.
+        Find<TextBox>(host, "CanRunSearch").Text = "elden ring"; Click(host, "BtnCanRunSearch");
+        await Until(() => page.StatusText.Contains("sem usar a rede", StringComparison.Ordinal)); if (fetches != 1) throw new InvalidOperationException("A cached game must not hit the network.");
+        // Unknown name: suggestion chip, no result change. A link/AppID goes straight to the id.
+        Find<TextBox>(host, "CanRunSearch").Text = "Eldn Rng"; Click(host, "BtnCanRunSearch");
+        await Until(() => Find<WrapPanel>(host, "CanRunSuggestions").Children.Count == 1);
+        // Cancelling a slow request restores the button and says so.
+        hang = true; Find<TextBox>(host, "CanRunSearch").Text = "https://store.steampowered.com/app/999999/X/"; Click(host, "BtnCanRunSearch");
+        await Until(() => Find<Button>(host, "BtnCanRunCancel").IsVisible); Click(host, "BtnCanRunCancel");
+        await Until(() => page.StatusText == "Busca cancelada." && Find<Button>(host, "BtnCanRunSearch").IsEnabled);
         host.Close();
-        Find<Button>(shell, "Navfps").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        await Until(() => shell.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "GameSourceTitle" && t.IsVisible));
-        if (Ilmenyx.Core.IlmenyxSettings.Load(settingsPath).FpsSessions.Count != 1) throw new InvalidOperationException("Opening the page changed the measured sessions.");
-        Console.WriteLine("PASS fps page: local estimate as range + confidence from catalog tables, measured session has priority, VRAM/battery alerts, option chips recompute, fully local (no HowManyFPS key/query controls or texts), sessions untouched");
+        Find<Button>(shell, "Navcanrun").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => shell.GetVisualDescendants().OfType<CanRunPage>().Any(p => p.IsVisible));
+        Console.WriteLine("PASS meu pc roda isso: search by name (fake Steam), verdict + per-item cards, original text as plain text, recent chips from the local cache without network, suggestion chip, cancel restores the page");
     }
     private sealed class CompatFakeHttp(Func<HttpRequestMessage, HttpResponseMessage> respond) : HttpMessageHandler
     {
@@ -2080,70 +2085,24 @@ public sealed class UiSmokeApp : Application
         await LayoutAsync(window, desktop);
     }
     /// <summary>
-    /// Estimativa de FPS chained scrolling (page, then sticky catalogue; up: catalogue first), back-to-top button, keyboard, at 900x560 and
-    /// 1280x820 in both themes; plus screenshots of the Overlay and Relatório pages. Wheel and keys are routed events inside this process.
+    /// "Meu PC roda isso?" at 900x560 and 1280x820 in both themes (no horizontal overflow, controls reachable), plus screenshots of the Overlay and Relatório pages.
     /// </summary>
-    private static async Task FpsScrollAndContrastAsync(ShellWindow shell)
+    private static async Task CanRunLayoutAsync(ShellWindow shell)
     {
         double w0 = shell.Width, h0 = shell.Height; bool light0 = Palette.IsLight;
-        var mouse = new Avalonia.Input.Pointer(Avalonia.Input.Pointer.GetNextFreeId(), Avalonia.Input.PointerType.Mouse, true);
         foreach (var (w, h) in new[] { (900.0, 560.0), (1280.0, 820.0) })
         foreach (bool light in new[] { false, true })
         {
             if (Palette.IsLight != light) { Click(shell, "ToggleTheme"); await Until(() => Palette.IsLight == light); }
             shell.Width = w; shell.Height = h;
-            Find<Button>(shell, "Navfps").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            await Until(() => shell.GetVisualDescendants().OfType<GamesFpsPage>().Any(p => p.IsVisible && p.Rows.Count > 20));
-            var page = shell.GetVisualDescendants().OfType<GamesFpsPage>().Single();
-            await Until(() => shell.GetVisualDescendants().OfType<Border>().Any(b => b.Name?.StartsWith("Game_", StringComparison.Ordinal) == true && b.IsEffectivelyVisible));
-            page.ScrollToTop(); await Until(() => page.PageOffset == 0 && page.CatalogOffset == 0); await Task.Delay(400);
+            Find<Button>(shell, "Navcanrun").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            await Until(() => shell.GetVisualDescendants().OfType<CanRunPage>().Any(p => p.IsVisible));
+            await Task.Delay(400);
             string tag = $"{w:0}x{h:0}-{(light ? "light" : "dark")}";
-            var scroll = Find<ScrollViewer>(shell, "FpsScroll"); var header = Find<Grid>(shell, "FpsCatalogHeader");
-            var cardsScroll = Find<ScrollViewer>(shell, "GameCardsScroll");
-            if (page.ToTopVisible) throw new InvalidOperationException("Back-to-top must be hidden at the top.");
-            if (page.CatalogViewport < scroll.Viewport.Height - header.Bounds.Height - 45) throw new InvalidOperationException($"Catalogue must fill the window below its header ({tag}): {page.CatalogViewport:0} of {scroll.Viewport.Height:0}.");
-            Capture(shell, $"fps-scroll-{tag}-top.png");
-            var card = shell.GetVisualDescendants().OfType<Border>().First(b => b.Name?.StartsWith("Game_", StringComparison.Ordinal) == true && b.IsEffectivelyVisible);
-            void Wheel(double notches) => card.RaiseEvent(new Avalonia.Input.PointerWheelEventArgs(card, mouse, shell, new Point(10, 10), 0, new Avalonia.Input.PointerPointProperties(), KeyModifiers.None, new Vector(0, notches)));
-            double catalogHeight = cardsScroll.Bounds.Height, last = 0; int guard = 0;
-            // Down over the catalogue: the page scrolls first (catalogue stays at its top) until the header reaches the top.
-            while (page.PageOffset < page.PageMax - 0.5)
-            {
-                Wheel(-1); await Task.Delay(30);
-                if (page.CatalogOffset != 0 && page.PageOffset < page.PageMax - 0.5) throw new InvalidOperationException($"Catalogue scrolled before the page reached the sticky point ({tag}).");
-                if (page.PageOffset < last) throw new InvalidOperationException($"Page offset went backwards while scrolling down: jitter ({tag}).");
-                last = page.PageOffset; if (++guard > 400) throw new InvalidOperationException("Page never reached the sticky point.");
-            }
-            double stickyY() => header.TranslatePoint(new Point(0, 0), scroll)!.Value.Y;
-            double y0 = stickyY();
-            if (Math.Abs(y0 - header.Margin.Top) > 2) throw new InvalidOperationException($"Catalogue header must sit at the top when sticky ({tag}): y={y0:0.0}.");
-            for (int i = 0; i < 4; i++) { Wheel(-1); await Task.Delay(30); }
-            if (page.CatalogOffset < 100 || Math.Abs(page.PageOffset - page.PageMax) > 0.5 || Math.Abs(stickyY() - y0) > 0.5) throw new InvalidOperationException($"Past the sticky point only the catalogue scrolls and the header stays fixed ({tag}).");
-            if (Math.Abs(cardsScroll.Bounds.Height - catalogHeight) > 0.5) throw new InvalidOperationException("Catalogue height changed while scrolling (jitter).");
-            await Until(() => page.ToTopVisible); await Task.Delay(250);
-            Capture(shell, $"fps-scroll-{tag}-sticky.png");
-            // Up: the catalogue returns to its own top first, only then the page above comes back.
-            double pageMax = page.PageOffset; guard = 0;
-            while (page.CatalogOffset > 0)
-            {
-                Wheel(1); await Task.Delay(30);
-                if (page.CatalogOffset > 0 && page.PageOffset < pageMax - 0.5) throw new InvalidOperationException($"Page moved before the catalogue was back at its top ({tag}).");
-                if (++guard > 400) throw new InvalidOperationException("Catalogue never returned to its top.");
-            }
-            Wheel(1); await Task.Delay(30);
-            if (page.PageOffset >= pageMax - 1) throw new InvalidOperationException($"After the catalogue top, scrolling up must move the page ({tag}).");
-            // Keyboard: PageDown/End/Home from the page (focus on the scroll area, as after a click on it).
-            scroll.Focus(); await Task.Delay(30);
-            double before = page.PageOffset; Key(shell, Avalonia.Input.Key.PageDown); await Task.Delay(30);
-            if (page.PageOffset + page.CatalogOffset <= before) throw new InvalidOperationException("PageDown must scroll the page.");
-            Key(shell, Avalonia.Input.Key.End); await Task.Delay(30);
-            if (Math.Abs(page.PageOffset - page.PageMax) > 0.5 || Math.Abs(page.CatalogOffset - page.CatalogMax) > 0.5) throw new InvalidOperationException("End must reach the end of the catalogue.");
-            Key(shell, Avalonia.Input.Key.Home); await Until(() => page.PageOffset == 0 && page.CatalogOffset == 0);
-            // Back-to-top button: one click, animated, then hidden.
-            Key(shell, Avalonia.Input.Key.End); await Until(() => page.ToTopVisible);
-            Click(shell, "BtnFpsToTop"); await Task.Delay(60);
-            if (page.PageOffset == 0 && page.CatalogOffset == 0) throw new InvalidOperationException("Back to top should animate (not jump) when feasible.");
-            await Until(() => page.PageOffset == 0 && page.CatalogOffset == 0 && !page.ToTopVisible);
+            var scroll = Find<ScrollViewer>(shell, "CanRunScroll");
+            if (scroll.Extent.Width > scroll.Viewport.Width + 1) throw new InvalidOperationException($"Meu PC roda isso? must not scroll horizontally ({tag}): {scroll.Extent.Width:0} > {scroll.Viewport.Width:0}.");
+            foreach (var name in new[] { "CanRunSearch", "BtnCanRunSearch" }) if (Find<Control>(shell, name) is var c && (!c.IsEffectivelyVisible || c.Bounds.Width < 40)) throw new InvalidOperationException($"{name} clipped ({tag}).");
+            Capture(shell, $"canrun-{tag}.png");
             if (w == 900)
             {
                 foreach (var key in new[] { "overlay", "report" }) { Find<Button>(shell, "Nav" + key).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); await Task.Delay(500); Capture(shell, $"page-{key}-{tag}.png"); }
@@ -2153,7 +2112,7 @@ public sealed class UiSmokeApp : Application
         }
         if (Palette.IsLight != light0) { Click(shell, "ToggleTheme"); await Until(() => Palette.IsLight == light0); }
         shell.Width = w0; shell.Height = h0; await Task.Delay(200);
-        Console.WriteLine("PASS fps sticky catalogue: page scrolls first, header sticks, catalogue fills the window and scrolls alone, up returns catalogue first; wheel + PageDown/End/Home; animated back-to-top hidden at top; 900x560 and 1280x820, dark and light; overlay/report screenshots; report text Fg/Muted");
+        Console.WriteLine("PASS meu pc roda isso layout: no horizontal overflow, controls visible, 900x560 and 1280x820, dark and light; overlay/report screenshots; report text Fg/Muted");
     }
 
     private static async Task CompatTriageAsync(IClassicDesktopStyleApplicationLifetime desktop, string output)
@@ -2352,87 +2311,6 @@ public sealed class UiSmokeApp : Application
         if (Palette.IsLight) { Click(shell, "ToggleTheme"); await Until(() => !Palette.IsLight); }
         shell.Width = 1280; shell.Height = 820; await Task.Delay(300);
         Console.WriteLine("PASS drivers redesign: plain summary, six category cards with every inventory row, NVIDIA action present, no clipped card at 900x560/1280x820, dark and light captures");
-    }
-
-    /// <summary>Fake calibration benchmark: the smoke never runs real GPU/CPU load.</summary>
-    private static Ilmenyx.Desktop.FpsCalibrator FakeCalibrator(Func<double?> temp, int delayMs = 400, int? hangMs = null) => new(async (progress, ct) =>
-    {
-        progress.Report(("Cena de GPU (fixture)", 0.3)); await Task.Delay(delayMs, ct);
-        if (hangMs is int h) await Task.Delay(h, ct);
-        progress.Report(("Simulação de CPU (fixture)", 0.8)); await Task.Delay(delayMs, ct);
-        return new Ilmenyx.Core.FpsCalibrationMeasurement(172, 17.2, "GeForce 940MX (fixture)", 22.06, null);
-    }, temp, () => null);
-
-    private static async Task FpsCalibrationGateAsync(ShellWindow shell, IClassicDesktopStyleApplicationLifetime desktop)
-    {
-        // Dell 7460-like fixture (GeForce 940MX + i7-7500U, driver 580); three GPU-limited sessions at Alto feed the personal factor.
-        string root = Path.Combine(Program.OutputDirectory, "fps-calibration-fixture"); Directory.CreateDirectory(root);
-        string settingsPath = Path.Combine(root, "settings.json");
-        var hw = ("Intel(R) Core(TM) i7-7500U CPU @ 2.70GHz", "NVIDIA Corporation GM108M [GeForce 940MX]");
-        var ctx = new Ilmenyx.Core.FpsContext("NVIDIA Corporation GM108M [GeForce 940MX]", "10de", "134d", "nvidia", false, 2UL << 30, "Intel HD Graphics 620", false, 1, 1, "580.95.05", 1189);
-        var fixture = new Ilmenyx.Core.IlmenyxSettings();
-        foreach (var (game, fps) in new[] { ("Cyberpunk 2077", 3.0), ("Hogwarts Legacy", 3.0), ("Starfield", 2.0) })
-            fixture.AddFpsSession(new(game, DateTimeOffset.UtcNow.AddDays(-1), fps, fps * 0.7, 900, "GeForce 940MX", "1920x1080", "Alto", "Native"));
-        fixture.Save(settingsPath);
-        Window? host = null;
-        async Task<GamesFpsPage> Open(Ilmenyx.Desktop.FpsCalibrator cal, Func<Ilmenyx.Core.FpsContext> c)
-        {
-            host?.Close();
-            var page = new GamesFpsPage(new Ilmenyx.Core.IlmenyxSettings(), settingsPath, () => hw, c, cal);
-            host = new Window { Width = 1100, Height = 900, Content = page }; host.Show();
-            await Until(() => page.Rows.Count > 20 && page.Rows.Any(r => r.Fps > 0) && host.GetVisualDescendants().OfType<Border>().Any(b => b.Name?.StartsWith("Game_", StringComparison.Ordinal) == true));
-            return page;
-        }
-        TextBlock Basis(string name) => host!.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Name == "Basis_" + LauncherPage.SafeName(name));
-        // 1. Not calibrated: warning at the top, primary button, every estimate greyed and labelled provisional.
-        var page = await Open(FakeCalibrator(() => 50), () => ctx);
-        if (page.Gate != Ilmenyx.Core.FpsGate.Uncalibrated || !Find<TextBlock>(host!, "FpsGateTitle").Text!.StartsWith("As estimativas ainda não são confiáveis", StringComparison.Ordinal)) throw new InvalidOperationException("Uncalibrated gate must warn at the top.");
-        if (Find<Button>(host!, "BtnFpsCalibrate").Content?.ToString() != "Calibrar agora (≈1 min)" || !Find<Button>(host!, "BtnFpsCalibrate").IsEffectivelyVisible) throw new InvalidOperationException("Calibrar agora button missing.");
-        if (page.Rows.Where(r => !r.IsMeasured).Any(r => !r.IsProvisional) || Basis("League of Legends").Text != "provisório — calibre o PC") throw new InvalidOperationException("Estimates must be provisional before calibration.");
-        await Task.Delay(300); Capture(host!, "fps-gate-uncalibrated.png");
-        // 2. Too hot already: refused before any load. 3. Hot during the run: aborted at 90 °C, nothing saved.
-        page = await Open(FakeCalibrator(() => 95), () => ctx);
-        Click(host!, "BtnFpsCalibrate"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
-        Click(desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible), "ConfirmYes");
-        await Until(() => page.CalibrationMessage?.Contains("95 °C", StringComparison.Ordinal) == true && page.Gate == Ilmenyx.Core.FpsGate.Uncalibrated);
-        int ticks = 0;
-        page = await Open(FakeCalibrator(() => ++ticks > 2 ? 91 : 60, 200, 20_000), () => ctx);
-        Click(host!, "BtnFpsCalibrate"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
-        Click(desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible), "ConfirmYes");
-        await Until(() => page.Gate == Ilmenyx.Core.FpsGate.Running); await Task.Delay(200); Capture(host!, "fps-gate-running.png");
-        await Until(() => page.CalibrationMessage?.StartsWith("Calibração interrompida", StringComparison.Ordinal) == true && page.Gate == Ilmenyx.Core.FpsGate.Uncalibrated);
-        if (Ilmenyx.Core.IlmenyxSettings.Load(settingsPath).FpsCalibration is not null) throw new InvalidOperationException("Aborted calibration must not be saved.");
-        // 4. Calibrated with the fake runner: saved with the fingerprint, cards name their basis, personal factor from the 3 sessions.
-        page = await Open(FakeCalibrator(() => 55), () => ctx);
-        Click(host!, "BtnFpsCalibrate"); await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible));
-        Click(desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible), "ConfirmYes");
-        await Until(() => page.Gate == Ilmenyx.Core.FpsGate.Calibrated);
-        var saved = Ilmenyx.Core.IlmenyxSettings.Load(settingsPath);
-        if (saved.FpsCalibration is not { SceneScore: 172, CpuSimFps: 22.06 } cal || !cal.Fingerprint.Contains("580.95.05", StringComparison.Ordinal) || saved.FpsSessions.Count != 3) throw new InvalidOperationException("Calibration must be saved with the driver fingerprint, keeping the sessions.");
-        if (page.Basis != Ilmenyx.Core.FpsBasis.Calibrated || Math.Abs(page.GpuIndex - 3.2) > 0.01 || Math.Abs(page.CpuIndex - 36) > 0.1) throw new InvalidOperationException($"Calibrated indices expected (3,2 / 36), got {page.GpuIndex} / {page.CpuIndex}.");
-        if (page.PersonalGpu is not { Sessions: 3 } || page.Rows.Where(r => !r.IsMeasured).Any(r => r.IsProvisional)) throw new InvalidOperationException("Personal factor from the 3 Alto sessions expected; no provisional card after calibration.");
-        if (!Find<TextBlock>(host!, "FpsGateText").Text!.Contains("nota 172", StringComparison.Ordinal) || Find<TextBlock>(host!, "GameSourceTitle").Text != "Fonte: estimativa calibrada neste PC") throw new InvalidOperationException("Calibrated gate/source texts missing.");
-        if (!page.Rows.Any(r => r.BasisText == "base: benchmark deste PC · suas 3 sessões medidas")) throw new InvalidOperationException("Card basis must name the PC benchmark and the sessions.");
-        await Task.Delay(300); Capture(host!, "fps-gate-calibrated.png");
-        // League of Legends on Low (maintainer's observation: > 100 FPS on this hardware; the old table said 16–44).
-        foreach (var chip in host!.GetVisualDescendants().OfType<Button>().Where(b => b.Content?.ToString() == "Baixo")) chip.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        await Until(() => page.Rows.Single(r => r.Name == "League of Legends").Fps >= 100);
-        if (Basis("League of Legends").Text != "base: benchmark deste PC") throw new InvalidOperationException("No Baixo session: the personal factor must not apply.");
-        Console.WriteLine("LoL Baixo after calibration: " + page.Rows.Single(r => r.Name == "League of Legends").FpsText);
-        // 5. Driver changed: stale gate asks for a new calibration and the estimates are provisional again. Light theme capture.
-        bool light0 = Palette.IsLight; if (!light0) { Click(shell, "ToggleTheme"); await Until(() => Palette.IsLight); }
-        page = await Open(FakeCalibrator(() => 55), () => ctx with { GpuDriverVersion = "580.105.08" });
-        if (page.Gate != Ilmenyx.Core.FpsGate.Stale || !Find<TextBlock>(host!, "FpsGateTitle").Text!.Contains("mudou", StringComparison.Ordinal) || page.Rows.Where(r => !r.IsMeasured).Any(r => !r.IsProvisional)) throw new InvalidOperationException("A driver change must make the calibration stale.");
-        await Task.Delay(300); Capture(host!, "fps-gate-stale-light.png");
-        // 6. Unknown GPU (not in the table) with a GpuSpecDb entry: spec fallback instead of SEM ESTIMATIVA.
-        var rtxCtx = ctx with { GpuName = "NVIDIA AD104 [GeForce RTX 4070 Prototype]", GpuDeviceId = "2786", GpuMaxCoreMHz = null };
-        hw = ("Intel(R) Core(TM) i7-7500U CPU @ 2.70GHz", "NVIDIA AD104 [Unknown board]");
-        page = await Open(FakeCalibrator(() => 55), () => rtxCtx);
-        if (page.Basis != Ilmenyx.Core.FpsBasis.Specs || page.Rows.Any(r => r.Source == "SEM ESTIMATIVA") || Math.Abs(page.GpuIndex - 100) > 10) throw new InvalidOperationException($"Spec fallback expected for an unknown name with a known PCI ID (index {page.GpuIndex}).");
-        await Task.Delay(300); Capture(host!, "fps-gate-specs-light.png");
-        host!.Close();
-        if (Palette.IsLight != light0) { Click(shell, "ToggleTheme"); await Until(() => Palette.IsLight == light0); }
-        Console.WriteLine("PASS fps calibration gate: provisional greyed cards + Calibrar agora before calibration, hot PC refused, 90 °C abort saves nothing, fake calibration saved with driver fingerprint, basis per card, personal factor from 3 sessions at the same preset, LoL Baixo ≥ 100, stale after driver change, spec fallback for unknown GPU");
     }
 
     /// <summary>"Jogo não abre?" checklist and the ZRAM card of Otimiza (2026-11-08). Real pages are only read and captured; every click that would

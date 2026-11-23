@@ -8,7 +8,7 @@ O Ilmenyx já tem evidência real de inventário, sensores disponíveis e interf
 A confiança é maior nas leituras conferidas com a fonte do sistema, nas exportações e nas validações reduzidas dos algoritmos.
 Isso não certifica todos os sensores, fabricantes, distribuições ou a saúde de uma máquina.
 AMD integrada e NVIDIA de notebook foram exercitadas; AMD dedicada, NVIDIA RTX/desktop e Intel Arc ainda não.
-Estimativa de FPS e compatibilidade de jogos orientam a decisão, mas não garantem desempenho nem que um jogo funcione.
+"Meu PC roda isso?" e a compatibilidade de jogos orientam a decisão, mas não garantem desempenho nem que um jogo funcione.
 Nenhum jogo real teve FPS medido nas máquinas de teste; instalação e reparo de driver pelo app também continuam NÃO TESTADOS.
 Wayland nativo tem uma falha intermitente conhecida; X11/XWayland é o caminho mais seguro hoje.
 É possível elevar a confiança com testes humanos direcionados, mais hardware e medições reais, sem executar carga automaticamente.
@@ -56,7 +56,7 @@ Os passos da última coluna são propostas para o mantenedor e a equipe; não fo
 | GPU NVIDIA | Média | HD 620 + 940MX vistas com nouveau e 580.178.04. Telemetria proprietária e PRIME conferidos; stress/cena de 8 s. Falta RTX/desktop, módulo open, potência/ventoinha reais e outras gerações de driver. [Evidência NVIDIA](evidencias/gpu-nvidia-2026-11-07/README.md). | Sim | Testadores com RTX/desktop e outras gerações: comparar sensores com nvidia-smi, registrar campos recusados e ausências; testar escolha de GPU e corte térmico com autorização. Em notebooks Turing+ (RTD3), confirmar que a GPU dedicada volta a dormir com o Ilmenyx aberto (a 940MX não suporta RTD3). |
 | GPU Intel | Média | Iris Xe e HD 620 exercitadas; identificação, clock e cargas curtas disponíveis. Carga/VRAM de iGPU têm limitações de fonte/permissão. Nenhuma Arc vista. | Sim | Equipe testar i915 e xe em máquinas distintas e uma Arc dedicada; comparar contadores com ferramenta autorizada. Decidir dependência/permissão antes de prometer carga ao vivo. Não chamar RAM compartilhada de VRAM dedicada. Ver GPU-03/05. |
 | Benchmarks | Média | Correção reduzida de CPU/RAM/GameSim tem referências independentes. RAM completa teve uma execução; disco teve teste curto em HDD SATA/ext4. CPU Full e GameSim completo com carga seguem NÃO TESTADOS; stress longo e OC com carga também. GPU/RT têm recortes reais, descritos abaixo. | Sim | Equipe executar por etapas, com autorização: CPU Full/GameSim curtos, cancelamento real, RAM com pouca memória e disco em temporário autorizado. Registrar repetições, temperatura, versão e dispersão. Depois ampliar hardware e duração. Ver CPU-01, SIM-01, BENCH-02/03/04, STRESS-01 e OC-01/03. |
-| Estimativa de FPS | Baixa | Tabelas aproximadas, referências RTX 4070 = 100 e Ryzen 7 7700X = 100. Faixa + confiança não calibradas com FPS real. Nenhum jogo medido. Tudo local (HowManyFPS removido em 08/11). Desde 08/11: trava de calibração (cena + GameSim deste PC), fallback por especificações, ajuste pessoal por sessões e expoente para jogos leves; âncoras com 3 GPUs e 1 CPU da equipe. [Método](fps-estimativa.md), [opções de calibração](fps-estimativa-metodos.md). | Sim | Mantenedor instalar um jogo de teste por decisão própria; equipe validar sessão MangoHud pelo Launcher e “Medido neste PC”. Repetir cenas/configurações conhecidas em GPUs variadas e medir erro da faixa. Escolher um método de calibração sem API (fps-estimativa-metodos.md). |
+| Meu PC roda isso? | Baixa | Compara requisitos publicados (texto da Steam) com o hardware lido; CPU/GPU por tabela aproximada de desempenho relativo, o resto por números (RAM, VRAM, disco). Busca real com rede e hardware variado NÃO TESTADOS (CANRUN-01). Não mede nem estima FPS. [Método](meu-pc-roda.md). | Sim | Testar com jogos reais em PCs variados |
 | Compatibilidade de jogos | Média | Consultas reais a ProtonDB/Steam Deck/anti-cheat e base de relatos exercitadas; não houve confirmação jogando. Relatos anônimos, ranking por semelhança de GPU/distro é heurístico e resumo ProtonDB usa endpoint público não oficial. | Parcial | Equipe registrar data/fonte e tratar falha de serviço; donos de máquinas confirmar jogos/anti-cheat nas versões atuais. Comparar recomendações com sessões reais. Serviço externo e relatos de terceiros não permitem garantia permanente. |
 | Driver NVIDIA | Baixa | Diagnóstico real e apt-get -s no Mint aprovados no recorte observado. Instalar/reparar/atualizar/voltar ao nouveau pelo app NÃO TESTADO. Correção manual pelo lead não valida o botão. Outras distros e Secure Boot/MOK pendentes. [Método](driver-nvidia.md). | Sim | Mantenedor autorizar máquina recuperável: testar instalação, reboot, reparo e retorno pelo app, guardando logs e conferindo DKMS/módulo. Depois Secure Boot ligado e planos Debian/Fedora/Arch/openSUSE. Ver NVDRV-01…05. |
 | Correções com um clique | Baixa | Lógica/UI de sensores com executor falso. Pedido real de senha via polkit, efeito em coretemp/k10temp, leitura RAPL em watts e Desfazer não exercitados de ponta a ponta pelo dono. | Sim | Dono clicar e confirmar em Intel e AMD; equipe observar janela do sistema, valores antes/depois e restauração. Guardar só resultado, nunca senha. Scripts devem permanecer fixos e limitados à lista permitida. |
@@ -180,11 +180,11 @@ até o primeiro desenho (cerca de 1,8 s no total; o RESET EXPLODE abre em ~0,5 s
 medível, por isso não foi adotado. **Como melhorar:** medir com perfilador (dotnet-trace) qual parte das ~0,95 s iniciais é Skia/fontes e
 adiar a montagem das partes da Visão geral que não aparecem na primeira tela.
 
-### FPS e compatibilidade: orientação não é medição
+### Requisitos e compatibilidade: orientação não é medição
 
-A faixa de FPS é aproximação; “confiança média” não é intervalo estatístico calibrado.
-Não há fonte externa de FPS (a consulta à HowManyFPS foi removida em 08/11); opções de calibração local em `fps-estimativa-metodos.md`.
-**Contorno:** usar a faixa apenas para expectativa inicial e priorizar **“Medido neste PC”** de sessão MangoHud real.
+A comparação de requisitos usa texto publicado pelo desenvolvedor e uma tabela aproximada de desempenho relativo; “atende o recomendado” não é promessa de FPS.
+A página não mede nem estima FPS (a estimativa e a calibração foram removidas em 23/11/2026; histórico em `fps-estimativa-metodos.md`).
+**Contorno:** conferir o ProtonDB e priorizar **“Medido neste PC”** de sessão MangoHud real.
 Essa é a fonte mais confiável para o desempenho daquela sessão, mas o fluxo completo com jogo continua NÃO TESTADO.
 A sessão vale para as configurações usadas, não muda ao trocar o preset da estimativa.
 O 1% low usa registros de 100 ms e pode suavizar engasgos; não equivale a capturar cada quadro.

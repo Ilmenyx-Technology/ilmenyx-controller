@@ -26,77 +26,6 @@ public sealed class FpsAccuracyTests : IDisposable
     }
 
     [Theory]
-    [InlineData("NVIDIA GeForce RTX 4070", "RTX 4070", false, HardwareMatch.Desktop)]
-    [InlineData("AD104 [GeForce RTX 4070]", "RTX 4070", false, HardwareMatch.Desktop)]
-    [InlineData("GM108M [GeForce 940MX]", "940MX", false, HardwareMatch.Laptop)]
-    [InlineData("NVIDIA GeForce RTX 4060 Laptop GPU", "RTX 4060 Laptop", false, HardwareMatch.Laptop)]
-    [InlineData("GP106M [GeForce GTX 1060 Mobile]", "GTX 1060", false, HardwareMatch.Laptop)]
-    [InlineData("GeForce MX250", "MX250", false, HardwareMatch.Laptop)]
-    [InlineData("HD Graphics 620", "HD Graphics 620", true, HardwareMatch.Integrated)]
-    [InlineData("AMD Radeon 780M", "Radeon 780M", false, HardwareMatch.Integrated)]
-    [InlineData("AMD Radeon Graphics", "Radeon Graphics", true, HardwareMatch.Generic)]
-    [InlineData("Intel UHD Graphics", "UHD Graphics", true, HardwareMatch.Generic)]
-    [InlineData("Navi 32 [Radeon RX 7800 XT]", "RX 7800 XT", false, HardwareMatch.Desktop)]
-    public void GpuMatchKindFollowsTheNameAndKey(string name, string key, bool integrated, HardwareMatch expected)
-    {
-        Assert.Equal(key, GameCatalog.GpuMatch(name)!.Value.Key);
-        Assert.Equal(expected, FpsAccuracy.ClassifyGpu(name, key, integrated));
-    }
-
-    [Theory]
-    [InlineData("GM108M [GeForce 940MX]", "940MX")]
-    [InlineData("NVIDIA GeForce RTX 4070", "RTX 4070")]
-    [InlineData("Navi 32 [Radeon RX 7800 XT]", "RX 7800 XT")]
-    [InlineData("HD Graphics 620", "HD Graphics 620")]
-    public void GpuDisplayNameUsesTheMarketingName(string name, string expected) => Assert.Equal(expected, FpsAccuracy.DisplayGpuName(name));
-
-    [Theory]
-    [InlineData("Intel(R) Core(TM) i7-7500U CPU @ 2.70GHz", true)]
-    [InlineData("AMD Ryzen 7 7840HS w/ Radeon 780M Graphics", true)]
-    [InlineData("11th Gen Intel(R) Core(TM) i5-1135G7 @ 2.40GHz", true)]
-    [InlineData("AMD Ryzen 7 7700X 8-Core Processor", false)]
-    [InlineData("AMD Ryzen 5 5600G with Radeon Graphics", false)]
-    [InlineData("12th Gen Intel(R) Core(TM) i5-12400F", false)]
-    public void LaptopCpusAreRecognised(string cpu, bool laptop) => Assert.Equal(laptop, FpsAccuracy.IsLaptopCpu(cpu));
-
-    [Fact]
-    public void ConfidenceDependsOnMatchKindAndDistanceFromTheReference()
-    {
-        var desk = FpsAccuracy.Assess(HardwareMatch.Desktop, 100, false, 100);
-        Assert.Equal(FpsConfidence.Medium, desk.Confidence); Assert.Equal(FpsAccuracy.BaseSpread, desk.Spread, 3); Assert.Equal("confiança média", desk.ConfidenceText);
-        var laptop = FpsAccuracy.Assess(HardwareMatch.Laptop, 58, true, 90);
-        Assert.Equal(FpsConfidence.Low, laptop.Confidence); Assert.Contains(laptop.Reasons, r => r.StartsWith("GPU de notebook: o limite de energia/temperatura", StringComparison.Ordinal)); Assert.Contains(laptop.Reasons, r => r.StartsWith("CPU de notebook", StringComparison.Ordinal));
-        Assert.True(laptop.Spread > desk.Spread);
-        Assert.Equal(FpsConfidence.Low, FpsAccuracy.Assess(HardwareMatch.Desktop, 100, true, 100).Confidence); // laptop CPU alone
-        Assert.Contains(FpsAccuracy.Assess(HardwareMatch.Generic, 6, false, 100).Reasons, r => r.Contains("genérico", StringComparison.Ordinal));
-        // Desktop GTX 960 (18) stays medium; very far (GT 1030, 7) drops to low.
-        Assert.Equal(FpsConfidence.Medium, FpsAccuracy.Assess(HardwareMatch.Desktop, 18, false, 100).Confidence);
-        Assert.Equal(FpsConfidence.Low, FpsAccuracy.Assess(HardwareMatch.Desktop, 7, false, 100).Confidence);
-    }
-
-    [Fact]
-    public void ThisDellLaptopGetsAWideVeryLowConfidenceRange()
-    {
-        // Dell Inspiron 7460: i7-7500U + GeForce 940MX (pci.ids name as read on nouveau).
-        string gpu = "GM108M [GeForce 940MX]", cpu = "Intel(R) Core(TM) i7-7500U CPU @ 2.70GHz";
-        var g = GameCatalog.GpuMatch(gpu)!.Value; double c = GameCatalog.CpuMatch(cpu)!.Value.Index;
-        var a = FpsAccuracy.Assess(FpsAccuracy.ClassifyGpu(gpu, g.Key), g.Index, FpsAccuracy.IsLaptopCpu(cpu), c);
-        Assert.Equal(FpsConfidence.VeryLow, a.Confidence); Assert.InRange(a.Spread, 0.45, FpsAccuracy.MaxSpread);
-        var row = new GameFpsRow(GameCatalog.Games.Single(x => x.Name == "Counter-Strike 2"));
-        row.SetEstimate(GameCatalog.Estimate(row.Game, g.Index, c, "1920x1080", "Alto", "Native"), a);
-        Assert.Equal("7–19", row.FpsText); Assert.Equal("confiança muito baixa", row.LowText); Assert.Equal("ESTIMATIVA", row.Source); Assert.False(row.IsMeasured);
-    }
-
-    [Fact]
-    public void RangeNeverGoesBelowOneOrAboveTheEngineCap()
-    {
-        var a = new FpsAssessment(FpsConfidence.VeryLow, 0.5, []);
-        var elden = GameCatalog.Games.Single(x => x.Name == "Elden Ring");
-        Assert.Equal("30–60", FpsAccuracy.Range(new FpsEstimate(60, 45, Bottleneck.Engine), elden, a).Text);
-        Assert.Equal("1–2", FpsAccuracy.Range(new FpsEstimate(1.2, 1, Bottleneck.Gpu), elden, a).Text);
-    }
-
-    [Theory]
     [InlineData("Counter-Strike 2", "Counter-Strike 2", true)]
     [InlineData("Counter-Strike 2", "COUNTER-STRIKE™ 2", true)]
     [InlineData("GTA V", "Grand Theft Auto V Enhanced", true)]
@@ -154,61 +83,6 @@ public sealed class FpsAccuracyTests : IDisposable
     }
 
     [Fact]
-    public void MeasuredSessionTakesPriorityOverTheEstimate()
-    {
-        var rows = GameCatalog.Games.Select(g => new GameFpsRow(g)).ToList();
-        var at = new DateTimeOffset(2026, 11, 5, 12, 0, 0, TimeSpan.Zero);
-        var sessions = new List<FpsSession>
-        {
-            new("Counter-Strike 2", at.AddDays(-1), 40, 22, 600, "NVIDIA GeForce 940MX", null),
-            new("COUNTER-STRIKE 2", at, 47.6, 31.2, 2520, "NVIDIA GeForce 940MX", "1920x1080"),
-        };
-        GameFpsRow.RefreshLocal(rows, 100, 100, "1920x1080", "Alto", "Native", FpsAccuracy.Assess(HardwareMatch.Desktop, 100, false, 100), sessions);
-        var cs2 = rows.Single(r => r.Name == "Counter-Strike 2");
-        Assert.True(cs2.IsMeasured); Assert.Equal("MEDIDO NESTE PC", cs2.Source); Assert.Equal("48", cs2.FpsText); Assert.Equal("1% low 31", cs2.LowText);
-        Assert.Equal($"última sessão {at.ToLocalTime():dd/MM} · 42 min", cs2.Detail);
-        Assert.StartsWith("Medido neste PC: 48 FPS (1% low 31) · última sessão", cs2.Summary); Assert.Contains("GPU NVIDIA GeForce 940MX", cs2.Summary);
-        Assert.All(rows.Where(r => r.Name != "Counter-Strike 2"), r => Assert.Equal("ESTIMATIVA", r.Source));
-        // Unknown hardware: no estimate, but the measured session is still shown.
-        foreach (var r in rows) r.Set(0, 0, "SEM ESTIMATIVA", "");
-        GameFpsRow.ApplyMeasured(rows, sessions); Assert.Equal("48", cs2.FpsText); Assert.Equal("—", rows.Single(r => r.Name == "Dota 2").FpsText);
-    }
-
-    private static FpsContext Ctx(string vendor = "10de", string device = "134d", string driver = "nouveau", bool integrated = false, ulong vram = 0, string? igpu = "HD Graphics 620", bool? battery = false, int prime = 0, int profiles = 0) =>
-        new("GM108M [GeForce 940MX]", vendor, device, driver, integrated, vram, igpu, battery, prime, profiles);
-
-    [Fact]
-    public void AlertsComeOnlyFromWhatWasRead()
-    {
-        // This Dell on nouveau, on AC, no PRIME profile yet: nouveau (pre-Turing, no Vulkan) + hybrid; VRAM unknown on nouveau → no VRAM alert.
-        var dell = FpsAlerts.Build(Ctx());
-        Assert.Equal(["Driver nouveau na GeForce", "Notebook com duas GPUs"], dell.Select(a => a.Title));
-        Assert.Contains("Vulkan", dell[0].Text); Assert.Contains("HD Graphics 620", dell[1].Text); Assert.Contains("Nenhum perfil", dell[1].Text); Assert.EndsWith("para a 940MX.", dell[1].Text);
-        // Proprietary driver: 2 GB from nvidia-smi → VRAM alert; on battery; one PRIME profile of three.
-        var nv = FpsAlerts.Build(Ctx(driver: "nvidia", vram: 2UL << 30, battery: true, prime: 1, profiles: 3));
-        Assert.Equal(["2 GB de VRAM", "Notebook na bateria", "Notebook com duas GPUs"], nv.Select(a => a.Title));
-        Assert.Contains("1 de 3 perfis", nv[2].Text);
-        // Turing on nouveau: slower, but the Vulkan sentence is not claimed.
-        Assert.DoesNotContain("Vulkan", FpsAlerts.Build(Ctx(device: "1f95", igpu: null))[0].Text);
-        // Desktop with a big card, unknown battery: nothing to warn about. Integrated GPU: no VRAM / hybrid alert.
-        Assert.Empty(FpsAlerts.Build(Ctx(vendor: "1002", device: "747e", driver: "amdgpu", vram: 16UL << 30, igpu: null, battery: null)));
-        Assert.Empty(FpsAlerts.Build(Ctx(vendor: "8086", device: "5916", driver: "i915", integrated: true, vram: 256UL << 20, igpu: null)));
-        Assert.Equal("GPU sem driver", FpsAlerts.Build(Ctx(driver: "", igpu: null))[0].Title);
-    }
-
-    [Fact]
-    public void BatteryStateFromPowerSupply()
-    {
-        BatteryInput B(string status) => new("BAT0", null, null, null, null, 80, status, null, null, null, null, null);
-        Assert.Null(FpsAlerts.OnBattery([], true));
-        Assert.True(FpsAlerts.OnBattery([B("Discharging")], null));
-        Assert.True(FpsAlerts.OnBattery([B("Full")], false));
-        Assert.False(FpsAlerts.OnBattery([B("Charging")], true));
-        Assert.Null(FpsAlerts.OnBattery([B("Unknown")], null));
-        Assert.True(FpsAlerts.NvidiaPreTuring("10de", "134d")); Assert.False(FpsAlerts.NvidiaPreTuring("10de", "2786")); Assert.False(FpsAlerts.NvidiaPreTuring("1002", "134d"));
-    }
-
-    [Fact]
     [System.Runtime.Versioning.SupportedOSPlatform("linux")]
     public void SessionReaderPicksTheLargestLogWrittenSinceLaunch()
     {
@@ -235,7 +109,5 @@ public sealed class FpsAccuracyTests : IDisposable
         Assert.Null(MangoHudSession.Summarize(Log(60, _ => (52, 19.2)))!.CappedAt); // steady but no usual limit near 52
         var session = MangoHudSession.ToSession(capped, "SuperTuxKart", DateTimeOffset.UnixEpoch, "1920x1080", "Alto")!;
         Assert.Equal(60, session.CappedAt);
-        var row = new GameFpsRow(GameCatalog.Games[0]); row.SetMeasured(session);
-        Assert.Contains("limitado a 60 FPS", row.Summary);
     }
 }
