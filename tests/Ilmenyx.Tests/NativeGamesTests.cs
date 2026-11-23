@@ -99,6 +99,8 @@ public sealed class NativeGamesTests : IDisposable
         File.WriteAllText(Path.Combine(system, "escondido.desktop"), Entry("Escondido", bin, "Game;"));
         File.WriteAllText(Path.Combine(user, "escondido.desktop"), Entry("Escondido", bin, "Game;", "Hidden=true")); // user hid it
         File.WriteAllText(Path.Combine(system, "removido.desktop"), Entry("Removido", Path.Combine(root, "nao-existe"), "Game;"));
+        File.WriteAllText(Path.Combine(user, "ilmenyx-jogos.desktop"), Entry("Jogos — Ilmenyx Controller", bin + " --games", "Game;")); // own shortcuts are not games
+        File.WriteAllText(Path.Combine(user, "ilmenyx-jogo-0123456789ab.desktop"), Entry("Jogo", bin + " --play X", "Game;"));
         var g = Assert.Single(new LinuxGameLibrary(root).Native([(user, false), (system, false)]));
         Assert.Equal("Linux", g.Store); Assert.Equal("Jogo", g.Name); Assert.Equal(bin, g.ExePath); Assert.Equal("", g.Args);
     }
