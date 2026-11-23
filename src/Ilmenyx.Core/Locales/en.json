@@ -3546,6 +3546,7 @@
   "Você está na versão mais recente (v{0}).": "You're on the latest version (v{0}).",
   "Você está na versão mais recente do ramo {0} publicada pela NVIDIA (ou mais nova).": "You're on the latest {0} branch version published by NVIDIA (or newer).",
   "Você pode tentar de novo ou baixar pela página de downloads.": "You can try again or download from the downloads page.",
+  "Você quis dizer {0}?": "Did you mean {0}?",
   "Você usa a v{0}. ": "You use v{0}. ",
   "Volta para a biblioteca inteira (Esc).": "Goes back to the whole library (Esc).",
   "Voltar ao nouveau (remover o driver NVIDIA)": "Go back to nouveau (remove the NVIDIA driver)",

@@ -138,6 +138,7 @@ Os IDs são citados pelo app (página Bloqueados e CLI); não renomear.
 | ZRAM-01 | Aplicar e desfazer o ZRAM de verdade | NÃO TESTADO | Plano e scripts testados com fixtures de 5 famílias de distros | Aplicar numa máquina de teste e desfazer |
 | LIB-HIDE-01 | Ocultar e mostrar jogos da biblioteca (jogo de loja/menu), caixa Mostrar ocultos | NÃO TESTADO | Build, testes de filtro e de JSON dos ajustes OK; uso real na janela não executado | Ocultar um jogo de menu (ex.: um Flatpak), conferir contagem e Mostrar ocultos, reiniciar o app |
 | LIB-COVER-01 | Capa própria (arquivo ou link https), busca automática de capa para AppImage/script manual | NÃO TESTADO | Cópia/validação e URL testadas com arquivos temporários; seletor de arquivos (inclusive no Flatpak), download real e busca na Steam não executados | Escolher imagem e link num jogo, remover capa, adicionar um AppImage e ver a capa; repetir no Flatpak |
+| LIB-SUGGEST-01 | "Você quis dizer…?" para jogo manual sem correspondência exata (ID Proton do .exe e capa dos demais) | NÃO TESTADO | Ranqueamento, filtro de DLC/trilha, limite de buscas e recusa testados sem rede; busca real na Steam e clique em Sim/Não na janela não executados | Adicionar um jogo com nome errado ("Hollow Knigth"), ver a pergunta, responder Não (próxima sugestão e não voltar) e Sim (ID/capa aplicados); renomear limpa recusas |
 
 ## Fora do escopo agora
 

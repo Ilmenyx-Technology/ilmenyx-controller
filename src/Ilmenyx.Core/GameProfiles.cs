@@ -57,6 +57,8 @@ public sealed class GameProfile
     public string? CoverPath { get; set; }
     /// <summary>Steam AppID found by name only to fetch the cover of a manual game that is not a .exe (Proton settings stay .exe-only).</summary>
     public string? ArtSteamId { get; set; }
+    /// <summary>Steam IDs the user refused at "Você quis dizer…?" for this game; never suggested again (cleared when the game is renamed).</summary>
+    public List<string> RejectedSteamIds { get; set; } = [];
 }
 
 /// <summary>Manually added executable (ELF, script, AppImage).</summary>

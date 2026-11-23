@@ -49,4 +49,54 @@ public sealed class SteamAppLookupTests
         Assert.Null(await new SteamAppLookup(new Fake(HttpStatusCode.InternalServerError, "")).FindAsync("Hollow Knight"));
         Assert.Null(await new SteamAppLookup(new Fake(HttpStatusCode.OK, "not json")).FindAsync("Hollow Knight"));
     }
+
+    private static readonly (string, string)[] Hollow =
+    [("1", "Scarlet Hollow"), ("2", "Hollow Knight: Silksong"), ("3", "Hollow Knight: Silksong Official Soundtrack"), ("4", "Hollow Knight"), ("5", "Hollow Knight - Artbook")];
+
+    [Fact]
+    public void TypoRanksTheClosestFirstAndDropsSoundtracks()
+    {
+        var r = SteamAppLookup.RankSuggestions("Hollow Knigth", Hollow);
+        Assert.Equal("Hollow Knight", r[0].Name);
+        Assert.DoesNotContain(r, x => x.Name.Contains("Soundtrack") || x.Name.Contains("Artbook"));
+        Assert.True(r.Count <= 3);
+    }
+
+    [Fact]
+    public void MissingWordLetterFindsTheRemaster() =>
+        Assert.Equal("God of War III Remastered", SteamAppLookup.RankSuggestions("God of Wr III", [("9", "God of War III Remastered"), ("8", "Gods Will Be Watching")])[0].Name);
+
+    [Fact]
+    public void NothingSimilarGivesNothingAndExactIsNotSuggested()
+    {
+        Assert.Empty(SteamAppLookup.RankSuggestions("Zzzzqx", Hollow));
+        Assert.Empty(SteamAppLookup.RankSuggestions("Hollow Knight", [("4", "Hollow Knight")]));
+        Assert.Equal(1.0, SteamAppLookup.Similarity("Doom", "DOOM"));
+    }
+
+    private sealed class Counting : HttpMessageHandler
+    {
+        public List<string> Terms = [];
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        {
+            Terms.Add(Uri.UnescapeDataString(request.RequestUri!.Query));
+            bool word = !Terms[^1].EndsWith("Hollow Knigth", StringComparison.Ordinal);
+            string body = word && Terms[^1].EndsWith("Hollow") ? """{"items":[{"type":"app","name":"Hollow Knight","id":367520},{"type":"app","name":"Hollow Knight OST","id":5}]}""" : """{"items":[]}""";
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body) });
+        }
+    }
+
+    [Fact]
+    public async Task SuggestSearchesWordByWordWithALimitAndHonoursRefusals()
+    {
+        var h = new Counting();
+        var r = await new SteamAppLookup(h).SuggestAsync("Hollow Knigth");
+        Assert.Equal([("367520", "Hollow Knight")], r);
+        Assert.True(h.Terms.Count is >= 2 and <= 4);
+        Assert.Empty(await new SteamAppLookup(new Counting()).SuggestAsync("Hollow Knigth", exclude: new HashSet<string> { "367520" }));
+        var h2 = new Counting();
+        Assert.Empty(await new SteamAppLookup(h2).SuggestAsync("Aaaa Bbbb Cccc Dddd Eeee Ffff"));
+        Assert.Equal(4, h2.Terms.Count);
+        Assert.Empty(await new SteamAppLookup(new Fake(HttpStatusCode.InternalServerError, "")).SuggestAsync("Hollow Knigth"));
+    }
 }

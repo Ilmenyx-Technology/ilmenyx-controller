@@ -3546,6 +3546,7 @@
   "Você está na versão mais recente (v{0}).": "Tienes la versión más reciente (v{0}).",
   "Você está na versão mais recente do ramo {0} publicada pela NVIDIA (ou mais nova).": "Estás en la versión más reciente de la rama {0} publicada por NVIDIA (o más nueva).",
   "Você pode tentar de novo ou baixar pela página de downloads.": "Puedes intentarlo de nuevo o descargar desde la página de descargas.",
+  "Você quis dizer {0}?": "¿Quisiste decir {0}?",
   "Você usa a v{0}. ": "Usas la v{0}. ",
   "Volta para a biblioteca inteira (Esc).": "Vuelve a la biblioteca completa (Esc).",
   "Voltar ao nouveau (remover o driver NVIDIA)": "Volver a nouveau (quitar el driver NVIDIA)",

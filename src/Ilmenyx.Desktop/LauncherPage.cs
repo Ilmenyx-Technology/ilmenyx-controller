@@ -85,6 +85,12 @@ public sealed class LauncherPage : Grid
     private static readonly SteamAppLookup SteamIds = new();
     /// <summary>Steam ID search by name (default: the Steam store search). Settable for fixtures, so tests never go online.</summary>
     public Func<string, CancellationToken, Task<(string Id, string Name)?>>? FindSteamId { get; init; }
+    /// <summary>Similar-name suggestions (game name, refused ids); default: the Steam store search. Settable for fixtures.</summary>
+    public Func<string, IReadOnlySet<string>, CancellationToken, Task<IReadOnlyList<(string Id, string Name)>>>? SuggestSteamId { get; init; }
+    private readonly StackPanel suggestBox = new() { Name = "SuggestBox", IsVisible = false, Margin = new Thickness(0, 10, 0, 0), Spacing = 6 };
+    private readonly TextBlock suggestText = new() { Name = "SuggestText", FontSize = 12, TextWrapping = TextWrapping.Wrap };
+    private List<(string Id, string Name)> suggestions = [];
+    private Action<string, string>? applySuggestion;
     /// <summary>Asks before removing a game (default: a confirmation dialog). Settable for fixtures.</summary>
     public Func<string, Task<bool>>? ConfirmRemove { get; init; }
     /// <summary>Asks the new name of a game (default: a text dialog; null = cancelled). Settable for fixtures.</summary>
@@ -323,7 +329,7 @@ public sealed class LauncherPage : Grid
             Children =
             {
                 CardTitle(Icons.Oc, L.T("DESEMPENHO")), chkPlan, chkGpu, chkGameMode, chkMango, mangoFlatpakBox, chkGuard, extrasBox, exeText, new Border { Height = 6 }, exePath, new Border { Height = 8 },
-                new WrapPanel { ItemSpacing = 8, LineSpacing = 6, Children = { browseExe, setExe, recommended } }, protonBox, achFixBox,
+                new WrapPanel { ItemSpacing = 8, LineSpacing = 6, Children = { browseExe, setExe, recommended } }, suggestBox, protonBox, achFixBox,
                 new TextBlock { Text = L.T("O perfil de energia vale só durante o jogo e volta ao anterior. Prioridade de processo elevada exige privilégios no Linux; o GameMode cuida disso quando instalado. O executável é descoberto sozinho; se errar, informe o caminho certo."), Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0) }
             }
         });
@@ -342,6 +348,11 @@ public sealed class LauncherPage : Grid
         var findId = new Button { Name = "BtnFindSteamId", Content = L.T("Buscar"), FontSize = 11, Padding = new Thickness(12, 5), Margin = new Thickness(8, 0, 0, 0) };
         ToolTip.SetTip(findId, L.T("Procura o ID pelo nome do jogo na loja Steam (só o nome é enviado)."));
         findId.Click += async (_, _) => await LookUpSteamIdAsync(automatic: false);
+        var yes = new Button { Name = "BtnSuggestYes", Content = L.T("Sim"), FontSize = 11, Padding = new Thickness(14, 5) };
+        var no = new Button { Name = "BtnSuggestNo", Content = L.T("Não"), FontSize = 11, Padding = new Thickness(14, 5) };
+        yes.Click += (_, _) => { if (suggestions.Count > 0 && applySuggestion is { } apply) { var s = suggestions[0]; HideSuggestion(); apply(s.Id, s.Name); } };
+        no.Click += (_, _) => RejectSuggestion();
+        suggestBox.Children.Add(suggestText); suggestBox.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { yes, no } });
         var idRow = new DockPanel(); DockPanel.SetDock(findId, Dock.Right); idRow.Children.Add(findId); idRow.Children.Add(protonId);
         protonBox.Children.Add(new Border { Height = 6 }); protonBox.Children.Add(idRow); protonBox.Children.Add(protonIdStatus);
         var protonHelp = new TextBlock { Text = L.T("Roda com Proton, sem a Steam. Com o ID Steam, o Proton aplica as correções conhecidas do jogo."), Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0) };
@@ -581,7 +592,7 @@ public sealed class LauncherPage : Grid
 
     public void Select(LibGame? g)
     {
-        current = g;
+        current = g; HideSuggestion();
         if (g is null) { profile = null; ApplyLayout(force: true); return; }
         ApplyLayout(force: true);
         if (!settings.GameProfiles.TryGetValue(SettingsKey(g), out var p)) { p = new GameProfile(); settings.GameProfiles[SettingsKey(g)] = p; }
@@ -833,6 +844,7 @@ public sealed class LauncherPage : Grid
         if (current is not { Store: "Manual" } game || profile is not { } p) return;
         if (!game.IsWindowsManual) { if (automatic) await LookUpArtIdAsync(game, p, renamed); return; }
         if (automatic && !renamed && p.ProtonGameId is { Length: > 0 }) return;
+        if (renamed) p.RejectedSteamIds.Clear();
         protonIdStatus.Foreground = Palette.Faint; protonIdStatus.Text = L.T("Buscando o ID Steam…");
         var find = FindSteamId ?? ((n, ct) => SteamIds.FindAsync(n, ct));
         var found = await find(game.Name, lifetime);
@@ -845,15 +857,53 @@ public sealed class LauncherPage : Grid
             protonIdStatus.Text = L.T($"ID encontrado na loja Steam: {f.Name}.");
             FetchArtLater(game, f.Id);
         }
-        else protonIdStatus.Text = automatic ? "" : p.ProtonGameId is { Length: > 0 } kept ? L.T($"Nenhum jogo com esse nome na loja Steam. O ID {kept} continua salvo.") : L.T("Nenhum jogo com esse nome na loja Steam. Digite o ID no campo.");
+        else
+        {
+            protonIdStatus.Text = automatic ? "" : p.ProtonGameId is { Length: > 0 } kept ? L.T($"Nenhum jogo com esse nome na loja Steam. O ID {kept} continua salvo.") : L.T("Nenhum jogo com esse nome na loja Steam. Digite o ID no campo.");
+            await SuggestAsync(game, p, (id, name) =>
+            {
+                loading = true; protonId.Text = id; loading = false;
+                p.ProtonGameId = id; SaveProfile(game, p); UpdateTags();
+                protonIdStatus.Foreground = Palette.Faint; protonIdStatus.Text = L.T($"ID encontrado na loja Steam: {name}.");
+                FetchArtLater(game, id);
+            });
+        }
+    }
+
+    /// <summary>"Você quis dizer X?" after no exact match: shows the closest names one at a time; Sim applies it, Não remembers the refusal.</summary>
+    private async Task SuggestAsync(LibGame game, GameProfile p, Action<string, string> apply)
+    {
+        var rejected = p.RejectedSteamIds.ToHashSet();
+        var list = SuggestSteamId is { } custom ? await custom(game.Name, rejected, lifetime) : await SteamIds.SuggestAsync(game.Name, lifetime, rejected);
+        if (current != game || list.Count == 0) return;
+        suggestions = [.. list]; applySuggestion = apply; ShowSuggestion();
+    }
+
+    private void ShowSuggestion()
+    {
+        string q = L.T($"Você quis dizer {suggestions[0].Name}?");
+        suggestText.Text = q; AutomationProperties.SetName(suggestBox, q); suggestBox.IsVisible = true;
+    }
+
+    private void HideSuggestion() { suggestBox.IsVisible = false; suggestions = []; applySuggestion = null; }
+
+    private void RejectSuggestion()
+    {
+        if (suggestions.Count == 0 || current is not { } game || profile is not { } p) { HideSuggestion(); return; }
+        p.RejectedSteamIds.Add(suggestions[0].Id); SaveProfile(game, p);
+        suggestions.RemoveAt(0);
+        if (suggestions.Count == 0) HideSuggestion(); else ShowSuggestion();
     }
 
     /// <summary>Non-.exe manual game: finds the Steam ID by name only for the cover (kept in ArtSteamId, never in the Proton settings).</summary>
     private async Task LookUpArtIdAsync(LibGame game, GameProfile p, bool renamed)
     {
         if (!renamed && p.ArtSteamId is { Length: > 0 }) return;
+        if (renamed) p.RejectedSteamIds.Clear();
         var find = FindSteamId ?? ((n, ct) => SteamIds.FindAsync(n, ct));
-        if (await find(game.Name, lifetime) is not { } f || current != game) return;
+        var found = await find(game.Name, lifetime);
+        if (current != game) return;
+        if (found is not { } f) { await SuggestAsync(game, p, (id, _) => { p.ArtSteamId = id; SaveProfile(game, p); FetchArtLater(game, id); }); return; }
         p.ArtSteamId = f.Id; SaveProfile(game, p); FetchArtLater(game, f.Id);
     }
 
