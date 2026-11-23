@@ -75,6 +75,10 @@ public sealed class LinuxGameLibrary(string? home = null, Func<IReadOnlyList<str
         bool realHome = home == Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         string dataHome = realHome && Environment.GetEnvironmentVariable("XDG_DATA_HOME") is { Length: > 0 } x ? x : Path.Combine(home, ".local/share");
         var dirs = new List<(string, bool)> { (Path.Combine(dataHome, "applications"), false), (Path.Combine(dataHome, "flatpak/exports/share/applications"), true) };
+        // Flatpak (and a run that borrows its XDG_DATA_HOME) points XDG_DATA_HOME at ~/.var/app/<id>/data: the user's own menu entries live in
+        // ~/.local/share/applications on the host, where games like SpartanPort install theirs. Read that folder too (the app has home access).
+        string hostData = Path.Combine(home, ".local/share");
+        if (realHome && dataHome != hostData) dirs.InsertRange(1, [(Path.Combine(hostData, "applications"), false), (Path.Combine(hostData, "flatpak/exports/share/applications"), true)]);
         if (!realHome) return dirs; // another home (tests, fixtures): never the system's own entries
         foreach (var d in (Environment.GetEnvironmentVariable("XDG_DATA_DIRS") is { Length: > 0 } s ? s : "/usr/local/share:/usr/share").Split(':', StringSplitOptions.RemoveEmptyEntries))
             if (Path.IsPathFullyQualified(d)) dirs.Add((Path.Combine(d, "applications"), d.Contains("/flatpak/exports/", StringComparison.Ordinal)));
