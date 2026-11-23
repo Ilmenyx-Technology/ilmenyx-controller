@@ -665,6 +665,7 @@ public sealed class UiSmokeApp : Application
         await TourAndHelpAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await StartupDriversRedesignAsync(shell, desktop);
         if (OperatingSystem.IsLinux()) await GamingExtrasAsync(shell, desktop);
+        if (OperatingSystem.IsLinux()) await GamesQaAsync(shell, desktop);
         await ThemeAsync(shell);
         if (OperatingSystem.IsLinux()) await CanRunLayoutAsync(shell);
         if (OperatingSystem.IsLinux()) await BlockedAndFullTourAsync(shell);
@@ -1846,6 +1847,8 @@ public sealed class UiSmokeApp : Application
         var output = Program.OutputDirectory;
         if (Environment.GetEnvironmentVariable("ILMENYX_CONTRAST_AUDIT") == "1") { await ContrastAuditAsync(); desktop.Shutdown(0); return; }
         if (Environment.GetEnvironmentVariable("ILMENYX_PERF_AUDIT") == "1") { await PerfAuditAsync(); desktop.Shutdown(0); return; }
+        if (Environment.GetEnvironmentVariable("ILMENYX_SMOKE_ONLY") == "gamesqa" && OperatingSystem.IsLinux()) // quick loop for the Games QA scenario alone
+        { var only = new ShellWindow { Width = 1280, Height = 820 }; only.Show(); await Task.Delay(800); await GamesQaAsync(only, desktop); only.Close(); return; }
         await MonitorAsync(desktop);
         await KeyboardAsync(window, desktop);
         await RequirementsAsync(window, desktop);
@@ -2527,5 +2530,201 @@ public sealed class UiSmokeApp : Application
         await Themes(lhost, "extras-launcher-umu", Find<StackPanel>(lhost, "LExtrasBox"));
         lhost.Close();
         Console.WriteLine("PASS experimental Proton options: off by default, explained confirmation (declined = not saved), Wayland + low latency in the Steam launch options with GE-Proton 10 + NVIDIA, out-of-use reason shown for UMU-Proton 9 (fixtures)");
+    }
+
+    /// <summary>
+    /// QA matrix of the Games page with a fake launcher and fake processes (nothing real is opened, closed or measured): states x actions, the
+    /// "valid next launch" notice, controls locked under a live game, the Parar acompanhamento confirmation and Medir FPS.
+    /// </summary>
+    [System.Runtime.Versioning.SupportedOSPlatform("linux")]
+    private static async Task GamesQaAsync(ShellWindow shell, IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        string root = Path.Combine(Program.OutputDirectory, "games-qa-fixture"), home = Path.Combine(root, "home"), steam = Path.Combine(home, ".local/share/Steam"), apps = Path.Combine(steam, "steamapps");
+        Directory.CreateDirectory(Path.Combine(apps, "common/Game One")); Directory.CreateDirectory(Path.Combine(steam, "userdata/1/config"));
+        File.WriteAllText(Path.Combine(apps, "libraryfolders.vdf"), "\"libraryfolders\"\n{\n\t\"0\"\n\t{\n\t\t\"path\"\t\t\"" + steam + "\"\n\t}\n}\n");
+        File.WriteAllText(Path.Combine(apps, "appmanifest_100.acf"), "\"AppState\"\n{\n\t\"appid\"\t\t\"100\"\n\t\"name\"\t\t\"Game One\"\n\t\"StateFlags\"\t\t\"4\"\n\t\"installdir\"\t\t\"Game One\"\n}\n");
+        File.WriteAllText(Path.Combine(steam, "userdata/1/config/localconfig.vdf"), "\"UserLocalConfigStore\"\n{\n}\n");
+        string native = Path.Combine(root, "nativo.sh"); File.WriteAllText(native, "#!/bin/sh\n"); File.SetUnixFileMode(native, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        string winExe = Path.Combine(root, "Jogo Win/game.exe"); Directory.CreateDirectory(Path.GetDirectoryName(winExe)!); File.WriteAllBytes(winExe, [0x4d, 0x5a, 0x90, 0, 3, 0, 0, 0]);
+        string settingsPath = Path.Combine(root, "cfg/ilmenyx/settings.json");
+        var runningNow = new HashSet<string>(); var seen = new Dictionary<string, GameProfile>(); var exits = new Dictionary<string, TaskCompletionSource>(); var statusOf = new Dictionary<string, Action<string>>(); var launches = new Dictionary<string, int>();
+        var removeAsked = 0; Window? host = null;
+        var page = new LauncherPage(new LinuxGameLibrary(home, (_, _) => Task.FromResult((0, "[]"))), new SteamInfo(home, Path.Combine(root, "noproc")), settingsPath,
+            async (g, p, v, status, learned, ct) =>
+            {
+                seen[g.Key] = p; launches[g.Key] = launches.GetValueOrDefault(g.Key) + 1; statusOf[g.Key] = status; exits[g.Key] = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                try { await exits[g.Key].Task.WaitAsync(ct); }
+                catch (OperationCanceledException) { status("Acompanhamento cancelado."); }
+                return null;
+            }, () => host, "AMD", true, CancellationToken.None)
+        {
+            IsRunning = (g, _, _) => Task.FromResult(runningNow.Contains(g.Key)), ConfirmRemove = _ => { removeAsked++; return Task.FromResult(true); },
+            FindSteamId = (_, _) => Task.FromResult<(string, string)?>(null), SuggestSteamId = (_, _, _) => Task.FromResult<IReadOnlyList<(string, string)>>([]), FetchArt = (_, _) => Task.FromResult<string?>(null),
+            UmuProton = () => null, WaylandSession = () => true,
+        };
+        var scaler = new LayoutTransformControl { Child = page }; // 100/150/200% text is simulated by scaling the layout
+        host = new Window { Width = 1100, Height = 800, Content = scaler }; host.Show();
+        LauncherPage.GuardClose(host, () => page);
+        async Task<ConfirmDialog> Ask() { await Until(() => desktop.Windows.OfType<ConfirmDialog>().Any(w => w.IsVisible)); await Task.Delay(120); return desktop.Windows.OfType<ConfirmDialog>().Single(w => w.IsVisible); }
+        async Task Answer(string button) { var d = await Ask(); Click(d, button); await Until(() => !d.IsVisible); }
+        void Check(bool ok, string what) { if (!ok) throw new InvalidOperationException("Games QA: " + what); }
+        async Task Pick(string key) { Click(host, "LGame_" + LauncherPage.SafeName(key)); await Until(() => page.Profile is not null && host.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "LTitle" && t.Text == page.Games.First(g => g.Key == key).Name)); await Task.Delay(150); }
+        int NotesShown() => host.GetVisualDescendants().OfType<TextBlock>().Count(t => t.Name?.StartsWith("LLiveNote") == true && t.IsEffectivelyVisible);
+        string Play() => Find<Button>(host, "BtnPlay").Content!.ToString()!;
+        async Task Themes(string stem, Control focus)
+        {
+            host.Width = 900; host.Height = 560; await Task.Delay(300); focus.BringIntoView(new Rect(0, 0, Math.Max(1, focus.Bounds.Width), 200)); await Task.Delay(300);
+            Capture(host, stem + "-dark-900x560.png");
+            Click(shell, "ToggleTheme"); await Until(() => Palette.IsLight); await Task.Delay(400); focus.BringIntoView(new Rect(0, 0, Math.Max(1, focus.Bounds.Width), 200)); await Task.Delay(200);
+            Capture(host, stem + "-light-900x560.png");
+            Click(shell, "ToggleTheme"); await Until(() => !Palette.IsLight); await Task.Delay(200);
+            host.Width = 1100; host.Height = 800; await Task.Delay(200);
+        }
+        await Until(() => page.Games.Count == 1);
+        // Add the two manual games through the real add box (a Windows .exe for the Proton box, a script for the native one).
+        Click(host, "BtnAddExe"); Find<TextBox>(host, "LAddPath").Text = native; Click(host, "BtnAddExeConfirm");
+        await Until(() => page.Games.Count == 2 && page.Profile is not null);
+        Find<TextBox>(host, "LAddPath").Text = winExe; Click(host, "BtnAddExeConfirm");
+        await Until(() => page.Games.Count == 3 && host.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "LTitle" && t.Text == "Jogo Win"));
+        string nativeKey = page.Games.Single(g => g.Store == "Manual" && g.Id == native).Key, winKey = page.Games.Single(g => g.Id == winExe).Key, steamKey = page.Games.Single(g => g.IsSteam).Key;
+
+        // State: no game selected. The library fills the page; no detail, no stale controls.
+        Click(host, "BtnBackToLibrary"); await Task.Delay(150);
+        Check(!Find<ScrollViewer>(host, "LDetail").IsVisible, "detail visible with no game selected");
+        // Library search: a name that matches nothing explains itself; clearing brings the games back.
+        Find<TextBox>(host, "LGameSearch").Text = "zzzz"; await Until(() => Find<TextBlock>(host, "LEmpty").IsEffectivelyVisible);
+        Check(Find<TextBlock>(host, "LEmpty").Text == "Nenhum jogo com esse nome.", "empty-search card text: " + Find<TextBlock>(host, "LEmpty").Text);
+        Find<TextBox>(host, "LGameSearch").Text = ""; await Until(() => !Find<TextBlock>(host, "LEmpty").IsEffectivelyVisible);
+        Console.WriteLine("PASS games QA: no game selected (no detail) and an empty search says why");
+
+        // State: stopped game. No live notice, nothing locked, Medir FPS on by default and saved.
+        await Pick(nativeKey);
+        Check(Play() == "Jogar" && Find<Button>(host, "BtnPlay").IsEnabled, "stopped game must offer Jogar");
+        Check(NotesShown() == 0, "live notices visible on a stopped game");
+        Check(Find<CheckBox>(host, "LChkMeasure").IsChecked == true && Find<CheckBox>(host, "LChkMeasure").IsVisible, "Medir FPS must be visible and on by default for a manual game");
+        bool haveMango = Find<CheckBox>(host, "LChkMango").IsEnabled; string measureNote() => Find<TextBlock>(host, "LMeasureNote").Text!;
+        if (haveMango) Check(Find<CheckBox>(host, "LChkMeasure").IsEnabled && measureNote().Contains("anti-cheat"), "Medir FPS text with MangoHud available: " + measureNote());
+        else Check(!Find<CheckBox>(host, "LChkMeasure").IsEnabled && measureNote().StartsWith("Indisponível"), "Medir FPS must say it is unavailable without MangoHud: " + measureNote());
+        Find<CheckBox>(host, "LChkMeasure").IsChecked = false; await Task.Delay(100);
+        Check(IlmenyxSettings.Load(settingsPath).GameProfiles[nativeKey].MeasureFps == false, "Medir FPS off not saved");
+        Check(haveMango ? measureNote().StartsWith("Desligado") : measureNote().StartsWith("Indisponível"), "Medir FPS off text: " + measureNote());
+        Find<CheckBox>(host, "LChkMeasure").IsChecked = true;
+        if (haveMango)
+        {
+            Find<CheckBox>(host, "LChkMango").IsChecked = true; await Task.Delay(100);
+            Check(!Find<CheckBox>(host, "LChkMeasure").IsEnabled && measureNote().Contains("já mede"), "with MangoHud ticked Medir FPS must step aside: " + measureNote());
+            Find<CheckBox>(host, "LChkMango").IsChecked = false; await Task.Delay(100);
+        }
+        Check(Find<TextBlock>(host, "FpsMeasuredEmpty").Text!.Contains("Medir FPS"), "measured-FPS empty text must mention Medir FPS");
+        Console.WriteLine("PASS games QA: stopped game, Medir FPS on by default, saved, steps aside for MangoHud, honest when MangoHud is missing (mangohud here: " + haveMango + ")");
+
+        // State: Abrindo… (followed, process not seen yet). Notices show, locks apply, the launch keeps a copy of the profile.
+        Find<TextBox>(host, "LExePath").Focus();
+        Click(host, "BtnPlay");
+        await Until(() => Play() == "Abrindo…" && seen.ContainsKey(nativeKey));
+        Check(!Find<Button>(host, "BtnPlay").IsEnabled, "Jogar must be off while opening");
+        Check(Find<Button>(host, "BtnStopWatch").IsVisible && !Find<Button>(host, "BtnCloseGame").IsVisible, "opening: Parar acompanhamento yes, Fechar jogo no");
+        Check(NotesShown() >= 3, "live notices missing while opening: " + NotesShown());
+        Check(!Find<TextBox>(host, "LExePath").IsEnabled && !Find<Button>(host, "BtnSetExe").IsEnabled && !Find<Button>(host, "BtnSetExeBrowse").IsEnabled, "executable controls must lock under a live game");
+        Check(!Find<Button>(host, "BtnRemoveGame").IsEnabled && !Find<Button>(host, "BtnRenameGame").IsEnabled, "Remover/Renomear must lock under a live game");
+        Check((ToolTip.GetTip(Find<Button>(host, "BtnRemoveGame")) as string ?? "").StartsWith("Feche o jogo"), "locked Remover must say why");
+        Check(host.FocusManager?.GetFocusedElement() is not Control { IsEffectivelyEnabled: false }, "focus stayed on a control that was just disabled");
+        Check(Find<TextBlock>(host, "LStatus").Text == "Abrindo nativo…" || Find<TextBlock>(host, "LStatus").Text!.Length > 0, "status empty while opening");
+        // Changing launch-only settings while it runs: allowed, noted, and the launch keeps the copy it started with.
+        Find<CheckBox>(host, "LChkPlan").IsChecked = true; Find<CheckBox>(host, "LChkMeasure").IsChecked = false; await Task.Delay(100);
+        Check(page.Profile!.HighPerfPlan && !seen[nativeKey].HighPerfPlan && seen[nativeKey].MeasureFps, "the launch must keep the profile it started with");
+        Check(Find<TextBlock>(host, "LLiveNote0").Text == "Vale na próxima vez que o jogo abrir.", "live notice text");
+        Find<CheckBox>(host, "LChkPlan").IsChecked = false; Find<CheckBox>(host, "LChkMeasure").IsChecked = true; await Task.Delay(100);
+        Console.WriteLine("PASS games QA: Abrindo… shows the launch-only notice, locks executable/Remover/Renomear (with the reason), keeps focus off disabled controls, the launch keeps its own profile copy");
+
+        // State: running and followed. Fechar jogo appears; Parar acompanhamento asks first, safe answer focused.
+        runningNow.Add(nativeKey); statusOf[nativeKey]("Jogo em execução.");
+        await Until(() => Play() == "Em execução");
+        Check(Find<Button>(host, "BtnCloseGame").IsVisible && Find<Button>(host, "BtnStopWatch").IsVisible, "running+followed: Fechar jogo and Parar acompanhamento");
+        await Themes("games-qa-live-card", Find<CheckBox>(host, "LChkMango"));
+        var stopBtn = Find<Button>(host, "BtnStopWatch"); stopBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); stopBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); // double click
+        var ask = await Ask();
+        Check(desktop.Windows.OfType<ConfirmDialog>().Count(w => w.IsVisible) == 1, "double click opened two confirmations");
+        Check(ask.Title == "Parar o acompanhamento?", "stop dialog title: " + ask.Title);
+        string body = Find<TextBlock>(ask, "ConfirmText").Text!;
+        Check(body.Contains("nativo") && body.Contains("O jogo não é fechado") && (!haveMango || body.Contains("DESEMPENHO MEDIDO")), "stop dialog body: " + body);
+        Check(Find<Button>(ask, "ConfirmYes").Content!.ToString() == "Parar acompanhamento" && Find<Button>(ask, "ConfirmNo").Content!.ToString() == "Continuar acompanhando", "stop dialog buttons");
+        Check(Find<Button>(ask, "ConfirmNo").IsFocused, "the safe answer (Continuar acompanhando) must hold the initial focus");
+        Capture(ask, "games-qa-stop-dialog-dark.png");
+        Click(ask, "ConfirmNo"); await Until(() => !ask.IsVisible); await Task.Delay(150);
+        Click(shell, "ToggleTheme"); await Until(() => Palette.IsLight); await Task.Delay(300); // the light capture needs a dialog built under the light theme
+        stopBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); var askLight = await Ask(); Capture(askLight, "games-qa-stop-dialog-light.png");
+        Click(askLight, "ConfirmNo"); await Until(() => !askLight.IsVisible); Click(shell, "ToggleTheme"); await Until(() => !Palette.IsLight); await Task.Delay(150);
+        Check(Find<Button>(host, "BtnStopWatch").IsVisible && !exits[nativeKey].Task.IsCompleted && Play() == "Em execução", "declining must keep following");
+        await Task.Delay(100);
+        stopBtn.Focus(); stopBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); await Answer("ConfirmYes");
+        await Until(() => !Find<Button>(host, "BtnStopWatch").IsVisible); await Task.Delay(200);
+        Check(host.FocusManager?.GetFocusedElement() is Control { IsEffectivelyVisible: true, IsEffectivelyEnabled: true }, "focus was lost after Parar acompanhamento hid the button: " + host.FocusManager?.GetFocusedElement());
+        Check(Play() == "Em execução" && Find<Button>(host, "BtnCloseGame").IsVisible, "after stopping, the game stays 'Em execução' (opened by us, no longer followed) and can be closed");
+        Check(NotesShown() >= 3, "live notices must stay while the game runs without following");
+        Console.WriteLine("PASS games QA: Parar acompanhamento confirms (explained, Continuar focused, double click = one dialog), declining keeps following, confirming stops it and the game stays Em execução");
+
+        // State: window close with a game open but no longer followed.
+        host.Close(); var closeAsk = await Ask();
+        Check(Find<TextBlock>(closeAsk, "ConfirmText").Text!.Contains("não fecha o jogo"), "closing text for an unfollowed game: " + Find<TextBlock>(closeAsk, "ConfirmText").Text);
+        Click(closeAsk, "ConfirmNo"); await Until(() => !closeAsk.IsVisible); Check(host.IsVisible, "window closed despite cancel");
+        // "--play" for a running game never launches twice.
+        await page.PlayByKeyAsync(nativeKey); Check(launches[nativeKey] == 1, "--play launched a game that is already running");
+        Console.WriteLine("PASS games QA: closing the window and --play over a game that is already open");
+
+        // Two games at once: the Windows game runs on its own; each page state is per game and nothing leaks.
+        await Pick(winKey);
+        Check(Play() == "Jogar" && NotesShown() == 0 && Find<TextBox>(host, "LExePath").IsEnabled && Find<Button>(host, "BtnRemoveGame").IsEnabled, "a stopped game next to a running one must be fully editable");
+        Check(!Find<Button>(host, "BtnStopWatch").IsVisible && !Find<Button>(host, "BtnCloseGame").IsVisible && Find<TextBlock>(host, "LStatus").Text == "", "status or buttons leaked from the other game");
+        Check(Find<StackPanel>(host, "LProtonBox").IsVisible, "Proton box must show for a Windows game");
+        Click(host, "BtnPlay"); await Until(() => seen.ContainsKey(winKey) && Play() == "Abrindo…");
+        Check(!Find<ComboBox>(host, "LRunner").IsEnabled && !Find<Button>(host, "BtnPrefixPick").IsEnabled && !Find<Button>(host, "BtnPrefixDefault").IsEnabled && !Find<Button>(host, "BtnRunnerDownload").IsEnabled, "runner/prefix must lock under a live Windows game");
+        Check(Find<TextBox>(host, "LProtonId").IsEnabled, "Steam ID stays editable (launch-only)");
+        await Themes("games-qa-live-proton", Find<ComboBox>(host, "LRunner"));
+        // Back to the native one: still running, status restored, its own notices.
+        await Pick(nativeKey);
+        Check(Play() == "Em execução" && Find<TextBlock>(host, "LStatus").Text!.Contains("em execução") && NotesShown() >= 3, "returning to a running game must restore its state");
+        // Native game stops; the other keeps its follow-up.
+        runningNow.Remove(nativeKey); exits[nativeKey].TrySetResult();
+        await Until(() => Play() == "Jogar" && Find<TextBlock>(host, "LStatus").Text!.Contains("encerrado"));
+        Check(NotesShown() == 0 && Find<TextBox>(host, "LExePath").IsEnabled && Find<Button>(host, "BtnRemoveGame").IsEnabled && Find<Button>(host, "BtnRenameGame").IsEnabled, "a closed game must unlock everything and hide the notices");
+        await Pick(winKey); Check(Play() == "Abrindo…" && Find<Button>(host, "BtnStopWatch").IsVisible, "the other game lost its follow-up");
+        Console.WriteLine("PASS games QA: two games at once keep separate state, lock/unlock follows the selected game, no status leak, game closed = unlocked");
+
+        // Following that ended by time (the process was never seen) while the achievement watch lives on: stopping explains only that.
+        exits[winKey].TrySetResult(); await Until(() => Play() == "Jogar");
+        Check(Find<Button>(host, "BtnPlay").IsEnabled, "Jogar must come back after the launch ended");
+        // Steam game: no Medir FPS (not injected by the launcher), the empty text explains how Steam measures, notices on a live Steam game.
+        await Pick(steamKey);
+        Check(!Find<CheckBox>(host, "LChkMeasure").IsVisible && !Find<TextBlock>(host, "LMeasureNote").IsVisible, "Medir FPS must not show for a Steam game");
+        Check(Find<TextBlock>(host, "FpsMeasuredEmpty").Text!.Contains("Aplicar nas opções da Steam"), "Steam empty text: " + Find<TextBlock>(host, "FpsMeasuredEmpty").Text);
+        Check(!Find<StackPanel>(host, "LProtonBox").IsVisible, "Proton box must not show for a Steam game");
+        runningNow.Add(steamKey); await Until(() => Play() == "Em execução"); Check(NotesShown() >= 3 && !Find<Button>(host, "BtnStopWatch").IsVisible, "Steam game opened outside: notices yes, no Parar acompanhamento");
+        runningNow.Remove(steamKey); await Until(() => Play() == "Jogar");
+        // Hiding a game that is running must not lose track of it (the close guard still names it).
+        runningNow.Add(steamKey); await Until(() => Play() == "Em execução");
+        Click(host, "BtnHideGame"); await Task.Delay(200);
+        Check(page.ActiveGameName == "Game One", "a hidden running game must still count as active: " + page.ActiveGameName);
+        runningNow.Remove(steamKey); await Until(() => page.ActiveGameName is null || page.ActiveGameName != "Game One");
+        Console.WriteLine("PASS games QA: Steam game has no Medir FPS (explained), Steam-opened game shows notices without a stop button, hiding a running game keeps it tracked");
+
+        // 150% and 200% text at the minimum window: nothing of the detail column may stick out sideways.
+        await Pick(nativeKey);
+        foreach (double scale in new[] { 1.0, 1.5, 2.0 })
+        {
+            scaler.LayoutTransform = new Avalonia.Media.ScaleTransform(scale, scale);
+            host.Width = 900; host.Height = 560; await Task.Delay(400);
+            var detail = Find<ScrollViewer>(host, "LDetail");
+            foreach (var c in detail.GetVisualDescendants().OfType<Control>().Where(c => c.IsEffectivelyVisible && c is TextBlock or CheckBox or Button))
+            {
+                var at = c.TranslatePoint(new Point(0, 0), detail); if (at is null) continue;
+                Check(at.Value.X + c.Bounds.Width <= detail.Bounds.Width + 2 && at.Value.X >= -2, $"{c.Name ?? c.GetType().Name} sticks out at {scale * 100:0}% ({at.Value.X + c.Bounds.Width:0} > {detail.Bounds.Width:0})");
+            }
+            Capture(host, $"games-qa-detail-{scale * 100:0}pct-dark-900x560.png");
+        }
+        scaler.LayoutTransform = null; host.Width = 1100; host.Height = 800; await Task.Delay(200);
+        Check(removeAsked == 0, "Remover asked for a confirmation under a live game");
+        Console.WriteLine("PASS games QA: detail column fits at 100/150/200% text in 900x560");
+        host.Close();
     }
 }

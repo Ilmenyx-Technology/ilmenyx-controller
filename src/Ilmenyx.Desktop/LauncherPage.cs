@@ -11,6 +11,7 @@ using Avalonia.Layout;
 using Avalonia.Platform.Storage;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.VisualTree;
 using Ilmenyx.Core;
 using Ilmenyx.Platform.Linux;
 
@@ -36,6 +37,11 @@ public sealed class LauncherPage : Grid
     private readonly HashSet<string> running = [], opened = [], launched = [];
     private readonly Button closeGame = new() { Name = "BtnCloseGame", Content = L.T("Fechar jogo"), FontSize = 11, Padding = new Thickness(12, 6), IsVisible = false, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(16, 0, 0, 0) };
     private readonly HashSet<string> closing = [];
+    // While the selected game is opening or running: one discreet note per card ("Vale na próxima vez…") and the controls that must not change under a live game.
+    private readonly List<TextBlock> liveNotes = [];
+    private readonly List<(Control Control, object? Tip, string Why)> liveLocks = [];
+    private readonly Dictionary<string, GameProfile> launchProfiles = []; // the profile each live launch started with
+    private bool stopping, installingMango;
     private readonly Button stopWatch = new() { Name = "BtnStopWatch", Content = L.T("Parar acompanhamento"), FontSize = 11, Padding = new Thickness(12, 6), IsVisible = false, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(16, 0, 0, 0) };
     private Avalonia.Threading.DispatcherTimer? poller; private bool attached, ticking;
     /// <summary>Whether a game's process exists (game, executable). Default: <see cref="GameProcesses"/> on /proc. Settable for fixtures.</summary>
@@ -56,12 +62,34 @@ public sealed class LauncherPage : Grid
     private readonly CheckBox chkGpu = new() { Name = "LChkGpu", Content = L.T("Forçar a placa de vídeo dedicada (PRIME offload)") };
     private readonly CheckBox chkGameMode = new() { Name = "LChkGameMode", Content = L.T("GameMode (gamemoderun)") };
     private readonly CheckBox chkMango = new() { Name = "LChkMango", Content = L.T("MangoHud (overlay de desempenho)") };
+    private readonly CheckBox chkMeasure = new() { Name = "LChkMeasure", Content = L.T("Medir FPS (sem mostrar nada na tela)") };
+    private readonly TextBlock measureNote = new() { Name = "LMeasureNote", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(26, -2, 0, 8) };
     private readonly CheckBox chkGuard = new() { Name = "LChkGuard", Content = L.T("Proteção contra travamento em tela cheia (vsync)") };
     private readonly CheckBox chkWayland = new() { Name = "LChkWayland", Content = GameExtras.WaylandLabel };
     private readonly CheckBox chkLowLat = new() { Name = "LChkLowLat", Content = GameExtras.LowLatencyLabel };
     private readonly TextBlock extrasNote = new() { Name = "LExtrasNote", Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 0, 6) };
     private readonly StackPanel extrasBox = new() { Name = "LExtrasBox", IsVisible = false, Margin = new Thickness(0, 6, 0, 0) };
     private string? protonName;
+    /// <summary>The one reusable notice for settings that only take effect at launch; shown on every card that has them while the game is live.</summary>
+    private TextBlock LiveNote(string? text = null, Thickness? margin = null)
+    {
+        var note = new TextBlock { Name = "LLiveNote" + liveNotes.Count, Text = text ?? L.T("Vale na próxima vez que o jogo abrir."), Foreground = Palette.Muted, FontSize = 11, FontStyle = FontStyle.Italic, TextWrapping = TextWrapping.Wrap, IsVisible = false, Margin = margin ?? new Thickness(0, 0, 0, 8) };
+        liveNotes.Add(note); return note;
+    }
+
+    /// <summary>A control that is disabled (with the reason as its tip) while the selected game is live.</summary>
+    private void LockWhileLive(Control c, string why) { liveLocks.Add((c, ToolTip.GetTip(c), why)); ToolTip.SetShowOnDisabled(c, true); }
+
+    private bool IsLive(string? key) => key is not null && (following.ContainsKey(key) || running.Contains(key));
+
+    private void UpdateLive()
+    {
+        bool live = IsLive(current?.Key);
+        foreach (var n in liveNotes) n.IsVisible = live;
+        foreach (var (c, tip, why) in liveLocks) { c.IsEnabled = !live; ToolTip.SetTip(c, live ? why : tip); }
+        foreach (var undo in achFixBox.GetVisualDescendants().OfType<Button>()) undo.IsEnabled = !live;
+        if (TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() is Control { IsEffectivelyEnabled: false }) (play.IsEnabled ? play : backToLibrary).Focus();
+    }
     /// <summary>Wayland session check (default: the real environment). Settable for fixtures.</summary>
     public Func<bool>? WaylandSession { get; init; }
     /// <summary>Newest UMU-Proton umu already downloaded (default: the real folder). Settable for fixtures.</summary>
@@ -287,12 +315,8 @@ public sealed class LauncherPage : Grid
         closeGame.Click += async (_, _) => await CloseGameAsync();
         AutomationProperties.SetLiveSetting(status, AutomationLiveSetting.Polite); // screen readers hear Abrindo…, Em execução, Encerrado and errors
         AutomationProperties.SetLiveSetting(suggestText, AutomationLiveSetting.Polite);
-        stopWatch.Click += (_, _) =>
-        {
-            if (current is not { } c) return;
-            if (following.TryGetValue(c.Key, out var f)) f.Cancel();
-            EndWatch(c.Key); UpdateButtons();
-        };
+        stopWatch.Click += async (_, _) => await StopWatchingAsync();
+
         AttachedToVisualTree += (_, _) => { attached = true; EnsureTimer(); if (current is { } c) _ = DetectSelectedAsync(c); };
         DetachedFromVisualTree += (_, _) => { attached = false; EnsureTimer(); };
 
@@ -300,37 +324,31 @@ public sealed class LauncherPage : Grid
         title.FontSize = 26; title.MaxLines = 2; title.TextTrimming = TextTrimming.CharacterEllipsis;
         sub.FontSize = 12.5; sub.MaxLines = 2; sub.TextTrimming = TextTrimming.CharacterEllipsis; sub.Margin = new Thickness(0, 4, 0, 0);
         play.VerticalAlignment = VerticalAlignment.Bottom; play.Margin = new Thickness(16, 0, 0, 0); play.FontSize = 14;
-        var bottom = new Grid { ColumnDefinitions = new("*,Auto,Auto,Auto,Auto"), VerticalAlignment = VerticalAlignment.Bottom, Children = { new StackPanel { VerticalAlignment = VerticalAlignment.Bottom, Children = { title, sub } } } };
+        // Title and subtitle on top, the actions wrap underneath them: at 900 px wide or with 150-200% text the row must not push Jogar out of the column.
+        var bottom = new Grid { RowDefinitions = new("Auto,Auto"), VerticalAlignment = VerticalAlignment.Bottom, Children = { new StackPanel { VerticalAlignment = VerticalAlignment.Bottom, Children = { title, sub } } } };
         // Games the user added by hand can leave the library again (the files on disk are never touched).
-        removeGame.VerticalAlignment = VerticalAlignment.Bottom; removeGame.Margin = new Thickness(16, 0, 0, 0);
         ToolTip.SetTip(removeGame, L.T("Tira o jogo da biblioteca do Ilmenyx. Os arquivos do jogo não são apagados."));
         removeGame.Click += async (_, _) => await RemoveCurrentAsync();
-        renameGame.VerticalAlignment = VerticalAlignment.Bottom; renameGame.Margin = new Thickness(16, 0, 0, 0);
         ToolTip.SetTip(renameGame, L.T("Muda o nome que aparece na biblioteca."));
         renameGame.Click += async (_, _) => await RenameCurrentAsync();
-        gameShortcut.VerticalAlignment = VerticalAlignment.Bottom; gameShortcut.Margin = new Thickness(16, 0, 0, 0);
+        LockWhileLive(removeGame, L.T("Feche o jogo para tirá-lo da biblioteca."));
+        LockWhileLive(renameGame, L.T("Feche o jogo para renomear: o nome ajuda a achar o processo dele."));
         ToolTip.SetTip(gameShortcut, L.T("Atalho que abre este jogo direto pelo Ilmenyx, com o perfil daqui."));
         gameShortcut.Flyout = ShortcutMenu(desktop => CreateShortcut(desktop, current));
-        Grid.SetColumn(gameShortcut, 1); bottom.Children.Add(gameShortcut);
-        renameGame.Margin = new Thickness(8, 0, 0, 0);
-        Grid.SetColumn(renameGame, 2); bottom.Children.Add(renameGame);
-        removeGame.Margin = new Thickness(8, 0, 0, 0);
-        Grid.SetColumn(removeGame, 3); bottom.Children.Add(removeGame);
         // Games that are not manual cannot be removed (they come from a store or a menu entry): they can be hidden instead.
-        hideGame.VerticalAlignment = VerticalAlignment.Bottom; hideGame.Margin = new Thickness(8, 0, 0, 0);
         ToolTip.SetTip(hideGame, L.T("Esconde o jogo da biblioteca sem apagar nada. Marque Mostrar ocultos para vê-lo de novo."));
         hideGame.Click += (_, _) => ToggleHideCurrent();
-        Grid.SetColumn(hideGame, 3); bottom.Children.Add(hideGame);
-        var playRow = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Bottom, Children = { stopWatch, closeGame, play } };
-        Grid.SetColumn(playRow, 4); bottom.Children.Add(playRow);
+        var actions = new WrapPanel { Name = "LHeroActions", ItemSpacing = 8, LineSpacing = 6, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 10, 0, 0), Children = { gameShortcut, renameGame, removeGame, hideGame, stopWatch, closeGame, play } };
+        foreach (var c in actions.Children.OfType<Control>()) { c.Margin = new Thickness(0); c.VerticalAlignment = VerticalAlignment.Center; }
+        Grid.SetRow(actions, 1); bottom.Children.Add(actions);
         var heroTop = new DockPanel { Children = { backToLibrary, heroTags } }; heroTags.Margin = new Thickness(10, 0, 0, 0);
         var heroContent = new Grid { RowDefinitions = new("Auto,*,Auto"), Children = { heroTop } };
         Grid.SetRow(bottom, 2); heroContent.Children.Add(bottom);
-        hero = UiKit.Hero(heroContent, height: 232, name: L.T("LHero"));
+        hero = UiKit.Hero(heroContent, height: 232, name: L.T("LHero")); hero.Height = double.NaN; hero.MinHeight = 232; // grows when the actions wrap
         if (hero.Child is Grid layers) layers.Children.Insert(0, heroScrim);
 
         ToolTip.SetTip(chkGuard, L.T("Em notebooks com duas GPUs, jogos de Windows em tela cheia sem vsync podem travar a tela inteira (só reiniciando). Com a proteção, o Proton sincroniza os quadros com o monitor; o FPS fica limitado à taxa da tela. Vale quando o jogo usa a GPU dedicada NVIDIA."));
-        foreach (var c in new[] { chkPlan, chkGpu, chkGameMode, chkMango, chkGuard }) { c.Margin = new Thickness(0, 0, 0, 6); c.FontSize = 13; c.IsCheckedChanged += (_, _) => SaveFromControls(); }
+        foreach (var c in new[] { chkPlan, chkGpu, chkGameMode, chkMango, chkMeasure, chkGuard }) { c.Margin = new Thickness(0, 0, 0, 6); c.FontSize = 13; c.IsCheckedChanged += (_, _) => SaveFromControls(); }
         // Experimental Proton options (off by default): each asks before turning on and shows whether it applies to this game and session.
         ToolTip.SetTip(chkWayland, L.T("Faz o jogo de Windows abrir direto no Wayland, sem passar pelo XWayland (PROTON_ENABLE_WAYLAND=1). Pode melhorar a fluidez e o HDR, mas é experimental: alguns jogos abrem com janela errada, sem cursor ou sem controle. Só vale numa sessão Wayland com GE-Proton ou UMU-Proton 10 ou mais novo."));
         ToolTip.SetTip(chkLowLat, L.T("Libera o NVIDIA Reflex nos jogos que têm essa opção no menu (PROTON_ENABLE_NVAPI=1, pelo DXVK-NVAPI). Diminui o atraso entre o clique e a imagem; depois ligue o Reflex no menu do jogo. Só para placas NVIDIA com o driver proprietário."));
@@ -348,9 +366,12 @@ public sealed class LauncherPage : Grid
         mangoFlatpakBox.Children.Add(mangoFlatpakStatus);
         mangoFlatpakBox.Children.Add(new WrapPanel { ItemSpacing = 10, LineSpacing = 6, Children = { mangoFlatpakInstall, mangoFlatpakProgress } });
         mangoFlatpakInstall.Click += async (_, _) => await InstallFlatpakMangoAsync();
+        ToolTip.SetTip(chkMeasure, L.T("O MangoHud entra escondido só para gravar o FPS e alimentar o DESEMPENHO MEDIDO. Desligue em jogos com anti-cheat ou incompatíveis com MangoHud."));
         if (!hasGm) ToolTip.SetTip(chkGameMode, L.T("gamemoderun não está instalado.")); if (!hasMango) ToolTip.SetTip(chkMango, L.T("mangohud não está instalado."));
         var setExe = new Button { Name = "BtnSetExe", Content = L.T("Definir executável"), FontSize = 12, Padding = new Thickness(14, 7) }; setExe.Click += (_, _) => SetExe();
         var browseExe = new Button { Name = "BtnSetExeBrowse", Content = L.T("Procurar…"), FontSize = 12, Padding = new Thickness(14, 7) };
+        string exeWhy = L.T("Feche o jogo para trocar o executável: o Ilmenyx o usa para saber se o jogo está aberto.");
+        LockWhileLive(exePath, exeWhy); LockWhileLive(setExe, exeWhy); LockWhileLive(browseExe, exeWhy);
         browseExe.Click += async (_, _) => { if (await PickExecutableAsync(current?.InstallDir) is { } picked) { exePath.Text = picked; SetExe(); } };
         var recommended = new Button { Name = "BtnRecommended", Content = L.T("Perfil para mais FPS"), FontSize = 12, Padding = new Thickness(14, 7) }; recommended.Click += (_, _) => Recommended();
         exeText.Margin = new Thickness(0, 6, 0, 0);
@@ -358,8 +379,8 @@ public sealed class LauncherPage : Grid
         {
             Children =
             {
-                CardTitle(Icons.Oc, L.T("DESEMPENHO")), chkPlan, chkGpu, chkGameMode, chkMango, mangoFlatpakBox, chkGuard, extrasBox, exeText, new Border { Height = 6 }, exePath, new Border { Height = 8 },
-                new WrapPanel { ItemSpacing = 8, LineSpacing = 6, Children = { browseExe, setExe, recommended } }, suggestBox, protonBox, achFixBox,
+                CardTitle(Icons.Oc, L.T("DESEMPENHO")), LiveNote(), chkPlan, chkGpu, chkGameMode, chkMango, mangoFlatpakBox, chkMeasure, measureNote, chkGuard, extrasBox, exeText, new Border { Height = 6 }, exePath, new Border { Height = 8 },
+                new WrapPanel { ItemSpacing = 8, LineSpacing = 6, Children = { browseExe, setExe, recommended } }, LiveNote(L.T("Feche o jogo para trocar o executável."), new Thickness(0, 6, 0, 0)), suggestBox, protonBox, achFixBox,
                 new TextBlock { Text = L.T("O perfil de energia vale só durante o jogo e volta ao anterior. Prioridade de processo elevada exige privilégios no Linux; o GameMode cuida disso quando instalado. O executável é descoberto sozinho; se errar, informe o caminho certo."), Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0) }
             }
         });
@@ -405,6 +426,8 @@ public sealed class LauncherPage : Grid
         var runnerRow = new Grid { ColumnDefinitions = new("*,Auto"), Margin = new Thickness(0, 6, 0, 0) };
         Grid.SetColumn(fetchRunner, 1); runnerRow.Children.Add(runnerBox); runnerRow.Children.Add(fetchRunner);
         protonBox.Children.Add(runnerRow);
+        string runnerWhy = L.T("Feche o jogo para trocar a versão do Proton ou o prefixo.");
+        LockWhileLive(runnerBox, runnerWhy); LockWhileLive(fetchRunner, runnerWhy);
         runnerBox.SelectionChanged += async (_, _) =>
         {
             if (loading || profile is null || runnerBox.SelectedIndex < 0 || runnerBox.SelectedIndex >= runnerChoices.Count) return;
@@ -436,10 +459,11 @@ public sealed class LauncherPage : Grid
             runnerStatus.Foreground = Palette.Faint; runnerStatus.Text = L.T("Salvo. Vale na próxima vez que o jogo abrir.");
         };
         defaultPrefix.Click += (_, _) => { if (profile is null) return; profile.WinePrefix = null; SaveProfile(current, profile); LoadRunner(profile); runnerStatus.Foreground = Palette.Faint; runnerStatus.Text = L.T("Prefixo padrão do Ilmenyx de volta."); };
+        LockWhileLive(pickPrefix, runnerWhy); LockWhileLive(defaultPrefix, runnerWhy);
         var prefixRow = new Grid { ColumnDefinitions = new("*,Auto,Auto"), Margin = new Thickness(0, 6, 0, 0) };
         Grid.SetColumn(pickPrefix, 1); Grid.SetColumn(defaultPrefix, 2);
         prefixRow.Children.Add(prefixText); prefixRow.Children.Add(pickPrefix); prefixRow.Children.Add(defaultPrefix);
-        protonBox.Children.Add(prefixRow); protonBox.Children.Add(runnerStatus);
+        protonBox.Children.Add(prefixRow); protonBox.Children.Add(runnerStatus); protonBox.Children.Add(LiveNote(runnerWhy, new Thickness(0, 4, 0, 0)));
         protonId.LostFocus += (_, _) => { if (current is { IsWindowsManual: true } cg && profile?.ProtonGameId is { Length: >= 3 } typed) FetchArtLater(cg, typed); };
         protonId.TextChanged += (_, _) =>
         {
@@ -469,7 +493,7 @@ public sealed class LauncherPage : Grid
         {
             Children =
             {
-                CardTitle(Icons.Gpu, L.T("GRÁFICOS (ARGUMENTOS DE INICIALIZAÇÃO)")), Row(L.T("Modo de janela"), Wrap(modeChips.Panel)), Row(L.T("Resolução"), Wrap(resChips.Panel)), Row(L.T("Taxa de atualização (Hz)"), Wrap(hzChips.Panel)), Row(L.T("Tipo de argumento (depende do jogo)"), Wrap(styleChips.Panel)),
+                CardTitle(Icons.Gpu, L.T("GRÁFICOS (ARGUMENTOS DE INICIALIZAÇÃO)")), LiveNote(), Row(L.T("Modo de janela"), Wrap(modeChips.Panel)), Row(L.T("Resolução"), Wrap(resChips.Panel)), Row(L.T("Taxa de atualização (Hz)"), Wrap(hzChips.Panel)), Row(L.T("Tipo de argumento (depende do jogo)"), Wrap(styleChips.Panel)),
                 new TextBlock { Text = "Extras", Foreground = Palette.Muted, FontSize = 12, Margin = new Thickness(0, 0, 0, 6) }, extra, presets, UiKit.Label(L.T("LINHA FINAL")), code, steamBox, gfxNote
             }
         });
@@ -480,7 +504,7 @@ public sealed class LauncherPage : Grid
             {
                 CardTitle(Icons.Gpu, L.T("QUALIDADE NO JOGO")),
                 new TextBlock { Text = L.T("O Ilmenyx lê, sem alterar nada, o arquivo de configuração do próprio jogo (Unreal e Unity) para saber a qualidade gráfica e a resolução em uso. Cada sessão medida guarda esse valor, e o desempenho medido deste jogo é separado por resolução e qualidade."), Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8) },
-                qualityDetected, qualityActive,
+                LiveNote(), qualityDetected, qualityActive,
                 Row(L.T("Qualidade gráfica"), Wrap(gfxPresetChips.Panel)), Row(L.T("Upscaling (DLSS / FSR)"), Wrap(gfxUpChips.Panel)),
             }
         });
@@ -494,7 +518,7 @@ public sealed class LauncherPage : Grid
         {
             Children =
             {
-                CardTitle(Icons.Apps, L.T("PROGRAMAS AUXILIARES")), new TextBlock { Text = L.T("Abrem antes do jogo (ex.: monitoramento) e podem fechar junto com ele. Iniciados sem shell, com os argumentos que você escrever após o caminho."), Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 10) },
+                CardTitle(Icons.Apps, L.T("PROGRAMAS AUXILIARES")), LiveNote(), new TextBlock { Text = L.T("Abrem antes do jogo (ex.: monitoramento) e podem fechar junto com ele. Iniciados sem shell, com os argumentos que você escrever após o caminho."), Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 10) },
                 helpers, helperPath, new WrapPanel { Margin = new Thickness(0, 10, 0, 0), ItemSpacing = 12, LineSpacing = 6, Children = { helperClose, addHelper } }
             }
         });
@@ -620,9 +644,12 @@ public sealed class LauncherPage : Grid
     {
         if (leftPane is null) return;
         bool browse = current is null;
-        Grid.SetColumnSpan(leftPane, browse ? 3 : 1);
-        detail.IsVisible = !browse;
         double width = Bounds.Width > 0 ? Bounds.Width : 1100;
+        // Very narrow (a minimum window with 200% text): the game's detail takes the whole page; ← Biblioteca (or Esc) goes back to the library.
+        bool single = !browse && width < 560;
+        Grid.SetColumnSpan(leftPane, browse ? 3 : 1); leftPane.IsVisible = !single;
+        Grid.SetColumn(detail, single ? 0 : 2); Grid.SetColumnSpan(detail, single ? 3 : 1);
+        detail.IsVisible = !browse;
         int cols = browse ? Math.Clamp((int)((width - 20) / 230), 2, 8) : narrowWindow ? 1 : 2;
         if (cols != columns || force) { columns = cols; Filter(); }
     }
@@ -652,7 +679,7 @@ public sealed class LauncherPage : Grid
         coverReset.IsVisible = p.CoverPath is { Length: > 0 }; coverStatus.Text = "";
         hero.Background = art is null ? UiKit.HeroBrush() : new ImageBrush { Source = art, Stretch = Stretch.UniformToFill };
         heroScrim.IsVisible = heroArt; title.Foreground = heroArt ? Brushes.White : Palette.Fg; sub.Foreground = heroArt ? GameArt.OnImageMuted : Palette.Muted;
-        chkPlan.IsChecked = p.HighPerfPlan; chkGpu.IsChecked = p.GpuHigh && multiGpu; chkGameMode.IsChecked = p.GameMode; chkMango.IsChecked = p.MangoHud; UpdateFlatpakMango(g); chkGuard.IsChecked = p.FullscreenGuard; chkGuard.IsVisible = multiGpu && gpuVendor == "NVIDIA";
+        chkPlan.IsChecked = p.HighPerfPlan; chkGpu.IsChecked = p.GpuHigh && multiGpu; chkGameMode.IsChecked = p.GameMode; chkMango.IsChecked = p.MangoHud; chkMeasure.IsChecked = p.MeasureFps; UpdateFlatpakMango(g); UpdateMeasure(); chkGuard.IsChecked = p.FullscreenGuard; chkGuard.IsVisible = multiGpu && gpuVendor == "NVIDIA";
         modeChips!.Select(p.WinMode); resChips!.Select(p.Res); hzChips!.Select(p.Hz); styleChips!.Select(p.Style); gfxPresetChips!.Select(p.GfxPreset ?? ""); gfxUpChips!.Select(p.GfxUpscaling ?? ""); extra.Text = p.Extra; exePath.Text = p.ExePath ?? g.ExePath ?? "";
         protonBox.IsVisible = g.IsWindowsManual; protonId.Text = p.ProtonGameId ?? ""; protonIdStatus.Text = ""; runnerStatus.Text = "";
         if (g.IsWindowsManual) LoadRunner(p);
@@ -666,7 +693,7 @@ public sealed class LauncherPage : Grid
         gfxNote.Text = g.IsSteam ? L.T("Os argumentos e variáveis só passam a valer na Steam depois de Aplicar nas opções da Steam (a Steam é fechada nessa hora). Depois, o Jogar abre pela Steam normalmente.")
             : g.LaunchUri is not null ? L.T("Esta loja abre o jogo por um atalho que não aceita argumentos: use as opções de inicialização da própria loja. Desempenho e programas auxiliares funcionam normalmente.")
             : L.T("Os argumentos são enviados direto ao executável quando você clica em Jogar.");
-        status.Text = ""; loading = false; UpdatePreview(); ShowExe(g, p);
+        status.Text = following.ContainsKey(g.Key) ? L.T($"Abrindo {g.Name}…") : running.Contains(g.Key) ? L.T($"{g.Name} em execução.") : ""; loading = false; UpdatePreview(); ShowExe(g, p);
         Filter();
         UpdateButtons(); _ = DetectSelectedAsync(g);
         RefreshMeasured(); _ = DetectQualityAsync(g, p);
@@ -679,7 +706,9 @@ public sealed class LauncherPage : Grid
         fpsEmpty.IsVisible = !any; fpsBig.IsVisible = fpsRange.IsVisible = fpsInfo.IsVisible = any; fpsGroupBox.IsVisible = fpsGroups.Count > 1;
         if (!any)
         {
-            fpsEmpty.Text = L.T("A média aparece depois de você jogar com o MangoHud ligado (abrindo o jogo pelo Ilmenyx) por pelo menos 1 minuto. Só conta o jogo em si: os 20 s iniciais, os 3 s finais e as travadas de carregamento ficam de fora, para o menu e o carregamento não inflarem o número. Nenhum valor é inventado.");
+            fpsEmpty.Text = (current is { } cg && (cg.IsSteam || cg.LaunchUri is not null)
+                ? L.T("Na Steam e nas outras lojas o FPS só é medido com o MangoHud nas opções de inicialização (na Steam: marque MangoHud e use Aplicar nas opções da Steam). ")
+                : L.T("A média aparece depois de você jogar abrindo o jogo pelo Ilmenyx, com Medir FPS ou MangoHud ligado, por pelo menos 1 minuto. ")) + L.T("Só conta o jogo em si: os 20 s iniciais, os 3 s finais e as travadas de carregamento ficam de fora, para o menu e o carregamento não inflarem o número. Nenhum valor é inventado.");
             return;
         }
         loadingGroups = true; fpsGroupBox.ItemsSource = fpsGroups.Select(g => (g.Resolution ?? L.T("resolução não informada")) + " · " + (g.Quality is { } q ? QualityLabel(q) : L.T("qualidade não informada"))).ToList(); fpsGroupBox.SelectedIndex = 0; loadingGroups = false;
@@ -761,10 +790,24 @@ public sealed class LauncherPage : Grid
     private void SaveFromControls()
     {
         if (loading || profile is null) return;
-        profile.HighPerfPlan = chkPlan.IsChecked == true; profile.GpuHigh = chkGpu.IsChecked == true; profile.GameMode = chkGameMode.IsChecked == true; profile.MangoHud = chkMango.IsChecked == true; profile.FullscreenGuard = chkGuard.IsChecked == true;
+        profile.HighPerfPlan = chkPlan.IsChecked == true; profile.GpuHigh = chkGpu.IsChecked == true; profile.GameMode = chkGameMode.IsChecked == true; profile.MangoHud = chkMango.IsChecked == true; profile.MeasureFps = chkMeasure.IsChecked == true; profile.FullscreenGuard = chkGuard.IsChecked == true;
         profile.ProtonWayland = chkWayland.IsChecked == true; profile.LowLatency = chkLowLat.IsChecked == true;
         profile.Extra = (extra.Text ?? "").Trim();
-        SaveProfile(current, profile); UpdatePreview();
+        SaveProfile(current, profile); UpdatePreview(); UpdateMeasure();
+    }
+
+    /// <summary>"Medir FPS" only applies where the launcher itself starts the game (not Steam or store shortcuts) and needs MangoHud (host, packaged, or the Flatpak extension).</summary>
+    private void UpdateMeasure()
+    {
+        bool applies = current is { } g && !g.IsSteam && g.LaunchUri is null;
+        chkMeasure.IsVisible = measureNote.IsVisible = applies;
+        if (!applies) return;
+        bool available = chkMango.IsEnabled, overlay = chkMango.IsChecked == true;
+        chkMeasure.IsEnabled = available && !overlay;
+        measureNote.Text = !available ? L.T("Indisponível: o MangoHud não está instalado (em jogo Flatpak, falta a extensão acima). O jogo abre normalmente, sem medir.")
+            : overlay ? L.T("O MangoHud marcado acima já mede o FPS.")
+            : chkMeasure.IsChecked == true ? L.T("O MangoHud entra escondido, só para gravar o FPS. Desmarque em jogos com anti-cheat ou incompatíveis com MangoHud.")
+            : L.T("Desligado: este jogo não terá desempenho medido, a menos que você marque o MangoHud.");
     }
 
     private void UpdatePreview()
@@ -920,7 +963,7 @@ public sealed class LauncherPage : Grid
     /// </summary>
     private void UpdateFlatpakMango(LibGame g)
     {
-        mangoFlatpakBox.IsVisible = false; mangoFlatpakBranch = null;
+        mangoFlatpakBox.IsVisible = false; mangoFlatpakBranch = null; mangoFlatpakInstall.IsEnabled = !installingMango; mangoFlatpakProgress.IsVisible = installingMango;
         string? app = g.ExePath is { } exe && Path.GetFileName(exe) == "flatpak" ? GameProcesses.FlatpakApp(g) : null;
         if (app is null) { chkMango.IsEnabled = hostMango; ToolTip.SetTip(chkMango, hostMango ? null : L.T("mangohud não está instalado.")); return; }
         string? branch = flatpaks.Metadata(app).RuntimeBranch;
@@ -928,7 +971,7 @@ public sealed class LauncherPage : Grid
         chkMango.IsEnabled = ok;
         ToolTip.SetTip(chkMango, ok ? L.T($"Jogo Flatpak: usa a extensão MangoHud para Flatpak (runtime {branch}).") : L.T("Jogo Flatpak: o MangoHud do sistema não entra no Flatpak; precisa da extensão MangoHud para Flatpak."));
         if (ok) return;
-        mangoFlatpakBox.IsVisible = true; mangoFlatpakProgress.IsVisible = false; mangoFlatpakStatus.Foreground = Palette.Warn;
+        mangoFlatpakBox.IsVisible = true; mangoFlatpakStatus.Foreground = Palette.Warn;
         mangoFlatpakBranch = branch;
         mangoFlatpakInstall.IsVisible = branch is not null;
         mangoFlatpakStatus.Text = branch is null ? L.T("Não consegui ler o runtime deste Flatpak; o MangoHud fica desligado para ele.") : L.T($"MangoHud para Flatpak não instalado (runtime {branch}).");
@@ -939,16 +982,18 @@ public sealed class LauncherPage : Grid
     {
         if (mangoFlatpakBranch is not { } branch || current is not { } game) return;
         if (owner() is { } window && !await ConfirmDialog.AskAsync(window, L.T("MangoHud para Flatpak"), L.T($"Instalar a extensão {FlatpakLaunch.MangoHudExtension} ({branch}) do Flathub?\n\nSó para o seu usuário, sem senha. Precisa de internet."), L.T("Instalar"), L.T("Cancelar"))) return;
-        mangoFlatpakInstall.IsEnabled = false; mangoFlatpakProgress.IsVisible = true;
+        if (installingMango) return;
+        installingMango = true; mangoFlatpakInstall.IsEnabled = false; mangoFlatpakProgress.IsVisible = true;
         mangoFlatpakStatus.Foreground = Palette.Muted; mangoFlatpakStatus.Text = L.T("Baixando a extensão do Flathub…");
         (int Code, string Output) r;
         try { r = await BoundedProcess.RunAsync("flatpak", FlatpakApps.InstallMangoHud(branch), TimeSpan.FromMinutes(10), 64 * 1024, lifetime); }
         catch (Exception e) when (e is IOException or FileNotFoundException or TimeoutException or System.ComponentModel.Win32Exception) { r = (-1, e.Message); }
-        catch (OperationCanceledException) { return; }
-        mangoFlatpakInstall.IsEnabled = true; mangoFlatpakProgress.IsVisible = false;
+        catch (OperationCanceledException) { installingMango = false; return; }
+        installingMango = false; mangoFlatpakInstall.IsEnabled = true; mangoFlatpakProgress.IsVisible = false;
+        if (current != game) return; // another game is open now: its card must not get this game's result
         if (r.Code == 0 && flatpaks.HasMangoHud(branch))
         {
-            if (current == game) UpdateFlatpakMango(game);
+            UpdateFlatpakMango(game); UpdateMeasure();
             status.Text = L.T("MangoHud para Flatpak instalado. Marque MangoHud para usar o overlay neste jogo.");
             return;
         }
@@ -1153,6 +1198,7 @@ public sealed class LauncherPage : Grid
             AchievementFiles.UndoEmulator(profile.AchievementFixFiles); profile.AchievementFixFiles = []; SaveProfile(current, profile); RebuildAchFix();
         };
         achFixBox.Children.Add(grid);
+        UpdateLive();
     }
 
     private void RebuildHelpers()
@@ -1283,13 +1329,14 @@ public sealed class LauncherPage : Grid
         playProgress.IsVisible = opening && !on && !opened.Contains(k!);
         if (playFocus && !play.IsEnabled) (stopWatch.IsVisible ? stopWatch : backToLibrary).Focus();
         else if (stopFocus && !stopWatch.IsVisible) (play.IsEnabled ? play : backToLibrary).Focus();
+        UpdateLive();
     }
 
     /// <summary>"Fechar jogo": confirmation, SIGTERM to the game's own processes, up to 10 s of waiting, then a second confirmation for SIGKILL.</summary>
     private async Task CloseGameAsync()
     {
         if (current is not { } g || owner() is not { } window || !closing.Add(g.Key)) return;
-        string key = g.Key;
+        string key = g.Key; bool hadFocus = closeGame.IsFocused;
         void Say(string text) { if (current?.Key == key) status.Text = text; }
         try
         {
@@ -1309,10 +1356,17 @@ public sealed class LauncherPage : Grid
         }
         catch (OperationCanceledException) { }
         catch (Exception e) when (e is IOException or System.ComponentModel.Win32Exception or TimeoutException or FileNotFoundException) { Say(L.T("Não consegui fechar o jogo: ") + e.Message); }
-        finally { closing.Remove(key); UpdateButtons(); }
+        finally
+        {
+            closing.Remove(key); UpdateButtons();
+            if (hadFocus && current?.Key == key) (closeGame.IsVisible ? closeGame : play.IsEnabled ? play : backToLibrary).Focus(); // the button was hidden during the question
+        }
     }
 
     /// <summary>Name of a game that is open or being followed (the window must not close silently over it), or null.</summary>
+    /// <summary>True when a game is being followed (not only open): closing the window then stops that following.</summary>
+    public bool ActiveGameFollowed => following.Count > 0;
+
     public string? ActiveGameName => following.Keys.Concat(running).Select(k => games.FirstOrDefault(x => x.Key == k)?.Name).FirstOrDefault(n => n is not null);
 
     /// <summary>Stops following every game and waits (at most <paramref name="limit"/>) for the undo of temporary changes (power profile) to finish.</summary>
@@ -1342,13 +1396,37 @@ public sealed class LauncherPage : Grid
                 try
                 {
                     if (!w.IsVisible) w.Show();
-                    if (!await ConfirmDialog.AskAsync(w, L.T("Fechar o Ilmenyx"), L.T($"O jogo {name} continua aberto. O Ilmenyx vai parar o acompanhamento e restaurar o perfil de energia."), L.T("Fechar o Ilmenyx"), L.T("Cancelar"))) return;
+                    string warning = p.ActiveGameFollowed ? L.T($"O jogo {name} continua aberto. O Ilmenyx vai parar o acompanhamento e restaurar o perfil de energia.") : L.T($"O jogo {name} continua aberto. Fechar o Ilmenyx não fecha o jogo.");
+                    if (!await ConfirmDialog.AskAsync(w, L.T("Fechar o Ilmenyx"), warning, L.T("Fechar o Ilmenyx"), L.T("Cancelar"))) return;
                     await p.ReleaseAsync(TimeSpan.FromSeconds(3));
                     allowed = true; w.Close();
                 }
                 finally { asking = false; }
             }
         };
+    }
+
+    /// <summary>"Parar acompanhamento": explains what stops (only what is true for this launch) and asks first; the safe answer is the focused one.</summary>
+    private async Task StopWatchingAsync()
+    {
+        if (current is not { } g || stopping || owner() is not { } window) return;
+        string key = g.Key; bool followed = following.ContainsKey(key), hadFocus = stopWatch.IsFocused;
+        if (!followed && !watchers.ContainsKey(key)) return;
+        stopping = true;
+        try
+        {
+            var launch = launchProfiles.GetValueOrDefault(key) ?? profile ?? new GameProfile();
+            bool measured = launch.MangoHud || (launch.MeasureFps && !g.IsSteam && g.LaunchUri is null && chkMango.IsEnabled);
+            string text = StopTracking.Explain(g.Name, launch, followed, g.IsWindowsManual, measured);
+            if (!await ConfirmDialog.AskAsync(window, L.T("Parar o acompanhamento?"), text, L.T("Parar acompanhamento"), L.T("Continuar acompanhando"))) return;
+            if (following.TryGetValue(key, out var f)) f.Cancel(); // RunAsync undoes the power profile and closes the helpers marked to close with the game
+            EndWatch(key); UpdateButtons();
+        }
+        finally
+        {
+            stopping = false; UpdateButtons();
+            if (hadFocus && !stopWatch.IsVisible && current?.Key == key) (closeGame.IsVisible ? closeGame : play.IsEnabled ? play : backToLibrary).Focus();
+        }
     }
 
     private void EndWatch(string key)
@@ -1418,6 +1496,7 @@ public sealed class LauncherPage : Grid
         if (current is not { } g || profile is not { } p) return;
         string key = g.Key;
         if (following.ContainsKey(key)) return;
+        var launchProfile = p.Clone(); launchProfiles[key] = launchProfile; // the launch keeps this copy: ticking things while it runs only counts next time
         var follow = CancellationTokenSource.CreateLinkedTokenSource(lifetime);
         following[key] = follow; opened.Remove(key); launched.Remove(key);
         status.Text = L.T($"Abrindo {g.Name}…");
@@ -1434,7 +1513,7 @@ public sealed class LauncherPage : Grid
             // The emulator reads its settings at startup: wait a little for the achievement list so the fix is in place for this launch.
             await Task.WhenAny(ready.Task, Task.Delay(TimeSpan.FromSeconds(5), follow.Token));
             launched.Add(key);
-            var session = await launch(g, p, gpuVendor, t => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            var session = await launch(g, launchProfile, gpuVendor, t => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                 {
                     if (current?.Key == key) status.Text = t;
                     if (t.Contains(L.T(" em execução"), StringComparison.Ordinal)) { opened.Add(key); SetRunning(key, true); }
@@ -1454,7 +1533,7 @@ public sealed class LauncherPage : Grid
         catch (Exception e) when (e is not OperationCanceledException) { if (current?.Key == key) status.Text = L.T("Não consegui abrir o jogo: ") + e.Message; }
         finally
         {
-            following.Remove(key); follow.Dispose();
+            following.Remove(key); follow.Dispose(); launchProfiles.Remove(key);
             try { ApplyRunning(g, await RunningNowAsync(g, lifetime)); } catch (OperationCanceledException) { } // a running game keeps its watch and the Jogar stays off
             UpdateButtons(); EnsureTimer();
         }
