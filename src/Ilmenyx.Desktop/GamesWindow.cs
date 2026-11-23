@@ -89,7 +89,7 @@ public sealed class GamesWindow : Window
             case "achievements": { var a = AchievementsPage.Create(lifetime.Token); a.Margin = new Thickness(0, 4, 8, 12); return new Border { Padding = new Thickness(12, 16, 0, 0), Child = a }; }
             case "compat": return Scroll("CompatScroll", new CompatPage(GamePages.CompatServicesNow(), () => this, lifetime.Token));
             case "gamecheck":
-                return Scroll("GameCheckScroll", new GameCheckPage(OperatingSystem.IsLinux() ? new GameCheckServices(new GameLaunchProbe().CollectAsync, GameUserFixRunner.RunAsync, Select) : throw new PlatformNotSupportedException(), () => this, lifetime.Token));
+                return Scroll("GameCheckScroll", new GameCheckPage(OperatingSystem.IsLinux() ? new GameCheckServices(new GameLaunchProbe().CollectAsync, GameUserFixRunner.RunAsync) /* its links go to Otimiza/Driver NVIDIA, full-app pages: null hides them instead of dead buttons */ : throw new PlatformNotSupportedException(), () => this, lifetime.Token));
             default:
                 // CPU model and RAM come straight from /proc (no usage monitor in this window); the GPU/disk facts use the same collectors as the shell.
                 return Scroll("CanRunScroll", new CanRunPage(CanRunServices.Real(() => GamePages.LocalPcNow(LinuxMemoryInfo.CpuModel(), LinuxMemoryInfo.TotalBytes()), GamePages.SteamLibraryNow), lifetime.Token));
@@ -97,5 +97,5 @@ public sealed class GamesWindow : Window
     }
 
     /// <summary>Brings the window back for a second launch (it may be minimised behind the game).</summary>
-    public void Bring() { Select(DefaultTab); if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal; Activate(); }
+    public void Bring() { if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal; Activate(); }
 }

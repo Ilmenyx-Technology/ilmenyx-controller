@@ -89,8 +89,8 @@ Onde entram: na linha da Steam (APLICAR NAS OPÇÕES DA STEAM, antes dos wrapper
 
 Barra à esquerda com Jogos (padrão), Conquistas, Compatibilidade, Jogo não abre? e Meu PC roda isso?; cada página é criada ao ser aberta pela primeira vez.
 Fica de fora o Detector de gargalo (precisa do monitor de uso): a janela não inicia monitor, sensores nem ícone da bandeja. Em "Meu PC roda isso?" o modelo
-da CPU e a RAM total vêm de `/proc/cpuinfo` e `/proc/meminfo` (somente leitura; vazio/0 se indisponível). Links de "Jogo não abre?" para páginas que só existem
-no app completo (Otimiza, Driver NVIDIA) são ignorados nesta janela. Segunda abertura e `--play` voltam para a página Jogos.
+da CPU e a RAM total vêm de `/proc/cpuinfo` e `/proc/meminfo` (somente leitura; vazio/0 se indisponível). Em "Jogo não abre?", os botões que levam a páginas só do app completo (Otimiza, Driver NVIDIA)
+não aparecem nesta janela. Abrir um jogo por um atalho (`--play`) volta para a página Jogos; abrir a janela de novo pelo atalho "Jogos" a traz de volta na página em que estava.
 
 ## Testes
 
