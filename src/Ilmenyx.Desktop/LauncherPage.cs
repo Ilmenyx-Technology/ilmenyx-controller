@@ -126,6 +126,17 @@ public sealed class LauncherPage : Grid
     private Grid? leftPane;
     private bool narrowWindow;
     private readonly Button backToLibrary = new() { Name = "BtnBackToLibrary", Content = L.T("← Biblioteca"), FontSize = 11, Padding = new Thickness(10, 4), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
+    private readonly TextBlock fpsBig = new() { Name = "FpsMeasuredTypical", FontSize = 34, FontWeight = FontWeight.Bold, Foreground = Palette.Fg };
+    private readonly TextBlock fpsRange = new() { Name = "FpsMeasuredRange", FontSize = 13, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap };
+    private readonly TextBlock fpsInfo = new() { Name = "FpsMeasuredInfo", FontSize = 12, Foreground = Palette.Faint, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) };
+    private readonly TextBlock fpsEmpty = new() { Name = "FpsMeasuredEmpty", FontSize = 12, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap };
+    private readonly ComboBox fpsGroupBox = new() { Name = "FpsMeasuredGroup", FontSize = 12, HorizontalAlignment = HorizontalAlignment.Stretch, Margin = new Thickness(0, 0, 0, 8) };
+    private List<FpsGroup> fpsGroups = []; private bool loadingGroups;
+    private readonly TextBlock qualityDetected = new() { Name = "QualityDetected", FontSize = 12, Foreground = Palette.Fg, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 4) };
+    private readonly TextBlock qualityActive = new() { Name = "QualityActive", FontSize = 12, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 10) };
+    private DetectedQuality? detectedQuality; private int detectGen;
+    /// <summary>Reads the quality the game itself uses (default: its Unreal/Unity settings file). Settable for fixtures.</summary>
+    public Func<LibGame, GameProfile, Task<DetectedQuality?>>? DetectQuality { get; init; }
     private UiKit.ChipGroup<string>? modeChips, resChips, styleChips, gfxPresetChips, gfxUpChips; private UiKit.ChipGroup<int>? hzChips;
     public IReadOnlyList<LibGame> Games => games;
     public GameProfile? Profile => profile;
@@ -351,8 +362,8 @@ public sealed class LauncherPage : Grid
         void Chosen(Action<GameProfile> set) { if (loading || profile is null) return; set(profile); SaveProfile(current, profile); UpdatePreview(); }
         modeChips = new("LModePanel", [(L.T("Padrão do jogo"), "default"), (L.T("Tela cheia"), "full"), (L.T("Sem bordas"), "borderless"), (L.T("Janela"), "window")], "default", v => Chosen(p => p.WinMode = v));
         resChips = new("LResPanel", [(L.T("Padrão"), "default"), ("1280x720", "1280x720"), ("1920x1080", "1920x1080"), ("2560x1440", "2560x1440"), ("3840x2160", "3840x2160")], "default", v => Chosen(p => p.Res = v));
-        // What the user plays with inside the game (not applied): recorded with each MangoHud session so the FPS page compares like with like.
-        gfxPresetChips = new("LGfxPresetPanel", [(L.T("Não informado"), ""), (L.T("Baixo"), "Baixo"), (L.T("Médio"), "Médio"), (L.T("Alto"), "Alto"), ("Ultra", "Ultra")], "", v => Chosen(p => p.GfxPreset = v));
+        // What the user plays with inside the game (not applied): recorded with each MangoHud session, which the measured-FPS card groups by resolution and quality.
+        gfxPresetChips = new("LGfxPresetPanel", [(L.T("Automático"), ""), (L.T("Baixo"), "Baixo"), (L.T("Médio"), "Médio"), (L.T("Alto"), "Alto"), ("Ultra", "Ultra")], "", v => { Chosen(p => p.GfxPreset = v); UpdateQualityActive(); });
         gfxUpChips = new("LGfxUpscalePanel", [(L.T("Não informado"), ""), (L.T("Nativo"), "Native"), (L.T("Qualidade"), "Quality"), (L.T("Desempenho"), "Performance")], "", v => Chosen(p => p.GfxUpscaling = v));
         hzChips = new("LHzPanel", [(L.T("Padrão"), 0), ("60", 60), ("120", 120), ("144", 144), ("165", 165), ("240", 240)], 0, v => Chosen(p => p.Hz = v));
         styleChips = new("LStylePanel", [("Source / CS2", "source"), ("Unity", "unity"), ("Unreal", "unreal")], "source", v => Chosen(p => p.Style = v));
@@ -454,12 +465,25 @@ public sealed class LauncherPage : Grid
             Children =
             {
                 CardTitle(Icons.Gpu, L.T("GRÁFICOS (ARGUMENTOS DE INICIALIZAÇÃO)")), Row(L.T("Modo de janela"), Wrap(modeChips.Panel)), Row(L.T("Resolução"), Wrap(resChips.Panel)), Row(L.T("Taxa de atualização (Hz)"), Wrap(hzChips.Panel)), Row(L.T("Tipo de argumento (depende do jogo)"), Wrap(styleChips.Panel)),
-                new TextBlock { Text = L.T("Qualidade usada dentro do jogo (para a Estimativa de FPS)"), FontWeight = FontWeight.SemiBold, FontSize = 12.5, Margin = new Thickness(0, 4, 0, 4) },
-                new TextBlock { Text = L.T("O Ilmenyx não muda isto no jogo. Diga a qualidade gráfica e o upscaling que você usa: cada sessão medida com MangoHud guarda esses valores e a resolução acima, e a Estimativa de FPS usa as sessões com a mesma qualidade para ajustar as estimativas dos outros jogos a este PC."), Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8) },
-                Row(L.T("Qualidade gráfica"), Wrap(gfxPresetChips.Panel)), Row(L.T("Upscaling (DLSS / FSR)"), Wrap(gfxUpChips.Panel)),
                 new TextBlock { Text = "Extras", Foreground = Palette.Muted, FontSize = 12, Margin = new Thickness(0, 0, 0, 6) }, extra, presets, UiKit.Label(L.T("LINHA FINAL")), code, steamBox, gfxNote
             }
         });
+        var quality = UiKit.Card(new StackPanel
+        {
+            Name = "QualityCard",
+            Children =
+            {
+                CardTitle(Icons.Gpu, L.T("QUALIDADE NO JOGO")),
+                new TextBlock { Text = L.T("O Ilmenyx lê, sem alterar nada, o arquivo de configuração do próprio jogo (Unreal e Unity) para saber a qualidade gráfica e a resolução em uso. Cada sessão medida guarda esse valor, e o desempenho medido deste jogo é separado por resolução e qualidade."), Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8) },
+                qualityDetected, qualityActive,
+                Row(L.T("Qualidade gráfica"), Wrap(gfxPresetChips.Panel)), Row(L.T("Upscaling (DLSS / FSR)"), Wrap(gfxUpChips.Panel)),
+            }
+        });
+        var measured = UiKit.Card(new StackPanel { Name = "FpsMeasuredCard", Children = { CardTitle(Icons.Fps, L.T("DESEMPENHO MEDIDO")), fpsGroupBox, fpsBig, fpsRange, fpsInfo, fpsEmpty } });
+        measured.Margin = new Thickness(0, 12, 0, 0);
+        fpsGroupBox.SelectionChanged += (_, _) => { if (!loadingGroups && fpsGroupBox.SelectedIndex >= 0) ShowGroup(fpsGroupBox.SelectedIndex); };
+        AutomationProperties.SetName(fpsGroupBox, L.T("Resolução e qualidade do desempenho mostrado"));
+        AutomationProperties.SetName(fpsBig, L.T("FPS típico medido")); 
         var addHelper = new Button { Name = "BtnAddHelper", Content = L.T("Adicionar"), FontSize = 12, Padding = new Thickness(14, 7) }; addHelper.Click += (_, _) => AddHelper();
         var help = UiKit.Card(new StackPanel
         {
@@ -477,7 +501,7 @@ public sealed class LauncherPage : Grid
         ToolTip.SetTip(coverUrl, L.T("Baixa a imagem do link (só https) quando você confirma."));
         var coverCard = UiKit.Card(new StackPanel { Children = { CardTitle(Icons.Games, L.T("CAPA")), new WrapPanel { ItemSpacing = 8, LineSpacing = 6, Children = { coverFile, coverUrl, coverReset } }, coverStatus } });
         coverCard.Margin = new Thickness(0, 12, 0, 0);
-        detail.Content = new StackPanel { Margin = new Thickness(0, 0, 8, 0), Children = { hero, playProgress, status, coverCard, UiKit.SectionHeader(L.T("Perfil do jogo")), perf, gfx, help } };
+        detail.Content = new StackPanel { Margin = new Thickness(0, 0, 8, 0), Children = { hero, playProgress, status, coverCard, measured, UiKit.SectionHeader(L.T("Perfil do jogo")), perf, quality, gfx, help } };
         Grid.SetColumn(detail, 2); Grid.SetRow(detail, 1); Children.Add(detail);
     }
 
@@ -640,6 +664,79 @@ public sealed class LauncherPage : Grid
         status.Text = ""; loading = false; UpdatePreview(); ShowExe(g, p);
         Filter();
         UpdateButtons(); _ = DetectSelectedAsync(g);
+        RefreshMeasured(); _ = DetectQualityAsync(g, p);
+    }
+
+    private void RefreshMeasured()
+    {
+        fpsGroups = current is { } g ? FpsHistory.Build(settings.FpsSessions, g.Name) : [];
+        bool any = fpsGroups.Count > 0;
+        fpsEmpty.IsVisible = !any; fpsBig.IsVisible = fpsRange.IsVisible = fpsInfo.IsVisible = any; fpsGroupBox.IsVisible = fpsGroups.Count > 1;
+        if (!any)
+        {
+            fpsEmpty.Text = L.T("A média aparece depois de você jogar com o MangoHud ligado (abrindo o jogo pelo Ilmenyx) por pelo menos 1 minuto. Só conta o jogo em si: os 20 s iniciais, os 3 s finais e as travadas de carregamento ficam de fora, para o menu e o carregamento não inflarem o número. Nenhum valor é inventado.");
+            return;
+        }
+        loadingGroups = true; fpsGroupBox.ItemsSource = fpsGroups.Select(g => (g.Resolution ?? L.T("resolução não informada")) + " · " + (g.Quality is { } q ? QualityLabel(q) : L.T("qualidade não informada"))).ToList(); fpsGroupBox.SelectedIndex = 0; loadingGroups = false;
+        ShowGroup(0);
+    }
+
+    private void ShowGroup(int i)
+    {
+        if (i < 0 || i >= fpsGroups.Count) return;
+        var g = fpsGroups[i];
+        fpsBig.Text = L.T($"{g.TypicalFps:0} FPS");
+        fpsRange.Text = L.T($"Faixa típica {g.P10Fps:0} a {g.P90Fps:0} FPS · 1% low {g.Low1Fps:0}");
+        string time = g.Hours < 1 ? L.T($"{g.Hours * 60:0} min") : L.T($"{g.Hours:0.#} h");
+        fpsInfo.Text = (g.Sessions == 1 ? L.T($"1 sessão · {time} neste PC") : L.T($"{g.Sessions} sessões · {time} neste PC")) + L.T($" · última em {g.Last.ToLocalTime():dd/MM/yyyy HH:mm}")
+            + (g.CappedAt is { } cap ? L.T($". Limitado a {cap:0} FPS (vsync ou limite do jogo): o PC pode render mais.") : "");
+    }
+
+    private async Task DetectQualityAsync(LibGame g, GameProfile p)
+    {
+        detectedQuality = null; qualityDetected.Text = L.T("Procurando a configuração do jogo…"); UpdateQualityActive();
+        int gen = ++detectGen;
+        {
+            var det = await (DetectQuality?.Invoke(g, p) ?? DetectRealAsync(g, p));
+            if (gen != detectGen || current?.Key != g.Key) return;
+            detectedQuality = det;
+            qualityDetected.Text = det is null
+                ? L.T("Não detectado: o Ilmenyx só sabe ler jogos Unreal e Unity, e o jogo precisa já ter sido aberto uma vez. Escolha a qualidade abaixo, se quiser.")
+                : L.T($"Detectado em {Path.GetFileName(det.File)}: ") + string.Join(", ", new[] { det.Level.Length > 0 ? QualityLabel(det.Level) + (det.Preset is null && det.Engine == "Unity" ? L.T(" (posição na lista do jogo, não um preset)") : "") : null,
+                    det.Resolution?.Replace('x', '×'), det.FpsLimit is { } l ? L.T($"limite de {l} FPS") : null }.Where(x => x is not null));
+            UpdateQualityActive();
+        }
+    }
+
+    private static async Task<DetectedQuality?> DetectRealAsync(LibGame g, GameProfile p)
+    {
+        try
+        {
+            return await Task.Run(() =>
+            {
+                string? exe = p.ExePath ?? g.ExePath ?? LinuxGameLibrary.FindMainExe(g.InstallDir, g.Name);
+                return GameQualityDetector.Detect(g.Name, exe, GameQualityDetector.Prefixes(g, p, exe));
+            }).WaitAsync(TimeSpan.FromSeconds(3));
+        }
+        catch (TimeoutException) { return null; }
+    }
+
+    private static string QualityLabel(string q) => q switch
+    {
+        "Baixo" => L.T("Baixo"), "Médio" => L.T("Médio"), "Alto" => L.T("Alto"), "Ultra" => L.T("Ultra"), "Cinemático" => L.T("Cinemático"), "Personalizado" => L.T("Personalizado"),
+        _ when q.StartsWith("Unity nível ", StringComparison.Ordinal) => L.T($"Unity nível {q[12..]}"),
+        _ when q.StartsWith("nível ", StringComparison.Ordinal) => L.T($"nível {q[6..]}"),
+        _ => q,
+    };
+
+    /// <summary>Says which quality goes into the next session: the chip the user chose wins over the detected one.</summary>
+    private void UpdateQualityActive()
+    {
+        if (profile is not { } p) return;
+        qualityActive.Text = p.GfxPreset is { Length: > 0 } m ? L.T($"Valendo: sua escolha ({QualityLabel(m)}). Ela prevalece sobre a detecção; use Automático para voltar a usar a detectada.")
+            : detectedQuality?.Preset is { } d ? L.T($"Valendo: a detectada ({QualityLabel(d)}).")
+            : detectedQuality is { Level.Length: > 0 } u ? L.T($"Valendo: {u.Engine} {QualityLabel(u.Level)} (só agrupa o histórico; escolha uma qualidade abaixo para mapear).")
+            : L.T("Valendo: nenhuma qualidade informada; as sessões ficam num grupo sem qualidade.");
     }
 
     private void ShowExe(LibGame g, GameProfile p)
@@ -1278,8 +1375,8 @@ public sealed class LauncherPage : Grid
                     UpdateProfile(key, gp => gp.ExePath = exe);
                     if (current?.Key == key) exeText.Text = L.T("Executável: ") + exe;
                 }), follow.Token);
-            // Measured on this PC (MangoHud log of this launch): kept locally for the FPS page, at most FpsSession.MaxEntries sessions.
-            if (session is { IsValid: true }) { if (Save(s => s.AddFpsSession(session)) is { } fresh) settings.FpsSessions = fresh.FpsSessions; else settings.AddFpsSession(session); }
+            // Measured on this PC (MangoHud log of this launch): kept locally for the measured-FPS card, at most FpsSession.MaxEntries sessions.
+            if (session is { IsValid: true }) { if (Save(s => s.AddFpsSession(session)) is { } fresh) settings.FpsSessions = fresh.FpsSessions; else settings.AddFpsSession(session); if (current?.Key == key) { RefreshMeasured(); if (profile is { } pp) _ = DetectQualityAsync(current, pp); } }
         }
         catch (OperationCanceledException) { }
         catch (Exception e) when (e is not OperationCanceledException) { if (current?.Key == key) status.Text = L.T("Não consegui abrir o jogo: ") + e.Message; }
