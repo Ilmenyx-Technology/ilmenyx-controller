@@ -6,7 +6,17 @@ calibração. Código: `src/Ilmenyx.Core/FpsPractice.cs` (`MangoHudPlay`, `FpsHi
 
 ## Quando há medição
 
-Só em sessões abertas pelo Ilmenyx com **MangoHud** ligado no perfil do jogo. Ao fechar o jogo, o Ilmenyx lê os CSV da própria pasta de
+Só em sessões abertas pelo Ilmenyx, em dois modos:
+
+- **Medir FPS** (padrão, por jogo): com o MangoHud desmarcado, o lançador injeta o MangoHud com o overlay escondido (`no_display=1`) e uma
+  configuração própria só de log, `~/.config/ilmenyx/mangohud-medir.conf`; o seu `MangoHud.conf` nunca é lido nem alterado. Usa o MangoHud do
+  sistema ou o do pacote (em jogo Flatpak, a extensão do runtime). Sem MangoHud o jogo abre normalmente e o Ilmenyx avisa que não mede.
+  Desligue em jogos com anti-cheat ou incompatíveis com MangoHud. O lançamento guarda uma cópia do perfil: mudar opções com o jogo aberto
+  só vale na próxima vez.
+- **MangoHud** marcado: overlay visível, como antes (a medição vem do mesmo log).
+
+Jogos da **Steam** e de lojas abertas por atalho não recebem injeção do Ilmenyx: ali só há medição com o MangoHud nas opções de
+inicialização (na Steam, **Aplicar nas opções da Steam**). A pasta de logs mantém só os 30 CSV mais recentes. Ao fechar o jogo, o Ilmenyx lê os CSV da própria pasta de
 logs (`~/.local/share/ilmenyx/mangohud`). Nada é medido sem o jogo aberto pelo Ilmenyx e nenhum número é inventado.
 
 ## Por que não é uma média simples

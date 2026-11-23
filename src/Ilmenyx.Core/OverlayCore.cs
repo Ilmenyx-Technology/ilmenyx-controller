@@ -131,6 +131,13 @@ public static class MangoHudConfig
         return sb.ToString();
     }
 
+    /// <summary>Config that only logs: the overlay stays hidden (no_display) and the FPS log goes to the Ilmenyx folder. Used by "Medir FPS".</summary>
+    public static string BuildMeasureOnly(string logFolder)
+    {
+        if (!Path.IsPathRooted(logFolder) || logFolder.Contains('\n') || logFolder.Contains('\r')) throw new ArgumentException(L.T("Pasta de log inválida."), nameof(logFolder));
+        return "# Gerado pelo Ilmenyx (by Ilmenyx Technology): só grava o log de FPS, sem mostrar nada na tela. Não é o seu MangoHud.conf.\nno_display=1\noutput_folder=" + logFolder + "\nlog_interval=100\nautostart_log=1\nlog_duration=0\n";
+    }
+
     public const string ToggleKeys = "Control_L+Shift_L+o", ToggleLabel = "Ctrl + Shift + O";
 
     public static string LaunchOption(string configPath) => $"MANGOHUD_CONFIGFILE={configPath} mangohud %command%";

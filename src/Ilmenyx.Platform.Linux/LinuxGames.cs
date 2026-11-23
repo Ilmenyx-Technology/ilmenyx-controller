@@ -468,14 +468,16 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
     /// that apply and do not conflict with the rest of the command (<see cref="GameExtras.Resolve"/>) join a Windows game's environment.</remarks>
     /// <param name="flatpakCommand">Default command of a Flatpak app (its metadata): needed to run a Flatpak game under MangoHud.</param>
     /// <param name="mangoLogFolder">Ilmenyx's MangoHud log folder, opened to the sandbox of a Flatpak game.</param>
+    /// <param name="measureOnly">MangoHud goes in only to log the FPS (hidden overlay); <paramref name="mangoConfig"/> is then the log-only config.</param>
     public static LaunchCommand BuildManual(string exe, GameProfile p, string gameArgs, string gpuVendor, Func<string, string?> find, string? mangoConfig = null, string? prefixRoot = null,
-        ExtrasContext? extras = null, bool shaderCache = false, Func<string, string?>? flatpakCommand = null, string? mangoLogFolder = null)
+        ExtrasContext? extras = null, bool shaderCache = false, Func<string, string?>? flatpakCommand = null, string? mangoLogFolder = null, bool measureOnly = false)
     {
+        bool mango = p.MangoHud || measureOnly; // measureOnly: "Medir FPS" with MangoHud unticked; the caller passes the log-only config
         var args = new List<string>(); string program = exe;
         var wrappers = new List<string>();
         // Flatpak game: the host mangohud cannot enter the sandbox; the extension's mangohud wraps the app's command instead (FlatpakLaunch).
-        bool flatpakMango = p.MangoHud && Path.GetFileName(exe) == "flatpak";
-        if (p.MangoHud && !flatpakMango && find("mangohud") is { } mh) wrappers.Add(mh);
+        bool flatpakMango = mango && Path.GetFileName(exe) == "flatpak";
+        if (mango && !flatpakMango && find("mangohud") is { } mh) wrappers.Add(mh);
         if (p.GameMode && find("gamemoderun") is { } gm) wrappers.Add(gm);
         var proton = new List<KeyValuePair<string, string>>();
         if (exe.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
@@ -500,7 +502,7 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
             gameList = FlatpakLaunch.WithMangoHud(gameList, command, mangoConfig, mangoLogFolder ?? MangoHudLogReader.DefaultFolder());
         args.AddRange(gameList);
         var env = new List<KeyValuePair<string, string>>(p.GpuHigh ? GameLaunchOptions.GpuEnvironment(gpuVendor) : []);
-        if (p.MangoHud && mangoConfig is not null && wrappers.Contains(find("mangohud") ?? "") ) env.Add(new("MANGOHUD_CONFIGFILE", mangoConfig));
+        if (mango && mangoConfig is not null && wrappers.Contains(find("mangohud") ?? "") ) env.Add(new("MANGOHUD_CONFIGFILE", mangoConfig));
         env.AddRange(proton);
         if (shaderCache) env.AddRange(ShaderCacheTweak.Variables.Where(v => env.All(e => e.Key != v.Key)));
         if (extras is not null && proton.Count > 0)
@@ -564,6 +566,7 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
         ExtrasContext? extras = null, bool shaderCache = false)
     {
         string? oldPlan = null; var helpers = new List<(Process Proc, bool Close)>(); var started = DateTimeOffset.UtcNow;
+        bool overlay = p.MangoHud, measure = false; // fixed at launch: ticking MangoHud while the game runs changes nothing for this session
         try
         {
             status(L.T("Aplicando o perfil…"));
@@ -593,10 +596,14 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
             else if (exe is not null && (LinuxGameLibrary.IsRunnableFile(exe) || LinuxGameLibrary.IsWindowsExe(exe)))
             {
                 // With MangoHud on, the config with FPS logging is written the first time (as for Steam games), so the session gets measured.
-                string? mangoConfig = p.MangoHud && OperatingSystem.IsLinux() ? MangoHudLogReader.EnsureConfig(IlmenyxSettings.Load(IlmenyxSettings.DefaultPath())) : File.Exists(MangoHudLogReader.ConfigPath()) ? MangoHudLogReader.ConfigPath() : null;
-                if (p.MangoHud) Directory.CreateDirectory(MangoHudLogReader.DefaultFolder()); // a Flatpak sandbox can only be given an existing folder
+                // With it off and "Medir FPS" on, MangoHud goes in hidden with a log-only config of its own (never the user's MangoHud.conf).
+                measure = !overlay && p.MeasureFps && OperatingSystem.IsLinux() && MeasureAvailable(g, exe);
+                if (!overlay && p.MeasureFps && !measure) status(L.T("Medição de FPS indisponível: o MangoHud não foi encontrado para este jogo. Ele abre normalmente, sem medir."));
+                string? mangoConfig = measure && OperatingSystem.IsLinux() ? MangoHudLogReader.EnsureMeasureConfig() : overlay && OperatingSystem.IsLinux() ? MangoHudLogReader.EnsureConfig(IlmenyxSettings.Load(IlmenyxSettings.DefaultPath())) : File.Exists(MangoHudLogReader.ConfigPath()) ? MangoHudLogReader.ConfigPath() : null;
+                if (measure && mangoConfig is null) { measure = false; status(L.T("Medição de FPS indisponível: não consegui gravar a configuração do MangoHud. Ele abre normalmente, sem medir.")); }
+                if (overlay || measure) Directory.CreateDirectory(MangoHudLogReader.DefaultFolder()); // a Flatpak sandbox can only be given an existing folder
                 var cmd = BuildManual(exe, p, g.Args, gpuVendor, BoundedProcess.Find, mangoConfig, extras: extras, shaderCache: shaderCache,
-                    flatpakCommand: id => new FlatpakApps().Metadata(id).Command, mangoLogFolder: MangoHudLogReader.DefaultFolder());
+                    flatpakCommand: id => new FlatpakApps().Metadata(id).Command, mangoLogFolder: MangoHudLogReader.DefaultFolder(), measureOnly: measure);
                 if (cmd.Environment.FirstOrDefault(e => e.Key == "WINEPREFIX").Value is { } prefix)
                 {
                     Directory.CreateDirectory(Path.GetDirectoryName(prefix)!);
@@ -609,17 +616,20 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
             IReadOnlyList<int> running = [];
             for (int i = 0; i < 120 && running.Count == 0; i++) { await Task.Delay(1500, ct); running = await GameProcesses.FindAsync(procRoot, g, p.ExePath ?? g.ExePath, ct); }
             if (running.Count == 0) { status(L.T("Não detectei o processo do jogo (ele pode ter demorado a abrir). Os ajustes continuam aplicados.")); return null; }
-            status(L.T($"{g.Name} em execução") + (p.HighPerfPlan ? L.T(" · perfil Alto desempenho") : "") + ".");
+            status(L.T($"{g.Name} em execução") + (p.HighPerfPlan ? L.T(" · perfil Alto desempenho") : "") + (measure ? L.T(" · medindo o FPS") : "") + ".");
             int quiet = 0;
             while (quiet < 6) { await Task.Delay(1000, ct); running = await GameProcesses.FindAsync(procRoot, g, p.ExePath ?? g.ExePath, ct); quiet = running.Count == 0 ? quiet + 1 : 0; }
-            if (!p.MangoHud) { status(L.T($"{g.Name} encerrado. Ajustes temporários desfeitos.")); return null; }
+            if (!overlay && !measure) { status(L.T($"{g.Name} encerrado. Ajustes temporários desfeitos.")); return null; }
             // Quality in effect: what the user chose wins; otherwise what the game's own settings file says (read-only, 3 s at most).
             var det = await GameQualityDetector.DetectAsync(g.Name, exe, GameQualityDetector.Prefixes(g, p, exe), TimeSpan.FromSeconds(3));
             string? preset = p.GfxPreset is { Length: > 0 } ? p.GfxPreset : det?.Preset, res = p.Res != "default" ? p.Res : det?.Resolution;
             string? note = preset is null && det is { Level.Length: > 0 } ? det.Engine + " " + det.Level : null;
             var session = MangoHudPlay.ToSession(MangoHudLogReader.ReadPlay(MangoHudLogReader.DefaultFolder(), started, exe is null ? null : Path.GetFileNameWithoutExtension(exe)),
                 g.Name, DateTimeOffset.UtcNow, res, preset, p.GfxUpscaling, note);
-            status(session is null
+            MangoHudLogReader.Prune(MangoHudLogReader.DefaultFolder());
+            status(session is null && measure
+                ? L.T($"{g.Name} encerrado. Ajustes temporários desfeitos. Sessão não registrada: sem log do MangoHud (o jogo pode bloquear o MangoHud: desligue Medir FPS nele) ou menos de {MangoHudPlay.MinValidSeconds:0} s de jogo (os {MangoHudPlay.SkipStart:0} s iniciais e os {MangoHudPlay.SkipEnd:0} s finais não contam).")
+                : session is null
                 ? L.T($"{g.Name} encerrado. Ajustes temporários desfeitos. Sessão não registrada: sem log do MangoHud na pasta do Ilmenyx (gere a configuração na página Overlay) ou menos de {MangoHudPlay.MinValidSeconds:0} s de jogo (os {MangoHudPlay.SkipStart:0} s iniciais e os {MangoHudPlay.SkipEnd:0} s finais não contam).")
                 : L.T($"{g.Name} encerrado. Ajustes temporários desfeitos. Medido: {session.AvgFps:0} FPS típico (1% low {session.Low1Fps:0}) — salvo no desempenho medido do jogo.")
                   + (session.CappedAt is { } cap ? L.T($" Limitado a {cap:0} FPS (vsync ou limite do jogo): o PC pode render mais. Para medir o máximo, desligue o vsync no jogo.") : ""));
@@ -633,6 +643,14 @@ public sealed class LinuxGameLauncher(string procRoot = "/proc")
             foreach (var (proc, close) in helpers) if (close) await CloseAsync(proc);
         }
         return null;
+    }
+
+    /// <summary>"Medir FPS" needs MangoHud: the system or packaged one, or, for a Flatpak game, the MangoHud extension of its runtime.</summary>
+    private static bool MeasureAvailable(LibGame g, string exe)
+    {
+        if (Path.GetFileName(exe) != "flatpak") return BoundedProcess.Find("mangohud") is not null;
+        var flatpaks = new FlatpakApps();
+        return GameProcesses.FlatpakApp(g) is { } app && flatpaks.Metadata(app).RuntimeBranch is { } branch && flatpaks.HasMangoHud(branch);
     }
 
     private static async Task StartAsync(string program, IReadOnlyList<string> args, IReadOnlyList<KeyValuePair<string, string>> env, CancellationToken ct, string? workDir = null)

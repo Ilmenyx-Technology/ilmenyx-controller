@@ -23,6 +23,9 @@ public sealed class GameProfile
     public bool GpuHigh { get; set; }
     public bool GameMode { get; set; }
     public bool MangoHud { get; set; }
+    /// <summary>Measure the FPS of each session without showing anything: when MangoHud is not ticked, the launcher injects it with a hidden overlay
+    /// (config of its own, log only). On by default; off for games with anti-cheat or that do not accept MangoHud. Steam and store games are not injected.</summary>
+    public bool MeasureFps { get; set; } = true;
     public string? ExePath { get; set; }
     public string WinMode { get; set; } = "default";   // default | full | borderless | window
     public string Res { get; set; } = "default";       // default | 1280x720 | 1920x1080 | 2560x1440 | 3840x2160
@@ -59,6 +62,8 @@ public sealed class GameProfile
     public string? ArtSteamId { get; set; }
     /// <summary>Steam IDs the user refused at "Você quis dizer…?" for this game; never suggested again (cleared when the game is renamed).</summary>
     public List<string> RejectedSteamIds { get; set; } = [];
+    /// <summary>Independent copy: a launch keeps the profile as it was when the game opened, whatever the user changes while it runs.</summary>
+    public GameProfile Clone() => System.Text.Json.JsonSerializer.Deserialize<GameProfile>(System.Text.Json.JsonSerializer.Serialize(this))!;
 }
 
 /// <summary>Manually added executable (ELF, script, AppImage).</summary>

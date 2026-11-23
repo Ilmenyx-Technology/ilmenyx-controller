@@ -18,6 +18,8 @@ public static class MangoHudLogReader
         return Path.Combine(data, "ilmenyx", "mangohud");
     }
 
+    public static string MeasureConfigPath() => Path.Combine(Path.GetDirectoryName(Ilmenyx.Core.IlmenyxSettings.DefaultPath())!, "mangohud-medir.conf");
+
     public static string ConfigPath() => Path.Combine(Path.GetDirectoryName(Ilmenyx.Core.IlmenyxSettings.DefaultPath())!, "mangohud.conf");
 
     /// <summary>FPS statistics when a log was written within <see cref="MaxAge"/>; otherwise null (no game under MangoHud is running).</summary>
@@ -117,6 +119,31 @@ public static class MangoHudLogReader
             return path;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException) { return null; }
+    }
+
+    /// <summary>The log-only config of "Medir FPS" (hidden overlay), rewritten when its text changed. Null when it cannot be written.</summary>
+    [System.Runtime.Versioning.SupportedOSPlatform("linux")]
+    public static string? EnsureMeasureConfig(string? path = null, string? logFolder = null)
+    {
+        path ??= MeasureConfigPath(); logFolder ??= DefaultFolder();
+        try
+        {
+            string text = Ilmenyx.Core.MangoHudConfig.BuildMeasureOnly(logFolder);
+            if (!File.Exists(path) || File.ReadAllText(path) != text) WriteConfig(path, text, logFolder);
+            return path;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException) { return null; }
+    }
+
+    /// <summary>Every launch now leaves a log: keeps the newest <paramref name="keep"/> CSVs of the Ilmenyx folder and deletes the older ones (only *.csv, only that folder).</summary>
+    public static void Prune(string folder, int keep = 30)
+    {
+        try
+        {
+            if (!Directory.Exists(folder)) return;
+            foreach (var f in new DirectoryInfo(folder).EnumerateFiles("*.csv").OrderByDescending(f => f.LastWriteTimeUtc).Skip(keep).ToList()) f.Delete();
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
     }
 
     /// <summary>Writes Ilmenyx's own MangoHud config (0600, atomic). The user's MangoHud.conf is never touched.</summary>
