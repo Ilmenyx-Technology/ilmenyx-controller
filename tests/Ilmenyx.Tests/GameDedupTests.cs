@@ -62,7 +62,7 @@ public sealed class GameDedupTests
     [Fact]
     public void NothingJoinsWhenThePathCannotBeResolvedOrIsADifferentProgram()
     {
-        Assert.Equal(2, GameDedup.Group([Manual("/run/user/1000/doc/zzz/MK10.exe"), Manual(Real)], Resolve).Count);
+        Assert.Equal(2, GameDedup.Group([Manual("/run/user/1000/doc/zzz/MK10.exe", "Outro"), Manual(Real)], Resolve).Count); // unresolved alias with another name stays apart (same name: StalePortalAlias…)
         Assert.Equal(2, GameDedup.Group([Manual("/g/a.exe"), Manual("/g/b.exe")], Resolve).Count);
     }
 
@@ -91,5 +91,18 @@ public sealed class GameDedupTests
         var merged = new Dictionary<string, IReadOnlyList<LibGame>> { [card.Game.Key] = card.Merged };
         Assert.Contains(card.Game.Key, GameDedup.HiddenKeys(["Linux:spartanport"], merged));
         Assert.DoesNotContain(card.Game.Key, GameDedup.HiddenKeys([], merged));
+    }
+
+    [Fact]
+    public void StalePortalAliasJoinsTheSameNameAndFileOnly()
+    {
+        const string gone = "/run/user/1000/doc/GONE/MK10.exe";
+        var real = Manual(Real, "Mortal Kombat X");
+        var g = GameDedup.Group([Manual(gone, "Mortal Kombat X"), real], Resolve);
+        var only = Assert.Single(g);
+        Assert.Equal(Real, only.Game.Id); Assert.Single(only.Merged);
+        Assert.Equal(2, GameDedup.Group([Manual(gone, "Outro jogo"), real], Resolve).Count); // different name: apart
+        Assert.Equal(2, GameDedup.Group([Manual("/run/user/1000/doc/GONE/Other.exe", "Mortal Kombat X"), real], Resolve).Count); // different file: apart
+        Assert.True(GameDedup.IsPortalPath(gone)); Assert.False(GameDedup.IsPortalPath(Real)); Assert.False(GameDedup.IsPortalPath("/run/user/1000/x"));
     }
 }
