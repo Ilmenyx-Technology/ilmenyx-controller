@@ -4,18 +4,24 @@
 // New Ilmenyx additions (layout follows the original RESET JOGOS launcher: game list left, profile cards right; cinematic library grid and hero since 2026-11-06): see LICENSING.md.
 using Avalonia;
 using Avalonia.Automation;
+using Avalonia.Animation;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Platform.Storage;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.Media.Transformation;
 using Avalonia.VisualTree;
 using Ilmenyx.Core;
 using Ilmenyx.Platform.Linux;
 
 namespace Ilmenyx.Desktop;
+
+/// <summary>Classic: the full app's library (list + hero). Showcase: the games-only window (poster grid, filter chips and a detail panel on the right).</summary>
+public enum LauncherLayout { Classic, Showcase }
 
 public sealed class LauncherPage : Grid
 {
@@ -172,6 +178,17 @@ public sealed class LauncherPage : Grid
     private readonly StackPanel mangoFlatpakBox = new() { Name = "MangoFlatpakBox", Spacing = 6, IsVisible = false, Margin = new Thickness(26, 0, 0, 8) };
     private string? mangoFlatpakBranch;
     private int columns = 2;
+    private readonly bool showcase;
+    private GameFilter filter = GameFilter.All;
+    private readonly WrapPanel posters = new() { Name = "LPosterGrid", ItemSpacing = ShowcaseLayout.Gap, LineSpacing = 18 };
+    private readonly Dictionary<string, PosterState> posterStates = [];
+    private double posterWidth = 160;
+    private readonly StackPanel panelEmpty = new() { Name = "LPanelEmpty", Spacing = 10, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(20) };
+    private readonly TextBlock panelFps = new() { Name = "LPanelFps", FontSize = 12.5, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap, IsVisible = false };
+    private readonly TextBlock panelAch = new() { Name = "LPanelAchText", FontSize = 12.5, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap };
+    private readonly ProgressBar panelAchBar = new() { Name = "LPanelAchBar", Minimum = 0, Maximum = 1, Height = 4, MinHeight = 4, Margin = new Thickness(0, 6, 0, 0) };
+    private readonly StackPanel panelAchBox = new() { Name = "LPanelAch", IsVisible = false, Margin = new Thickness(0, 8, 0, 0) };
+    private int achGen;
     private Grid? leftPane;
     private bool narrowWindow;
     private readonly Button backToLibrary = new() { Name = "BtnBackToLibrary", Content = L.T("← Biblioteca"), FontSize = 11, Padding = new Thickness(10, 4), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
@@ -191,7 +208,7 @@ public sealed class LauncherPage : Grid
     public GameProfile? Profile => profile;
 
     /// <summary>The page with the real library and launcher (full app and the games-only window).</summary>
-    public static LauncherPage Create(Func<Window?> owner, CancellationToken lifetime)
+    public static LauncherPage Create(Func<Window?> owner, CancellationToken lifetime, LauncherLayout layout = LauncherLayout.Classic)
     {
         string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         var gpus = new LinuxGpuCollector().Collect(PciIds.Load());
@@ -201,19 +218,21 @@ public sealed class LauncherPage : Grid
         // Manual games: the experimental Proton options (when they apply) and, with the Otimiza option on, the bigger shader cache variables.
         return new LauncherPage(new LinuxGameLibrary(home), new SteamInfo(home), IlmenyxSettings.DefaultPath(),
             (g, p, v, status, learned, ct) => new LinuxGameLauncher().RunAsync(g, p, v, status, learned, ct,
-                LinuxGameExtras.ManualContext(g, p, v, multi, LinuxGameExtras.UmuProtonName(home)), new LinuxShaderCache(home).IsOn), owner, vendor, multi, lifetime) { Margin = new Thickness(0, 4, 8, 12) };
+                LinuxGameExtras.ManualContext(g, p, v, multi, LinuxGameExtras.UmuProtonName(home)), new LinuxShaderCache(home).IsOn), owner, vendor, multi, lifetime, layout) { Margin = new Thickness(0, 4, 8, 12) };
     }
 
-    public LauncherPage(LinuxGameLibrary library, SteamInfo steam, string settingsPath, LaunchFunc launch, Func<Window?> owner, string gpuVendor, bool multiGpu, CancellationToken lifetime)
+    public LauncherPage(LinuxGameLibrary library, SteamInfo steam, string settingsPath, LaunchFunc launch, Func<Window?> owner, string gpuVendor, bool multiGpu, CancellationToken lifetime, LauncherLayout layout = LauncherLayout.Classic)
     {
+        showcase = layout == LauncherLayout.Showcase;
         this.library = library; this.steam = steam; this.settingsPath = settingsPath; this.launch = launch; this.owner = owner; this.gpuVendor = gpuVendor; this.multiGpu = multiGpu; this.lifetime = lifetime;
         settings = IlmenyxSettings.Load(settingsPath);
         steamRoot = steam.Root();
-        ColumnDefinitions = new("300,20,*"); RowDefinitions = new("Auto,*");
+        ColumnDefinitions = showcase ? new("*,16,320") : new("300,20,*"); RowDefinitions = new("Auto,*");
         BuildLeft(); BuildRight();
         // Narrow window (minimum 900x560 leaves ~640 px here): a slimmer one-column library so the detail keeps room for its chips.
         SizeChanged += (_, e) =>
         {
+            if (showcase) { ApplyLayout(); return; }
             narrowWindow = e.NewSize.Width < 860;
             ColumnDefinitions[0].Width = new GridLength(narrowWindow ? 230 : 300);
             ApplyLayout();
@@ -282,12 +301,18 @@ public sealed class LauncherPage : Grid
         var gamesShortcut = new Button { Name = "BtnGamesShortcut", Content = L.T("Atalho dos Jogos"), Padding = new Thickness(14, 8), FontSize = 12 };
         ToolTip.SetTip(gamesShortcut, L.T("Cria um atalho que abre só os Jogos, numa janela leve, sem o resto do Ilmenyx."));
         gamesShortcut.Flyout = ShortcutMenu(desktop => CreateShortcut(desktop, null));
+        var searchBox = new Grid { Children = { search, SearchIcon() } };
+        search.Padding = new Thickness(34, 7, 10, 7);
+        AutomationProperties.SetName(search, L.T("Buscar jogo…"));
+        if (showcase)
+        {
+            BuildShowcaseLeft(searchBox, [scan, add, installWin, gamesShortcut]);
+            return;
+        }
         var header = UiKit.PageHeader(L.T("Jogos"), null, new WrapPanel { ItemSpacing = 8, LineSpacing = 6, HorizontalAlignment = HorizontalAlignment.Right, Children = { scan, add, installWin, gamesShortcut } });
         count.FontSize = 12.5; ((StackPanel)header.Children[0]).Children.Add(count);
         Grid.SetColumnSpan(header, 3); Children.Add(header);
 
-        var searchBox = new Grid { Children = { search, SearchIcon() } };
-        search.Padding = new Thickness(34, 7, 10, 7);
         var tools = new StackPanel { Margin = new Thickness(0, 0, 0, 12), Spacing = 8, Children = { searchBox, showHidden, addBox } };
         // The empty-library card sits over this column: keep it below the add box, or it covers Procurar…/Adicionar (seen 2026-11-12).
         tools.SizeChanged += (_, _) => emptyBox.Margin = new Thickness(0, 84 + (addBox.IsVisible ? addBox.Bounds.Height + tools.Spacing : 0), 0, 0);
@@ -297,6 +322,49 @@ public sealed class LauncherPage : Grid
         var scroll = new ScrollViewer { Name = "LGameScroll", Content = list, Padding = new Thickness(0, 0, 8, 0) }; Grid.SetRow(scroll, 2);
         left.Children.Add(tools); left.Children.Add(shelf); left.Children.Add(scroll);
         Grid.SetRow(left, 1); Children.Add(left); leftPane = left;
+    }
+
+    /// <summary>Showcase library (games-only window): "Biblioteca" header with the search box, filter chips, the library actions and the poster grid.</summary>
+    private void BuildShowcaseLeft(Control searchBox, Button[] actionButtons)
+    {
+        searchBox.Width = 260;
+        var header = UiKit.PageHeader(L.T("Biblioteca"), null, searchBox);
+        count.FontSize = 12.5; ((StackPanel)header.Children[0]).Children.Add(count);
+        Children.Add(header); // column 0 only: the detail panel takes the full height on the right
+
+        var chips = new WrapPanel { Name = "LFilterChips", ItemSpacing = 6, LineSpacing = 6 };
+        AutomationProperties.SetName(chips, L.T("Filtrar por origem"));
+        var chipButtons = new List<(ToggleButton Button, GameFilter Value)>();
+        foreach (var (label, value) in new (string, GameFilter)[] { (L.T("Todos"), GameFilter.All), ("Steam", GameFilter.Steam), ("Windows", GameFilter.Windows), ("Linux", GameFilter.Linux) })
+        {
+            var chip = new ToggleButton { Name = "LFilter_" + value, Content = label, FontSize = 11.5, Padding = new Thickness(14, 5), CornerRadius = new CornerRadius(IlmenyxTheme.Pill), BorderBrush = Palette.Line, BorderThickness = new Thickness(1) };
+            AutomationProperties.SetName(chip, label);
+            // ToggleButton's template recolours the checked state itself: pin every state to the chip colours.
+            foreach (var (key, brush) in new (string, IBrush)[] {
+                ("ToggleButtonBackgroundChecked", Palette.Fg), ("ToggleButtonBackgroundCheckedPointerOver", Palette.Fg), ("ToggleButtonBackgroundCheckedPressed", Palette.Fg),
+                ("ToggleButtonForegroundChecked", Palette.OnFg), ("ToggleButtonForegroundCheckedPointerOver", Palette.OnFg), ("ToggleButtonForegroundCheckedPressed", Palette.OnFg),
+                ("ToggleButtonBorderBrushChecked", Palette.Line), ("ToggleButtonBorderBrushCheckedPointerOver", Palette.Line), ("ToggleButtonBorderBrushCheckedPressed", Palette.Line) })
+                chip.Resources[key] = brush;
+            chipButtons.Add((chip, value)); chips.Children.Add(chip);
+        }
+        void Paint() { foreach (var (b, v) in chipButtons) { b.IsChecked = v == filter; UiKit.ChipStyle(b, v == filter); } }
+        foreach (var (b, v) in chipButtons) { var value = v; b.Click += (_, _) => { filter = value; Paint(); Filter(); }; }
+        Paint();
+
+        foreach (var b in actionButtons) { b.FontSize = 11.5; b.Padding = new Thickness(12, 6); }
+        var actions = new WrapPanel { Name = "LLibraryActions", ItemSpacing = 8, LineSpacing = 6, Margin = new Thickness(0, 10, 0, 0), Children = { actionButtons[0], actionButtons[1], actionButtons[2], actionButtons[3] } };
+        showHidden.Margin = new Thickness(4, 6, 0, 0);
+        var tools = new StackPanel { Margin = new Thickness(0, 0, 0, 12), Children = { chips, actions, showHidden, addBox } };
+        var left = new Grid { RowDefinitions = new("Auto,*") };
+        posters.HorizontalAlignment = HorizontalAlignment.Left;
+        KeyboardNavigation.SetTabNavigation(posters, KeyboardNavigationMode.Once); // the grid is one Tab stop; arrows move inside it
+        AutomationProperties.SetName(posters, L.T("Biblioteca"));
+        posters.KeyDown += (_, e) => MovePosterFocus(e);
+        var scroll = new ScrollViewer { Name = "LGameScroll", Content = new Border { Padding = new Thickness(4, 6, 8, 12), Child = posters }, Padding = new Thickness(0, 0, 8, 0) }; Grid.SetRow(scroll, 1);
+        left.Children.Add(tools); left.Children.Add(scroll);
+        Grid.SetRow(left, 1); Children.Add(left); leftPane = left;
+        // The empty-library card lives in the poster area (same cell), so it never covers the library actions.
+        Grid.SetRow(emptyBox, 1); emptyBox.Margin = new Thickness(0, 24, 0, 0); emptyBox.VerticalAlignment = VerticalAlignment.Top; left.Children.Add(emptyBox);
     }
 
     private static Control SearchIcon()
@@ -329,7 +397,8 @@ public sealed class LauncherPage : Grid
         };
         empty.HorizontalAlignment = HorizontalAlignment.Center; empty.FontSize = 14;
         // Empty state of the full-page library (nothing installed or nothing matches the search), under the search box.
-        Grid.SetColumn(emptyBox, 0); Grid.SetColumnSpan(emptyBox, 3); Grid.SetRow(emptyBox, 1); emptyBox.Margin = new Thickness(0, 84, 0, 0); emptyBox.IsVisible = false; Children.Add(emptyBox);
+        emptyBox.IsVisible = false;
+        if (!showcase) { Grid.SetColumn(emptyBox, 0); Grid.SetColumnSpan(emptyBox, 3); Grid.SetRow(emptyBox, 1); emptyBox.Margin = new Thickness(0, 84, 0, 0); Children.Add(emptyBox); }
         play.Click += async (_, _) => await PlayAsync();
         closeGame.Click += async (_, _) => await CloseGameAsync();
         AutomationProperties.SetLiveSetting(status, AutomationLiveSetting.Polite); // screen readers hear Abrindo…, Em execução, Encerrado and errors
@@ -360,10 +429,19 @@ public sealed class LauncherPage : Grid
         var actions = new WrapPanel { Name = "LHeroActions", ItemSpacing = 8, LineSpacing = 6, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 10, 0, 0), Children = { gameShortcut, renameGame, removeGame, hideGame, stopWatch, closeGame, play } };
         foreach (var c in actions.Children.OfType<Control>()) { c.Margin = new Thickness(0); c.VerticalAlignment = VerticalAlignment.Center; }
         Grid.SetRow(actions, 1); bottom.Children.Add(actions);
-        var heroTop = new DockPanel { Children = { backToLibrary, heroTags } }; heroTags.Margin = new Thickness(10, 0, 0, 0);
+        var heroTop = new DockPanel { Children = { backToLibrary } }; if (!showcase) { heroTop.Children.Add(heroTags); heroTags.Margin = new Thickness(10, 0, 0, 0); }
         var heroContent = new Grid { RowDefinitions = new("Auto,*,Auto"), Children = { heroTop } };
-        Grid.SetRow(bottom, 2); heroContent.Children.Add(bottom);
-        hero = UiKit.Hero(heroContent, height: 232, name: L.T("LHero")); hero.Height = double.NaN; hero.MinHeight = 232; // grows when the actions wrap
+        if (showcase)
+        {
+            // Panel cover: the artwork on top with the tags; name, state and actions go below it (see BuildShowcasePanel).
+            Grid.SetRow(heroTags, 2); heroContent.Children.Add(heroTags); // tags under the back button: they wrap instead of being squeezed beside it
+            hero = UiKit.Hero(heroContent, height: 190, name: L.T("LHero")); heroContent.Margin = new Thickness(12, 10); hero.Height = double.NaN; hero.MinHeight = 190;
+        }
+        else
+        {
+            Grid.SetRow(bottom, 2); heroContent.Children.Add(bottom);
+            hero = UiKit.Hero(heroContent, height: 232, name: L.T("LHero")); hero.Height = double.NaN; hero.MinHeight = 232; // grows when the actions wrap
+        }
         if (hero.Child is Grid layers) layers.Children.Insert(0, heroScrim);
 
         ToolTip.SetTip(chkGuard, L.T("Em notebooks com duas GPUs, jogos de Windows em tela cheia sem vsync podem travar a tela inteira (só reiniciando). Com a proteção, o Proton sincroniza os quadros com o monitor; o FPS fica limitado à taxa da tela. Vale quando o jogo usa a GPU dedicada NVIDIA."));
@@ -549,6 +627,41 @@ public sealed class LauncherPage : Grid
         ToolTip.SetTip(coverUrl, L.T("Baixa a imagem do link (só https) quando você confirma."));
         var coverCard = UiKit.Card(new StackPanel { Children = { CardTitle(Icons.Games, L.T("CAPA")), new WrapPanel { ItemSpacing = 8, LineSpacing = 6, Children = { coverFile, coverUrl, coverReset } }, coverStatus } });
         coverCard.Margin = new Thickness(0, 12, 0, 0);
+        if (showcase)
+        {
+            // Detail panel of the selected game: cover, name, store · runner, Jogar, state, measured summary, achievements, then the per-game sections.
+            actions.Children.Clear(); ((Panel)bottom.Children[0]).Children.Clear(); // the classic hero layout is not used here
+            foreach (var card in new[] { coverCard, measured, perf, quality, gfx, help }) card.Padding = new Thickness(14, 12);
+            title.FontSize = 20; title.Foreground = Palette.Fg; sub.Foreground = Palette.Muted; also.Foreground = Palette.Muted;
+            play.HorizontalAlignment = HorizontalAlignment.Stretch; play.HorizontalContentAlignment = HorizontalAlignment.Center; play.Margin = new Thickness(0, 12, 0, 0); play.Padding = new Thickness(16, 11);
+            foreach (var b in new[] { stopWatch, closeGame }) { b.Margin = new Thickness(0); b.VerticalAlignment = VerticalAlignment.Center; }
+            var live = new WrapPanel { Name = "LLiveActions", ItemSpacing = 8, LineSpacing = 6, Margin = new Thickness(0, 8, 0, 0), Children = { stopWatch, closeGame } };
+            var manage = new WrapPanel { Name = "LHeroActions", ItemSpacing = 8, LineSpacing = 6, Children = { gameShortcut, renameGame, removeGame, hideGame } };
+            panelAchBox.Children.Add(panelAch); panelAchBox.Children.Add(panelAchBar);
+            AutomationProperties.SetName(panelAchBar, L.T("Progresso das conquistas"));
+            detail.Padding = new Thickness(14, 14, 10, 14);
+            detail.Content = new StackPanel
+            {
+                Children =
+                {
+                    hero, new StackPanel { Margin = new Thickness(2, 12, 2, 0), Children = { title, sub, also } }, play, live, playProgress, status,
+                    new StackPanel { Margin = new Thickness(2, 0, 2, 4), Children = { panelFps, panelAchBox } },
+                    coverCard, measured, UiKit.SectionHeader(L.T("Perfil do jogo")), perf, quality, gfx, help, UiKit.SectionHeader(L.T("Gerenciar")), manage,
+                },
+            };
+            panelEmpty.Children.Add(UiKit.Icon(Icons.Games, 44, Palette.Faint));
+            panelEmpty.Children.Add(new TextBlock { Text = L.T("Escolha um jogo"), FontSize = 16, FontWeight = FontWeight.SemiBold, HorizontalAlignment = HorizontalAlignment.Center });
+            panelEmpty.Children.Add(new TextBlock { Text = L.T("Clique em uma capa da biblioteca para jogar, ajustar o perfil e ver o desempenho medido."), Foreground = Palette.Muted, FontSize = 12.5, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center, MaxWidth = 240 });
+            var panel = new Border
+            {
+                Name = "LGamePanel", Background = Palette.Panel, BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.CardRadius), ClipToBounds = true,
+                Child = new Grid { Children = { detail, panelEmpty } },
+            };
+            AutomationProperties.SetName(panel, L.T("Detalhes do jogo"));
+            detail.IsVisible = false;
+            Grid.SetColumn(panel, 2); Grid.SetRow(panel, 0); Grid.SetRowSpan(panel, 2); Children.Add(panel);
+            return;
+        }
         detail.Content = new StackPanel { Margin = new Thickness(0, 0, 8, 0), Children = { hero, playProgress, status, coverCard, measured, UiKit.SectionHeader(L.T("Perfil do jogo")), perf, quality, gfx, help } };
         Grid.SetColumn(detail, 2); Grid.SetRow(detail, 1); Children.Add(detail);
     }
@@ -626,6 +739,7 @@ public sealed class LauncherPage : Grid
 
     private void Filter()
     {
+        if (showcase) { FilterPosters(); return; }
         string? keep = current?.Key;
         list.Children.Clear();
         var shown = Shown();
@@ -674,6 +788,14 @@ public sealed class LauncherPage : Grid
     private void ApplyLayout(bool force = false)
     {
         if (leftPane is null) return;
+        if (showcase)
+        {
+            var m = ShowcaseLayout.Compute(Bounds.Width > 0 ? Bounds.Width : 1100);
+            ColumnDefinitions[2].Width = new GridLength(m.Panel);
+            bool has = current is not null; detail.IsVisible = has; panelEmpty.IsVisible = !has;
+            if (Math.Abs(m.Poster - posterWidth) >= 1) { posterWidth = m.Poster; Filter(); }
+            return;
+        }
         bool browse = current is null;
         double width = Bounds.Width > 0 ? Bounds.Width : 1100;
         // Very narrow (a minimum window with 200% text): the game's detail takes the whole page; ← Biblioteca (or Esc) goes back to the library.
@@ -685,10 +807,105 @@ public sealed class LauncherPage : Grid
         if (cols != columns || force) { columns = cols; Filter(); }
     }
 
+    /// <summary>Visual state of one poster: ring opacity follows selection, keyboard focus and pointer hover.</summary>
+    private sealed class PosterState(Border ring, Grid cover, TextBlock name)
+    {
+        public bool Selected, Hover, Focused;
+        public void Apply()
+        {
+            ring.Opacity = Selected ? 1 : Focused ? 0.8 : Hover ? 0.45 : 0;
+            cover.RenderTransform = TransformOperations.Parse(Hover || Focused ? "scale(1.03)" : "scale(1)");
+            name.Foreground = Selected ? Palette.AccentText : Palette.Fg;
+        }
+    }
+
+    private void FilterPosters()
+    {
+        posters.Children.Clear(); posterStates.Clear();
+        var shown = Shown().Where(g => GameFilters.Matches(g, filter)).ToList();
+        foreach (var g in shown)
+        {
+            var item = Poster(g, posterWidth);
+            if (IsHidden(g)) item.Opacity = 0.55;
+            var game = g; item.Click += (_, _) => Select(game);
+            posters.Children.Add(item);
+        }
+        UpdateRings();
+        emptyBox.IsVisible = shown.Count == 0;
+        empty.Text = games.Count == 0 ? L.T("Nenhum jogo na biblioteca.") : Visible().Count == 0 && HiddenCount() is > 0 and var hiddenN ? L.T($"Jogos ocultos: {hiddenN}. Marque Mostrar ocultos para vê-los.")
+            : (search.Text ?? "").Trim().Length == 0 && filter != GameFilter.All ? L.T("Nenhum jogo neste filtro.") : L.T("Nenhum jogo com esse nome.");
+    }
+
+    private void UpdateRings() { foreach (var (key, st) in posterStates) { st.Selected = key == current?.Key; st.Apply(); } }
+
+    /// <summary>Portrait 2:3 poster: the cover art (cropped to fill), or the game's initials on a card; accent ring and a slight lift on hover and focus.</summary>
+    private Button Poster(LibGame g, double w)
+    {
+        double h = Math.Round(w * 1.5);
+        var art = ArtFor(g, hero: false, portrait: true);
+        var face = new Border { CornerRadius = new CornerRadius(12), ClipToBounds = true, Background = art is null ? Palette.Card : new ImageBrush { Source = art, Stretch = Stretch.UniformToFill } };
+        if (art is null) face.Child = new TextBlock { Text = GameArt.Initials(g.Name), FontSize = Math.Max(20, w * 0.3), FontWeight = FontWeight.Bold, Foreground = Palette.Muted, LetterSpacing = 1, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+        var ring = new Border { CornerRadius = new CornerRadius(12), BorderBrush = Palette.Accent, BorderThickness = new Thickness(2), Opacity = 0, IsHitTestVisible = false, Transitions = [new DoubleTransition { Property = OpacityProperty, Duration = IlmenyxTheme.Fast, Easing = IlmenyxTheme.Premium }] };
+        var cover = new Grid
+        {
+            Width = w, Height = h, Children = { face, ring }, RenderTransformOrigin = RelativePoint.Center, RenderTransform = TransformOperations.Parse("scale(1)"),
+            Transitions = [new TransformOperationsTransition { Property = RenderTransformProperty, Duration = IlmenyxTheme.Fast, Easing = IlmenyxTheme.Premium }],
+        };
+        var name = new TextBlock { Text = g.Name, FontSize = 12.5, FontWeight = FontWeight.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(2, 8, 2, 0) };
+        var store = new TextBlock { Text = g.Subtitle, FontSize = 11, Foreground = Palette.Faint, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(2, 0, 2, 0) };
+        var state = new PosterState(ring, cover, name); posterStates[g.Key] = state;
+        var b = new Button
+        {
+            Name = "LGame_" + SafeName(g.Key), Width = w, Padding = new Thickness(0), CornerRadius = new CornerRadius(12), Background = Brushes.Transparent, BorderThickness = new Thickness(0),
+            HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Top, Content = new StackPanel { Children = { cover, name, store } },
+        };
+        foreach (var key in new[] { "ButtonBackgroundPointerOver", "ButtonBackgroundPressed", "ButtonBackgroundDisabled" }) b.Resources[key] = Brushes.Transparent;
+        foreach (var key in new[] { "ButtonBorderBrushPointerOver", "ButtonBorderBrushPressed" }) b.Resources[key] = Brushes.Transparent;
+        AutomationProperties.SetName(b, g.Name + " (" + g.Subtitle + ")");
+        b.PointerEntered += (_, _) => { state.Hover = true; state.Apply(); };
+        b.PointerExited += (_, _) => { state.Hover = false; state.Apply(); };
+        b.GotFocus += (_, _) => { state.Focused = true; state.Apply(); };
+        b.LostFocus += (_, _) => { state.Focused = false; state.Apply(); };
+        return b;
+    }
+
+    /// <summary>Arrow keys move between posters (the grid is a single Tab stop).</summary>
+    private void MovePosterFocus(KeyEventArgs e)
+    {
+        if (e.Key is not (Key.Left or Key.Right or Key.Up or Key.Down or Key.Home or Key.End) || TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() is not Button f) return;
+        var items = posters.Children.OfType<Button>().ToList(); int i = items.IndexOf(f); if (i < 0) return;
+        int perRow = Math.Max(1, ShowcaseLayout.Compute(Bounds.Width > 0 ? Bounds.Width : 1100).Columns);
+        int next = e.Key switch { Key.Left => i - 1, Key.Right => i + 1, Key.Up => i - perRow, Key.Down => i + perRow, Key.Home => 0, _ => items.Count - 1 };
+        items[Math.Clamp(next, 0, items.Count - 1)].Focus(NavigationMethod.Directional); e.Handled = true;
+    }
+
+    /// <summary>Achievements bar of the panel: only Steam games whose list Steam already cached on this PC (local files, no network); otherwise hidden.</summary>
+    private async Task LoadAchievementSummaryAsync(LibGame g)
+    {
+        if (!showcase) return;
+        int gen = ++achGen; panelAchBox.IsVisible = false;
+        if (!g.IsSteam) return;
+        var roots = library.SteamRoots().ToList(); var p = profile; string lang = Achievements.SteamLanguage(L.Current);
+        (int Got, int Total)? result;
+        try
+        {
+            result = await Task.Run(() =>
+            {
+                if (AchievementFiles.Find(g, p, roots) is not { } source || AchievementFiles.SteamSchema(roots, source.AppId, lang) is not { } schema) return ((int, int)?)null;
+                var unlocks = AchievementFiles.ReadUnlocks(source, schema.Bits);
+                return (schema.Defs.Count(d => unlocks.ContainsKey(d.Id)), schema.Defs.Count);
+            });
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return; }
+        if (gen != achGen || current?.Key != g.Key || result is not { Total: > 0 } r) return;
+        panelAch.Text = L.T($"Conquistas: {r.Got} de {r.Total}");
+        panelAchBar.Value = (double)r.Got / r.Total; panelAchBox.IsVisible = true;
+    }
+
     private void FocusTile(LibGame g)
     {
         string name = "LGame_" + SafeName(g.Key);
-        foreach (var b in list.Children.SelectMany(c => c is Grid r ? r.Children : [c]).OfType<Button>()) if (b.Name == name) { b.Focus(); return; }
+        foreach (var b in (showcase ? posters.Children : list.Children).SelectMany(c => c is Grid r ? r.Children : [c]).OfType<Button>()) if (b.Name == name) { b.Focus(); return; }
     }
 
     public static string SafeName(string key) => new(key.Select(c => char.IsAsciiLetterOrDigit(c) ? c : '_').ToArray());
@@ -696,12 +913,12 @@ public sealed class LauncherPage : Grid
     public void Select(LibGame? g)
     {
         current = g; HideSuggestion();
-        if (g is null) { profile = null; also.IsVisible = false; ApplyLayout(force: true); UpdateButtons(); return; }
+        if (g is null) { profile = null; also.IsVisible = false; ApplyLayout(force: true); if (showcase) UpdateRings(); UpdateButtons(); return; }
         ApplyLayout(force: true);
         if (!settings.GameProfiles.TryGetValue(SettingsKey(g), out var p)) { p = new GameProfile(); settings.GameProfiles[SettingsKey(g)] = p; }
         loading = true; profile = p;
         foreach (var n in changeNotes.Values) n.IsVisible = false;
-        title.Text = g.Name; sub.Text = g.InstallDir.Length > 0 ? $"{g.Subtitle} · {g.InstallDir}" : g.ExePath is { } exe ? $"{g.Subtitle} · {exe} {g.Args}".TrimEnd() : g.Subtitle;
+        title.Text = g.Name; sub.Text = showcase ? g.Subtitle : g.InstallDir.Length > 0 ? $"{g.Subtitle} · {g.InstallDir}" : g.ExePath is { } exe ? $"{g.Subtitle} · {exe} {g.Args}".TrimEnd() : g.Subtitle;
         var art = ArtFor(g, hero: true); heroArt = art is not null;
         if (art is null && g.Store == "Manual")
         {
@@ -710,7 +927,7 @@ public sealed class LauncherPage : Grid
         }
         coverReset.IsVisible = p.CoverPath is { Length: > 0 }; coverStatus.Text = "";
         hero.Background = art is null ? UiKit.HeroBrush() : new ImageBrush { Source = art, Stretch = Stretch.UniformToFill };
-        heroScrim.IsVisible = heroArt; title.Foreground = heroArt ? Brushes.White : Palette.Fg; sub.Foreground = also.Foreground = heroArt ? GameArt.OnImageMuted : Palette.Muted;
+        heroScrim.IsVisible = heroArt; if (!showcase) { title.Foreground = heroArt ? Brushes.White : Palette.Fg; sub.Foreground = also.Foreground = heroArt ? GameArt.OnImageMuted : Palette.Muted; }
         also.IsVisible = MergedOf(g).Count > 0; also.Text = also.IsVisible ? L.T("Também aparece como: ") + GameDedup.AlsoAppearsAs(MergedOf(g)) : "";
         chkPlan.IsChecked = p.HighPerfPlan; chkGpu.IsChecked = p.GpuHigh && multiGpu; chkGameMode.IsChecked = p.GameMode; chkMango.IsChecked = p.MangoHud; chkMeasure.IsChecked = p.MeasureFps; UpdateFlatpakMango(g); UpdateMeasure(); chkGuard.IsChecked = p.FullscreenGuard; chkGuard.IsVisible = multiGpu && gpuVendor == "NVIDIA";
         modeChips!.Select(p.WinMode); resChips!.Select(p.Res); hzChips!.Select(p.Hz); styleChips!.Select(p.Style); gfxPresetChips!.Select(p.GfxPreset ?? ""); gfxUpChips!.Select(p.GfxUpscaling ?? ""); extra.Text = p.Extra; exePath.Text = p.ExePath ?? g.ExePath ?? "";
@@ -727,16 +944,16 @@ public sealed class LauncherPage : Grid
             : g.LaunchUri is not null ? L.T("Esta loja abre o jogo por um atalho que não aceita argumentos: use as opções de inicialização da própria loja. Desempenho e programas auxiliares funcionam normalmente.")
             : L.T("Os argumentos são enviados direto ao executável quando você clica em Jogar.");
         status.Text = following.ContainsKey(g.Key) ? L.T($"Abrindo {g.Name}…") : running.Contains(g.Key) ? L.T($"{g.Name} em execução.") : ""; loading = false; UpdatePreview(); ShowExe(g, p);
-        Filter();
+        if (showcase) UpdateRings(); else Filter();
         UpdateButtons(); _ = DetectSelectedAsync(g);
-        RefreshMeasured(); _ = DetectQualityAsync(g, p);
+        RefreshMeasured(); _ = DetectQualityAsync(g, p); _ = LoadAchievementSummaryAsync(g);
     }
 
     private void RefreshMeasured()
     {
         fpsGroups = current is { } g ? FpsHistory.Build(settings.FpsSessions, g.Name, sameGame: MergedOf(g).Select(m => m.Name).ToList()) : [];
         bool any = fpsGroups.Count > 0;
-        fpsEmpty.IsVisible = !any; fpsBig.IsVisible = fpsRange.IsVisible = fpsInfo.IsVisible = any; fpsGroupBox.IsVisible = fpsGroups.Count > 1;
+        panelFps.IsVisible = any; fpsEmpty.IsVisible = !any; fpsBig.IsVisible = fpsRange.IsVisible = fpsInfo.IsVisible = any; fpsGroupBox.IsVisible = fpsGroups.Count > 1;
         if (!any)
         {
             fpsEmpty.Text = (current is { } cg && (cg.IsSteam || cg.LaunchUri is not null)
@@ -753,6 +970,7 @@ public sealed class LauncherPage : Grid
         if (i < 0 || i >= fpsGroups.Count) return;
         var g = fpsGroups[i];
         fpsBig.Text = L.T($"{g.TypicalFps:0} FPS");
+        panelFps.Text = L.T("Desempenho medido") + ": " + string.Join(" · ", new[] { L.T($"{g.TypicalFps:0} FPS"), g.Resolution, g.Quality is { } pq ? QualityLabel(pq) : null }.Where(x => !string.IsNullOrEmpty(x)));
         fpsRange.Text = L.T($"Faixa típica {g.P10Fps:0} a {g.P90Fps:0} FPS · 1% low {g.Low1Fps:0}");
         string time = g.Hours < 1 ? L.T($"{g.Hours * 60:0} min") : L.T($"{g.Hours:0.#} h");
         fpsInfo.Text = (g.Sessions == 1 ? L.T($"1 sessão · {time} neste PC") : L.T($"{g.Sessions} sessões · {time} neste PC")) + L.T($" · última em {g.Last.ToLocalTime():dd/MM/yyyy HH:mm}")
@@ -944,17 +1162,17 @@ public sealed class LauncherPage : Grid
 
     /// <summary>Artwork of a library game: Steam's local cache; for a hand-added Windows game with a Steam ID, that ID's local Steam
     /// cache or the image already downloaded for it (Steam CDN, kept in the Compatibility cache).</summary>
-    private Bitmap? ArtFor(LibGame g, bool hero)
+    private Bitmap? ArtFor(LibGame g, bool hero, bool portrait = false)
     {
         if (CoverOf(g) is { } cover && GameArt.FromFile(cover, hero) is { } custom) return custom;
-        if (g.IsSteam) return GameArt.Steam(steamRoot, g.Id, hero);
+        if (g.IsSteam) return GameArt.Steam(steamRoot, g.Id, hero, portrait);
         if (g.Store == "Linux")
         {
             if (nativeArt.Cached(g.Id) is { } shot) return GameArt.FromFile(shot, hero);
             FetchNativeArtLater(g); return null;
         }
         if (g.Store != "Manual" || !settings.GameProfiles.TryGetValue(SettingsKey(g), out var gp) || (gp.ProtonGameId ?? gp.ArtSteamId) is not { Length: > 0 } id) return null;
-        return GameArt.Steam(steamRoot, id, hero) ?? GameArt.FromFile(ArtCache.CachedArt(id), hero);
+        return GameArt.Steam(steamRoot, id, hero, portrait) ?? GameArt.FromFile(ArtCache.CachedArt(id), hero);
     }
 
     private static readonly CompatOnline ArtCache = new(CompatPaths.Folder());
@@ -1637,11 +1855,13 @@ internal static class GameArt
     public static readonly IBrush OnImageMuted = new SolidColorBrush(Color.FromArgb(0xD9, 0xFF, 0xFF, 0xFF));
 
     /// <summary>Steam artwork for <paramref name="appId"/>: the wide hero/header images (hero) or the header/capsule (tiles).</summary>
-    public static Bitmap? Steam(string? steamRoot, string appId, bool hero)
+    public static Bitmap? Steam(string? steamRoot, string appId, bool hero, bool portrait = false)
     {
         if (steamRoot is null || appId.Length is 0 or > 12 || !appId.All(char.IsAsciiDigit)) return null;
         string dir = Path.Combine(steamRoot, "appcache", "librarycache");
-        string[] names = hero
+        string[] names = portrait
+            ? [appId + "_library_600x900.jpg", Path.Combine(appId, "library_600x900.jpg"), appId + "_header.jpg", Path.Combine(appId, "header.jpg")]
+            : hero
             ? [appId + "_library_hero.jpg", Path.Combine(appId, "library_hero.jpg"), appId + "_header.jpg", Path.Combine(appId, "header.jpg"), appId + "_library_600x900.jpg", Path.Combine(appId, "library_600x900.jpg")]
             : [appId + "_header.jpg", Path.Combine(appId, "header.jpg"), appId + "_library_600x900.jpg", Path.Combine(appId, "library_600x900.jpg")];
         foreach (var n in names) if (Load(Path.Combine(dir, n), hero ? 1280 : 460) is { } b) return b;
@@ -1721,4 +1941,19 @@ internal static class GameArt
         StartPoint = new RelativePoint(0.5, 0, RelativeUnit.Relative), EndPoint = new RelativePoint(0.5, 1, RelativeUnit.Relative),
         GradientStops = { new GradientStop(Color.FromArgb(0x10, 0, 0, 0), 0), new GradientStop(Color.FromArgb(0x30, 0, 0, 0), 0.45), new GradientStop(Color.FromArgb(0xC0, 0, 0, 0), 1) },
     };
+}
+
+/// <summary>Responsive metrics of the games-only window's library page: the detail panel narrows below 1100 px and the poster grid fills the rest.</summary>
+public static class ShowcaseLayout
+{
+    public const double Gap = 14, MinPoster = 140, MaxPoster = 190, PanelWide = 320, PanelNarrow = 280, Breakpoint = 1100, Spacer = 16;
+
+    /// <summary>Panel width, poster columns and poster width for a page <paramref name="pageWidth"/> wide (never fewer than 2 columns).</summary>
+    public static (double Panel, int Columns, double Poster) Compute(double pageWidth)
+    {
+        double panel = pageWidth >= Breakpoint ? PanelWide : PanelNarrow;
+        double avail = Math.Max(0, pageWidth - panel - Spacer - 8 /* scroll padding */ - 20 /* poster padding + scroll bar */);
+        int cols = Math.Max(2, (int)((avail + Gap) / (MinPoster + Gap)));
+        return (panel, cols, Math.Clamp(Math.Floor((avail - Gap * (cols - 1)) / cols), MinPoster * 0.75, MaxPoster));
+    }
 }

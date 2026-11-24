@@ -643,6 +643,7 @@ public sealed class UiSmokeApp : Application
         if (!shell.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "MakerChipState_ch341" && t.Text!.Length > 0)) throw new InvalidOperationException("Chip family state missing.");
         Console.WriteLine("PASS maker pages: serial ports listed (or honest empty state) without opening any port; chip family modules, environment checks and official pages (not opened)");
         if (OperatingSystem.IsLinux()) await LauncherAsync(shell, desktop);
+        if (OperatingSystem.IsLinux()) await GamesWindowAsync(desktop);
         if (OperatingSystem.IsLinux()) await AchievementsAsync(shell);
         await StressAsync(shell, desktop);
         await NetworkAsync(shell, desktop);
@@ -733,6 +734,83 @@ public sealed class UiSmokeApp : Application
         await Task.Delay(300); Capture(shell, "shell-startup.png");
         Console.WriteLine("PASS startup page: system entry disabled by user override only after the warning (system file untouched), declined removal keeps entry, confirmed removal + restore round trip; real list read-only");
     }
+    [System.Runtime.Versioning.SupportedOSPlatform("linux")]
+    /// <summary>The games-only window in its Showcase layout (poster grid + detail panel + icon rail) with a fixture library: nothing real is launched or written.</summary>
+    private static async Task GamesWindowAsync(IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        string root = Path.Combine(Program.OutputDirectory, "gameswindow-fixture"), home = Path.Combine(root, "home"), steam = Path.Combine(home, ".local/share/Steam"), apps = Path.Combine(steam, "steamapps");
+        Directory.CreateDirectory(Path.Combine(apps, "common/Game One")); Directory.CreateDirectory(Path.Combine(apps, "common/Second Game")); Directory.CreateDirectory(Path.Combine(steam, "appcache/librarycache"));
+        File.WriteAllText(Path.Combine(apps, "libraryfolders.vdf"), "\"libraryfolders\"\n{\n\t\"0\"\n\t{\n\t\t\"path\"\t\t\"" + steam + "\"\n\t}\n}\n");
+        File.WriteAllText(Path.Combine(apps, "appmanifest_100.acf"), "\"AppState\"\n{\n\t\"appid\"\t\t\"100\"\n\t\"name\"\t\t\"Game One\"\n\t\"StateFlags\"\t\t\"4\"\n\t\"installdir\"\t\t\"Game One\"\n}\n");
+        File.WriteAllText(Path.Combine(apps, "appmanifest_101.acf"), "\"AppState\"\n{\n\t\"appid\"\t\t\"101\"\n\t\"name\"\t\t\"Second Game With A Very Long Name To Trim\"\n\t\"StateFlags\"\t\t\"4\"\n\t\"installdir\"\t\t\"Second Game\"\n}\n");
+        // Poster art for Game One: a generated gradient (any decodable image works under the Steam cache name).
+        var art = new Border { Width = 300, Height = 450, Background = new Avalonia.Media.LinearGradientBrush { StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative), EndPoint = new RelativePoint(1, 1, RelativeUnit.Relative), GradientStops = { new Avalonia.Media.GradientStop(Avalonia.Media.Colors.SteelBlue, 0), new Avalonia.Media.GradientStop(Avalonia.Media.Colors.DarkSlateBlue, 1) } } };
+        art.Measure(new Size(300, 450)); art.Arrange(new Rect(0, 0, 300, 450));
+        using (var rtb = new RenderTargetBitmap(new PixelSize(300, 450), new Vector(96, 96))) { rtb.Render(art); rtb.Save(Path.Combine(steam, "appcache/librarycache/100_library_600x900.jpg"), PngBitmapEncoderOptions.Default); }
+        string native = Path.Combine(root, "Native Game/start.sh"); Directory.CreateDirectory(Path.GetDirectoryName(native)!); File.WriteAllText(native, "#!/bin/sh\n"); File.SetUnixFileMode(native, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        string winExe = Path.Combine(root, "Windows Game/game.exe"); Directory.CreateDirectory(Path.GetDirectoryName(winExe)!); File.WriteAllBytes(winExe, [0x4d, 0x5a, 0x90, 0, 3, 0, 0, 0]);
+        string settingsPath = Path.Combine(root, "cfg/ilmenyx/settings.json"); Directory.CreateDirectory(Path.GetDirectoryName(settingsPath)!);
+        IlmenyxSettings.Update(settingsPath, st =>
+        {
+            st.CustomGames.Add(new() { Name = "Native Game", Exe = native }); st.CustomGames.Add(new() { Name = "Windows Game", Exe = winExe });
+            st.FpsSessions.Add(new FpsSession("Game One", DateTimeOffset.UtcNow, 72, 55, 600, "Fixture GPU", "1920x1080", "Alto", P10Fps: 60, P90Fps: 85, ValidSeconds: 500));
+        });
+        LauncherPage? page = null;
+        var window = new GamesWindow((owner, ct) => page = new LauncherPage(new LinuxGameLibrary(home, (_, _) => Task.FromResult((0, "[]"))), new SteamInfo(home, Path.Combine(root, "noproc")), settingsPath,
+            (g, p, v, status, learned, c) => throw new InvalidOperationException("The games window check must never launch a game."), owner, "AMD", true, ct, LauncherLayout.Showcase)
+        {
+            FindSteamId = (_, _) => Task.FromResult<(string, string)?>(null), SuggestSteamId = (_, _, _) => Task.FromResult<IReadOnlyList<(string, string)>>([]), FetchArt = (_, _) => Task.FromResult<string?>(null),
+            UmuProton = () => null, WaylandSession = () => true, IsRunning = (_, _, _) => Task.FromResult(false),
+        });
+        void Check(bool ok, string what) { if (!ok) throw new InvalidOperationException("Games window: " + what); }
+        window.Show(); await Until(() => page is not null && page.Games.Count == 4); await Task.Delay(500);
+        Check(Find<StackPanel>(window, "LPanelEmpty").IsEffectivelyVisible && !Find<ScrollViewer>(window, "LDetail").IsEffectivelyVisible, "the panel must invite a choice while nothing is selected");
+        Check(window.GetVisualDescendants().OfType<Button>().Count(b => b.Name?.StartsWith("GamesNav_") == true) == 5, "the rail needs five page buttons");
+        foreach (var b in window.GetVisualDescendants().OfType<Button>().Where(b => b.Name?.StartsWith("GamesNav_") == true)) Check(!string.IsNullOrEmpty(AutomationProperties.GetName(b)), "rail button without an accessible name: " + b.Name);
+        int Posters() => Find<WrapPanel>(window, "LPosterGrid").Children.Count;
+        Check(Posters() == 4, "all four games must be posters");
+        foreach (var (chip, n) in new[] { ("LFilter_Steam", 2), ("LFilter_Windows", 1), ("LFilter_Linux", 1), ("LFilter_All", 4) })
+        {
+            Find<Avalonia.Controls.Primitives.ToggleButton>(window, chip).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); await Task.Delay(120);
+            Check(Posters() == n, $"{chip} must show {n} posters, found {Posters()}");
+        }
+        Capture(window, "games-window-library-1180x780.png");
+        string key = "Steam:100";
+        Click(window, "LGame_" + LauncherPage.SafeName(key));
+        await Until(() => page!.Profile is not null && window.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "LTitle" && t.Text == "Game One")); await Task.Delay(300);
+        Check(Find<ScrollViewer>(window, "LDetail").IsEffectivelyVisible && !Find<StackPanel>(window, "LPanelEmpty").IsEffectivelyVisible, "the detail panel must show the selected game");
+        Check(Find<Button>(window, "BtnPlay").IsEffectivelyVisible && Find<Button>(window, "BtnPlay").IsEnabled, "Jogar must be available");
+        Check(Find<TextBlock>(window, "LPanelFps").IsEffectivelyVisible && Find<TextBlock>(window, "LPanelFps").Text!.Contains("72 FPS"), "the measured summary must show the typical FPS");
+        Check(!Find<StackPanel>(window, "LPanelAch").IsEffectivelyVisible, "no achievements data: the bar must stay hidden");
+        var panel = Find<Border>(window, "LGamePanel"); var topRight = panel.TranslatePoint(new Point(panel.Bounds.Width, 0), window)!.Value;
+        Check(topRight.X <= window.Bounds.Width + 1, "the detail panel is clipped on the right");
+        Capture(window, "games-window-1180x780.png");
+        async Task Size(double w, double h)
+        {
+            for (int i = 0; i < 3; i++) { window.Width = w + 2; window.Height = h + 2; await Task.Delay(120); window.Width = w; window.Height = h; await Task.Delay(300); if (Math.Abs(window.Bounds.Width - w) < 3) break; }
+        }
+        await Size(900, 560);
+        Check(panel.TranslatePoint(new Point(panel.Bounds.Width, 0), window)!.Value.X <= window.Bounds.Width + 1, "the detail panel is clipped at the minimum size");
+        Check(Find<WrapPanel>(window, "LPosterGrid").Children.OfType<Button>().All(b => b.TranslatePoint(new Point(b.Bounds.Width, 0), window)!.Value.X <= panel.TranslatePoint(default, window)!.Value.X + 1), "the poster grid runs under the detail panel at the minimum size");
+        Capture(window, "games-window-900x560.png");
+        foreach (var factor in new[] { 1.5, 2.0 })
+        {
+            var fonts = ScaleText(window, factor); await Task.Delay(300);
+            Check(Find<Button>(window, "BtnPlay").IsEffectivelyVisible && panel.TranslatePoint(new Point(panel.Bounds.Width, 0), window)!.Value.X <= window.Bounds.Width + 1, $"the panel is clipped at {factor * 100:0}% text");
+            Capture(window, $"games-window-900x560-text{factor * 100:0}.png");
+            foreach (var (c, size) in fonts) c.SetValue(Avalonia.Controls.Documents.TextElement.FontSizeProperty, size);
+        }
+        await Size(1180, 780);
+        foreach (var tab in new[] { "achievements", "compat", "gamecheck", "canrun", "launcher" })
+        {
+            Click(window, "GamesNav_" + tab); await Until(() => window.CurrentTab == tab); await Task.Delay(150);
+        }
+        Check(Find<TextBlock>(window, "LTitle").Text == "Game One" && Find<Button>(window, "BtnPlay").IsEffectivelyVisible, "coming back to Jogos must keep the selected game");
+        Click(window, "BtnBackToLibrary"); await Until(() => Find<StackPanel>(window, "LPanelEmpty").IsEffectivelyVisible);
+        window.Close();
+        Console.WriteLine("PASS games window (Showcase): rail, filter chips, poster grid, detail panel with Jogar and measured summary, 900x560 and 150/200% text without clipping, every rail page opens");
+    }
+
     [System.Runtime.Versioning.SupportedOSPlatform("linux")]
     private static async Task LauncherAsync(ShellWindow shell, IClassicDesktopStyleApplicationLifetime desktop)
     {

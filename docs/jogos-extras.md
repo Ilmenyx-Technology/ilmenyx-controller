@@ -87,7 +87,15 @@ Onde entram: na linha da Steam (APLICAR NAS OPÇÕES DA STEAM, antes dos wrapper
 
 ## Janela só de Jogos (atalho "Jogos — Ilmenyx Controller", `--games`, `--play CHAVE`)
 
-Barra à esquerda com Jogos (padrão), Conquistas, Compatibilidade, Jogo não abre? e Meu PC roda isso?; cada página é criada ao ser aberta pela primeira vez.
+Barra de ícones à esquerda (56 px, nome em dica e no nome acessível; a página ativa tem barra e ícone no acento) com Jogos (padrão), Conquistas, Compatibilidade, Jogo não abre? e Meu PC roda isso?; cada página é criada ao ser aberta pela primeira vez.
+A página Jogos usa o layout `LauncherLayout.Showcase` da mesma `LauncherPage` do app completo (que continua no layout clássico; toda a lógica é compartilhada):
+cabeçalho "Biblioteca" com a contagem e a busca, chips Todos / Steam / Windows (programas .exe com Proton/Wine) / Linux (`GameFilters`), as ações da biblioteca,
+grade de capas retrato 2:3 (arte vertical da Steam quando existe, senão a imagem larga cortada; sem arte, as iniciais sobre `Palette.Card`) e, à direita, o painel do jogo
+escolhido (capa, nome, loja · executor, Jogar, estado, desempenho medido, barra de conquistas e as seções do perfil; sem jogo escolhido, um convite). Anel de acento na capa
+escolhida, elevação de 3% e anel mais fraco no hover/foco (transição de 160 ms); a grade é uma só parada de Tab e as setas movem entre capas.
+Não há chip "Recentes": a biblioteca não registra a data da última jogada (só as sessões de FPS, de poucos jogos), e nada é inventado. O resumo de FPS vem de `FpsHistory`
+(`settings.FpsSessions`) e a barra de conquistas só aparece para jogo da Steam cujo esquema a Steam já guardou no PC (arquivos locais, sem rede; `AchievementFiles.SteamSchema`).
+Responsivo (`ShowcaseLayout`): abaixo de 1100 px de largura o painel estreita de 320 para 280 px e a grade ganha menos colunas (mínimo 2); o painel nunca sai da janela.
 Fica de fora o Detector de gargalo (precisa do monitor de uso): a janela não inicia monitor, sensores nem ícone da bandeja. Em "Meu PC roda isso?" o modelo
 da CPU e a RAM total vêm de `/proc/cpuinfo` e `/proc/meminfo` (somente leitura; vazio/0 se indisponível). Em "Jogo não abre?", os botões que levam a páginas só do app completo (Otimiza, Driver NVIDIA)
 não aparecem nesta janela. Abrir um jogo por um atalho (`--play`) volta para a página Jogos; abrir a janela de novo pelo atalho "Jogos" a traz de volta na página em que estava.
@@ -97,6 +105,8 @@ não aparecem nesta janela. Abrir um jogo por um atalho (`--play`) volta para a 
 - `tests/Ilmenyx.Tests/GameExtrasTests.cs`: arquivo `environment.d` em pasta temporária (conteúdo, modo, aplicar/desfazer, arquivo de
   terceiros intocado), tamanho dos caches, variáveis nos jogos manuais, classificação de nomes do Proton, condições e conflitos das
   opções experimentais, linha da Steam, `CompatToolMapping`, pasta do UMU-Proton, catálogo, branch da camada do Gamescope.
+- `tests/Ilmenyx.Tests/GamesShowcaseTests.cs`: classificação dos filtros, iniciais da capa sem arte e a conta de colunas/painel por largura. Smoke `GamesWindowAsync`: janela
+  de Jogos com biblioteca de fixture (rail, chips, grade, painel, 900x560 e 150/200% de texto sem cortes, todas as páginas do rail).
 - Smoke `GamingExtrasAsync` (`tools/Ilmenyx.UiSmoke/Program.cs`): as três páginas com fixtures e flatpak falso, telas 900x560 nos
   temas escuro e claro.
 
