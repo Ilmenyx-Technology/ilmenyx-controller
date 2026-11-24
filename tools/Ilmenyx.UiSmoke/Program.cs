@@ -735,18 +735,31 @@ public sealed class UiSmokeApp : Application
         Console.WriteLine("PASS startup page: system entry disabled by user override only after the warning (system file untouched), declined removal keeps entry, confirmed removal + restore round trip; real list read-only");
     }
     [System.Runtime.Versioning.SupportedOSPlatform("linux")]
-    /// <summary>The games-only window in its Showcase layout (poster grid + detail panel + icon rail) with a fixture library: nothing real is launched or written.</summary>
+    /// <summary>The games-only window as a vitrine (top bar, hero, landscape covers, settings drawer) with a fixture library: nothing real is launched or written.</summary>
     private static async Task GamesWindowAsync(IClassicDesktopStyleApplicationLifetime desktop)
     {
-        string root = Path.Combine(Program.OutputDirectory, "gameswindow-fixture"), home = Path.Combine(root, "home"), steam = Path.Combine(home, ".local/share/Steam"), apps = Path.Combine(steam, "steamapps");
-        Directory.CreateDirectory(Path.Combine(apps, "common/Game One")); Directory.CreateDirectory(Path.Combine(apps, "common/Second Game")); Directory.CreateDirectory(Path.Combine(steam, "appcache/librarycache"));
+        string root = Path.Combine(Program.OutputDirectory, "gameswindow-fixture"), home = Path.Combine(root, "home"), steam = Path.Combine(home, ".local/share/Steam"), apps = Path.Combine(steam, "steamapps"), cache = Path.Combine(steam, "appcache/librarycache");
+        Directory.CreateDirectory(Path.Combine(apps, "common/Game One")); Directory.CreateDirectory(Path.Combine(apps, "common/Second Game")); Directory.CreateDirectory(Path.Combine(apps, "common/Third Game")); Directory.CreateDirectory(cache);
         File.WriteAllText(Path.Combine(apps, "libraryfolders.vdf"), "\"libraryfolders\"\n{\n\t\"0\"\n\t{\n\t\t\"path\"\t\t\"" + steam + "\"\n\t}\n}\n");
-        File.WriteAllText(Path.Combine(apps, "appmanifest_100.acf"), "\"AppState\"\n{\n\t\"appid\"\t\t\"100\"\n\t\"name\"\t\t\"Game One\"\n\t\"StateFlags\"\t\t\"4\"\n\t\"installdir\"\t\t\"Game One\"\n}\n");
-        File.WriteAllText(Path.Combine(apps, "appmanifest_101.acf"), "\"AppState\"\n{\n\t\"appid\"\t\t\"101\"\n\t\"name\"\t\t\"Second Game With A Very Long Name To Trim\"\n\t\"StateFlags\"\t\t\"4\"\n\t\"installdir\"\t\t\"Second Game\"\n}\n");
-        // Poster art for Game One: a generated gradient (any decodable image works under the Steam cache name).
-        var art = new Border { Width = 300, Height = 450, Background = new Avalonia.Media.LinearGradientBrush { StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative), EndPoint = new RelativePoint(1, 1, RelativeUnit.Relative), GradientStops = { new Avalonia.Media.GradientStop(Avalonia.Media.Colors.SteelBlue, 0), new Avalonia.Media.GradientStop(Avalonia.Media.Colors.DarkSlateBlue, 1) } } };
-        art.Measure(new Size(300, 450)); art.Arrange(new Rect(0, 0, 300, 450));
-        using (var rtb = new RenderTargetBitmap(new PixelSize(300, 450), new Vector(96, 96))) { rtb.Render(art); rtb.Save(Path.Combine(steam, "appcache/librarycache/100_library_600x900.jpg"), PngBitmapEncoderOptions.Default); }
+        foreach (var (id, name, dir) in new[] { ("100", "Game One", "Game One"), ("101", "Second Game With A Very Long Name To Trim", "Second Game"), ("102", "Third Game", "Third Game") })
+            File.WriteAllText(Path.Combine(apps, $"appmanifest_{id}.acf"), $"\"AppState\"\n{{\n\t\"appid\"\t\t\"{id}\"\n\t\"name\"\t\t\"{name}\"\n\t\"StateFlags\"\t\t\"4\"\n\t\"installdir\"\t\t\"{dir}\"\n}}\n");
+        // Landscape art with different colours per game (any decodable image works under the Steam cache names); the native and the Windows game have none.
+        void Art(string file, int w, int h, Avalonia.Media.Color a, Avalonia.Media.Color b)
+        {
+            var art = new Grid
+            {
+                Width = w, Height = h, Background = new Avalonia.Media.LinearGradientBrush { StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative), EndPoint = new RelativePoint(1, 1, RelativeUnit.Relative), GradientStops = { new Avalonia.Media.GradientStop(a, 0), new Avalonia.Media.GradientStop(b, 1) } },
+                Children =
+                {
+                    new Border { Width = h * 0.9, Height = h * 0.9, CornerRadius = new CornerRadius(h), Background = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Colors.White, 0.22), HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right, Margin = new Thickness(0, 0, w * 0.1, 0) },
+                    new Border { Width = h * 0.4, Height = h * 0.4, CornerRadius = new CornerRadius(h), Background = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Colors.White, 0.35), HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top, Margin = new Thickness(0, h * 0.1, w * 0.3, 0) },
+                },
+            };
+            art.Measure(new Size(w, h)); art.Arrange(new Rect(0, 0, w, h));
+            using var rtb = new RenderTargetBitmap(new PixelSize(w, h), new Vector(96, 96)); rtb.Render(art); rtb.Save(Path.Combine(cache, file), PngBitmapEncoderOptions.Default);
+        }
+        Art("100_library_hero.jpg", 1280, 414, Avalonia.Media.Colors.SteelBlue, Avalonia.Media.Colors.MidnightBlue); Art("100_header.jpg", 460, 215, Avalonia.Media.Colors.SteelBlue, Avalonia.Media.Colors.MidnightBlue);
+        Art("101_header.jpg", 460, 215, Avalonia.Media.Colors.DarkOrange, Avalonia.Media.Colors.Maroon); Art("102_header.jpg", 460, 215, Avalonia.Media.Colors.MediumSeaGreen, Avalonia.Media.Colors.DarkGreen);
         string native = Path.Combine(root, "Native Game/start.sh"); Directory.CreateDirectory(Path.GetDirectoryName(native)!); File.WriteAllText(native, "#!/bin/sh\n"); File.SetUnixFileMode(native, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
         string winExe = Path.Combine(root, "Windows Game/game.exe"); Directory.CreateDirectory(Path.GetDirectoryName(winExe)!); File.WriteAllBytes(winExe, [0x4d, 0x5a, 0x90, 0, 3, 0, 0, 0]);
         string settingsPath = Path.Combine(root, "cfg/ilmenyx/settings.json"); Directory.CreateDirectory(Path.GetDirectoryName(settingsPath)!);
@@ -754,6 +767,8 @@ public sealed class UiSmokeApp : Application
         {
             st.CustomGames.Add(new() { Name = "Native Game", Exe = native }); st.CustomGames.Add(new() { Name = "Windows Game", Exe = winExe });
             st.FpsSessions.Add(new FpsSession("Game One", DateTimeOffset.UtcNow, 72, 55, 600, "Fixture GPU", "1920x1080", "Alto", P10Fps: 60, P90Fps: 85, ValidSeconds: 500));
+            st.FpsSessions.Add(new FpsSession("Second Game With A Very Long Name To Trim", DateTimeOffset.UtcNow, 55, 41, 900, "Fixture GPU", "2560x1440", "Médio", P10Fps: 48, P90Fps: 63, ValidSeconds: 800));
+            st.GameProfiles["Steam:100"] = new GameProfile { LastPlayed = DateTimeOffset.UtcNow.AddDays(-1), PlayedSeconds = 3 * 3600 + 20 * 60 };
         });
         LauncherPage? page = null;
         var window = new GamesWindow((owner, ct) => page = new LauncherPage(new LinuxGameLibrary(home, (_, _) => Task.FromResult((0, "[]"))), new SteamInfo(home, Path.Combine(root, "noproc")), settingsPath,
@@ -763,40 +778,75 @@ public sealed class UiSmokeApp : Application
             UmuProton = () => null, WaylandSession = () => true, IsRunning = (_, _, _) => Task.FromResult(false),
         });
         void Check(bool ok, string what) { if (!ok) throw new InvalidOperationException("Games window: " + what); }
-        window.Show(); await Until(() => page is not null && page.Games.Count == 4); await Task.Delay(500);
-        Check(Find<StackPanel>(window, "LPanelEmpty").IsEffectivelyVisible && !Find<ScrollViewer>(window, "LDetail").IsEffectivelyVisible, "the panel must invite a choice while nothing is selected");
-        Check(window.GetVisualDescendants().OfType<Button>().Count(b => b.Name?.StartsWith("GamesNav_") == true) == 5, "the rail needs five page buttons");
-        foreach (var b in window.GetVisualDescendants().OfType<Button>().Where(b => b.Name?.StartsWith("GamesNav_") == true)) Check(!string.IsNullOrEmpty(AutomationProperties.GetName(b)), "rail button without an accessible name: " + b.Name);
-        int Posters() => Find<WrapPanel>(window, "LPosterGrid").Children.Count;
-        Check(Posters() == 4, "all four games must be posters");
-        foreach (var (chip, n) in new[] { ("LFilter_Steam", 2), ("LFilter_Windows", 1), ("LFilter_Linux", 1), ("LFilter_All", 4) })
+        string Text(string name) => Find<TextBlock>(window, name).Text ?? "";
+        bool HasPill(string name) => window.GetVisualDescendants().OfType<Border>().Any(b => b.Name == name);
+        string Pill(string name) => Find<Border>(window, name).GetVisualDescendants().OfType<TextBlock>().Single().Text ?? "";
+        window.Show(); await Until(() => page is not null && page.Games.Count == 5 && window.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "LTitle" && t.Text == "Game One")); await Task.Delay(700);
+        // Top bar: five pills with accessible names; the active one in the accent colour.
+        var tabs = window.GetVisualDescendants().OfType<Button>().Where(b => b.Name?.StartsWith("GamesNav_") == true).ToList();
+        Check(tabs.Count == 5, "the top bar needs five page buttons");
+        foreach (var b in tabs) Check(!string.IsNullOrEmpty(AutomationProperties.GetName(b)), "tab without an accessible name: " + b.Name);
+        Check(ReferenceEquals(Find<Button>(window, "GamesNav_launcher").Background, Ilmenyx.Desktop.Palette.Accent), "the active tab must use the accent background");
+        // Hero: the game played last, with the label, Jogar and the stat pills from real data only.
+        Check(Text("LHeroLabel") == "Continuar jogando", "the hero of the last played game must say Continuar jogando");
+        Check(Find<Button>(window, "BtnPlay").IsEffectivelyVisible && Find<Button>(window, "BtnPlay").IsEnabled, "Jogar must be available");
+        Check(Pill("LStatFps").Contains("72"), "the FPS pill must show the typical FPS of the fixture");
+        Check(Pill("LStatTime").Contains("3 h 20 min"), "the play time pill must show the recorded time");
+        Check(!HasPill("LStatAch"), "no achievements data: no achievements pill");
+        Check(Find<Border>(window, "LHero").Bounds.Height >= 240, "the hero must be at least 240 px high");
+        Check(!Find<ScrollViewer>(window, "LDetail").IsEffectivelyVisible, "the settings drawer must start closed");
+        Check(Find<Avalonia.Controls.Primitives.ToggleButton>(window, "LFilter_Recent").IsEffectivelyVisible, "Recentes must exist once a game has a last-played time");
+        int Covers() => Find<WrapPanel>(window, "LPosterGrid").Children.Count;
+        Check(Covers() == 5, "all five games must be covers");
+        foreach (var (chip, n) in new[] { ("LFilter_Steam", 3), ("LFilter_Windows", 1), ("LFilter_Linux", 1), ("LFilter_Recent", 1), ("LFilter_All", 5) })
         {
             Find<Avalonia.Controls.Primitives.ToggleButton>(window, chip).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); await Task.Delay(120);
-            Check(Posters() == n, $"{chip} must show {n} posters, found {Posters()}");
+            Check(Covers() == n, $"{chip} must show {n} covers, found {Covers()}");
         }
-        Capture(window, "games-window-library-1180x780.png");
-        string key = "Steam:100";
-        Click(window, "LGame_" + LauncherPage.SafeName(key));
-        await Until(() => page!.Profile is not null && window.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "LTitle" && t.Text == "Game One")); await Task.Delay(300);
-        Check(Find<ScrollViewer>(window, "LDetail").IsEffectivelyVisible && !Find<StackPanel>(window, "LPanelEmpty").IsEffectivelyVisible, "the detail panel must show the selected game");
-        Check(Find<Button>(window, "BtnPlay").IsEffectivelyVisible && Find<Button>(window, "BtnPlay").IsEnabled, "Jogar must be available");
-        Check(Find<TextBlock>(window, "LPanelFps").IsEffectivelyVisible && Find<TextBlock>(window, "LPanelFps").Text!.Contains("72 FPS"), "the measured summary must show the typical FPS");
-        Check(!Find<StackPanel>(window, "LPanelAch").IsEffectivelyVisible, "no achievements data: the bar must stay hidden");
-        var panel = Find<Border>(window, "LGamePanel"); var topRight = panel.TranslatePoint(new Point(panel.Bounds.Width, 0), window)!.Value;
-        Check(topRight.X <= window.Bounds.Width + 1, "the detail panel is clipped on the right");
         Capture(window, "games-window-1180x780.png");
+        // Clicking a cover puts that game in the hero (its own numbers, no "Continuar jogando").
+        Click(window, "LGame_" + LauncherPage.SafeName("Steam:101"));
+        await Until(() => Text("LTitle").StartsWith("Second Game")); await Task.Delay(400);
+        Check(Text("LHeroLabel") != "Continuar jogando", "only the last played game says Continuar jogando");
+        Check(Pill("LStatFps").Contains("55"), "the hero must show the FPS of the game just chosen");
+        Check(!HasPill("LStatTime"), "no recorded play time: no time pill");
+        Click(window, "LGame_" + LauncherPage.SafeName("Steam:100")); await Until(() => Text("LTitle") == "Game One"); await Task.Delay(400);
+        // Keyboard: arrows move between covers and between tabs; Enter chooses.
+        var covers = Find<WrapPanel>(window, "LPosterGrid").Children.OfType<Button>().ToList();
+        covers[0].Focus(); Key(window, Avalonia.Input.Key.Right); await Task.Delay(60); FocusIs(window, covers[1]);
+        Key(window, Avalonia.Input.Key.Enter); await Until(() => Text("LTitle") != "Game One"); Click(window, "LGame_" + LauncherPage.SafeName("Steam:100")); await Until(() => Text("LTitle") == "Game One");
+        Find<Button>(window, "GamesNav_launcher").Focus(); Key(window, Avalonia.Input.Key.Right); await Task.Delay(60); FocusIs(window, Find<Button>(window, "GamesNav_achievements"));
+        Find<TextBox>(window, "LGameSearch").Text = "Second"; await Task.Delay(150); Check(Covers() == 1, "the top-bar search must filter the covers"); Find<TextBox>(window, "LGameSearch").Text = ""; await Task.Delay(150);
+        // Drawer: Configurações opens it over a disabled vitrine, Tab stays inside, Esc closes it and the focus returns to the button.
+        var settingsButton = Find<Button>(window, "BtnGameSettings");
+        Click(window, "BtnGameSettings");
+        await Until(() => page!.DrawerOpen && window.FocusManager?.GetFocusedElement() is Button { Name: "BtnDrawerClose" }); await Task.Delay(250);
+        var drawer = Find<Border>(window, "LGamePanel");
+        Check(Find<ScrollViewer>(window, "LDetail").IsEffectivelyVisible && !Find<Button>(window, "BtnPlay").IsEffectivelyEnabled, "the drawer must open over a disabled vitrine");
+        Check(drawer.TranslatePoint(new Point(drawer.Bounds.Width, 0), window)!.Value.X <= window.Bounds.Width + 1 && Math.Abs(drawer.Bounds.Width - 400) < 2, "the drawer must be 400 px wide and inside the window");
+        Capture(window, "games-window-drawer-1180x780.png");
+        Key(window, Avalonia.Input.Key.Tab, KeyModifiers.Shift); await Task.Delay(60);
+        Check(window.FocusManager?.GetFocusedElement() is Control c1 && drawer.IsVisualAncestorOf(c1) && c1.Name != "BtnDrawerClose", "Shift+Tab from the first control must wrap to the last control of the drawer");
+        Key(window, Avalonia.Input.Key.Tab); await Task.Delay(60); FocusIs(window, Find<Button>(window, "BtnDrawerClose"));
+        Key(window, Avalonia.Input.Key.Escape); await Until(() => !page!.DrawerOpen); await Task.Delay(60);
+        FocusIs(window, settingsButton); Check(Find<Button>(window, "BtnPlay").IsEffectivelyEnabled, "closing the drawer must enable the vitrine again");
+        Click(window, "BtnGameSettings"); await Until(() => page!.DrawerOpen); Click(window, "BtnDrawerClose"); await Until(() => !page!.DrawerOpen); FocusIs(window, settingsButton);
         async Task Size(double w, double h)
         {
             for (int i = 0; i < 3; i++) { window.Width = w + 2; window.Height = h + 2; await Task.Delay(120); window.Width = w; window.Height = h; await Task.Delay(300); if (Math.Abs(window.Bounds.Width - w) < 3) break; }
         }
         await Size(900, 560);
-        Check(panel.TranslatePoint(new Point(panel.Bounds.Width, 0), window)!.Value.X <= window.Bounds.Width + 1, "the detail panel is clipped at the minimum size");
-        Check(Find<WrapPanel>(window, "LPosterGrid").Children.OfType<Button>().All(b => b.TranslatePoint(new Point(b.Bounds.Width, 0), window)!.Value.X <= panel.TranslatePoint(default, window)!.Value.X + 1), "the poster grid runs under the detail panel at the minimum size");
+        var grid = Find<WrapPanel>(window, "LPosterGrid");
+        Check(Find<Border>(window, "LHero").Bounds.Height >= 240 && grid.Children.OfType<Button>().All(b => b.TranslatePoint(new Point(b.Bounds.Width, 0), window)!.Value.X <= window.Bounds.Width + 1), "hero minimum or the cover grid is wrong at the minimum size");
         Capture(window, "games-window-900x560.png");
+        Click(window, "BtnGameSettings"); await Until(() => page!.DrawerOpen); await Task.Delay(250);
+        Check(Math.Abs(Find<Border>(window, "LGamePanel").Bounds.Width - window.Bounds.Width) < 3, "the drawer must take the whole width below 1000 px");
+        Key(window, Avalonia.Input.Key.Escape); await Until(() => !page!.DrawerOpen);
         foreach (var factor in new[] { 1.5, 2.0 })
         {
             var fonts = ScaleText(window, factor); await Task.Delay(300);
-            Check(Find<Button>(window, "BtnPlay").IsEffectivelyVisible && panel.TranslatePoint(new Point(panel.Bounds.Width, 0), window)!.Value.X <= window.Bounds.Width + 1, $"the panel is clipped at {factor * 100:0}% text");
+            await Reachable(window, Find<Button>(window, "BtnPlay")); await Reachable(window, settingsButton);
+            Check(Find<TextBlock>(window, "LTitle").Bounds.Width <= window.Bounds.Width, $"the title is clipped at {factor * 100:0}% text");
             Capture(window, $"games-window-900x560-text{factor * 100:0}.png");
             foreach (var (c, size) in fonts) c.SetValue(Avalonia.Controls.Documents.TextElement.FontSizeProperty, size);
         }
@@ -804,11 +854,13 @@ public sealed class UiSmokeApp : Application
         foreach (var tab in new[] { "achievements", "compat", "gamecheck", "canrun", "launcher" })
         {
             Click(window, "GamesNav_" + tab); await Until(() => window.CurrentTab == tab); await Task.Delay(150);
+            Check(Find<TextBox>(window, "LGameSearch").IsEffectivelyVisible == (tab == "launcher"), "the search belongs to the Jogos page only");
         }
-        Check(Find<TextBlock>(window, "LTitle").Text == "Game One" && Find<Button>(window, "BtnPlay").IsEffectivelyVisible, "coming back to Jogos must keep the selected game");
-        Click(window, "BtnBackToLibrary"); await Until(() => Find<StackPanel>(window, "LPanelEmpty").IsEffectivelyVisible);
+        Check(Text("LTitle") == "Game One" && Find<Button>(window, "BtnPlay").IsEffectivelyVisible, "coming back to Jogos must keep the selected game");
+        Click(window, "BtnGameSettings"); await Until(() => page!.DrawerOpen); Click(window, "GamesNav_compat"); await Until(() => !page!.DrawerOpen); Click(window, "GamesNav_launcher");
+        Check(Find<Button>(window, "BtnPlay").IsEffectivelyEnabled, "switching page with the drawer open must leave the Jogos page usable");
         window.Close();
-        Console.WriteLine("PASS games window (Showcase): rail, filter chips, poster grid, detail panel with Jogar and measured summary, 900x560 and 150/200% text without clipping, every rail page opens");
+        Console.WriteLine("PASS games window (vitrine): top-bar tabs, hero of the last played game with Jogar and real stat pills, cover click changes the hero, filters and search, drawer (focus trap, Esc, focus return, full width at 900 px), 900x560 and 150/200% text without clipping, every tab opens");
     }
 
     [System.Runtime.Versioning.SupportedOSPlatform("linux")]

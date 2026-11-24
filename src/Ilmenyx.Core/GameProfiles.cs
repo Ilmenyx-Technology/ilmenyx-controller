@@ -3,6 +3,7 @@
 // SPDX-FileCopyrightText: 2026 Flávio Henrique Meira Roque (mantido como Ilmenyx Technology)
 // New Ilmenyx additions, adapted from the profile model and argument builder of the original GameLauncher/AppSettings (MIT, see NOTICE): see LICENSING.md.
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
 namespace Ilmenyx.Core;
@@ -13,6 +14,8 @@ public sealed class HelperProgram
     public string Path { get; set; } = "";
     public string Args { get; set; } = "";
     public bool CloseWithGame { get; set; } = true;
+    /// <summary>Fields this version does not know (written by a newer one): kept as they are on the next save, so an older Ilmenyx never drops them.</summary>
+    [JsonExtensionData] public Dictionary<string, JsonElement>? UnknownFields { get; set; }
     public string Display => System.IO.Path.GetFileName(Path) + (string.IsNullOrWhiteSpace(Args) ? "" : " " + Args);
 }
 
@@ -62,6 +65,18 @@ public sealed class GameProfile
     public string? ArtSteamId { get; set; }
     /// <summary>Steam IDs the user refused at "Você quis dizer…?" for this game; never suggested again (cleared when the game is renamed).</summary>
     public List<string> RejectedSteamIds { get; set; } = [];
+    /// <summary>When the game was last opened by Ilmenyx (start of the session it followed). Games opened outside Ilmenyx are not counted.</summary>
+    public DateTimeOffset? LastPlayed { get; set; }
+    /// <summary>Seconds of play Ilmenyx saw: from the game's process appearing until Ilmenyx stopped following it. Games opened outside Ilmenyx are not counted.</summary>
+    public double PlayedSeconds { get; set; }
+    /// <summary>Records one session Ilmenyx followed: <paramref name="started"/> becomes the last played time and the seconds are added to the total.</summary>
+    public void RecordPlay(DateTimeOffset started, double seconds)
+    {
+        LastPlayed = started;
+        if (double.IsFinite(seconds) && seconds > 0) PlayedSeconds += seconds;
+    }
+    /// <summary>Fields this version does not know (written by a newer one): kept as they are on the next save, so an older Ilmenyx never drops them.</summary>
+    [JsonExtensionData] public Dictionary<string, JsonElement>? UnknownFields { get; set; }
     /// <summary>Independent copy: a launch keeps the profile as it was when the game opened, whatever the user changes while it runs.</summary>
     public GameProfile Clone() => System.Text.Json.JsonSerializer.Deserialize<GameProfile>(System.Text.Json.JsonSerializer.Serialize(this))!;
 }
@@ -72,6 +87,8 @@ public sealed class CustomGame
     public string Name { get; set; } = "";
     public string Exe { get; set; } = "";
     public string Args { get; set; } = "";
+    /// <summary>Fields this version does not know (written by a newer one): kept as they are on the next save, so an older Ilmenyx never drops them.</summary>
+    [JsonExtensionData] public Dictionary<string, JsonElement>? UnknownFields { get; set; }
 }
 
 /// <param name="Kind">What the game is, when the store name alone says too little (e.g. "Linux · Flatpak").</param>
@@ -187,6 +204,7 @@ public static class GameLaunchOptions
 public sealed record BenchRunEntry(DateTimeOffset At, string Kind, string Summary, double? Score)
 {
     public const int MaxEntries = 50;
+    [JsonExtensionData] public Dictionary<string, JsonElement>? UnknownFields { get; set; }
 }
 
 /// <summary>
@@ -206,6 +224,7 @@ public sealed record FpsSession(string Game, DateTimeOffset At, double AvgFps, d
 {
     public const int MaxEntries = 50;
     public const double MinSeconds = 30;
+    [JsonExtensionData] public Dictionary<string, JsonElement>? UnknownFields { get; set; }
     public bool IsValid => DurationSeconds >= MinSeconds && double.IsFinite(AvgFps) && AvgFps > 0 && AvgFps < 10000 && Game is { Length: > 0 };
 }
 
@@ -219,8 +238,7 @@ public sealed class IlmenyxSettings
     public string? InstallerTempFolder { get; set; }
     /// <summary>Original values of user-level tweaks before the first change ("&lt;absent&gt;" = unknown), so "Restaurar originais" can undo them.</summary>
     public Dictionary<string, string?> TweakBackup { get; set; } = [];
-    // "HowManyFpsKey" (the HowManyFPS API key, removed on 2026-11-08) may still be in old files: unknown keys are ignored on load and
-    // the value is dropped on the next save.
+    // "HowManyFpsKey" (the HowManyFPS API key, removed on 2026-11-08) is the one unknown key that is deliberately dropped on load (a retired secret).
     /// <summary>Local benchmark history (newest first, at most <see cref="BenchRunEntry.MaxEntries"/>). Never sent anywhere.</summary>
     public List<BenchRunEntry> BenchRuns { get; set; } = [];
     /// <summary>Overlay items (null = defaults), corner (top-left, top-right, bottom-left, bottom-right) and text scale.</summary>
@@ -252,6 +270,8 @@ public sealed class IlmenyxSettings
     public bool TourOffered { get; set; }
     /// <summary>FPS measured in game sessions started by the Launcher with MangoHud (newest first, at most <see cref="FpsSession.MaxEntries"/>). Never sent anywhere.</summary>
     public List<FpsSession> FpsSessions { get; set; } = [];
+    /// <summary>Fields this version does not know (written by a newer one): kept as they are on the next save, so an older Ilmenyx never drops them.</summary>
+    [JsonExtensionData] public Dictionary<string, JsonElement>? UnknownFields { get; set; }
 
     public void AddFpsSession(FpsSession session)
     {
@@ -277,6 +297,7 @@ public sealed class IlmenyxSettings
             if (!File.Exists(path)) return new();
             if (new FileInfo(path).Length < 4 << 20 && JsonSerializer.Deserialize<IlmenyxSettings>(File.ReadAllText(path)) is { } loaded)
             {
+                loaded.UnknownFields?.Remove("HowManyFpsKey");
                 loaded.GameProfiles ??= []; loaded.CustomGames ??= []; loaded.HiddenGames ??= []; loaded.TweakBackup ??= []; loaded.BenchRuns ??= []; // hand-edited files ("x": null)
                 loaded.FpsSessions = (loaded.FpsSessions ?? []).Where(x => x is not null && x.IsValid).Take(FpsSession.MaxEntries).ToList();
                 return loaded;
