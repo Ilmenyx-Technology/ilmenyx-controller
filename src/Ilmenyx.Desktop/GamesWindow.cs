@@ -25,6 +25,7 @@ public sealed class GamesWindow : Window
         ("launcher", () => L.T("Jogos")), ("achievements", () => L.T("Conquistas")), ("compat", () => L.T("Compatibilidade")),
         ("gamecheck", () => L.T("Jogo não abre?")), ("canrun", () => L.T("Meu PC roda isso?")),
     ];
+    private readonly Func<CancellationToken, AchievementsPage>? achievements; private readonly Func<CancellationToken, CanRunPage>? canRun;
     private readonly Dictionary<string, Button> nav = new();
     private readonly Dictionary<string, Control> pages = new();
     private readonly Panel host = new() { Name = "GamesHost" };
@@ -35,12 +36,15 @@ public sealed class GamesWindow : Window
     public static string? TabFor(string key) => Tabs.Any(t => t.Key == key) ? key : null;
 
     /// <param name="pageFactory">Builds the library page (default: the real one). Settable for UI fixtures, which never touch the real library or launch games.</param>
-    public GamesWindow(Func<Func<Window?>, CancellationToken, LauncherPage>? pageFactory = null)
+    /// <param name="achievements">Builds the Conquistas page (default: the real one). Settable for UI fixtures, which never read the real library or ask Steam.</param>
+    /// <param name="canRun">Builds the Meu PC roda isso? page (default: the real one). Settable for UI fixtures, which never touch the network or the real hardware.</param>
+    public GamesWindow(Func<Func<Window?>, CancellationToken, LauncherPage>? pageFactory = null, Func<CancellationToken, AchievementsPage>? achievements = null, Func<CancellationToken, CanRunPage>? canRun = null)
     {
+        this.achievements = achievements; this.canRun = canRun;
         if (IlmenyxSettings.Load(IlmenyxSettings.DefaultPath()).ThemeLight) Palette.Apply(true);
         Icon = AppIcon.Window; Title = L.T("Jogos — Ilmenyx Controller"); Width = 1180; Height = 780; MinWidth = 900; MinHeight = 560; Background = Palette.Bg;
         Page = pageFactory is null ? LauncherPage.Create(() => this, lifetime.Token, LauncherLayout.Showcase) : pageFactory(() => this, lifetime.Token);
-        // Top bar: wordmark, one pill per page (the active one in the accent colour) and, on the Jogos page, the search field.
+        // Top bar: wordmark, one pill per page (the active one white), the clock and, on the Jogos page, the search field.
         var tabs = new WrapPanel { Name = "GamesNav", ItemSpacing = 6, LineSpacing = 6, VerticalAlignment = VerticalAlignment.Center };
         AutomationProperties.SetName(tabs, L.T("JOGOS"));
         foreach (var (key, label) in Tabs)
@@ -59,25 +63,46 @@ public sealed class GamesWindow : Window
         var wordmark = new TextBlock { FontSize = 17, FontWeight = FontWeight.Bold, VerticalAlignment = VerticalAlignment.Center };
         wordmark.Inlines!.Add(new Avalonia.Controls.Documents.Run("Ilmenyx")); wordmark.Inlines.Add(new Avalonia.Controls.Documents.Run(" " + L.T("Jogos")) { Foreground = Palette.AccentText });
         searchHost = Page.SearchField; searchHost.Width = 230; searchHost.VerticalAlignment = VerticalAlignment.Center;
-        var bar = new Grid { Name = "GamesTopBar", ColumnDefinitions = new("Auto,*,Auto"), RowDefinitions = new("Auto,Auto"), Margin = new Thickness(24, 10, 24, 10) };
-        wordmark.Margin = new Thickness(0, 0, 22, 0); Grid.SetColumn(tabs, 1); Grid.SetColumn(searchHost, 2);
-        bar.Children.Add(wordmark); bar.Children.Add(tabs); bar.Children.Add(searchHost);
+        // Clock (local time, HH:mm) before the search; refreshed at every minute change until the window closes. No network or battery indicators.
+        var clock = new TextBlock { Name = "GamesClock", FontSize = 15, FontWeight = FontWeight.SemiBold, Foreground = Palette.Fg, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 4, 0) };
+        AutomationProperties.SetName(clock, L.T("Hora"));
+        var bar = new Grid { Name = "GamesTopBar", ColumnDefinitions = new("Auto,*,Auto,Auto"), RowDefinitions = new("Auto,Auto"), Margin = new Thickness(24, 10, 24, 10) };
+        wordmark.Margin = new Thickness(0, 0, 22, 0); Grid.SetColumn(tabs, 1); Grid.SetColumn(clock, 2); Grid.SetColumn(searchHost, 3);
+        bar.Children.Add(wordmark); bar.Children.Add(tabs); bar.Children.Add(searchHost); bar.Children.Add(clock);
+        _ = RunClockAsync(clock, lifetime.Token);
         // Under ~1120 px the search drops to its own row instead of squeezing the pills.
         bar.SizeChanged += (_, e) =>
         {
             bool low = e.NewSize.Width < 1120;
-            Grid.SetRow(searchHost, low ? 1 : 0); Grid.SetColumn(searchHost, low ? 0 : 2); Grid.SetColumnSpan(searchHost, low ? 3 : 1);
+            Grid.SetRow(searchHost, low ? 1 : 0); Grid.SetColumn(searchHost, low ? 0 : 3); Grid.SetColumnSpan(searchHost, low ? 3 : 1);
             searchHost.HorizontalAlignment = low ? HorizontalAlignment.Left : HorizontalAlignment.Right; searchHost.Margin = low ? new Thickness(0, 10, 0, 0) : new Thickness(12, 0, 0, 0);
         };
-        var top = new Border { Name = "GamesTop", Background = Palette.Panel, BorderBrush = Palette.Line, BorderThickness = new Thickness(0, 0, 0, 1), Child = bar };
+        var top = new Border { Name = "GamesTop", Background = Brushes.Transparent, BorderBrush = Palette.Line, BorderThickness = new Thickness(0, 0, 0, 1), Child = bar };
         pages["launcher"] = Page;
         host.Children.Add(Page);
         var grid = new Grid { RowDefinitions = new("Auto,*") };
         Grid.SetRow(host, 1); grid.Children.Add(top); grid.Children.Add(host);
         Content = grid;
+        // Ambient background: dark tint of the selected game's art, eased in ~400 ms; the plain background without art (and in the light theme, which keeps its own surface).
+        Transitions = [new Avalonia.Animation.BrushTransition { Property = BackgroundProperty, Duration = TimeSpan.FromMilliseconds(400), Easing = IlmenyxTheme.Premium }];
+        Page.AmbientChanged += c => Background = c is { } t && !Palette.IsLight ? new SolidColorBrush(t) : Palette.Bg;
         Select(DefaultTab);
         LauncherPage.GuardClose(this, () => Page);
         Closed += (_, _) => lifetime.Cancel(); // a game being followed stops being followed; its temporary changes are undone
+    }
+
+    private static async Task RunClockAsync(TextBlock clock, CancellationToken ct)
+    {
+        var culture = System.Globalization.CultureInfo.GetCultureInfo(L.Current); // pt-BR / en / es: same HH:mm, culture-correct digits
+        try
+        {
+            while (!ct.IsCancellationRequested)
+            {
+                var now = DateTime.Now; clock.Text = MinuteClock.Text(now, culture);
+                await Task.Delay(MinuteClock.MillisecondsToNextMinute(now), ct);
+            }
+        }
+        catch (OperationCanceledException) { }
     }
 
     /// <summary>Shows a tab, creating its page on first use (like the full app). Unknown keys are ignored.</summary>
@@ -92,10 +117,10 @@ public sealed class GamesWindow : Window
         CurrentTab = tab;
     }
 
-    /// <summary>Active pill: accent fill with the on-accent text; the others muted, with the hover tint. The template's own hover colours are pinned too.</summary>
+    /// <summary>Active pill: white (Fg) fill with OnFg text, like the console's focused tab; the others muted, with the hover tint. The template's own hover colours are pinned too.</summary>
     private static void PaintTab(Button b, bool on)
     {
-        IBrush bg = on ? Palette.Accent : Brushes.Transparent, fg = on ? Palette.OnAccent : Palette.Muted, hoverBg = on ? Palette.Accent : Palette.Hover, hoverFg = on ? Palette.OnAccent : Palette.Fg;
+        IBrush bg = on ? Palette.Fg : Brushes.Transparent, fg = on ? Palette.OnFg : Palette.Muted, hoverBg = on ? Palette.Fg : Palette.Hover, hoverFg = on ? Palette.OnFg : Palette.Fg;
         b.Background = bg; b.Foreground = fg;
         foreach (var key in new[] { "ButtonBackgroundPointerOver", "ButtonBackgroundPressed" }) b.Resources[key] = hoverBg;
         foreach (var key in new[] { "ButtonForegroundPointerOver", "ButtonForegroundPressed" }) b.Resources[key] = hoverFg;
@@ -107,13 +132,13 @@ public sealed class GamesWindow : Window
         Control Scroll(string name, Control c) { c.Margin = new Thickness(0, 4, 8, 12); return new ScrollViewer { Name = name, Content = c, Margin = new Thickness(24, 12, 16, 0) }; }
         switch (key)
         {
-            case "achievements": { var a = AchievementsPage.Create(lifetime.Token); a.Margin = new Thickness(0, 4, 8, 12); return new Border { Padding = new Thickness(24, 12, 16, 0), Child = a }; }
+            case "achievements": { var a = achievements?.Invoke(lifetime.Token) ?? AchievementsPage.Create(lifetime.Token); a.Margin = new Thickness(0, 4, 8, 12); return new Border { Padding = new Thickness(24, 12, 16, 0), Child = a }; }
             case "compat": return Scroll("CompatScroll", new CompatPage(GamePages.CompatServicesNow(), () => this, lifetime.Token));
             case "gamecheck":
                 return Scroll("GameCheckScroll", new GameCheckPage(OperatingSystem.IsLinux() ? new GameCheckServices(new GameLaunchProbe().CollectAsync, GameUserFixRunner.RunAsync) /* its links go to Otimiza/Driver NVIDIA, full-app pages: null hides them instead of dead buttons */ : throw new PlatformNotSupportedException(), () => this, lifetime.Token));
             default:
                 // CPU model and RAM come straight from /proc (no usage monitor in this window); the GPU/disk facts use the same collectors as the shell.
-                return Scroll("CanRunScroll", new CanRunPage(CanRunServices.Real(() => GamePages.LocalPcNow(LinuxMemoryInfo.CpuModel(), LinuxMemoryInfo.TotalBytes()), GamePages.SteamLibraryNow), lifetime.Token));
+                return Scroll("CanRunScroll", canRun?.Invoke(lifetime.Token) ?? new CanRunPage(CanRunServices.Real(() => GamePages.LocalPcNow(LinuxMemoryInfo.CpuModel(), LinuxMemoryInfo.TotalBytes()), GamePages.SteamLibraryNow, GamePages.SteamArtNow), lifetime.Token));
         }
     }
 

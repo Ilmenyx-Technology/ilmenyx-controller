@@ -770,13 +770,18 @@ public sealed class UiSmokeApp : Application
             st.FpsSessions.Add(new FpsSession("Second Game With A Very Long Name To Trim", DateTimeOffset.UtcNow, 55, 41, 900, "Fixture GPU", "2560x1440", "Médio", P10Fps: 48, P90Fps: 63, ValidSeconds: 800));
             st.GameProfiles["Steam:100"] = new GameProfile { LastPlayed = DateTimeOffset.UtcNow.AddDays(-1), PlayedSeconds = 3 * 3600 + 20 * 60 };
         });
-        LauncherPage? page = null;
+        LauncherPage? page = null; CanRunPage? canRunPage = null; int canRunFetches = 0;
+        string canRunRoot = Path.Combine(root, "canrun"); Directory.CreateDirectory(canRunRoot);
+        var pcFixture = new Ilmenyx.Core.LocalPc("AMD Ryzen 5 5600 6-Core Processor", "NVIDIA GeForce RTX 3060", 12UL << 30, false, (long)(15.5 * 1073741824), 200L << 30, "home", true);
+        var (makeAchievements, _) = AchievementFixture();
         var window = new GamesWindow((owner, ct) => page = new LauncherPage(new LinuxGameLibrary(home, (_, _) => Task.FromResult((0, "[]"))), new SteamInfo(home, Path.Combine(root, "noproc")), settingsPath,
             (g, p, v, status, learned, c) => throw new InvalidOperationException("The games window check must never launch a game."), owner, "AMD", true, ct, LauncherLayout.Showcase)
         {
             FindSteamId = (_, _) => Task.FromResult<(string, string)?>(null), SuggestSteamId = (_, _, _) => Task.FromResult<IReadOnlyList<(string, string)>>([]), FetchArt = (_, _) => Task.FromResult<string?>(null),
             UmuProton = () => null, WaylandSession = () => true, IsRunning = (_, _, _) => Task.FromResult(false),
-        });
+        }, makeAchievements, _ => canRunPage = new CanRunPage(CanRunFixtureServices(canRunRoot, () => pcFixture, () => false, () => canRunFetches++,
+            "<strong>Minimum:</strong><ul><li><strong>Processor:</strong> Intel Core i5-8400</li><li><strong>Memory:</strong> 8 GB RAM</li><li><strong>Graphics:</strong> NVIDIA GeForce GTX 1060 6GB</li><li><strong>Storage:</strong> 60 GB available space</li></ul>",
+            "<strong>Recommended:</strong><ul><li><strong>Processor:</strong> Intel Core i7-8700K</li><li><strong>Memory:</strong> 16 GB RAM</li><li><strong>Graphics:</strong> NVIDIA GeForce RTX 3070</li></ul>", "", ""), CancellationToken.None));
         void Check(bool ok, string what) { if (!ok) throw new InvalidOperationException("Games window: " + what); }
         string Text(string name) => Find<TextBlock>(window, name).Text ?? "";
         bool HasPill(string name) => window.GetVisualDescendants().OfType<Border>().Any(b => b.Name == name);
@@ -786,7 +791,17 @@ public sealed class UiSmokeApp : Application
         var tabs = window.GetVisualDescendants().OfType<Button>().Where(b => b.Name?.StartsWith("GamesNav_") == true).ToList();
         Check(tabs.Count == 5, "the top bar needs five page buttons");
         foreach (var b in tabs) Check(!string.IsNullOrEmpty(AutomationProperties.GetName(b)), "tab without an accessible name: " + b.Name);
-        Check(ReferenceEquals(Find<Button>(window, "GamesNav_launcher").Background, Ilmenyx.Desktop.Palette.Accent), "the active tab must use the accent background");
+        Check(ReferenceEquals(Find<Button>(window, "GamesNav_launcher").Background, Ilmenyx.Desktop.Palette.Fg) && ReferenceEquals(Find<Button>(window, "GamesNav_launcher").Foreground, Ilmenyx.Desktop.Palette.OnFg), "the active tab must be a white pill with OnFg text");
+        Check(Find<Button>(window, "GamesNav_launcher").CornerRadius.TopLeft >= 100 && Find<Button>(window, "BtnPlay").CornerRadius.TopLeft >= 100 && Find<Button>(window, "BtnGameSettings").CornerRadius.TopLeft >= 100, "top-bar and hero buttons must be pills");
+        Check(ReferenceEquals(Find<Button>(window, "BtnPlay").Background, Ilmenyx.Desktop.Palette.Fg) && ReferenceEquals(Find<Button>(window, "BtnPlay").Foreground, Ilmenyx.Desktop.Palette.OnFg), "Jogar is the white filled primary");
+        Check(Ilmenyx.Core.AmbientTint.Contrast(new(0xF4, 0xF4, 0xF6), new(0x18, 0x1A, 0x1C)) >= 7, "Jogar: white background with OnFg text must reach AAA contrast");
+        Check(System.Text.RegularExpressions.Regex.IsMatch(Text("GamesClock"), @"^\d\d:\d\d$"), "the top bar clock must read HH:mm, found: " + Text("GamesClock"));
+        // Ambient tint: the window background follows the hero art (blue for Game One) and keeps AA contrast with every text colour.
+        Avalonia.Media.Color Tint() => window.Background is Avalonia.Media.ISolidColorBrush sb ? sb.Color : default;
+        var blueTint = Tint();
+        Check(window.Background is Avalonia.Media.ISolidColorBrush && !ReferenceEquals(window.Background, Ilmenyx.Desktop.Palette.Bg) && blueTint.B > blueTint.R, "the window must take a bluish ambient tint from Game One's art, found " + blueTint);
+        foreach (var fg in new[] { Ilmenyx.Desktop.Palette.Fg, Ilmenyx.Desktop.Palette.Muted, Ilmenyx.Desktop.Palette.Faint })
+        { var f = ((Avalonia.Media.ISolidColorBrush)fg).Color; Check(Ilmenyx.Core.AmbientTint.Contrast(new(f.R, f.G, f.B), new(blueTint.R, blueTint.G, blueTint.B)) >= 4.5, "tint contrast with " + f); }
         // Hero: the game played last, with the label, Jogar and the stat pills from real data only.
         Check(Text("LHeroLabel") == "Continuar jogando", "the hero of the last played game must say Continuar jogando");
         Check(Find<Button>(window, "BtnPlay").IsEffectivelyVisible && Find<Button>(window, "BtnPlay").IsEnabled, "Jogar must be available");
@@ -804,16 +819,27 @@ public sealed class UiSmokeApp : Application
             Check(Covers() == n, $"{chip} must show {n} covers, found {Covers()}");
         }
         Capture(window, "games-window-1180x780.png");
+        Check(canRunPage is null, "the fixture pages are built on first use only");
         // Clicking a cover puts that game in the hero (its own numbers, no "Continuar jogando").
         Click(window, "LGame_" + LauncherPage.SafeName("Steam:101"));
         await Until(() => Text("LTitle").StartsWith("Second Game")); await Task.Delay(400);
         Check(Text("LHeroLabel") != "Continuar jogando", "only the last played game says Continuar jogando");
         Check(Pill("LStatFps").Contains("55"), "the hero must show the FPS of the game just chosen");
         Check(!HasPill("LStatTime"), "no recorded play time: no time pill");
+        await Task.Delay(700); var orangeTint = Tint();
+        Check(orangeTint.R > orangeTint.B && Ilmenyx.Core.AmbientTint.Contrast(new(0xB8, 0xB8, 0xC0), new(orangeTint.R, orangeTint.G, orangeTint.B)) >= 4.5, "choosing the orange game must tint the window warm, found " + orangeTint);
+        Capture(window, "games-window-tint-orange-1180x780.png");
         Click(window, "LGame_" + LauncherPage.SafeName("Steam:100")); await Until(() => Text("LTitle") == "Game One"); await Task.Delay(400);
         // Keyboard: arrows move between covers and between tabs; Enter chooses.
         var covers = Find<WrapPanel>(window, "LPosterGrid").Children.OfType<Button>().ToList();
         covers[0].Focus(); Key(window, Avalonia.Input.Key.Right); await Task.Delay(60); FocusIs(window, covers[1]);
+        // Console look: the focused cover (and the selected one) show name and ring; the others keep their accessible name but hide the label.
+        await Task.Delay(300);
+        Avalonia.Controls.Panel Labels(Button b) => (Avalonia.Controls.Panel)((StackPanel)b.Content!).Children[1];
+        Border RingOf(Button b) => ((Avalonia.Controls.Panel)((StackPanel)b.Content!).Children[0]).Children.OfType<Border>().First(r => r.BorderThickness.Left == 3);
+        Check(Labels(covers[1]).Opacity > 0.95 && RingOf(covers[1]).Opacity > 0.95 && RingOf(covers[1]).BorderThickness.Left == 3 && ReferenceEquals(RingOf(covers[1]).BorderBrush, Ilmenyx.Desktop.Palette.Fg), "the focused cover must show its label and the white 3 px ring");
+        Check(covers.Count(c => Labels(c).Opacity > 0.95) <= 2 && covers.Any(c => Labels(c).Opacity < 0.05 && !string.IsNullOrEmpty(AutomationProperties.GetName(c))), "only the focused and the selected covers show a label; the others keep their accessible name");
+        Check(covers.Count(c => RingOf(c).Opacity > 0.95) <= 2, "at most the focused and the selected covers carry the ring");
         Key(window, Avalonia.Input.Key.Enter); await Until(() => Text("LTitle") != "Game One"); Click(window, "LGame_" + LauncherPage.SafeName("Steam:100")); await Until(() => Text("LTitle") == "Game One");
         Find<Button>(window, "GamesNav_launcher").Focus(); Key(window, Avalonia.Input.Key.Right); await Task.Delay(60); FocusIs(window, Find<Button>(window, "GamesNav_achievements"));
         Find<TextBox>(window, "LGameSearch").Text = "Second"; await Task.Delay(150); Check(Covers() == 1, "the top-bar search must filter the covers"); Find<TextBox>(window, "LGameSearch").Text = ""; await Task.Delay(150);
@@ -857,6 +883,20 @@ public sealed class UiSmokeApp : Application
             Check(Find<TextBox>(window, "LGameSearch").IsEffectivelyVisible == (tab == "launcher"), "the search belongs to the Jogos page only");
         }
         Check(Text("LTitle") == "Game One" && Find<Button>(window, "BtnPlay").IsEffectivelyVisible, "coming back to Jogos must keep the selected game");
+        // The restyled Conquistas and Meu PC roda isso? pages in this window: 1180x780 and the minimum size at 200% text.
+        async Task PageShots(string tab, string file)
+        {
+            Click(window, "GamesNav_" + tab); await Until(() => window.CurrentTab == tab);
+            if (tab == "canrun") { await Until(() => canRunPage is not null); await canRunPage!.SearchAsync("1245620"); await Until(() => canRunPage.Report is not null); }
+            else await Until(() => Find<TextBlock>(window, "AchSummary").Text!.StartsWith("3 jogos"));
+            await Task.Delay(500); Capture(window, file + "-1180x780.png");
+            await Size(900, 560);
+            var fonts = ScaleText(window, 2.0); await Task.Delay(400); Capture(window, file + "-900x560-text200.png");
+            foreach (var (c, size) in fonts) c.SetValue(Avalonia.Controls.Documents.TextElement.FontSizeProperty, size);
+            await Size(1180, 780);
+        }
+        await PageShots("achievements", "games-window-conquistas"); await PageShots("canrun", "games-window-meupc");
+        Click(window, "GamesNav_launcher"); await Until(() => window.CurrentTab == "launcher");
         Click(window, "BtnGameSettings"); await Until(() => page!.DrawerOpen); Click(window, "GamesNav_compat"); await Until(() => !page!.DrawerOpen); Click(window, "GamesNav_launcher");
         Check(Find<Button>(window, "BtnPlay").IsEffectivelyEnabled, "switching page with the drawer open must leave the Jogos page usable");
         window.Close();
@@ -987,27 +1027,70 @@ public sealed class UiSmokeApp : Application
         await Task.Delay(200); Capture(shell, "shell-launcher.png");
         Console.WriteLine("PASS launcher page: library scan, manual executable validation, Windows game named by folder with Steam ID found and path shown, removal keeps files, Esc/← Biblioteca return to the full library, profile persistence, Steam launch options with backup, helper, stubbed launch; real library read-only");
     }
-    private static async Task AchievementsAsync(ShellWindow shell)
+    /// <summary>A decodable gradient picture (game art stand-in for fixtures: no real art, no network).</summary>
+    private static Bitmap GradientArt(Avalonia.Media.Color a, Avalonia.Media.Color b, int w, int h)
     {
-        // Fakes only: no Steam files, no network, no icons.
+        var art = new Grid
+        {
+            Width = w, Height = h, Background = new Avalonia.Media.LinearGradientBrush { StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative), EndPoint = new RelativePoint(1, 1, RelativeUnit.Relative), GradientStops = { new Avalonia.Media.GradientStop(a, 0), new Avalonia.Media.GradientStop(b, 1) } },
+            Children = { new Border { Width = h * 0.8, Height = h * 0.8, CornerRadius = new CornerRadius(h), Background = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Colors.White, 0.2), HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right, Margin = new Thickness(0, 0, w * 0.1, 0) } },
+        };
+        art.Measure(new Size(w, h)); art.Arrange(new Rect(0, 0, w, h));
+        var rtb = new RenderTargetBitmap(new PixelSize(w, h), new Vector(96, 96)); rtb.Render(art); return rtb;
+    }
+    private static Bitmap ArtById(string id) => (id.GetHashCode() & 3) switch
+    {
+        0 => GradientArt(Avalonia.Media.Colors.SteelBlue, Avalonia.Media.Colors.MidnightBlue, 300, 450), 1 => GradientArt(Avalonia.Media.Colors.DarkOrange, Avalonia.Media.Colors.Maroon, 300, 450),
+        2 => GradientArt(Avalonia.Media.Colors.MediumSeaGreen, Avalonia.Media.Colors.DarkGreen, 300, 450), _ => GradientArt(Avalonia.Media.Colors.MediumPurple, Avalonia.Media.Colors.Indigo, 300, 450),
+    };
+
+    /// <summary>Fake achievements for four games (a Steam one, an emulator one without unlock times, an empty one and a partially unlocked one with times and hidden achievements): no Steam files, no network, no icons.</summary>
+    private static (Func<CancellationToken, AchievementsPage> Make, Dictionary<string, AchievementView> Views) AchievementFixture()
+    {
         AchievementSource Src(string store, string id, string name, AchievementOrigin o) => new(new LibGame(store, id, name, "/nao/existe"), id, o, []);
-        var steam = Src("Steam", "100", "Jogo Steam", AchievementOrigin.Steam); var emu = Src("Manual", "200", "Jogo Emulador", AchievementOrigin.Emulator);
-        var at = new DateTimeOffset(2026, 3, 4, 12, 0, 0, TimeSpan.Zero);
+        var steam = Src("Steam", "100", "Jogo Steam", AchievementOrigin.Steam); var emu = Src("Manual", "200", "Jogo Emulador", AchievementOrigin.Emulator); var cup = Src("Steam", "400", "Jogo dos Troféus", AchievementOrigin.Steam);
+        var at = new DateTimeOffset(2026, 3, 4, 12, 0, 0, TimeSpan.Zero); var now = DateTimeOffset.Now;
         AchievementDef D(string id, string name, bool hidden = false) => new(id, name, "Descricao " + id, "", "", hidden);
+        AchievementDef T(string id, string name, string text, bool hidden = false) => new(id, name, text, "", "", hidden);
         var views = new Dictionary<string, AchievementView>
         {
             ["100"] = new(steam, [D("s3", "Nome Real Secreto", true), D("s2", "Sem data"), D("s1", "Com data")],
                 new Dictionary<string, AchievementUnlock> { ["s2"] = new("s2", null), ["s1"] = new("s1", at) }),
             ["200"] = new(emu, [D("e1", "Emu um"), D("e2", "Emu dois"), D("e3", "Emu tres", true)], new Dictionary<string, AchievementUnlock> { ["e1"] = new("e1", null) }),
             ["300"] = new(Src("Steam", "300", "Jogo Vazio", AchievementOrigin.Steam), [], new Dictionary<string, AchievementUnlock>()),
+            ["400"] = new(cup,
+                [T("t1", "Primeiros passos", "Termine o tutorial."), T("t2", "Colecionador", "Pegue 50 itens."), T("t3", "Explorador", "Visite todas as regiões do mapa."), T("t4", "Sem pressa", "Jogue por 10 horas."),
+                 T("t5", "Segredo da caverna", "Encontre a sala escondida.", true), T("t6", "Sobrevivente", "Termine uma partida sem morrer."), T("t7", "Mestre das armas", "Use todas as armas."),
+                 T("t8", "Velocista", "Termine em menos de 2 horas."), T("t9", "Nome real escondido", "Descrição escondida", true), T("t10", "Outro segredo", "Outra descrição escondida", true)],
+                new Dictionary<string, AchievementUnlock> { ["t1"] = new("t1", now.AddDays(-3).AddMinutes(-5)), ["t2"] = new("t2", now.AddDays(-4)), ["t3"] = new("t3", now.AddDays(-6)), ["t4"] = new("t4", now.AddDays(-10)), ["t5"] = new("t5", now.AddDays(-20)), ["t6"] = new("t6", null) }),
         };
-        var page = new AchievementsPage(_ => Task.FromResult<IReadOnlyList<AchievementSource>>([steam, emu, views["300"].Source]), (s, _) => Task.FromResult(views[s.AppId]), (_, _, _) => Task.FromResult<string?>(null), CancellationToken.None);
+        return (ct => new AchievementsPage(_ => Task.FromResult<IReadOnlyList<AchievementSource>>([cup, steam, emu, views["300"].Source]), (s, _) => Task.FromResult(views[s.AppId]), (_, _, _) => Task.FromResult<string?>(null), ct, null, src => ArtById(src.AppId)), views);
+    }
+    private static async Task AchievementsAsync(ShellWindow shell)
+    {
+        var (make, views) = AchievementFixture();
+        var page = make(CancellationToken.None);
         var host = new Window { Width = 1100, Height = 800, Content = page }; host.Show();
-        await Until(() => page.Views.Count == 2 && Find<TextBlock>(host, "AchSummary").Text == "2 jogos · 3 de 6 conquistas");
-        if (host.GetVisualDescendants().OfType<Button>().Count(b => b.Name?.StartsWith("Ach_") == true) != 2 || host.GetVisualDescendants().OfType<Control>().Any(c => c.Name == "Ach_300"))
-            throw new InvalidOperationException("Achievements list must hold exactly the two games with achievements.");
+        await Until(() => page.Views.Count == 3 && Find<TextBlock>(host, "AchSummary").Text == "3 jogos · 9 de 16 conquistas");
+        if (host.GetVisualDescendants().OfType<Button>().Count(b => b.Name?.StartsWith("Ach_") == true) != 3 || host.GetVisualDescendants().OfType<Control>().Any(c => c.Name == "Ach_300"))
+            throw new InvalidOperationException("Achievements shelf must hold exactly the three games with achievements.");
+        // Trophy header of the first game: ring %, counts, pills, "última há" from the unlock times.
+        await Until(() => Find<TextBlock>(host, "AchGameTitle").Text == "Jogo dos Troféus"); await Task.Delay(300);
+        string Pills() => string.Join("|", host.GetVisualDescendants().OfType<Border>().Where(b => b.Name is "AchPillGot" or "AchPillLeft").Select(b => AutomationProperties.GetName(b)));
+        if (Pills() != "6 obtidas|4 a obter" || Find<TextBlock>(host, "AchGameCount").Text != "6 de 10 conquistas" || Find<TextBlock>(host, "AchGameLast").Text != "última há 3 dias"
+            || !host.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text == "60%"))
+            throw new InvalidOperationException("Trophy header wrong: " + Pills() + " / " + Find<TextBlock>(host, "AchGameCount").Text);
+        var trophyIds = host.GetVisualDescendants().OfType<Control>().Where(c => c.Name?.StartsWith("AchItem_") == true).Select(c => c.Name!).ToList();
+        if (!trophyIds.SequenceEqual(Enumerable.Range(1, 10).Select(i => "AchItem_t" + i))) throw new InvalidOperationException("Trophy order (obtained newest first, then the game's order): " + string.Join(",", trophyIds));
+        var cardTexts = host.GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text).ToList();
+        if (cardTexts.Contains("Nome real escondido") || cardTexts.Count(t => t == "Conquista secreta") != 2 || !cardTexts.Contains("Segredo da caverna") || !cardTexts.Any(t => t?.StartsWith("Obtida em ") == true) || !cardTexts.Contains("Obtida"))
+            throw new InvalidOperationException("Hidden locked achievements must show only 'Conquista secreta'; obtained ones show 'Obtida em dd/MM' or 'Obtida' without a time.");
+        if (!host.GetVisualDescendants().OfType<Border>().Any(b => b.Name == "AchItem_t7" && AutomationProperties.GetName(b)!.EndsWith("bloqueada")) || host.GetVisualDescendants().OfType<WrapPanel>().Single(w => w.Name == "AchGrid").Bounds.Width < 600)
+            throw new InvalidOperationException("Achievement grid / locked card names.");
+        Capture(host, "achievements-trophies.png");
         Click(host, "Ach_200");
         await Until(() => Find<TextBlock>(host, "AchGameTitle").Text == "Jogo Emulador");
+        if (host.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "AchGameLast")) throw new InvalidOperationException("No unlock times in the source: no 'última há'.");
         Click(host, "Ach_100");
         await Until(() => Find<TextBlock>(host, "AchGameTitle").Text == "Jogo Steam");
         var ids = host.GetVisualDescendants().OfType<Control>().Where(c => c.Name?.StartsWith("AchItem_") == true).Select(c => c.Name!).ToList();
@@ -1018,7 +1101,7 @@ public sealed class UiSmokeApp : Application
         host.Content = empty;
         await Until(() => host.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "AchEmpty"));
         host.Close();
-        Console.WriteLine("PASS achievements page: two fake games listed (empty one hidden), summary 2 jogos · 3 de 6 conquistas, row switches detail, unlocked first, secret name hidden, empty state (the real page is not opened: it may query Steam online)");
+        Console.WriteLine("PASS achievements page (trophy style): three fake games on the shelf (empty one hidden), summary 3 jogos · 9 de 16 conquistas, gold ring 60% with 6 obtidas / 4 a obter, última há 3 dias only where unlock times exist, obtained first newest first, hidden names kept secret, card grid, empty state (the real page is not opened: it may query Steam online)");
     }
     private sealed class FakeStress : Ilmenyx.Core.IStressEngine
     {
@@ -1570,6 +1653,32 @@ public sealed class UiSmokeApp : Application
         await Task.Delay(300); Capture(shell, "shell-overview.png");
         Console.WriteLine("PASS overview: performance card from the local benchmark history with delta, real read-only health checklist, occupancy rings and recent events");
     }
+    private static CanRunServices CanRunFixtureServices(string root, Func<Ilmenyx.Core.LocalPc> pc, Func<bool> hang, Action onFetch, string html, string rec, string limitMin, string limitRec)
+    {
+        // Extra games for the three verdict looks: "Jogo Folgado" (the fixture PC is above the recommended) and "Jogo Pesado" (below the minimum).
+        const string easyMin = "<strong>Minimum:</strong><ul><li><strong>Processor:</strong> Intel Core i3-8100</li><li><strong>Memory:</strong> 4 GB RAM</li><li><strong>Graphics:</strong> NVIDIA GeForce GTX 750 Ti (2 GB VRAM)</li><li><strong>Storage:</strong> 10 GB available space</li></ul>";
+        const string easyRec = "<strong>Recommended:</strong><ul><li><strong>Processor:</strong> Intel Core i5-8400</li><li><strong>Memory:</strong> 8 GB RAM</li><li><strong>Graphics:</strong> NVIDIA GeForce GTX 1060 (6 GB VRAM)</li></ul>";
+        const string hardMin = "<strong>Minimum:</strong><ul><li><strong>Processor:</strong> AMD Ryzen 7 7700X</li><li><strong>Memory:</strong> 32 GB RAM</li><li><strong>Graphics:</strong> NVIDIA GeForce RTX 4080 (16 GB VRAM)</li><li><strong>Storage:</strong> 150 GB available space</li></ul>";
+        const string hardRec = "<strong>Recommended:</strong><ul><li><strong>Processor:</strong> AMD Ryzen 9 7950X</li><li><strong>Memory:</strong> 64 GB RAM</li><li><strong>Graphics:</strong> NVIDIA GeForce RTX 4090 (24 GB VRAM)</li></ul>";
+        return new CanRunServices(
+            (name, ct) => Task.FromResult<(string, string)?>(name.Equals("Elden Ring", StringComparison.OrdinalIgnoreCase) ? ("1245620", "ELDEN RING") : null),
+            (name, ct) => Task.FromResult<IReadOnlyList<(string, string)>>([("1245620", "ELDEN RING")]),
+            async (id, ct) =>
+            {
+                onFetch(); if (hang()) await Task.Delay(Timeout.Infinite, ct);
+                return (Ilmenyx.Core.RequirementsFetch.Ok, id switch
+                {
+                    "777" => new Ilmenyx.Core.GameRequirements(id, "Jogo no Limite", DateTimeOffset.UtcNow, limitMin, limitRec, "", ""),
+                    "900" => new Ilmenyx.Core.GameRequirements(id, "Jogo Folgado", DateTimeOffset.UtcNow, easyMin, easyRec, "", ""),
+                    "666" => new Ilmenyx.Core.GameRequirements(id, "Jogo Pesado", DateTimeOffset.UtcNow, hardMin, hardRec, "", ""),
+                    _ => new Ilmenyx.Core.GameRequirements(id, "ELDEN RING", DateTimeOffset.UtcNow, html, rec, "", ""),
+                });
+            },
+            new Ilmenyx.Core.RequirementsCache(Path.Combine(root, "cache")),
+            pc,
+            () => [("570", "Dota 2"), ("900", "Jogo Folgado"), ("777", "Jogo no Limite"), ("666", "Jogo Pesado"), ("1245620", "ELDEN RING")],
+            ArtById);
+    }
     [System.Runtime.Versioning.SupportedOSPlatform("linux")]
     private static async Task CanRunAsync(ShellWindow shell)
     {
@@ -1582,26 +1691,34 @@ public sealed class UiSmokeApp : Application
         string html = "<strong>Minimum:</strong><br><ul><li><strong>OS *:</strong> Windows 10<br></li><li><strong>Processor:</strong> Intel Core i5-8400 or AMD Ryzen 5 1600<br></li><li><strong>Memory:</strong> 8 GB RAM<br></li>"
             + "<li><strong>Graphics:</strong> NVIDIA GeForce GTX 1060 6GB or AMD Radeon RX 580<br></li><li><strong>DirectX:</strong> Version 12<br></li><li><strong>Storage:</strong> 60 GB available space<br></li></ul>";
         string rec = "<strong>Recommended:</strong><br><ul><li><strong>Processor:</strong> Intel Core i7-8700K / AMD Ryzen 5 3600<br></li><li><strong>Memory:</strong> 16 GB RAM<br></li><li><strong>Graphics:</strong> NVIDIA GeForce RTX 3070<br></li></ul>";
-        var services = new CanRunServices(
-            (name, ct) => Task.FromResult<(string, string)?>(name.Equals("Elden Ring", StringComparison.OrdinalIgnoreCase) ? ("1245620", "ELDEN RING") : null),
-            (name, ct) => Task.FromResult<IReadOnlyList<(string, string)>>([("1245620", "ELDEN RING")]),
-            async (id, ct) => { fetches++; if (hang) await Task.Delay(Timeout.Infinite, ct); return (Ilmenyx.Core.RequirementsFetch.Ok, id == "777" ? new Ilmenyx.Core.GameRequirements(id, "Jogo no Limite", DateTimeOffset.UtcNow, limitMin, limitRec, "", "") : new Ilmenyx.Core.GameRequirements(id, "ELDEN RING", DateTimeOffset.UtcNow, html, rec, "", "")); },
-            new Ilmenyx.Core.RequirementsCache(Path.Combine(root, "cache")),
-            () => pcNow,
-            () => [("570", "Dota 2")]);
+        var services = CanRunFixtureServices(root, () => pcNow, () => hang, () => fetches++, html, rec, limitMin, limitRec);
         var page = new CanRunPage(services, CancellationToken.None);
         var host = new Window { Width = 1000, Height = 900, Content = new ScrollViewer { Content = page } }; host.Show();
-        await Until(() => Find<WrapPanel>(host, "CanRunLibrary").Children.Count == 1);
+        await Until(() => host.GetVisualDescendants().OfType<StackPanel>().FirstOrDefault(p => p.Name == "CanRunLibrary")?.Children.Count == 5);
         Find<TextBox>(host, "CanRunSearch").Text = "Elden Ring"; Click(host, "BtnCanRunSearch");
         await Until(() => page.Report is not null);
         if (fetches != 1 || page.Report!.Verdict != Ilmenyx.Core.CanRunVerdict.Minimum || Find<TextBlock>(host, "CanRunVerdict").Text != "Roda no mínimo") throw new InvalidOperationException("Elden Ring fixture should run at the minimum (RTX 3060 below the RTX 3070 recommended).");
         foreach (var key in new[] { "cpu", "gpu", "ram", "vram", "storage", "api", "os" }) if (!host.GetVisualDescendants().OfType<Border>().Any(b => b.Name == "CanRunItem_" + key)) throw new InvalidOperationException("Missing item card " + key);
         if (!Find<SelectableTextBlock>(host, "CanRunRawMin").Text!.Contains("Processor: Intel Core i5-8400", StringComparison.Ordinal) || host.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text?.Contains('<') == true && t.Name?.StartsWith("CanRunRaw") == true)) throw new InvalidOperationException("Original requirement text must be shown as plain text.");
         if (!host.GetVisualDescendants().OfType<Button>().Any(b => b.Name == "CanRunRecent_1245620")) throw new InvalidOperationException("The game must appear under 'Consultados antes'.");
+        if (Find<TextBlock>(host, "CanRunVerdictLabel").Text != "Roda no mínimo" || Find<TextBlock>(host, "CanRunVerdict").IsVisible) throw new InvalidOperationException("Plain minimum: big label only, no repeated sentence.");
+        foreach (var key in new[] { "cpu", "gpu", "ram", "vram", "storage" }) if (!host.GetVisualDescendants().OfType<RequirementMeterBar>().Any(m => m.Name == "CanRunMeter_" + key)) throw new InvalidOperationException("Missing meter " + key);
+        if (host.GetVisualDescendants().OfType<RequirementMeterBar>().Any(m => m.Name is "CanRunMeter_os" or "CanRunMeter_api") || Find<TextBlock>(host, "CanRunLegend").Text != "Marca cinza = mínimo · branca = recomendado") throw new InvalidOperationException("Informative rows have no meter; the legend must explain the ticks.");
         await Task.Delay(300); Capture(host, "canrun-result.png");
+        // Above the recommended and far below the minimum: the other two big verdicts (success / error colours).
+        Find<TextBox>(host, "CanRunSearch").Text = "900"; Click(host, "BtnCanRunSearch");
+        await Until(() => host.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "CanRunGameName" && t.Text == "Jogo Folgado"));
+        if (Find<TextBlock>(host, "CanRunVerdictLabel").Text != "Roda no recomendado" || page.Report!.Verdict != Ilmenyx.Core.CanRunVerdict.Recommended) throw new InvalidOperationException("Jogo Folgado must run at the recommended.");
+        await Task.Delay(300); Capture(host, "canrun-recommended.png");
+        Find<TextBox>(host, "CanRunSearch").Text = "666"; Click(host, "BtnCanRunSearch");
+        await Until(() => host.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "CanRunGameName" && t.Text == "Jogo Pesado"));
+        if (Find<TextBlock>(host, "CanRunVerdictLabel").Text != "Abaixo do mínimo" || !Find<TextBlock>(host, "CanRunVerdict").Text!.StartsWith("Abaixo do mínimo em: ", StringComparison.Ordinal)) throw new InvalidOperationException("Jogo Pesado must be below the minimum.");
+        await Task.Delay(300); Capture(host, "canrun-below.png");
+        Find<TextBox>(host, "CanRunSearch").Text = "1245620"; Click(host, "BtnCanRunSearch");
+        await Until(() => host.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "CanRunGameName" && t.Text == "ELDEN RING"));
         // The same game by name again comes from the local copy: no second request.
         Find<TextBox>(host, "CanRunSearch").Text = "elden ring"; Click(host, "BtnCanRunSearch");
-        await Until(() => page.StatusText.Contains("sem usar a rede", StringComparison.Ordinal)); if (fetches != 1) throw new InvalidOperationException("A cached game must not hit the network.");
+        await Until(() => page.StatusText.Contains("sem usar a rede", StringComparison.Ordinal)); if (fetches != 3) throw new InvalidOperationException("A cached game must not hit the network.");
         // Unknown name: suggestion chip, no result change. A link/AppID goes straight to the id.
         Find<TextBox>(host, "CanRunSearch").Text = "Eldn Rng"; Click(host, "BtnCanRunSearch");
         await Until(() => Find<WrapPanel>(host, "CanRunSuggestions").Children.Count == 1);
@@ -1612,9 +1729,9 @@ public sealed class UiSmokeApp : Application
         // Second reported case: i5-1135G7 + Iris Xe (integrated, shared memory). "No limite" is neither a pass nor a fail; the memory is shared with the RAM.
         hang = false; pcNow = new Ilmenyx.Core.LocalPc("11th Gen Intel(R) Core(TM) i5-1135G7 @ 2.40GHz", "Iris Xe Graphics", 0, true, (long)(15.3 * 1073741824), 100L << 30, "home", true, "8086:9A49");
         Find<TextBox>(host, "CanRunSearch").Text = "777"; Click(host, "BtnCanRunSearch");
-        await Until(() => host.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text == "Jogo no Limite"));
+        await Until(() => host.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "CanRunGameName" && t.Text == "Jogo no Limite"));
         string TextOf(string key) => string.Join("|", host.GetVisualDescendants().OfType<Border>().First(b => b.Name == "CanRunItem_" + key).GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text));
-        if (!Find<TextBlock>(host, "CanRunVerdict").Text!.StartsWith("Roda no mínimo, no limite em: Placa de vídeo", StringComparison.Ordinal)) throw new InvalidOperationException("Limit headline: " + Find<TextBlock>(host, "CanRunVerdict").Text);
+        if (!Find<TextBlock>(host, "CanRunVerdict").Text!.StartsWith("Roda no mínimo, no limite em: Placa de vídeo", StringComparison.Ordinal) || Find<TextBlock>(host, "CanRunVerdictLabel").Text != "No limite") throw new InvalidOperationException("Limit headline: " + Find<TextBlock>(host, "CanRunVerdict").Text);
         if (!TextOf("cpu").Contains("No limite do recomendado · por modelo") || !TextOf("gpu").Contains("No limite do mínimo") || !TextOf("vram").Contains("No limite (compartilhada)") || !TextOf("vram").Contains("Compartilhada com a RAM"))
             throw new InvalidOperationException("Limit cards: " + TextOf("cpu") + " // " + TextOf("gpu") + " // " + TextOf("vram"));
         await Task.Delay(300); Capture(host, "canrun-limit.png");
@@ -1987,6 +2104,7 @@ public sealed class UiSmokeApp : Application
     private static async Task ExerciseAsync(DashboardWindow window, IClassicDesktopStyleApplicationLifetime desktop)
     {
         var output = Program.OutputDirectory;
+        if (Environment.GetEnvironmentVariable("ILMENYX_SMOKE_ONLY") == "games" && OperatingSystem.IsLinux()) { await GamesWindowAsync(desktop); desktop.Shutdown(0); return; } // quick loop on the games window alone
         if (Environment.GetEnvironmentVariable("ILMENYX_CONTRAST_AUDIT") == "1") { await ContrastAuditAsync(); desktop.Shutdown(0); return; }
         if (Environment.GetEnvironmentVariable("ILMENYX_PERF_AUDIT") == "1") { await PerfAuditAsync(); desktop.Shutdown(0); return; }
         if (Environment.GetEnvironmentVariable("ILMENYX_SMOKE_ONLY") == "gamesqa" && OperatingSystem.IsLinux()) // quick loop for the Games QA scenario alone

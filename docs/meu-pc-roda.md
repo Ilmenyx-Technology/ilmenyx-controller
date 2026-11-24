@@ -9,6 +9,15 @@ o que atende. **O que não faz:** não mede nada, não roda o jogo e **não esti
 Código: `src/Ilmenyx.Core/GameRequirements.cs` (leitor do texto), `CanRunCompare.cs` (comparação), `SteamRequirementsClient.cs` (rede e cache),
 `GameCatalog.cs` (tabelas de desempenho relativo) e `src/Ilmenyx.Desktop/CanRunPage.cs` (tela).
 
+## Como a página mostra o resultado (estilo console)
+
+- **Veredito grande** no alto: o rótulo vem do `CanRunReport` (`Verdict` e `NearTitles`): Recommended → "Roda no recomendado" (cor `Success`); Minimum com itens no limite → "No limite" (`Warn`); Minimum → "Roda no mínimo"; BelowMinimum → "Abaixo do mínimo" (`Error`);
+  NoData → "Sem dados suficientes". A frase do resumo ("Abaixo do mínimo em: …", "Roda no mínimo, no limite em: …") aparece embaixo quando difere do rótulo. Nada disso muda a comparação.
+- **Medidores** por componente numérico, com a conta em `RequirementMeter.Layout` (pura, testada): `escala = max(valor deste PC, mínimo, recomendado) × 1,15`; posição = valor / escala, limitada a 0–1; sem valor deste PC (hardware não lido ou modelo fora das tabelas) ou sem nenhum requisito, não há medidor.
+  Os valores são os que a comparação já usa: índice relativo (`Rating.Index`) de CPU/GPU (do requisito, a alternativa mais fácil de cada lista, ignorando tetos de família antiga), GB lidos para RAM, VRAM (a estimativa de metade da RAM numa iGPU) e armazenamento livre.
+  O preenchimento tem a cor do status do item; marca cinza = mínimo, marca branca = recomendado. Sistema e API gráfica não têm medidor (só informam).
+- A escolha do jogo é uma prateleira de capas dos jogos da biblioteca Steam (arte do cache local da Steam, lida fora da thread de UI; iniciais sem arte), além dos chips "Consultados antes" e da busca por texto.
+
 ## Fonte e privacidade
 
 - Busca por nome: `store.steampowered.com/api/storesearch` (o `SteamAppLookup` já usado pela biblioteca, com o "Você quis dizer?").
