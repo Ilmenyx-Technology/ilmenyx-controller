@@ -21,6 +21,15 @@ public static class GamePages
     public static IReadOnlyList<(string Id, string Name)> SteamLibraryNow() =>
         !OperatingSystem.IsLinux() ? [] : new LinuxGameLibrary().Steam().Where(g => g.IsSteam && g.Id.All(char.IsAsciiDigit)).DistinctBy(g => g.Id).Select(g => (g.Id, g.Name)).ToList();
 
+    private static IReadOnlyList<string>? steamRoots;
+    /// <summary>Cover of a Steam game from Steam's own local cache (portrait first); null when Steam has none. Local files only; call off the UI thread.</summary>
+    public static Avalonia.Media.Imaging.Bitmap? SteamArtNow(string appId)
+    {
+        if (!OperatingSystem.IsLinux()) return null;
+        steamRoots ??= new LinuxGameLibrary().SteamRoots().ToList();
+        return steamRoots.Select(r => GameArt.Steam(r, appId, false, portrait: true)).FirstOrDefault(b => b is not null);
+    }
+
     /// <summary>What "Meu PC roda isso?" compares with: CPU/GPU names, RAM, free space of the home disk. Read-only, no sudo; call off the UI thread.</summary>
     public static LocalPc LocalPcNow(string cpuModel, long memoryTotal)
     {

@@ -18,12 +18,14 @@ public sealed record CanRunServices(
     Func<string, CancellationToken, Task<(RequirementsFetch Result, GameRequirements? Data)>> Fetch,
     RequirementsCache Cache,
     Func<LocalPc> Hardware,
-    Func<IReadOnlyList<(string Id, string Name)>> Library)
+    Func<IReadOnlyList<(string Id, string Name)>> Library,
+    Func<string, Avalonia.Media.Imaging.Bitmap?>? Art = null)
 {
-    public static CanRunServices Real(Func<LocalPc> hardware, Func<IReadOnlyList<(string Id, string Name)>> library)
+    /// <param name="art">Cover of a library game from local files only (called off the UI thread); null shows initials.</param>
+    public static CanRunServices Real(Func<LocalPc> hardware, Func<IReadOnlyList<(string Id, string Name)>> library, Func<string, Avalonia.Media.Imaging.Bitmap?>? art = null)
     {
         var lookup = new SteamAppLookup(); var client = new SteamRequirementsClient();
-        return new(lookup.FindAsync, async (n, ct) => await lookup.SuggestAsync(n, ct), client.FetchAsync, new RequirementsCache(RequirementsCache.DefaultFolder()), hardware, library);
+        return new(lookup.FindAsync, async (n, ct) => await lookup.SuggestAsync(n, ct), client.FetchAsync, new RequirementsCache(RequirementsCache.DefaultFolder()), hardware, library, art);
     }
 }
 
@@ -39,7 +41,7 @@ public sealed class CanRunPage : StackPanel
     private readonly StackPanel recentBox = new() { Name = "CanRunRecentBox", Spacing = 6 };
     private readonly WrapPanel recent = new() { Name = "CanRunRecent", ItemSpacing = 6, LineSpacing = 6 };
     private readonly StackPanel libraryBox = new() { Name = "CanRunLibraryBox", Spacing = 6, IsVisible = false };
-    private readonly WrapPanel library = new() { Name = "CanRunLibrary", ItemSpacing = 6, LineSpacing = 6 };
+    private readonly StackPanel library = new() { Name = "CanRunLibrary", Orientation = Orientation.Horizontal, Spacing = 14 };
     private readonly StackPanel result = new() { Name = "CanRunResult", Spacing = 0 };
     private CancellationTokenSource? running;
     private GameRequirements? shown;
@@ -63,7 +65,17 @@ public sealed class CanRunPage : StackPanel
         var box = new Grid { ColumnDefinitions = new("*,Auto,Auto"), ColumnSpacing = 8, Children = { new Grid { Children = { search, icon } } } };
         Grid.SetColumn(go, 1); Grid.SetColumn(cancel, 2); box.Children.Add(go); box.Children.Add(cancel);
         recentBox.Children.Add(UiKit.Label(L.T("CONSULTADOS ANTES (SEM REDE)"))); recentBox.Children.Add(recent);
-        libraryBox.Children.Add(UiKit.Label(L.T("JOGOS DA SUA BIBLIOTECA STEAM"))); libraryBox.Children.Add(library);
+        // Console-style shelf: covers in one row that scrolls sideways; one Tab stop, arrows move between covers.
+        KeyboardNavigation.SetTabNavigation(library, KeyboardNavigationMode.Once); AutomationProperties.SetName(library, L.T("Jogos da sua biblioteca Steam"));
+        library.KeyDown += (_, e) =>
+        {
+            if (e.Key is not (Key.Left or Key.Right) || TopLevel.GetTopLevel(library)?.FocusManager?.GetFocusedElement() is not Button f) return;
+            var list = library.Children.OfType<Button>().ToList(); int i = list.IndexOf(f); if (i < 0) return;
+            list[Math.Clamp(i + (e.Key == Key.Right ? 1 : -1), 0, list.Count - 1)].Focus(NavigationMethod.Directional); e.Handled = true;
+        };
+        library.Margin = new Thickness(8, 8, 8, 12);
+        libraryBox.Children.Add(UiKit.Label(L.T("JOGOS DA SUA BIBLIOTECA STEAM")));
+        libraryBox.Children.Add(new ScrollViewer { Content = library, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled });
         Children.Add(UiKit.Card(new StackPanel { Spacing = 10, Children = { box, status, suggestions, recentBox, libraryBox,
             Faint(L.T("Só o nome ou o AppID vai para a Steam, e só quando você clica em Buscar. Jogos já consultados abrem do cache local, sem rede.")) } }));
         Children.Add(result);
@@ -87,8 +99,17 @@ public sealed class CanRunPage : StackPanel
         {
             var games = await Task.Run(services.Library, lifetime);
             library.Children.Clear();
-            foreach (var (id, name) in games.OrderBy(g => g.Name, StringComparer.CurrentCultureIgnoreCase).Take(40)) library.Children.Add(Chip(name, () => _ = SearchAsync(id), "CanRunLib_" + id));
+            var shelf = games.OrderBy(g => g.Name, StringComparer.CurrentCultureIgnoreCase).Take(40).ToList();
+            var faces = new List<Border>();
+            foreach (var (id, name) in shelf) { var (cover, face) = Cover(id, name, () => _ = SearchAsync(id)); faces.Add(face); library.Children.Add(cover); }
             libraryBox.IsVisible = library.Children.Count > 0;
+            // Covers come from local files (Steam's cache); decoded off the UI thread, then painted over the initials.
+            if (services.Art is { } art)
+            {
+                var pictures = await Task.Run(() => shelf.Select(g => { try { return art(g.Id); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return null; } }).ToList(), lifetime);
+                for (int i = 0; i < faces.Count && i < pictures.Count; i++)
+                    if (pictures[i] is { } bmp) { faces[i].Background = new ImageBrush { Source = bmp, Stretch = Stretch.UniformToFill }; faces[i].Child = null; }
+            }
         }
         catch (Exception e) when (e is OperationCanceledException or IOException or UnauthorizedAccessException) { }
     }
@@ -105,6 +126,30 @@ public sealed class CanRunPage : StackPanel
         var b = new Button { Name = name, Content = text, FontSize = 11.5, Padding = new Thickness(13, 5), CornerRadius = new CornerRadius(IlmenyxTheme.Pill), BorderBrush = Palette.Line, BorderThickness = new Thickness(1) };
         UiKit.ChipStyle(b, false); b.Click += (_, _) => click();
         return b;
+    }
+
+    /// <summary>A game of the shelf: 2:3 cover (initials until the art is read) with the console-style white ring on hover and focus, and its name under it.</summary>
+    private static (Button Button, Border Face) Cover(string id, string name, Action click)
+    {
+        const double W = 112, H = 168, Ring = 3, Gap = 3;
+        var face = new Border { Width = W, Height = H, CornerRadius = new CornerRadius(12), ClipToBounds = true, Background = Palette.Card,
+            Child = new TextBlock { Text = GameArt.Initials(name), FontSize = 30, FontWeight = FontWeight.Bold, Foreground = Palette.Muted, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center } };
+        var ring = new Border { CornerRadius = new CornerRadius(12 + Ring + Gap), BorderBrush = Palette.Fg, BorderThickness = new Thickness(Ring), Margin = new Thickness(-(Ring + Gap)), Opacity = 0, IsHitTestVisible = false,
+            Transitions = [new Avalonia.Animation.DoubleTransition { Property = OpacityProperty, Duration = IlmenyxTheme.Fast, Easing = IlmenyxTheme.Premium }] };
+        var cover = new Grid { Width = W, Height = H, Children = { ring, face } };
+        var b = new Button
+        {
+            Name = "CanRunLib_" + id, Width = W, Padding = new Thickness(0), CornerRadius = new CornerRadius(0), ClipToBounds = false /* buttons clip by default: the ring is drawn outside the cover */, Background = Brushes.Transparent, BorderThickness = new Thickness(0), HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Top,
+            Content = new StackPanel { Children = { cover, new TextBlock { Text = name, FontSize = 11.5, FontWeight = FontWeight.Medium, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(2, 10, 2, 0) } } },
+        };
+        foreach (var key in new[] { "ButtonBackgroundPointerOver", "ButtonBackgroundPressed" }) b.Resources[key] = Brushes.Transparent;
+        foreach (var key in new[] { "ButtonBorderBrushPointerOver", "ButtonBorderBrushPressed" }) b.Resources[key] = Brushes.Transparent;
+        AutomationProperties.SetName(b, name); ToolTip.SetTip(b, name);
+        bool hover = false, focus = false; void Paint() => ring.Opacity = focus ? 1 : hover ? 0.45 : 0;
+        b.PointerEntered += (_, _) => { hover = true; Paint(); }; b.PointerExited += (_, _) => { hover = false; Paint(); };
+        b.GotFocus += (_, _) => { focus = true; Paint(); }; b.LostFocus += (_, _) => { focus = false; Paint(); };
+        b.Click += (_, _) => click();
+        return (b, face);
     }
 
     // --- search ---------------------------------------------------------------------------------------------------------------------------------
@@ -174,24 +219,39 @@ public sealed class CanRunPage : StackPanel
         var min = GameRequirementsParser.Parse(minText); var rec = GameRequirementsParser.Parse(recText);
         var report = Report = CanRunCompare.Compare(min, rec, hw);
 
-        var head = new StackPanel { Spacing = 6 };
-        head.Children.Add(new TextBlock { Text = d.Name, FontSize = 20, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap });
-        var verdict = new TextBlock { Name = "CanRunVerdict", Text = report.Headline, FontSize = 16, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap, Foreground = VerdictBrush(report.Verdict) };
-        head.Children.Add(verdict);
+        var (label, mark, tone) = VerdictLook(report);
+        var tint = ((ISolidColorBrush)tone).Color;
+        var head = new StackPanel { Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
+        head.Children.Add(new TextBlock { Name = "CanRunGameName", Text = d.Name, FontSize = 14, FontWeight = FontWeight.SemiBold, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap });
+        head.Children.Add(new TextBlock { Name = "CanRunVerdictLabel", Text = label, FontSize = 28, FontWeight = FontWeight.Bold, TextWrapping = TextWrapping.Wrap, Foreground = tone });
+        // The full sentence from the comparison (which items are at the limit or below); not repeated when the label already says it.
+        head.Children.Add(new TextBlock { Name = "CanRunVerdict", Text = report.Headline, FontSize = 14, TextWrapping = TextWrapping.Wrap, Foreground = Palette.Fg, IsVisible = report.Headline != label });
         if (report.NotCompared > 0 && report.Verdict != CanRunVerdict.NoData)
             head.Children.Add(new TextBlock { Text = L.T($"{report.NotCompared} item(ns) não deu para comparar (veja abaixo)."), Foreground = Palette.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap });
-        var actions = new WrapPanel { ItemSpacing = 8, LineSpacing = 8, Margin = new Thickness(0, 6, 0, 0) };
+        var actions = new WrapPanel { ItemSpacing = 8, LineSpacing = 8, Margin = new Thickness(0, 8, 0, 0) };
         if (d.HasLinux && (d.PcMinimum.Length > 0 || d.PcRecommended.Length > 0))
         {
             var chips = new UiKit.ChipGroup<bool>("CanRunSourcePanel", [(L.T("Requisitos do Windows (Proton)"), false), (L.T("Requisitos do Linux (nativo)"), true)], linuxList, v => { linuxList = v; Render(); });
             AutomationProperties.SetName(chips.Panel, L.T("Lista de requisitos usada na comparação"));
             actions.Children.Add(chips.Panel);
         }
-        var refresh = new Button { Name = "BtnCanRunRefresh", Content = L.T("Atualizar da Steam"), Padding = new Thickness(14, 6), FontSize = 12 };
+        var refresh = new Button { Name = "BtnCanRunRefresh", Content = L.T("Atualizar da Steam"), Padding = new Thickness(14, 6), FontSize = 12, CornerRadius = new CornerRadius(IlmenyxTheme.Pill) };
         refresh.Click += (_, _) => _ = SearchAsync(d.AppId, force: true);
         actions.Children.Add(refresh);
         head.Children.Add(actions);
-        result.Children.Add(UiKit.Card(head));
+        var badge = new Border { Width = 72, Height = 72, CornerRadius = new CornerRadius(36), Background = new SolidColorBrush(Color.FromArgb(0x33, tint.R, tint.G, tint.B)), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 20, 0),
+            Child = new TextBlock { Text = mark, FontSize = 34, FontWeight = FontWeight.Bold, Foreground = tone, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center } };
+        var verdictBlock = new Border
+        {
+            Name = "CanRunVerdictBlock", CornerRadius = new CornerRadius(IlmenyxTheme.ContainerRadius), Padding = new Thickness(26, 22), Margin = new Thickness(0, 0, 0, 12),
+            Background = new SolidColorBrush(Color.FromArgb((byte)(Palette.IsLight ? 0x1C : 0x26), tint.R, tint.G, tint.B)), BorderBrush = new SolidColorBrush(Color.FromArgb(0x66, tint.R, tint.G, tint.B)), BorderThickness = new Thickness(1),
+            Child = new DockPanel { Children = { badge, head } },
+        };
+        DockPanel.SetDock(badge, Dock.Left);
+        AutomationProperties.SetName(verdictBlock, d.Name + ": " + report.Headline);
+        result.Children.Add(verdictBlock);
+        if (report.Items.Any(i => MeterOf(i) is not null))
+            result.Children.Add(new TextBlock { Name = "CanRunLegend", Text = Palette.IsLight ? L.T("Marca cinza = mínimo · escura = recomendado") : L.T("Marca cinza = mínimo · branca = recomendado"), FontSize = 12, Foreground = Palette.Muted, Margin = new Thickness(4, 0, 0, 8) });
 
         foreach (var it in report.Items) result.Children.Add(ItemCard(it));
         var unrec = min.Unrecognised.Concat(rec.Unrecognised).Distinct().ToList();
@@ -201,10 +261,17 @@ public sealed class CanRunPage : StackPanel
         result.Children.Add(UiKit.Card(new StackPanel { Spacing = 10, Children = { UiKit.Label(L.T("TEXTO ORIGINAL DA STEAM (PARA CONFERIR)")), RawBlock(L.T("Mínimos"), minText, "CanRunRawMin"), RawBlock(L.T("Recomendados"), recText, "CanRunRawRec") } }));
     }
 
-    private static IBrush VerdictBrush(CanRunVerdict v) => v switch
+    /// <summary>The big verdict: label, mark and token colour. "No limite" when the overall result is the minimum but something is only at the limit (the comparison's own near-limit list).</summary>
+    internal static (string Label, string Mark, IBrush Tone) VerdictLook(CanRunReport r) => r.Verdict switch
     {
-        CanRunVerdict.Recommended => Palette.Success, CanRunVerdict.Minimum => Palette.AccentText, CanRunVerdict.BelowMinimum => Palette.Error, _ => Palette.Muted,
+        CanRunVerdict.Recommended => (L.T("Roda no recomendado"), "✓", Palette.Success),
+        CanRunVerdict.Minimum when r.NearTitles is { Count: > 0 } => (L.T("No limite"), "≈", Palette.Warn),
+        CanRunVerdict.Minimum => (L.T("Roda no mínimo"), "✓", Palette.AccentText),
+        CanRunVerdict.BelowMinimum => (L.T("Abaixo do mínimo"), "✗", Palette.Error),
+        _ => (L.T("Sem dados suficientes"), "?", Palette.Muted),
     };
+
+    internal static MeterLayout? MeterOf(CanRunItem it) => it.Counts ? RequirementMeter.Layout(it.LocalValue, it.MinValue, it.RecValue) : null;
 
     private static Control RawBlock(string title, string html, string name)
     {
@@ -246,7 +313,9 @@ public sealed class CanRunPage : StackPanel
         var title = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, Children = { new TextBlock { Text = mark, FontSize = 16, FontWeight = FontWeight.Bold, Foreground = brush, VerticalAlignment = VerticalAlignment.Center },
             new TextBlock { Text = it.Title, FontSize = 14, FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center } } };
         var facts = new WrapPanel { Margin = new Thickness(0, 8, 0, 0), Children = { Fact(L.T("MÍNIMO"), it.Minimum), Fact(L.T("RECOMENDADO"), it.Recommended), Fact(L.T("ESTE PC"), it.Local) } };
-        var card = UiKit.Card(new StackPanel { Children = { title, new Border { Margin = new Thickness(0, 6, 0, 0), Child = Pill(it.Counts ? text : L.T("Informativo"), it.Counts ? brush : Palette.Muted) }, facts,
+        var pill = new Border { Margin = new Thickness(0, 6, 0, 0), Child = Pill(it.Counts ? text : L.T("Informativo"), it.Counts ? brush : Palette.Muted) };
+        var meter = MeterOf(it) is { } layout ? new RequirementMeterBar(layout, brush) { Name = "CanRunMeter_" + it.Key, Margin = new Thickness(0, 10, 0, 0) } : null;
+        var card = UiKit.Card(new StackPanel { Children = { title, pill, meter ?? (Control)new Panel(), facts,
             new TextBlock { Text = it.Note, Foreground = Palette.Faint, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) } } }, new Thickness(0, 0, 0, 8));
         card.Name = "CanRunItem_" + it.Key;
         AutomationProperties.SetName(card, it.Counts ? $"{it.Title}: {text}" : it.Title);

@@ -315,7 +315,7 @@ public sealed class LauncherPage : Grid
         ToolTip.SetTip(gamesShortcut, L.T("Cria um atalho que abre só os Jogos, numa janela leve, sem o resto do Ilmenyx."));
         gamesShortcut.Flyout = ShortcutMenu(desktop => CreateShortcut(desktop, null));
         var searchBox = new Grid { Children = { search, SearchIcon() } };
-        search.Padding = new Thickness(34, 7, 10, 7);
+        search.Padding = new Thickness(34, 7, 10, 7); if (showcase) search.CornerRadius = new CornerRadius(IlmenyxTheme.Pill);
         AutomationProperties.SetName(search, L.T("Buscar jogo…"));
         if (showcase)
         {
@@ -655,7 +655,7 @@ public sealed class LauncherPage : Grid
     private static void GlassStyle(Button b)
     {
         b.Background = HeroScrim.Glass(); b.Foreground = Palette.Fg; b.BorderBrush = Palette.Line; b.BorderThickness = new Thickness(1); b.FontSize = 13; b.Padding = new Thickness(18, 11); b.Margin = new Thickness(0);
-        b.CornerRadius = new CornerRadius(IlmenyxTheme.ControlRadius); b.VerticalAlignment = VerticalAlignment.Center;
+        b.CornerRadius = new CornerRadius(IlmenyxTheme.Pill); b.VerticalAlignment = VerticalAlignment.Center;
         foreach (var key in new[] { "ButtonBackgroundPointerOver", "ButtonBackgroundPressed" }) b.Resources[key] = HeroScrim.Glass(0xF0);
         foreach (var key in new[] { "ButtonForegroundPointerOver", "ButtonForegroundPressed" }) b.Resources[key] = Palette.Fg;
         foreach (var key in new[] { "ButtonBorderBrushPointerOver", "ButtonBorderBrushPressed" }) b.Resources[key] = Palette.Line;
@@ -669,6 +669,11 @@ public sealed class LauncherPage : Grid
         sub.FontSize = 14; sub.Foreground = Palette.Muted; sub.Margin = new Thickness(0, 4, 0, 0); also.Foreground = Palette.Muted;
         play.FontSize = 15; play.Padding = new Thickness(30, 12); play.Margin = new Thickness(0); play.VerticalAlignment = VerticalAlignment.Center; play.HorizontalAlignment = HorizontalAlignment.Left;
         foreach (var b in new[] { settingsBtn, stopWatch, closeGame }) GlassStyle(b);
+        // Console style (PS5 white button): Jogar is the only filled primary, ink on the page text colour (OnFg is its checked pair: dark on white, white on dark in the light theme).
+        play.Background = Palette.Fg; play.Foreground = Palette.OnFg; play.CornerRadius = new CornerRadius(IlmenyxTheme.Pill);
+        foreach (var key in new[] { "ButtonBackgroundPointerOver", "ButtonBackgroundPressed" }) play.Resources[key] = Palette.Fg;
+        foreach (var key in new[] { "ButtonForegroundPointerOver", "ButtonForegroundPressed" }) play.Resources[key] = Palette.OnFg;
+        foreach (var key in new[] { "ButtonBorderBrushPointerOver", "ButtonBorderBrushPressed" }) play.Resources[key] = Brushes.Transparent;
         settingsBtn.Click += (_, _) => OpenDrawer();
         ToolTip.SetTip(settingsBtn, L.T("Perfil, gráficos, capa, desempenho medido e as outras opções deste jogo."));
         var actions = new WrapPanel { Name = "LHeroActions", ItemSpacing = 10, LineSpacing = 10, Margin = new Thickness(0, 18, 0, 0), Children = { play, settingsBtn, stopWatch, closeGame } };
@@ -698,7 +703,7 @@ public sealed class LauncherPage : Grid
         Grid.SetColumn(drawerClose, 1);
         heroTags.Margin = new Thickness(2, 0, 0, 0);
         detail.IsVisible = true; detail.Padding = new Thickness(0, 0, 4, 0);
-        detail.Content = new StackPanel { Margin = new Thickness(16, 0, 12, 20), Children = { heroTags, coverCard, measured, UiKit.SectionHeader(L.T("Perfil do jogo")), perf, quality, gfx, help, UiKit.SectionHeader(L.T("Gerenciar")), manage } };
+        detail.Content = new StackPanel { Margin = new Thickness(16, 0, 12, 20), Children = { heroTags, UiKit.SectionHeader(L.T("Gerenciar")), manage, coverCard, measured, UiKit.SectionHeader(L.T("Perfil do jogo")), perf, quality, gfx, help } };
         Grid.SetRow(detail, 1);
         drawerPanel = new Border
         {
@@ -883,15 +888,16 @@ public sealed class LauncherPage : Grid
         if (cols != columns || force) { columns = cols; Filter(); }
     }
 
-    /// <summary>Visual state of one poster: ring opacity follows selection, keyboard focus and pointer hover.</summary>
-    private sealed class PosterState(Border ring, Grid cover, TextBlock name)
+    /// <summary>Visual state of one poster (console style): the selected or keyboard-focused cover grows and gets a white ring set off by a gap, every cover shows its name and store (dimmed unless chosen); hover is a lighter lift.</summary>
+    private sealed class PosterState(Border ring, Grid cover, StackPanel labels)
     {
         public bool Selected, Hover, Focused;
         public void Apply()
         {
-            ring.Opacity = Selected ? 1 : Focused ? 0.8 : Hover ? 0.45 : 0;
-            cover.RenderTransform = TransformOperations.Parse(Hover || Focused ? "scale(1.03)" : "scale(1)");
-            name.Foreground = Selected ? Palette.AccentText : Palette.Fg;
+            bool on = Selected || Focused;
+            ring.Opacity = on ? 1 : Hover ? 0.45 : 0;
+            cover.RenderTransform = TransformOperations.Parse(on ? "scale(1.06)" : Hover ? "scale(1.03)" : "scale(1)");
+            labels.Opacity = on ? 1 : 0.7;
         }
     }
 
@@ -933,19 +939,22 @@ public sealed class LauncherPage : Grid
         var art = ArtFor(g, hero: false);
         var face = new Border { CornerRadius = new CornerRadius(12), ClipToBounds = true, Background = art is null ? Palette.Card : new ImageBrush { Source = art, Stretch = Stretch.UniformToFill } };
         if (art is null) face.Child = new TextBlock { Text = GameArt.Initials(g.Name), FontSize = Math.Max(24, h * 0.36), FontWeight = FontWeight.Bold, Foreground = Palette.Muted, LetterSpacing = 1, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-        var ring = new Border { CornerRadius = new CornerRadius(12), BorderBrush = Palette.Accent, BorderThickness = new Thickness(2), Opacity = 0, IsHitTestVisible = false, Transitions = [new DoubleTransition { Property = OpacityProperty, Duration = IlmenyxTheme.Fast, Easing = IlmenyxTheme.Premium }] };
+        // White ring (3 px) 3 px outside the cover: the cover keeps its size and place, the ring is drawn around it.
+        const double RingWidth = 3, RingGap = 3;
+        var ring = new Border { CornerRadius = new CornerRadius(12 + RingWidth + RingGap), BorderBrush = Palette.Fg, BorderThickness = new Thickness(RingWidth), Margin = new Thickness(-(RingWidth + RingGap)), Opacity = 0, IsHitTestVisible = false, Transitions = [new DoubleTransition { Property = OpacityProperty, Duration = IlmenyxTheme.Fast, Easing = IlmenyxTheme.Premium }] };
         var cover = new Grid
         {
-            Width = w, Height = h, Children = { face, ring }, RenderTransformOrigin = RelativePoint.Center, RenderTransform = TransformOperations.Parse("scale(1)"),
+            Width = w, Height = h, Children = { ring, face }, RenderTransformOrigin = RelativePoint.Center, RenderTransform = TransformOperations.Parse("scale(1)"),
             Transitions = [new TransformOperationsTransition { Property = RenderTransformProperty, Duration = IlmenyxTheme.Fast, Easing = IlmenyxTheme.Premium }],
         };
-        var name = new TextBlock { Text = g.Name, FontSize = 12.5, FontWeight = FontWeight.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(2, 8, 2, 0) };
-        var store = new TextBlock { Text = g.Subtitle, FontSize = 11, Foreground = Palette.Faint, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(2, 0, 2, 0) };
-        var state = new PosterState(ring, cover, name); posterStates[g.Key] = state;
+        var name = new TextBlock { Text = g.Name, FontSize = 12.5, FontWeight = FontWeight.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis };
+        var store = new TextBlock { Text = g.Subtitle, FontSize = 11, Foreground = Palette.Muted, TextTrimming = TextTrimming.CharacterEllipsis };
+        var labels = new StackPanel { Margin = new Thickness(2, 12, 2, 0), Opacity = 0.7, Children = { name, store }, Transitions = [new DoubleTransition { Property = OpacityProperty, Duration = IlmenyxTheme.Fast, Easing = IlmenyxTheme.Premium }] };
+        var state = new PosterState(ring, cover, labels); posterStates[g.Key] = state;
         var b = new Button
         {
-            Name = "LGame_" + SafeName(g.Key), Width = w, Padding = new Thickness(0), CornerRadius = new CornerRadius(12), Background = Brushes.Transparent, BorderThickness = new Thickness(0),
-            HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Top, Content = new StackPanel { Children = { cover, name, store } },
+            Name = "LGame_" + SafeName(g.Key), Width = w, Padding = new Thickness(0), CornerRadius = new CornerRadius(0), ClipToBounds = false /* buttons clip by default: the ring is drawn outside the cover */, Background = Brushes.Transparent, BorderThickness = new Thickness(0),
+            HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Top, Content = new StackPanel { Children = { cover, labels } },
         };
         foreach (var key in new[] { "ButtonBackgroundPointerOver", "ButtonBackgroundPressed", "ButtonBackgroundDisabled" }) b.Resources[key] = Brushes.Transparent;
         foreach (var key in new[] { "ButtonBorderBrushPointerOver", "ButtonBorderBrushPressed" }) b.Resources[key] = Brushes.Transparent;
@@ -1018,8 +1027,25 @@ public sealed class LauncherPage : Grid
     }
 
     /// <summary>Paints the hero for the selected game: label, art (the new picture fades in over the old one) and stats.</summary>
+    /// <summary>Raised on the UI thread when the selected game's art gives a new ambient tint (null: no art, use the plain background). The games window paints its background with it.</summary>
+    public event Action<Color?>? AmbientChanged;
+    private int tintGen;
+    private async Task TintAsync(Bitmap? art)
+    {
+        int gen = ++tintGen;
+        if (art is null) { AmbientChanged?.Invoke(null); return; }
+        Rgb? average = null;
+        try { average = await Task.Run(() => GameArt.AverageColor(art)); } catch (Exception e) when (e is InvalidOperationException or ArgumentException or NotSupportedException) { }
+        if (gen != tintGen) return; // another game was chosen meanwhile
+        if (average is not { } avg) { AmbientChanged?.Invoke(null); return; }
+        Func<IBrush, Rgb> rgb = b => { var c = ((ISolidColorBrush)b).Color; return new(c.R, c.G, c.B); };
+        var t = AmbientTint.Tint(avg, [rgb(Palette.Fg), rgb(Palette.Muted), rgb(Palette.Faint)]);
+        AmbientChanged?.Invoke(Color.FromRgb(t.R, t.G, t.B));
+    }
+
     private void PaintVitrine(LibGame g, Bitmap? art)
     {
+        _ = TintAsync(art);
         bool last = GameFilters.MostRecent(Visible(), LastPlayedOf)?.Key == g.Key;
         heroLabel.Text = last ? L.T("Continuar jogando") : g.Kind ?? g.Store;
         drawerGame.Text = g.Name;
@@ -2069,6 +2095,19 @@ internal static class GameArt
             },
         };
         return b;
+    }
+
+    /// <summary>Average colour of the art (about 2,000 sampled pixels of a copy of the decoded bitmap); null when it cannot be read. Safe off the UI thread.</summary>
+    public static Rgb? AverageColor(Bitmap art)
+    {
+        var size = art.PixelSize; if (size.Width <= 0 || size.Height <= 0 || (long)size.Width * size.Height > 16_000_000) return null;
+        using var copy = new WriteableBitmap(size, new Vector(96, 96), Avalonia.Platform.PixelFormat.Bgra8888, Avalonia.Platform.AlphaFormat.Unpremul);
+        using (var fb = copy.Lock()) art.CopyPixels(fb);
+        using var read = copy.Lock();
+        int total = read.RowBytes * read.Size.Height; var bytes = new byte[total];
+        System.Runtime.InteropServices.Marshal.Copy(read.Address, bytes, 0, total);
+        int step = Math.Max(1, (int)(((long)size.Width * size.Height) / 2000));
+        return AmbientTint.Average(bytes, step);
     }
 
     public static string Initials(string name)

@@ -13,7 +13,8 @@ public enum ReqStatus { Unknown, Below, MeetsMin, MeetsRec, NearMin, NearRec }
 public enum CanRunVerdict { NoData, BelowMinimum, Minimum, Recommended }
 
 /// <summary><paramref name="Counts"/>: false for items that only inform (system, graphics API) and never decide the verdict.</summary>
-public sealed record CanRunItem(string Key, string Title, string Minimum, string Recommended, string Local, ReqStatus Status, string Note, bool Counts, RatingBasis? Basis = null, bool Shared = false);
+public sealed record CanRunItem(string Key, string Title, string Minimum, string Recommended, string Local, ReqStatus Status, string Note, bool Counts, RatingBasis? Basis = null, bool Shared = false,
+    double? MinValue = null, double? RecValue = null, double? LocalValue = null);
 
 public sealed record CanRunReport(IReadOnlyList<CanRunItem> Items, CanRunVerdict Verdict, IReadOnlyList<string> BelowTitles, int NotCompared, string Headline, IReadOnlyList<string>? NearTitles = null);
 
@@ -132,7 +133,9 @@ public static class CanRunCompare
             : status == ReqStatus.NearRec ? L.T($"A diferença para o recomendado é pequena (±{pct}%): o mínimo é atendido; no recomendado pode ser preciso baixar alguns ajustes. ") + basisNote
             : decisive.Cap ? L.T("O modelo pedido não está nas tabelas, mas é de uma família bem antiga e este PC é de uma geração muito mais nova: atende (estimado).")
             : basisNote;
-        return new(key, title, Join(sel(min)), Join(sel(rec)), localName, status, note, true, basis);
+        // Meter values only (the verdict above never reads them): the easiest alternative of each list, in the same index as this PC.
+        double? Need(IReadOnlyList<string> alts) { var v = alts.Select(rate).Where(r => r is { OldFamilyCap: false }).Select(r => r!.Index).ToList(); return v.Count > 0 ? v.Min() : null; }
+        return new(key, title, Join(sel(min)), Join(sel(rec)), localName, status, note, true, basis, false, Need(sel(min)), Need(sel(rec)), local?.Index);
     }
 
     private static CanRunItem Cpu(GameRequirement min, GameRequirement rec, LocalPc pc)
@@ -163,7 +166,7 @@ public static class CanRunCompare
         Fit Ok(double? need) => need is null || have is null ? Fit.Unsure : Of(have >= need * RamTolerance);
         return new("ram", L.T("Memória RAM"), min.RamGb is { } a ? Gb(a) : "", rec.RamGb is { } b ? Gb(b) : "", have is { } h ? Gb(Math.Round(h, 1)) : "—",
             Merge(Ok(min.RamGb), Ok(rec.RamGb)),
-            L.T("A RAM lida pelo sistema é um pouco menor que a instalada (reserva do firmware); o Ilmenyx aceita 90% do valor pedido."), true);
+            L.T("A RAM lida pelo sistema é um pouco menor que a instalada (reserva do firmware); o Ilmenyx aceita 90% do valor pedido."), true, null, false, min.RamGb, rec.RamGb, have);
     }
 
     /// <summary>Share of the system RAM an integrated GPU is assumed to be able to use as video memory (conservative; the driver usually allows about half).</summary>
@@ -182,14 +185,14 @@ public static class CanRunCompare
             string local = est is { } e ? L.T($"Compartilhada com a RAM (~{Gb(Math.Round(e, 1))} estimados)") : L.T("Compartilhada com a RAM");
             return new("vram", L.T("Memória de vídeo (VRAM)"), req(min.VramGb), req(rec.VramGb), local, Merge(Sh(min.VramGb), Sh(rec.VramGb)),
                 L.T("A placa integrada usa a RAM do sistema como memória de vídeo. O Ilmenyx estima metade da RAM instalada (o que o driver costuma liberar) e nunca declara \"abaixo\" por isso. Memória compartilhada é mais lenta que VRAM dedicada: o jogo pode rodar pior do que o número sugere."),
-                true, null, true);
+                true, null, true, min.VramGb, rec.VramGb, est);
         }
         double? have = pc.GpuVramBytes > 0 ? pc.GpuVramBytes / Gib : null;
         Fit Ok(double? need) => need is null || have is null ? Fit.Unsure : Of(have >= need * VramTolerance);
         return new("vram", L.T("Memória de vídeo (VRAM)"), req(min.VramGb), req(rec.VramGb),
             have is { } h ? Gb(Math.Round(h, 1)) : "—", Merge(Ok(min.VramGb), Ok(rec.VramGb)),
             have is null ? L.T("A VRAM não foi lida (driver que não informa): o Ilmenyx não deduz esse valor.")
-                : L.T("A VRAM lida é um pouco menor que a nominal; o Ilmenyx aceita 95% do valor pedido."), true);
+                : L.T("A VRAM lida é um pouco menor que a nominal; o Ilmenyx aceita 95% do valor pedido."), true, null, false, min.VramGb, rec.VramGb, have);
     }
 
     private static CanRunItem Storage(GameRequirement min, GameRequirement rec, LocalPc pc)
@@ -198,7 +201,7 @@ public static class CanRunCompare
         Fit Ok(double? need) => need is null || have is null ? Fit.Unsure : Of(have >= need);
         return new("storage", L.T("Armazenamento"), min.StorageGb is { } a ? Gb(a) : "", rec.StorageGb is { } b ? Gb(b) : "",
             have is { } h ? L.T($"{Gb(Math.Round(h, 1))} livres em {pc.FreeLabel}") : "—", Merge(Ok(min.StorageGb), Ok(rec.StorageGb)),
-            L.T("Conta o espaço livre do disco da sua pasta pessoal; se o jogo for instalado em outro disco, confira o espaço dele."), true);
+            L.T("Conta o espaço livre do disco da sua pasta pessoal; se o jogo for instalado em outro disco, confira o espaço dele."), true, null, false, min.StorageGb, rec.StorageGb, have);
     }
 
     // --- graphics API ---------------------------------------------------------------------------------------------------------------------
