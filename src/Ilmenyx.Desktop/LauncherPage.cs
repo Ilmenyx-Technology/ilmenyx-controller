@@ -703,7 +703,7 @@ public sealed class LauncherPage : Grid
         Grid.SetColumn(drawerClose, 1);
         heroTags.Margin = new Thickness(2, 0, 0, 0);
         detail.IsVisible = true; detail.Padding = new Thickness(0, 0, 4, 0);
-        detail.Content = new StackPanel { Margin = new Thickness(16, 0, 12, 20), Children = { heroTags, coverCard, measured, UiKit.SectionHeader(L.T("Perfil do jogo")), perf, quality, gfx, help, UiKit.SectionHeader(L.T("Gerenciar")), manage } };
+        detail.Content = new StackPanel { Margin = new Thickness(16, 0, 12, 20), Children = { heroTags, UiKit.SectionHeader(L.T("Gerenciar")), manage, coverCard, measured, UiKit.SectionHeader(L.T("Perfil do jogo")), perf, quality, gfx, help } };
         Grid.SetRow(detail, 1);
         drawerPanel = new Border
         {
@@ -888,7 +888,7 @@ public sealed class LauncherPage : Grid
         if (cols != columns || force) { columns = cols; Filter(); }
     }
 
-    /// <summary>Visual state of one poster (console style): the selected or keyboard-focused cover grows and gets a white ring set off by a gap, and only it shows its name and store; hover is a lighter lift.</summary>
+    /// <summary>Visual state of one poster (console style): the selected or keyboard-focused cover grows and gets a white ring set off by a gap, every cover shows its name and store (dimmed unless chosen); hover is a lighter lift.</summary>
     private sealed class PosterState(Border ring, Grid cover, StackPanel labels)
     {
         public bool Selected, Hover, Focused;
@@ -897,7 +897,7 @@ public sealed class LauncherPage : Grid
             bool on = Selected || Focused;
             ring.Opacity = on ? 1 : Hover ? 0.45 : 0;
             cover.RenderTransform = TransformOperations.Parse(on ? "scale(1.06)" : Hover ? "scale(1.03)" : "scale(1)");
-            labels.Opacity = on ? 1 : 0; // opacity, not visibility: the row keeps its height, so nothing moves when the focus does
+            labels.Opacity = on ? 1 : 0.7;
         }
     }
 
@@ -949,7 +949,7 @@ public sealed class LauncherPage : Grid
         };
         var name = new TextBlock { Text = g.Name, FontSize = 12.5, FontWeight = FontWeight.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis };
         var store = new TextBlock { Text = g.Subtitle, FontSize = 11, Foreground = Palette.Muted, TextTrimming = TextTrimming.CharacterEllipsis };
-        var labels = new StackPanel { Margin = new Thickness(2, 12, 2, 0), Opacity = 0, Children = { name, store }, Transitions = [new DoubleTransition { Property = OpacityProperty, Duration = IlmenyxTheme.Fast, Easing = IlmenyxTheme.Premium }] };
+        var labels = new StackPanel { Margin = new Thickness(2, 12, 2, 0), Opacity = 0.7, Children = { name, store }, Transitions = [new DoubleTransition { Property = OpacityProperty, Duration = IlmenyxTheme.Fast, Easing = IlmenyxTheme.Premium }] };
         var state = new PosterState(ring, cover, labels); posterStates[g.Key] = state;
         var b = new Button
         {

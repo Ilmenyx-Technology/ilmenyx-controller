@@ -833,12 +833,12 @@ public sealed class UiSmokeApp : Application
         // Keyboard: arrows move between covers and between tabs; Enter chooses.
         var covers = Find<WrapPanel>(window, "LPosterGrid").Children.OfType<Button>().ToList();
         covers[0].Focus(); Key(window, Avalonia.Input.Key.Right); await Task.Delay(60); FocusIs(window, covers[1]);
-        // Console look: the focused cover (and the selected one) show name and ring; the others keep their accessible name but hide the label.
+        // Console look: the focused cover (and the selected one) are at full opacity with the ring; the others show a dimmed name.
         await Task.Delay(300);
         Avalonia.Controls.Panel Labels(Button b) => (Avalonia.Controls.Panel)((StackPanel)b.Content!).Children[1];
         Border RingOf(Button b) => ((Avalonia.Controls.Panel)((StackPanel)b.Content!).Children[0]).Children.OfType<Border>().First(r => r.BorderThickness.Left == 3);
         Check(Labels(covers[1]).Opacity > 0.95 && RingOf(covers[1]).Opacity > 0.95 && RingOf(covers[1]).BorderThickness.Left == 3 && ReferenceEquals(RingOf(covers[1]).BorderBrush, Ilmenyx.Desktop.Palette.Fg), "the focused cover must show its label and the white 3 px ring");
-        Check(covers.Count(c => Labels(c).Opacity > 0.95) <= 2 && covers.Any(c => Labels(c).Opacity < 0.05 && !string.IsNullOrEmpty(AutomationProperties.GetName(c))), "only the focused and the selected covers show a label; the others keep their accessible name");
+        Check(covers.All(c => Labels(c).Opacity > 0.6) && covers.Count(c => Labels(c).Opacity > 0.95) <= 2, "every cover shows its name; only the focused and the selected ones at full opacity");
         Check(covers.Count(c => RingOf(c).Opacity > 0.95) <= 2, "at most the focused and the selected covers carry the ring");
         Key(window, Avalonia.Input.Key.Enter); await Until(() => Text("LTitle") != "Game One"); Click(window, "LGame_" + LauncherPage.SafeName("Steam:100")); await Until(() => Text("LTitle") == "Game One");
         Find<Button>(window, "GamesNav_launcher").Focus(); Key(window, Avalonia.Input.Key.Right); await Task.Delay(60); FocusIs(window, Find<Button>(window, "GamesNav_achievements"));
