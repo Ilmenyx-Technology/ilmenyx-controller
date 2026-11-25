@@ -372,5 +372,10 @@ Princípios que as páginas novas seguem: (1) nada conecta, mede ou muda estado 
 confirmação visível que cita limites; (3) cada serviço externo é injetável (o smoke nunca inicia carga real); (4) valores ausentes são
 `null`/indisponível com motivo, nunca zero; (5) resultados vão para um histórico local (`~/.config/ilmenyx/settings.json`, 0600, nunca enviado).
 
+Compatibilidade do `settings.json` com versões diferentes (2026-11-24): a classe de configurações e os tipos aninhados gravados (perfil do jogo, programa auxiliar, jogo manual, histórico de benchmark e sessão de FPS) têm um
+`[JsonExtensionData]` (`UnknownFields`), então um campo que esta versão não conhece é lido, guardado e escrito de volta. Antes disso, uma versão antiga que regravava o arquivo apagava os campos novos
+(por exemplo `ValidSeconds`, `P10Fps` e `P90Fps` das sessões de FPS). A proteção vale **só a partir desta versão**: uma instalação mais antiga continua apagando o que não conhece, e o que ela já apagou não volta.
+A única exceção deliberada é `HowManyFpsKey`, uma chave de API aposentada, descartada ao carregar. A janela de Jogos passou a gravar `LastPlayed` e `PlayedSeconds` por jogo (ver `docs/jogos-extras.md`).
+
 Decisões de portabilidade: Corsair/Razer SDK (Windows) → OpenRGB em loopback; D3D → Vulkan 1.3 com renderização dinâmica; ETW de FPS → log CSV do MangoHud
 gerado por configuração própria; WHEA → linhas do log do kernel (MCE/EDAC/AER/GPU reset) via `journalctl -k`; NVML elevado → comandos `sudo` mostrados, nunca executados.

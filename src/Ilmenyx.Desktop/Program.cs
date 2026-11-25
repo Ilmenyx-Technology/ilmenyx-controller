@@ -43,7 +43,7 @@ public sealed class App : Application
                 if (Program.Instance is { } gamesSocket) Ilmenyx.Platform.Linux.SingleInstance.Listen(gamesSocket, (string message) => Avalonia.Threading.Dispatcher.UIThread.Post(async () =>
                 {
                     games.Bring();
-                    if (message.StartsWith(Program.PlayMessage, StringComparison.Ordinal)) await games.Page.PlayByKeyAsync(message[Program.PlayMessage.Length..]);
+                    if (message.StartsWith(Program.PlayMessage, StringComparison.Ordinal)) { games.Select(GamesWindow.DefaultTab); await games.Page.PlayByKeyAsync(message[Program.PlayMessage.Length..]); }
                 }), closed.Token);
                 base.OnFrameworkInitializationCompleted();
                 return;

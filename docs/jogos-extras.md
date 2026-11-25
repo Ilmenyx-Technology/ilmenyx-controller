@@ -85,11 +85,37 @@ quais opções da recomendação brigam com ela.
 Onde entram: na linha da Steam (APLICAR NAS OPÇÕES DA STEAM, antes dos wrappers e do `%command%`) e no ambiente do `umu-run` dos jogos
 `.exe` adicionados à mão.
 
+## Janela só de Jogos (atalho "Jogos — Ilmenyx Controller", `--games`, `--play CHAVE`)
+
+Vitrine estilo console (Xbox/PS5). Barra de cima com "Ilmenyx **Jogos**" e abas em pílula (Jogos, Conquistas, Compatibilidade, Jogo não abre? e Meu PC roda isso?; a ativa em `Palette.Accent`/`OnAccent`, as outras em `Muted`, hover `Hover`;
+setas esquerda/direita trocam de aba) e, na página Jogos, a busca à direita (abaixo de ~1120 px ela desce para uma segunda linha); cada página é criada ao ser aberta pela primeira vez.
+A página Jogos usa o layout `LauncherLayout.Showcase` da mesma `LauncherPage` do app completo (que continua no layout clássico; toda a lógica é compartilhada), numa só rolagem:
+
+- **Hero** (~45% da altura, mínimo 240 px, cresce se o texto quebrar): a arte mais larga do jogo escolhido (hero da Steam, header, capa própria, arte baixada; as mesmas fontes de `ArtFor`) preenchendo o banner, com um véu `Palette.Bg` com alfa (`HeroScrim`) à esquerda e embaixo,
+  para o texto manter o contraste AA sobre qualquer imagem (o teste `HeroTextKeepsItsContrastOverAnyPicture` mede contra o véu sobre uma imagem toda branca e toda preta, não contra a imagem real). Sem arte: `Palette.Card` com as iniciais grandes.
+  Nele: "Continuar jogando" (só no último jogado; senão a loja), o nome (30 px), loja · Proton/Wine, **Jogar** (único botão cheio; Abrindo…/Em execução, Fechar jogo e Parar acompanhamento como no app completo), **Configurações do jogo** e pílulas com dados reais
+  (FPS típico medido de `FpsHistory`, conquistas lidas dos arquivos locais da Steam, tempo jogado); o que não é conhecido não aparece. Ao trocar de jogo a nova imagem surge sobre a anterior (220 ms).
+- **Sua biblioteca**: filtros Todos / Steam / Windows (programas .exe com Proton/Wine) / Linux / Recentes (só quando algum jogo tem última jogada; `GameFilters`), capas largas 16:9 (190–250 px, colunas pelo espaço), nome e loja embaixo.
+  Anel de acento de 2 px na escolhida, elevação de 3% e anel mais fraco no hover/foco (160 ms); a grade é uma só parada de Tab e as setas movem entre capas; clicar numa capa a leva ao hero. As ações da biblioteca (Atualizar lista, + Adicionar executável,
+  Instalar jogo de Windows, Atalho dos Jogos, Mostrar ocultos) ficam no menu **Gerenciar**, ao lado do título.
+- **Configurações do jogo**: gaveta à direita (400 px; largura toda abaixo de 1000 px) sobre a vitrine escurecida e desativada, com os cartões de sempre (capa, desempenho medido, perfil, gráficos, qualidade, programas auxiliares, Gerenciar o jogo). Esc, o botão ✕ ou um clique fora fecham;
+  Tab fica preso dentro da gaveta e o foco volta ao botão. Os avisos "vale na próxima vez" continuam valendo com o jogo aberto.
+- Ao abrir, o jogo escolhido é o de `LastPlayed` mais recente, senão o primeiro da biblioteca.
+
+**Última jogada e tempo jogado** (`GameProfile.LastPlayed` e `PlayedSeconds`, em `settings.json`): só para o jogo que o Ilmenyx abriu e acompanhou. O início é quando o processo do jogo é visto e o tempo soma até o Ilmenyx parar de acompanhar
+(o jogo fechou, Parar acompanhamento ou fechar a janela). Jogo aberto fora do Ilmenyx (direto pela Steam, menu do sistema) não entra na conta, nem o que foi jogado antes desta versão. O app completo grava os mesmos dados, mas só a janela de Jogos os mostra.
+Fica de fora o Detector de gargalo (precisa do monitor de uso): a janela não inicia monitor, sensores nem ícone da bandeja. Em "Meu PC roda isso?" o modelo
+da CPU e a RAM total vêm de `/proc/cpuinfo` e `/proc/meminfo` (somente leitura; vazio/0 se indisponível). Em "Jogo não abre?", os botões que levam a páginas só do app completo (Otimiza, Driver NVIDIA)
+não aparecem nesta janela. Abrir um jogo por um atalho (`--play`) volta para a página Jogos; abrir a janela de novo pelo atalho "Jogos" a traz de volta na página em que estava.
+
 ## Testes
 
 - `tests/Ilmenyx.Tests/GameExtrasTests.cs`: arquivo `environment.d` em pasta temporária (conteúdo, modo, aplicar/desfazer, arquivo de
   terceiros intocado), tamanho dos caches, variáveis nos jogos manuais, classificação de nomes do Proton, condições e conflitos das
   opções experimentais, linha da Steam, `CompatToolMapping`, pasta do UMU-Proton, catálogo, branch da camada do Gamescope.
+- `tests/Ilmenyx.Tests/GamesShowcaseTests.cs`: classificação dos filtros (e Recentes/jogo mais recente), iniciais da capa sem arte, colunas/gaveta/altura do hero por largura, tempo jogado, contraste do texto do hero contra o véu
+  (imagem toda branca e toda preta, tema escuro e claro), `RecordPlay` e campos desconhecidos do `settings.json` que sobrevivem a carregar e salvar. Smoke `GamesWindowAsync`: janela de Jogos com biblioteca de fixture
+  (abas, hero do último jogado com pílulas, clique numa capa troca o hero, filtros e busca, gaveta com Tab preso/Esc/foco de volta/largura toda a 900 px, 900x560 e 150/200% de texto sem cortes, todas as abas).
 - Smoke `GamingExtrasAsync` (`tools/Ilmenyx.UiSmoke/Program.cs`): as três páginas com fixtures e flatpak falso, telas 900x560 nos
   temas escuro e claro.
 

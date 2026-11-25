@@ -4,18 +4,24 @@
 // New Ilmenyx additions (layout follows the original RESET JOGOS launcher: game list left, profile cards right; cinematic library grid and hero since 2026-11-06): see LICENSING.md.
 using Avalonia;
 using Avalonia.Automation;
+using Avalonia.Animation;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Platform.Storage;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.Media.Transformation;
 using Avalonia.VisualTree;
 using Ilmenyx.Core;
 using Ilmenyx.Platform.Linux;
 
 namespace Ilmenyx.Desktop;
+
+/// <summary>Classic: the full app's library (list + hero). Showcase: the games-only window, a console-style vitrine (big hero of the selected game, filter chips, grid of landscape covers, per-game settings in a side drawer).</summary>
+public enum LauncherLayout { Classic, Showcase }
 
 public sealed class LauncherPage : Grid
 {
@@ -37,6 +43,7 @@ public sealed class LauncherPage : Grid
     // Per game key: the follow-up of a launch (RunAsync), the achievement watch, and the games whose process was seen running.
     private readonly Dictionary<string, CancellationTokenSource> following = [], watchers = [];
     private readonly HashSet<string> running = [], opened = [], launched = [];
+    private readonly Dictionary<string, DateTimeOffset> playSince = []; // when each followed game's process was first seen (play time)
     private readonly Button closeGame = new() { Name = "BtnCloseGame", Content = L.T("Fechar jogo"), FontSize = 11, Padding = new Thickness(12, 6), IsVisible = false, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(16, 0, 0, 0) };
     private readonly HashSet<string> closing = [];
     // While the selected game is opening or running: one discreet note per card ("Vale na próxima vez…") and the controls that must not change under a live game.
@@ -107,7 +114,7 @@ public sealed class LauncherPage : Grid
         if (!live) foreach (var n in changeNotes.Values) n.IsVisible = false;
         foreach (var (c, tip, why) in liveLocks) { c.IsEnabled = !live; ToolTip.SetTip(c, live ? why : tip); }
         foreach (var undo in achFixBox.GetVisualDescendants().OfType<Button>()) undo.IsEnabled = !live;
-        if (TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() is Control { IsEffectivelyEnabled: false }) (play.IsEnabled ? play : backToLibrary).Focus();
+        if (TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() is Control { IsEffectivelyEnabled: false }) (play.IsEnabled ? play : FocusFallback).Focus();
     }
     /// <summary>Wayland session check (default: the real environment). Settable for fixtures.</summary>
     public Func<bool>? WaylandSession { get; init; }
@@ -172,8 +179,29 @@ public sealed class LauncherPage : Grid
     private readonly StackPanel mangoFlatpakBox = new() { Name = "MangoFlatpakBox", Spacing = 6, IsVisible = false, Margin = new Thickness(26, 0, 0, 8) };
     private string? mangoFlatpakBranch;
     private int columns = 2;
+    private readonly bool showcase;
+    private GameFilter filter = GameFilter.All;
+    private readonly WrapPanel posters = new() { Name = "LPosterGrid", ItemSpacing = ShowcaseLayout.Gap, LineSpacing = 18 };
+    private readonly Dictionary<string, PosterState> posterStates = [];
+    private double posterWidth = 210;
+    private int achGen;
+    private (int Got, int Total)? heroAch;
     private Grid? leftPane;
     private bool narrowWindow;
+    // Vitrine (Showcase) parts: hero layers and texts, the library filter row, the settings drawer and the search field the window hosts in its top bar.
+    private readonly Border heroBack = new() { IsHitTestVisible = false }, heroFront = new() { IsHitTestVisible = false };
+    private readonly TextBlock heroInitials = new() { FontSize = 120, FontWeight = FontWeight.Bold, Foreground = Palette.Muted, Opacity = 0.35, LetterSpacing = 4, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 48, 0), IsHitTestVisible = false };
+    private readonly TextBlock heroLabel = new() { Name = "LHeroLabel", FontSize = 11.5, FontWeight = FontWeight.SemiBold, LetterSpacing = 0.8, Foreground = Palette.Fg };
+    private readonly WrapPanel heroStats = new() { Name = "LHeroStats", Margin = new Thickness(0, 12, 0, 0) };
+    private readonly Button settingsBtn = new() { Name = "BtnGameSettings", Content = L.T("Configurações do jogo"), FontSize = 13, Padding = new Thickness(18, 11) };
+    private readonly WrapPanel chips = new() { Name = "LFilterChips", ItemSpacing = 8, LineSpacing = 8, Margin = new Thickness(0, 0, 0, 14) };
+    private readonly TextBlock drawerGame = new() { Name = "LDrawerGame", FontSize = 12.5, Foreground = Palette.Muted, TextTrimming = TextTrimming.CharacterEllipsis };
+    private ScrollViewer vitrine = null!; private Grid drawerHost = null!; private Border drawerPanel = null!; private Button drawerClose = null!;
+    /// <summary>The search field of the vitrine (the games-only window hosts it in its top bar).</summary>
+    public Control SearchField { get; private set; } = null!;
+    /// <summary>Whether the per-game settings drawer is open.</summary>
+    public bool DrawerOpen => showcase && drawerHost.IsVisible;
+    private Control FocusFallback => showcase ? settingsBtn : backToLibrary;
     private readonly Button backToLibrary = new() { Name = "BtnBackToLibrary", Content = L.T("← Biblioteca"), FontSize = 11, Padding = new Thickness(10, 4), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
     private readonly TextBlock fpsBig = new() { Name = "FpsMeasuredTypical", FontSize = 34, FontWeight = FontWeight.Bold, Foreground = Palette.Fg };
     private readonly TextBlock fpsRange = new() { Name = "FpsMeasuredRange", FontSize = 13, Foreground = Palette.Muted, TextWrapping = TextWrapping.Wrap };
@@ -191,7 +219,7 @@ public sealed class LauncherPage : Grid
     public GameProfile? Profile => profile;
 
     /// <summary>The page with the real library and launcher (full app and the games-only window).</summary>
-    public static LauncherPage Create(Func<Window?> owner, CancellationToken lifetime)
+    public static LauncherPage Create(Func<Window?> owner, CancellationToken lifetime, LauncherLayout layout = LauncherLayout.Classic)
     {
         string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         var gpus = new LinuxGpuCollector().Collect(PciIds.Load());
@@ -201,19 +229,21 @@ public sealed class LauncherPage : Grid
         // Manual games: the experimental Proton options (when they apply) and, with the Otimiza option on, the bigger shader cache variables.
         return new LauncherPage(new LinuxGameLibrary(home), new SteamInfo(home), IlmenyxSettings.DefaultPath(),
             (g, p, v, status, learned, ct) => new LinuxGameLauncher().RunAsync(g, p, v, status, learned, ct,
-                LinuxGameExtras.ManualContext(g, p, v, multi, LinuxGameExtras.UmuProtonName(home)), new LinuxShaderCache(home).IsOn), owner, vendor, multi, lifetime) { Margin = new Thickness(0, 4, 8, 12) };
+                LinuxGameExtras.ManualContext(g, p, v, multi, LinuxGameExtras.UmuProtonName(home)), new LinuxShaderCache(home).IsOn), owner, vendor, multi, lifetime, layout) { Margin = layout == LauncherLayout.Showcase ? new Thickness(0) : new Thickness(0, 4, 8, 12) };
     }
 
-    public LauncherPage(LinuxGameLibrary library, SteamInfo steam, string settingsPath, LaunchFunc launch, Func<Window?> owner, string gpuVendor, bool multiGpu, CancellationToken lifetime)
+    public LauncherPage(LinuxGameLibrary library, SteamInfo steam, string settingsPath, LaunchFunc launch, Func<Window?> owner, string gpuVendor, bool multiGpu, CancellationToken lifetime, LauncherLayout layout = LauncherLayout.Classic)
     {
+        showcase = layout == LauncherLayout.Showcase;
         this.library = library; this.steam = steam; this.settingsPath = settingsPath; this.launch = launch; this.owner = owner; this.gpuVendor = gpuVendor; this.multiGpu = multiGpu; this.lifetime = lifetime;
         settings = IlmenyxSettings.Load(settingsPath);
         steamRoot = steam.Root();
-        ColumnDefinitions = new("300,20,*"); RowDefinitions = new("Auto,*");
+        ColumnDefinitions = showcase ? new("*") : new("300,20,*"); RowDefinitions = showcase ? new("*") : new("Auto,*");
         BuildLeft(); BuildRight();
         // Narrow window (minimum 900x560 leaves ~640 px here): a slimmer one-column library so the detail keeps room for its chips.
         SizeChanged += (_, e) =>
         {
+            if (showcase) { ApplyLayout(); return; }
             narrowWindow = e.NewSize.Width < 860;
             ColumnDefinitions[0].Width = new GridLength(narrowWindow ? 230 : 300);
             ApplyLayout();
@@ -223,6 +253,7 @@ public sealed class LauncherPage : Grid
         AddHandler(KeyDownEvent, (_, e) =>
         {
             if (e.Key != Key.Escape || e.Handled) return;
+            if (showcase) { if (DrawerOpen) { CloseDrawer(); e.Handled = true; } return; } // the vitrine always shows a game: Esc only closes the drawer
             if (TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() is TextBox { Name: "LGameSearch" } box && !string.IsNullOrEmpty(box.Text)) { box.Text = ""; e.Handled = true; return; }
             if (current is not null) { var was = current; Select(null); FocusTile(was); e.Handled = true; }
         }, RoutingStrategies.Bubble); // bubble: an open drop-down handles its own Esc first
@@ -238,7 +269,7 @@ public sealed class LauncherPage : Grid
         scan.Click += async (_, _) => await ScanAsync(); add.Click += (_, _) => addBox.IsVisible = !addBox.IsVisible;
         // Fast exec: one disposable run of a Windows installer with Proton; the installed game can then be added here.
         var installWin = new Button { Name = "BtnFastExec", Content = L.T("Instalar jogo de Windows"), Padding = new Thickness(14, 8), FontSize = 12 };
-        installWin.Click += async (_, _) =>
+        async Task InstallWindowsGame()
         {
             if (owner() is not { } window) return;
             await new FastExecDialog(async exe =>
@@ -250,7 +281,8 @@ public sealed class LauncherPage : Grid
                 await LookUpSteamIdAsync(automatic: true);
                 return true;
             }, BoundedProcess.Find).ShowDialog(window);
-        };
+        }
+        installWin.Click += async (_, _) => await InstallWindowsGame();
         search.TextChanged += (_, _) => Filter();
         showHidden.IsCheckedChanged += (_, _) =>
         {
@@ -282,12 +314,18 @@ public sealed class LauncherPage : Grid
         var gamesShortcut = new Button { Name = "BtnGamesShortcut", Content = L.T("Atalho dos Jogos"), Padding = new Thickness(14, 8), FontSize = 12 };
         ToolTip.SetTip(gamesShortcut, L.T("Cria um atalho que abre só os Jogos, numa janela leve, sem o resto do Ilmenyx."));
         gamesShortcut.Flyout = ShortcutMenu(desktop => CreateShortcut(desktop, null));
+        var searchBox = new Grid { Children = { search, SearchIcon() } };
+        search.Padding = new Thickness(34, 7, 10, 7);
+        AutomationProperties.SetName(search, L.T("Buscar jogo…"));
+        if (showcase)
+        {
+            BuildShowcaseLeft(searchBox, InstallWindowsGame);
+            return;
+        }
         var header = UiKit.PageHeader(L.T("Jogos"), null, new WrapPanel { ItemSpacing = 8, LineSpacing = 6, HorizontalAlignment = HorizontalAlignment.Right, Children = { scan, add, installWin, gamesShortcut } });
         count.FontSize = 12.5; ((StackPanel)header.Children[0]).Children.Add(count);
         Grid.SetColumnSpan(header, 3); Children.Add(header);
 
-        var searchBox = new Grid { Children = { search, SearchIcon() } };
-        search.Padding = new Thickness(34, 7, 10, 7);
         var tools = new StackPanel { Margin = new Thickness(0, 0, 0, 12), Spacing = 8, Children = { searchBox, showHidden, addBox } };
         // The empty-library card sits over this column: keep it below the add box, or it covers Procurar…/Adicionar (seen 2026-11-12).
         tools.SizeChanged += (_, _) => emptyBox.Margin = new Thickness(0, 84 + (addBox.IsVisible ? addBox.Bounds.Height + tools.Spacing : 0), 0, 0);
@@ -298,6 +336,61 @@ public sealed class LauncherPage : Grid
         left.Children.Add(tools); left.Children.Add(shelf); left.Children.Add(scroll);
         Grid.SetRow(left, 1); Children.Add(left); leftPane = left;
     }
+
+    /// <summary>Vitrine library (games-only window): "Sua biblioteca" with a discreet Gerenciar menu, filter chips, the add-executable box and the grid of landscape covers, all in the one scroll that also holds the hero.</summary>
+    private void BuildShowcaseLeft(Control searchBox, Func<Task> installWindowsGame)
+    {
+        searchBox.Width = 260; SearchField = searchBox;
+        var title = new TextBlock { Text = L.T("Sua biblioteca"), FontSize = 20, FontWeight = FontWeight.Bold };
+        count.FontSize = 12.5;
+
+        // Library actions live in one compact menu: they are rare compared with playing.
+        var menu = new MenuFlyout();
+        MenuItem Item(string name, string header, Action click) { var m = new MenuItem { Name = name, Header = header }; m.Click += (_, _) => click(); return m; }
+        menu.Items.Add(Item("MenuScan", L.T("Atualizar lista"), () => _ = ScanAsync()));
+        menu.Items.Add(Item("MenuAddExe", L.T("+ Adicionar executável"), () => addBox.IsVisible = !addBox.IsVisible));
+        menu.Items.Add(Item("MenuFastExec", L.T("Instalar jogo de Windows"), () => _ = installWindowsGame()));
+        var shortcut = new MenuItem { Name = "MenuGamesShortcut", Header = L.T("Atalho dos Jogos") };
+        foreach (var (label, desktop) in new[] { (L.T("No menu de aplicativos"), false), (L.T("Na área de trabalho"), true) }) shortcut.Items.Add(Item("MenuGamesShortcut_" + (desktop ? "Desktop" : "Menu"), label, () => CreateShortcut(desktop, null)));
+        menu.Items.Add(shortcut); menu.Items.Add(new Separator());
+        var hidden = new MenuItem { Name = "MenuShowHidden", Header = L.T("Mostrar ocultos"), ToggleType = MenuItemToggleType.CheckBox };
+        hidden.PropertyChanged += (_, e) => { if (e.Property == MenuItem.IsCheckedProperty) showHidden.IsChecked = hidden.IsChecked; };
+        menu.Items.Add(hidden);
+        var manage = new Button
+        {
+            Name = "BtnLibraryMenu", Flyout = menu, FontSize = 12, Padding = new Thickness(14, 7), VerticalAlignment = VerticalAlignment.Center, CornerRadius = new CornerRadius(IlmenyxTheme.Pill),
+            Content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { new TextBlock { Text = L.T("Gerenciar") }, UiKit.Icon(Icons.ChevronDown, 12, Palette.Muted) } },
+        };
+        AutomationProperties.SetName(manage, L.T("Gerenciar a biblioteca"));
+        var header = new Grid { ColumnDefinitions = new("*,Auto"), Margin = new Thickness(0, 22, 0, 12), Children = { new StackPanel { Spacing = 2, Children = { title, count } }, manage } };
+        Grid.SetColumn(manage, 1);
+
+        foreach (var (label, value) in new (string, GameFilter)[] { (L.T("Todos"), GameFilter.All), ("Steam", GameFilter.Steam), ("Windows", GameFilter.Windows), ("Linux", GameFilter.Linux), (L.T("Recentes"), GameFilter.Recent) })
+        {
+            var chip = new ToggleButton { Name = "LFilter_" + value, Content = label, FontSize = 12, Padding = new Thickness(16, 6), CornerRadius = new CornerRadius(IlmenyxTheme.Pill), BorderBrush = Palette.Line, BorderThickness = new Thickness(1) };
+            AutomationProperties.SetName(chip, label);
+            // ToggleButton's template recolours the checked state itself: pin every state to the chip colours.
+            foreach (var (key, brush) in new (string, IBrush)[] {
+                ("ToggleButtonBackgroundChecked", Palette.Fg), ("ToggleButtonBackgroundCheckedPointerOver", Palette.Fg), ("ToggleButtonBackgroundCheckedPressed", Palette.Fg),
+                ("ToggleButtonForegroundChecked", Palette.OnFg), ("ToggleButtonForegroundCheckedPointerOver", Palette.OnFg), ("ToggleButtonForegroundCheckedPressed", Palette.OnFg),
+                ("ToggleButtonBorderBrushChecked", Palette.Line), ("ToggleButtonBorderBrushCheckedPointerOver", Palette.Line), ("ToggleButtonBorderBrushCheckedPressed", Palette.Line) })
+                chip.Resources[key] = brush;
+            var value2 = value; chip.Click += (_, _) => { filter = value2; Filter(); };
+            chips.Children.Add(chip);
+        }
+        AutomationProperties.SetName(chips, L.T("Filtrar por origem"));
+
+        posters.HorizontalAlignment = HorizontalAlignment.Left;
+        KeyboardNavigation.SetTabNavigation(posters, KeyboardNavigationMode.Once); // the grid is one Tab stop; arrows move inside it
+        AutomationProperties.SetName(posters, L.T("Biblioteca"));
+        posters.KeyDown += (_, e) => MovePosterFocus(e);
+        addBox.Margin = new Thickness(0, 0, 0, 14);
+        emptyBox.Margin = new Thickness(0, 4, 0, 0); emptyBox.VerticalAlignment = VerticalAlignment.Top;
+        // The page's content: hero (built by BuildVitrine, inserted first), then the library. One scroll for both.
+        libraryBody = new StackPanel { Margin = new Thickness(24, 0, 24, 28), Children = { header, chips, addBox, new Border { Padding = new Thickness(4, 6, 4, 4), Child = posters }, emptyBox } };
+    }
+
+    private StackPanel libraryBody = null!;
 
     private static Control SearchIcon()
     {
@@ -329,7 +422,8 @@ public sealed class LauncherPage : Grid
         };
         empty.HorizontalAlignment = HorizontalAlignment.Center; empty.FontSize = 14;
         // Empty state of the full-page library (nothing installed or nothing matches the search), under the search box.
-        Grid.SetColumn(emptyBox, 0); Grid.SetColumnSpan(emptyBox, 3); Grid.SetRow(emptyBox, 1); emptyBox.Margin = new Thickness(0, 84, 0, 0); emptyBox.IsVisible = false; Children.Add(emptyBox);
+        emptyBox.IsVisible = false;
+        if (!showcase) { Grid.SetColumn(emptyBox, 0); Grid.SetColumnSpan(emptyBox, 3); Grid.SetRow(emptyBox, 1); emptyBox.Margin = new Thickness(0, 84, 0, 0); Children.Add(emptyBox); }
         play.Click += async (_, _) => await PlayAsync();
         closeGame.Click += async (_, _) => await CloseGameAsync();
         AutomationProperties.SetLiveSetting(status, AutomationLiveSetting.Polite); // screen readers hear Abrindo…, Em execução, Encerrado and errors
@@ -343,8 +437,6 @@ public sealed class LauncherPage : Grid
         title.FontSize = 26; title.MaxLines = 2; title.TextTrimming = TextTrimming.CharacterEllipsis;
         sub.FontSize = 12.5; sub.MaxLines = 2; sub.TextTrimming = TextTrimming.CharacterEllipsis; sub.Margin = new Thickness(0, 4, 0, 0);
         play.VerticalAlignment = VerticalAlignment.Bottom; play.Margin = new Thickness(16, 0, 0, 0); play.FontSize = 14;
-        // Title and subtitle on top, the actions wrap underneath them: at 900 px wide or with 150-200% text the row must not push Jogar out of the column.
-        var bottom = new Grid { RowDefinitions = new("Auto,Auto"), VerticalAlignment = VerticalAlignment.Bottom, Children = { new StackPanel { VerticalAlignment = VerticalAlignment.Bottom, Children = { title, sub, also } } } };
         // Games the user added by hand can leave the library again (the files on disk are never touched).
         ToolTip.SetTip(removeGame, L.T("Tira o jogo da biblioteca do Ilmenyx. Os arquivos do jogo não são apagados."));
         removeGame.Click += async (_, _) => await RemoveCurrentAsync();
@@ -357,14 +449,19 @@ public sealed class LauncherPage : Grid
         // Games that are not manual cannot be removed (they come from a store or a menu entry): they can be hidden instead.
         ToolTip.SetTip(hideGame, L.T("Esconde o jogo da biblioteca sem apagar nada. Marque Mostrar ocultos para vê-lo de novo."));
         hideGame.Click += (_, _) => ToggleHideCurrent();
-        var actions = new WrapPanel { Name = "LHeroActions", ItemSpacing = 8, LineSpacing = 6, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 10, 0, 0), Children = { gameShortcut, renameGame, removeGame, hideGame, stopWatch, closeGame, play } };
-        foreach (var c in actions.Children.OfType<Control>()) { c.Margin = new Thickness(0); c.VerticalAlignment = VerticalAlignment.Center; }
-        Grid.SetRow(actions, 1); bottom.Children.Add(actions);
-        var heroTop = new DockPanel { Children = { backToLibrary, heroTags } }; heroTags.Margin = new Thickness(10, 0, 0, 0);
-        var heroContent = new Grid { RowDefinitions = new("Auto,*,Auto"), Children = { heroTop } };
-        Grid.SetRow(bottom, 2); heroContent.Children.Add(bottom);
-        hero = UiKit.Hero(heroContent, height: 232, name: L.T("LHero")); hero.Height = double.NaN; hero.MinHeight = 232; // grows when the actions wrap
-        if (hero.Child is Grid layers) layers.Children.Insert(0, heroScrim);
+        if (!showcase)
+        {
+            // Title and subtitle on top, the actions wrap underneath them: at 900 px wide or with 150-200% text the row must not push Jogar out of the column.
+            var bottom = new Grid { RowDefinitions = new("Auto,Auto"), VerticalAlignment = VerticalAlignment.Bottom, Children = { new StackPanel { VerticalAlignment = VerticalAlignment.Bottom, Children = { title, sub, also } } } };
+            var actions = new WrapPanel { Name = "LHeroActions", ItemSpacing = 8, LineSpacing = 6, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 10, 0, 0), Children = { gameShortcut, renameGame, removeGame, hideGame, stopWatch, closeGame, play } };
+            foreach (var c in actions.Children.OfType<Control>()) { c.Margin = new Thickness(0); c.VerticalAlignment = VerticalAlignment.Center; }
+            Grid.SetRow(actions, 1); bottom.Children.Add(actions);
+            var heroTop = new DockPanel { Children = { backToLibrary, heroTags } }; heroTags.Margin = new Thickness(10, 0, 0, 0);
+            var heroContent = new Grid { RowDefinitions = new("Auto,*,Auto"), Children = { heroTop } };
+            Grid.SetRow(bottom, 2); heroContent.Children.Add(bottom);
+            hero = UiKit.Hero(heroContent, height: 232, name: L.T("LHero")); hero.Height = double.NaN; hero.MinHeight = 232; // grows when the actions wrap
+            if (hero.Child is Grid layers) layers.Children.Insert(0, heroScrim);
+        }
 
         ToolTip.SetTip(chkGuard, L.T("Em notebooks com duas GPUs, jogos de Windows em tela cheia sem vsync podem travar a tela inteira (só reiniciando). Com a proteção, o Proton sincroniza os quadros com o monitor; o FPS fica limitado à taxa da tela. Vale quando o jogo usa a GPU dedicada NVIDIA."));
         foreach (var c in new[] { chkPlan, chkGpu, chkGameMode, chkMango, chkMeasure, chkGuard }) { c.Margin = new Thickness(0, 0, 0, 6); c.FontSize = 13; c.IsCheckedChanged += (_, _) => { SaveFromControls(); NoteLiveChange(c); }; }
@@ -549,8 +646,98 @@ public sealed class LauncherPage : Grid
         ToolTip.SetTip(coverUrl, L.T("Baixa a imagem do link (só https) quando você confirma."));
         var coverCard = UiKit.Card(new StackPanel { Children = { CardTitle(Icons.Games, L.T("CAPA")), new WrapPanel { ItemSpacing = 8, LineSpacing = 6, Children = { coverFile, coverUrl, coverReset } }, coverStatus } });
         coverCard.Margin = new Thickness(0, 12, 0, 0);
+        if (showcase) { BuildVitrine(coverCard, measured, perf, quality, gfx, help); return; }
         detail.Content = new StackPanel { Margin = new Thickness(0, 0, 8, 0), Children = { hero, playProgress, status, coverCard, measured, UiKit.SectionHeader(L.T("Perfil do jogo")), perf, quality, gfx, help } };
         Grid.SetColumn(detail, 2); Grid.SetRow(detail, 1); Children.Add(detail);
+    }
+
+    /// <summary>Glass look shared by the buttons drawn over the hero image (a Bg tint, so the label stays readable on any picture).</summary>
+    private static void GlassStyle(Button b)
+    {
+        b.Background = HeroScrim.Glass(); b.Foreground = Palette.Fg; b.BorderBrush = Palette.Line; b.BorderThickness = new Thickness(1); b.FontSize = 13; b.Padding = new Thickness(18, 11); b.Margin = new Thickness(0);
+        b.CornerRadius = new CornerRadius(IlmenyxTheme.ControlRadius); b.VerticalAlignment = VerticalAlignment.Center;
+        foreach (var key in new[] { "ButtonBackgroundPointerOver", "ButtonBackgroundPressed" }) b.Resources[key] = HeroScrim.Glass(0xF0);
+        foreach (var key in new[] { "ButtonForegroundPointerOver", "ButtonForegroundPressed" }) b.Resources[key] = Palette.Fg;
+        foreach (var key in new[] { "ButtonBorderBrushPointerOver", "ButtonBorderBrushPressed" }) b.Resources[key] = Palette.Line;
+    }
+
+    /// <summary>The vitrine of the games-only window: the hero of the selected game, the library below it (one scroll) and the per-game settings drawer over both.</summary>
+    private void BuildVitrine(Border coverCard, Border measured, Border perf, Border quality, Border gfx, Border help)
+    {
+        foreach (var card in new[] { coverCard, measured, perf, quality, gfx, help }) card.Padding = new Thickness(14, 12);
+        title.FontSize = 30; title.MaxLines = 2; title.Foreground = Palette.Fg; title.Margin = new Thickness(0, 6, 0, 0);
+        sub.FontSize = 14; sub.Foreground = Palette.Muted; sub.Margin = new Thickness(0, 4, 0, 0); also.Foreground = Palette.Muted;
+        play.FontSize = 15; play.Padding = new Thickness(30, 12); play.Margin = new Thickness(0); play.VerticalAlignment = VerticalAlignment.Center; play.HorizontalAlignment = HorizontalAlignment.Left;
+        foreach (var b in new[] { settingsBtn, stopWatch, closeGame }) GlassStyle(b);
+        settingsBtn.Click += (_, _) => OpenDrawer();
+        ToolTip.SetTip(settingsBtn, L.T("Perfil, gráficos, capa, desempenho medido e as outras opções deste jogo."));
+        var actions = new WrapPanel { Name = "LHeroActions", ItemSpacing = 10, LineSpacing = 10, Margin = new Thickness(0, 18, 0, 0), Children = { play, settingsBtn, stopWatch, closeGame } };
+        status.Margin = new Thickness(0, 12, 0, 0); playProgress.Margin = new Thickness(0, 14, 0, 0); playProgress.Width = 320; playProgress.HorizontalAlignment = HorizontalAlignment.Left;
+        var text = new StackPanel { Name = "LHeroText", MaxWidth = 560, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(32, 24, 32, 28), Children = { heroLabel, title, sub, also, heroStats, actions, playProgress, status } };
+        var scrimH = new Border { IsHitTestVisible = false, Background = HeroScrim.Horizontal() }; var scrimV = new Border { IsHitTestVisible = false, Background = HeroScrim.Vertical() };
+        heroFront.Transitions = [new DoubleTransition { Property = OpacityProperty, Duration = IlmenyxTheme.Normal, Easing = IlmenyxTheme.Premium }];
+        hero = new Border
+        {
+            Name = "LHero", MinHeight = ShowcaseLayout.MinHero, CornerRadius = new CornerRadius(IlmenyxTheme.ContainerRadius), ClipToBounds = true, Background = Palette.Card, BoxShadow = IlmenyxTheme.SoftShadow,
+            Margin = new Thickness(24, 16, 24, 4), IsVisible = false, Child = new Grid { ClipToBounds = true, Children = { heroBack, heroFront, heroInitials, scrimH, scrimV, text } },
+        };
+        hero.ActualThemeVariantChanged += (_, _) => { scrimH.Background = HeroScrim.Horizontal(); scrimV.Background = HeroScrim.Vertical(); hero.BoxShadow = IlmenyxTheme.SoftShadow; };
+        AutomationProperties.SetName(hero, L.T("Jogo selecionado"));
+        vitrine = new ScrollViewer { Name = "LGameScroll", Content = new StackPanel { Children = { hero, libraryBody } } };
+
+        // Per-game settings: a drawer on the right (full width on narrow windows) over a dimmed vitrine; Esc, the close button and a click outside close it.
+        var manage = new WrapPanel { Name = "LManageActions", ItemSpacing = 8, LineSpacing = 6, Children = { gameShortcut, renameGame, removeGame, hideGame } };
+        drawerClose = new Button
+        {
+            Name = "BtnDrawerClose", Width = 34, Height = 34, Padding = new Thickness(0), CornerRadius = new CornerRadius(17), Background = Palette.Field, HorizontalContentAlignment = HorizontalAlignment.Center, VerticalContentAlignment = VerticalAlignment.Center,
+            Content = new Avalonia.Controls.Shapes.Path { Data = Geometry.Parse("M2,2 L12,12 M12,2 L2,12"), Stroke = Palette.Muted, StrokeThickness = 2, StrokeLineCap = PenLineCap.Round, Width = 14, Height = 14 },
+        };
+        AutomationProperties.SetName(drawerClose, L.T("Fechar as configurações do jogo")); ToolTip.SetTip(drawerClose, L.T("Fechar (Esc)"));
+        drawerClose.Click += (_, _) => CloseDrawer();
+        var head = new Grid { ColumnDefinitions = new("*,Auto"), Margin = new Thickness(20, 16, 14, 10), Children = { new StackPanel { Children = { new TextBlock { Name = "LDrawerTitle", Text = L.T("Configurações do jogo"), FontSize = 17, FontWeight = FontWeight.Bold, TextWrapping = TextWrapping.Wrap }, drawerGame } }, drawerClose } };
+        Grid.SetColumn(drawerClose, 1);
+        heroTags.Margin = new Thickness(2, 0, 0, 0);
+        detail.IsVisible = true; detail.Padding = new Thickness(0, 0, 4, 0);
+        detail.Content = new StackPanel { Margin = new Thickness(16, 0, 12, 20), Children = { heroTags, coverCard, measured, UiKit.SectionHeader(L.T("Perfil do jogo")), perf, quality, gfx, help, UiKit.SectionHeader(L.T("Gerenciar")), manage } };
+        Grid.SetRow(detail, 1);
+        drawerPanel = new Border
+        {
+            Name = "LGamePanel", Background = Palette.Panel, BorderBrush = Palette.Line, BorderThickness = new Thickness(1, 0, 0, 0), HorizontalAlignment = HorizontalAlignment.Right, Width = ShowcaseLayout.DrawerWidth,
+            BoxShadow = IlmenyxTheme.SoftShadow, Child = new Grid { RowDefinitions = new("Auto,*"), Children = { head, detail } },
+        };
+        AutomationProperties.SetName(drawerPanel, L.T("Configurações do jogo"));
+        var scrim = new Border { Name = "LDrawerScrim", Background = HeroScrim.Glass(0x99) };
+        scrim.PointerPressed += (_, e) => { CloseDrawer(); e.Handled = true; };
+        drawerHost = new Grid { IsVisible = false, Children = { scrim, drawerPanel } };
+        drawerHost.KeyDown += TrapTab;
+        Children.Add(vitrine); Children.Add(drawerHost);
+    }
+
+    /// <summary>Opens the settings drawer of the selected game; the vitrine behind it is disabled (no focus, no clicks) until it closes.</summary>
+    public void OpenDrawer()
+    {
+        if (!showcase || current is null || DrawerOpen) return;
+        drawerHost.IsVisible = true; vitrine.IsEnabled = false;
+        Avalonia.Threading.Dispatcher.UIThread.Post(() => drawerClose.Focus(), Avalonia.Threading.DispatcherPriority.Loaded);
+    }
+
+    /// <summary>Closes the drawer; the focus goes back to the button that opened it unless another page took over.</summary>
+    public void CloseDrawer(bool restoreFocus = true)
+    {
+        if (!DrawerOpen) return;
+        drawerHost.IsVisible = false; vitrine.IsEnabled = true;
+        if (restoreFocus) settingsBtn.Focus();
+    }
+
+    /// <summary>Tab and Shift+Tab cycle inside the open drawer instead of reaching the controls behind it.</summary>
+    private void TrapTab(object? sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Tab) return;
+        var items = drawerPanel.GetVisualDescendants().OfType<Control>().Where(c => c.Focusable && c.IsEffectivelyVisible && c.IsEffectivelyEnabled && KeyboardNavigation.GetIsTabStop(c)).ToList();
+        if (items.Count == 0) return;
+        var focused = TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() as Control; bool back = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
+        int i = focused is null ? -1 : items.IndexOf(focused);
+        if (back ? i <= 0 : i < 0 || i == items.Count - 1) { items[back ? items.Count - 1 : 0].Focus(NavigationMethod.Tab); e.Handled = true; }
     }
 
     /// <summary>Hero tags: store and the parts of the profile that are on (refreshed whenever the profile changes).</summary>
@@ -626,6 +813,7 @@ public sealed class LauncherPage : Grid
 
     private void Filter()
     {
+        if (showcase) { FilterPosters(); return; }
         string? keep = current?.Key;
         list.Children.Clear();
         var shown = Shown();
@@ -673,6 +861,16 @@ public sealed class LauncherPage : Grid
     /// the classic two-pane layout (library on the left, details on the right).</summary>
     private void ApplyLayout(bool force = false)
     {
+        if (showcase)
+        {
+            if (libraryBody is null) return;
+            double w = Bounds.Width > 0 ? Bounds.Width : 1180;
+            var m = ShowcaseLayout.Compute(w);
+            hero.IsVisible = current is not null; hero.MinHeight = ShowcaseLayout.HeroHeight(Bounds.Height);
+            drawerPanel.Width = m.DrawerFull ? double.NaN : m.Drawer; drawerPanel.HorizontalAlignment = m.DrawerFull ? HorizontalAlignment.Stretch : HorizontalAlignment.Right;
+            if (Math.Abs(m.Cover - posterWidth) >= 1) { posterWidth = m.Cover; Filter(); }
+            return;
+        }
         if (leftPane is null) return;
         bool browse = current is null;
         double width = Bounds.Width > 0 ? Bounds.Width : 1100;
@@ -685,10 +883,159 @@ public sealed class LauncherPage : Grid
         if (cols != columns || force) { columns = cols; Filter(); }
     }
 
+    /// <summary>Visual state of one poster: ring opacity follows selection, keyboard focus and pointer hover.</summary>
+    private sealed class PosterState(Border ring, Grid cover, TextBlock name)
+    {
+        public bool Selected, Hover, Focused;
+        public void Apply()
+        {
+            ring.Opacity = Selected ? 1 : Focused ? 0.8 : Hover ? 0.45 : 0;
+            cover.RenderTransform = TransformOperations.Parse(Hover || Focused ? "scale(1.03)" : "scale(1)");
+            name.Foreground = Selected ? Palette.AccentText : Palette.Fg;
+        }
+    }
+
+    private DateTimeOffset? LastPlayedOf(LibGame g) =>
+        new[] { g }.Concat(MergedOf(g)).Select(x => settings.GameProfiles.GetValueOrDefault(SettingsKey(x))?.LastPlayed).Max();
+
+    private void FilterPosters()
+    {
+        // "Recentes" only exists once some game has a recorded last-played time.
+        var recent = chips.Children.OfType<ToggleButton>().FirstOrDefault(c => c.Name == "LFilter_" + GameFilter.Recent);
+        bool anyRecent = Visible().Any(g => LastPlayedOf(g) is not null);
+        if (recent is not null) recent.IsVisible = anyRecent;
+        if (!anyRecent && filter == GameFilter.Recent) filter = GameFilter.All;
+        foreach (var chip in chips.Children.OfType<ToggleButton>()) { bool on = chip.Name == "LFilter_" + filter; chip.IsChecked = on; UiKit.ChipStyle(chip, on); }
+        posters.Children.Clear(); posterStates.Clear();
+        var shown = Shown().Where(g => GameFilters.Matches(g, filter, LastPlayedOf)).ToList();
+        if (filter == GameFilter.Recent) shown = shown.OrderByDescending(g => LastPlayedOf(g)).ToList();
+        foreach (var g in shown)
+        {
+            var item = Poster(g, posterWidth);
+            if (IsHidden(g)) item.Opacity = 0.55;
+            var game = g; item.Click += (_, _) => { Select(game); vitrine.Offset = default; }; // the hero is at the top: bring it into view
+            posters.Children.Add(item);
+        }
+        UpdateRings();
+        emptyBox.IsVisible = shown.Count == 0;
+        empty.Text = games.Count == 0 ? L.T("Nenhum jogo na biblioteca.") : Visible().Count == 0 && HiddenCount() is > 0 and var hiddenN ? L.T($"Jogos ocultos: {hiddenN}. Marque Mostrar ocultos para vê-los.")
+            : (search.Text ?? "").Trim().Length == 0 && filter != GameFilter.All ? L.T("Nenhum jogo neste filtro.") : L.T("Nenhum jogo com esse nome.");
+        // The window opens on the game played last (else the first one); the hero never sits empty while there is a library.
+        if (current is null && Shown() is { Count: > 0 } all) Select(GameFilters.MostRecent(all, LastPlayedOf) ?? all[0]);
+    }
+
+    private void UpdateRings() { foreach (var (key, st) in posterStates) { st.Selected = key == current?.Key; st.Apply(); } }
+
+    /// <summary>Landscape cover (16:9): the game's wide art cropped to fill, or its initials on a card; accent ring and a slight lift on hover and focus.</summary>
+    private Button Poster(LibGame g, double w)
+    {
+        double h = Math.Round(w * 9 / 16);
+        var art = ArtFor(g, hero: false);
+        var face = new Border { CornerRadius = new CornerRadius(12), ClipToBounds = true, Background = art is null ? Palette.Card : new ImageBrush { Source = art, Stretch = Stretch.UniformToFill } };
+        if (art is null) face.Child = new TextBlock { Text = GameArt.Initials(g.Name), FontSize = Math.Max(24, h * 0.36), FontWeight = FontWeight.Bold, Foreground = Palette.Muted, LetterSpacing = 1, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+        var ring = new Border { CornerRadius = new CornerRadius(12), BorderBrush = Palette.Accent, BorderThickness = new Thickness(2), Opacity = 0, IsHitTestVisible = false, Transitions = [new DoubleTransition { Property = OpacityProperty, Duration = IlmenyxTheme.Fast, Easing = IlmenyxTheme.Premium }] };
+        var cover = new Grid
+        {
+            Width = w, Height = h, Children = { face, ring }, RenderTransformOrigin = RelativePoint.Center, RenderTransform = TransformOperations.Parse("scale(1)"),
+            Transitions = [new TransformOperationsTransition { Property = RenderTransformProperty, Duration = IlmenyxTheme.Fast, Easing = IlmenyxTheme.Premium }],
+        };
+        var name = new TextBlock { Text = g.Name, FontSize = 12.5, FontWeight = FontWeight.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(2, 8, 2, 0) };
+        var store = new TextBlock { Text = g.Subtitle, FontSize = 11, Foreground = Palette.Faint, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(2, 0, 2, 0) };
+        var state = new PosterState(ring, cover, name); posterStates[g.Key] = state;
+        var b = new Button
+        {
+            Name = "LGame_" + SafeName(g.Key), Width = w, Padding = new Thickness(0), CornerRadius = new CornerRadius(12), Background = Brushes.Transparent, BorderThickness = new Thickness(0),
+            HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Top, Content = new StackPanel { Children = { cover, name, store } },
+        };
+        foreach (var key in new[] { "ButtonBackgroundPointerOver", "ButtonBackgroundPressed", "ButtonBackgroundDisabled" }) b.Resources[key] = Brushes.Transparent;
+        foreach (var key in new[] { "ButtonBorderBrushPointerOver", "ButtonBorderBrushPressed" }) b.Resources[key] = Brushes.Transparent;
+        AutomationProperties.SetName(b, g.Name + " (" + g.Subtitle + ")");
+        b.PointerEntered += (_, _) => { state.Hover = true; state.Apply(); };
+        b.PointerExited += (_, _) => { state.Hover = false; state.Apply(); };
+        b.GotFocus += (_, _) => { state.Focused = true; state.Apply(); };
+        b.LostFocus += (_, _) => { state.Focused = false; state.Apply(); };
+        return b;
+    }
+
+    /// <summary>Arrow keys move between covers (the grid is a single Tab stop).</summary>
+    private void MovePosterFocus(KeyEventArgs e)
+    {
+        if (e.Key is not (Key.Left or Key.Right or Key.Up or Key.Down or Key.Home or Key.End) || TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() is not Button f) return;
+        var items = posters.Children.OfType<Button>().ToList(); int i = items.IndexOf(f); if (i < 0) return;
+        int perRow = Math.Max(1, ShowcaseLayout.Compute(Bounds.Width > 0 ? Bounds.Width : 1180).Columns);
+        int next = e.Key switch { Key.Left => i - 1, Key.Right => i + 1, Key.Up => i - perRow, Key.Down => i + perRow, Key.Home => 0, _ => items.Count - 1 };
+        items[Math.Clamp(next, 0, items.Count - 1)].Focus(NavigationMethod.Directional); e.Handled = true;
+    }
+
+    /// <summary>Achievements of the hero: only Steam games whose list Steam already cached on this PC (local files, no network); otherwise no pill.</summary>
+    private async Task LoadAchievementSummaryAsync(LibGame g)
+    {
+        if (!showcase) return;
+        int gen = ++achGen; heroAch = null; UpdateHeroStats();
+        if (!g.IsSteam) return;
+        var roots = library.SteamRoots().ToList(); var p = profile; string lang = Achievements.SteamLanguage(L.Current);
+        (int Got, int Total)? result;
+        try
+        {
+            result = await Task.Run(() =>
+            {
+                if (AchievementFiles.Find(g, p, roots) is not { } source || AchievementFiles.SteamSchema(roots, source.AppId, lang) is not { } schema) return ((int, int)?)null;
+                var unlocks = AchievementFiles.ReadUnlocks(source, schema.Bits);
+                return (schema.Defs.Count(d => unlocks.ContainsKey(d.Id)), schema.Defs.Count);
+            });
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return; }
+        if (gen != achGen || current?.Key != g.Key || result is not { Total: > 0 } r) return;
+        heroAch = r; UpdateHeroStats();
+    }
+
+    /// <summary>The hero's stat pills, from real local data only: typical FPS measured on this PC, achievements read from local files and the play time Ilmenyx recorded. Nothing is shown for what is not known.</summary>
+    private void UpdateHeroStats()
+    {
+        heroStats.Children.Clear();
+        if (!showcase || current is null) return;
+        if (fpsGroups.Count > 0) heroStats.Children.Add(StatPill("LStatFps", Icons.Fps, L.T($"{fpsGroups[Math.Max(0, fpsGroupBox.SelectedIndex)].TypicalFps:0} FPS típico")));
+        if (heroAch is { } a) heroStats.Children.Add(StatPill("LStatAch", Icons.Achievements, L.T($"Conquistas: {a.Got} de {a.Total}")));
+        if (profile is { PlayedSeconds: >= 60 } p) heroStats.Children.Add(StatPill("LStatTime", Icons.Play, L.T($"Tempo jogado: {PlayTimeText(p.PlayedSeconds)}")));
+    }
+
+    private static Border StatPill(string name, string icon, string text)
+    {
+        var pill = new Border
+        {
+            Name = name, Background = HeroScrim.Glass(), BorderBrush = Palette.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(IlmenyxTheme.Pill), Padding = new Thickness(12, 6), Margin = new Thickness(0, 0, 8, 8),
+            Child = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 7, Children = { UiKit.Icon(icon, 14, Palette.Fg), new TextBlock { Text = text, FontSize = 12.5, FontWeight = FontWeight.Medium, Foreground = Palette.Fg, VerticalAlignment = VerticalAlignment.Center } } },
+        };
+        AutomationProperties.SetName(pill, text);
+        return pill;
+    }
+
+    /// <summary>"45 min" under an hour, "3 h 20 min" above.</summary>
+    internal static string PlayTimeText(double seconds)
+    {
+        int minutes = (int)(seconds / 60);
+        return minutes < 60 ? L.T($"{minutes} min") : L.T($"{minutes / 60} h {minutes % 60} min");
+    }
+
+    /// <summary>Paints the hero for the selected game: label, art (the new picture fades in over the old one) and stats.</summary>
+    private void PaintVitrine(LibGame g, Bitmap? art)
+    {
+        bool last = GameFilters.MostRecent(Visible(), LastPlayedOf)?.Key == g.Key;
+        heroLabel.Text = last ? L.T("Continuar jogando") : g.Kind ?? g.Store;
+        drawerGame.Text = g.Name;
+        heroInitials.Text = GameArt.Initials(g.Name); heroInitials.IsVisible = art is null;
+        heroBack.Background = art is null ? null : heroFront.Background; // the previous picture stays under the new one while it fades in
+        var fade = heroFront.Transitions; heroFront.Transitions = null; heroFront.Opacity = art is null || heroBack.Background is null ? 1 : 0;
+        heroFront.Background = art is null ? null : new ImageBrush { Source = art, Stretch = Stretch.UniformToFill };
+        heroFront.Transitions = fade;
+        if (heroFront.Opacity < 1) Avalonia.Threading.Dispatcher.UIThread.Post(() => heroFront.Opacity = 1, Avalonia.Threading.DispatcherPriority.Render);
+        UpdateHeroStats();
+    }
+
     private void FocusTile(LibGame g)
     {
         string name = "LGame_" + SafeName(g.Key);
-        foreach (var b in list.Children.SelectMany(c => c is Grid r ? r.Children : [c]).OfType<Button>()) if (b.Name == name) { b.Focus(); return; }
+        foreach (var b in (showcase ? posters.Children : list.Children).SelectMany(c => c is Grid r ? r.Children : [c]).OfType<Button>()) if (b.Name == name) { b.Focus(); return; }
     }
 
     public static string SafeName(string key) => new(key.Select(c => char.IsAsciiLetterOrDigit(c) ? c : '_').ToArray());
@@ -696,12 +1043,12 @@ public sealed class LauncherPage : Grid
     public void Select(LibGame? g)
     {
         current = g; HideSuggestion();
-        if (g is null) { profile = null; also.IsVisible = false; ApplyLayout(force: true); UpdateButtons(); return; }
+        if (g is null) { profile = null; also.IsVisible = false; ApplyLayout(force: true); if (showcase) UpdateRings(); UpdateButtons(); return; }
         ApplyLayout(force: true);
         if (!settings.GameProfiles.TryGetValue(SettingsKey(g), out var p)) { p = new GameProfile(); settings.GameProfiles[SettingsKey(g)] = p; }
         loading = true; profile = p;
         foreach (var n in changeNotes.Values) n.IsVisible = false;
-        title.Text = g.Name; sub.Text = g.InstallDir.Length > 0 ? $"{g.Subtitle} · {g.InstallDir}" : g.ExePath is { } exe ? $"{g.Subtitle} · {exe} {g.Args}".TrimEnd() : g.Subtitle;
+        title.Text = g.Name; sub.Text = showcase ? "" : g.InstallDir.Length > 0 ? $"{g.Subtitle} · {g.InstallDir}" : g.ExePath is { } exe ? $"{g.Subtitle} · {exe} {g.Args}".TrimEnd() : g.Subtitle;
         var art = ArtFor(g, hero: true); heroArt = art is not null;
         if (art is null && g.Store == "Manual")
         {
@@ -709,8 +1056,8 @@ public sealed class LauncherPage : Grid
             else if (!g.IsWindowsManual && p.CoverPath is null && artTried.Add("lookup:" + g.Key)) _ = LookUpSteamIdAsync(automatic: true); // cover only; Proton settings stay .exe-only
         }
         coverReset.IsVisible = p.CoverPath is { Length: > 0 }; coverStatus.Text = "";
-        hero.Background = art is null ? UiKit.HeroBrush() : new ImageBrush { Source = art, Stretch = Stretch.UniformToFill };
-        heroScrim.IsVisible = heroArt; title.Foreground = heroArt ? Brushes.White : Palette.Fg; sub.Foreground = also.Foreground = heroArt ? GameArt.OnImageMuted : Palette.Muted;
+        if (showcase) PaintVitrine(g, art);
+        else { hero.Background = art is null ? UiKit.HeroBrush() : new ImageBrush { Source = art, Stretch = Stretch.UniformToFill }; heroScrim.IsVisible = heroArt; title.Foreground = heroArt ? Brushes.White : Palette.Fg; sub.Foreground = also.Foreground = heroArt ? GameArt.OnImageMuted : Palette.Muted; }
         also.IsVisible = MergedOf(g).Count > 0; also.Text = also.IsVisible ? L.T("Também aparece como: ") + GameDedup.AlsoAppearsAs(MergedOf(g)) : "";
         chkPlan.IsChecked = p.HighPerfPlan; chkGpu.IsChecked = p.GpuHigh && multiGpu; chkGameMode.IsChecked = p.GameMode; chkMango.IsChecked = p.MangoHud; chkMeasure.IsChecked = p.MeasureFps; UpdateFlatpakMango(g); UpdateMeasure(); chkGuard.IsChecked = p.FullscreenGuard; chkGuard.IsVisible = multiGpu && gpuVendor == "NVIDIA";
         modeChips!.Select(p.WinMode); resChips!.Select(p.Res); hzChips!.Select(p.Hz); styleChips!.Select(p.Style); gfxPresetChips!.Select(p.GfxPreset ?? ""); gfxUpChips!.Select(p.GfxUpscaling ?? ""); extra.Text = p.Extra; exePath.Text = p.ExePath ?? g.ExePath ?? "";
@@ -721,15 +1068,16 @@ public sealed class LauncherPage : Grid
         chkWayland.IsChecked = p.ProtonWayland; chkLowLat.IsChecked = p.LowLatency; extrasBox.IsVisible = g.IsSteam || g.IsWindowsManual;
         protonName = g.IsSteam ? steam.CompatToolName(g.Id) : !g.IsWindowsManual ? null
             : p.Runner is { Length: > 0 } chosen && Path.IsPathFullyQualified(chosen) ? Path.GetFileName(chosen) : (UmuProton ?? (() => LinuxGameExtras.UmuProtonName()))();
+        if (showcase) sub.Text = protonName is { Length: > 0 } runner ? g.Subtitle + " · " + runner : g.Subtitle; // store · the Proton/Wine that runs it
         RebuildHelpers(); RebuildAchFix();
         steamBox.IsVisible = g.IsSteam; steamNow.Text = g.IsSteam ? L.T("Opções atuais na Steam: ") + (steam.GetLaunchOptions(g.Id) is { Length: > 0 } cur ? cur : L.T("(nenhuma)")) : "";
         gfxNote.Text = g.IsSteam ? L.T("Os argumentos e variáveis só passam a valer na Steam depois de Aplicar nas opções da Steam (a Steam é fechada nessa hora). Depois, o Jogar abre pela Steam normalmente.")
             : g.LaunchUri is not null ? L.T("Esta loja abre o jogo por um atalho que não aceita argumentos: use as opções de inicialização da própria loja. Desempenho e programas auxiliares funcionam normalmente.")
             : L.T("Os argumentos são enviados direto ao executável quando você clica em Jogar.");
         status.Text = following.ContainsKey(g.Key) ? L.T($"Abrindo {g.Name}…") : running.Contains(g.Key) ? L.T($"{g.Name} em execução.") : ""; loading = false; UpdatePreview(); ShowExe(g, p);
-        Filter();
+        if (showcase) UpdateRings(); else Filter();
         UpdateButtons(); _ = DetectSelectedAsync(g);
-        RefreshMeasured(); _ = DetectQualityAsync(g, p);
+        RefreshMeasured(); _ = DetectQualityAsync(g, p); _ = LoadAchievementSummaryAsync(g);
     }
 
     private void RefreshMeasured()
@@ -742,6 +1090,7 @@ public sealed class LauncherPage : Grid
             fpsEmpty.Text = (current is { } cg && (cg.IsSteam || cg.LaunchUri is not null)
                 ? L.T("Na Steam e nas outras lojas o FPS só é medido com o MangoHud nas opções de inicialização (na Steam: marque MangoHud e use Aplicar nas opções da Steam). ")
                 : L.T("A média aparece depois de você jogar abrindo o jogo pelo Ilmenyx, com Medir FPS ou MangoHud ligado, por pelo menos 1 minuto. ")) + L.T("Só conta o jogo em si: os 20 s iniciais, os 3 s finais e as travadas de carregamento ficam de fora, para o menu e o carregamento não inflarem o número. Nenhum valor é inventado.");
+            UpdateHeroStats();
             return;
         }
         loadingGroups = true; fpsGroupBox.ItemsSource = fpsGroups.Select(g => (g.Resolution ?? L.T("resolução não informada")) + " · " + (g.Quality is { } q ? QualityLabel(q) : L.T("qualidade não informada"))).ToList(); fpsGroupBox.SelectedIndex = 0; loadingGroups = false;
@@ -757,6 +1106,7 @@ public sealed class LauncherPage : Grid
         string time = g.Hours < 1 ? L.T($"{g.Hours * 60:0} min") : L.T($"{g.Hours:0.#} h");
         fpsInfo.Text = (g.Sessions == 1 ? L.T($"1 sessão · {time} neste PC") : L.T($"{g.Sessions} sessões · {time} neste PC")) + L.T($" · última em {g.Last.ToLocalTime():dd/MM/yyyy HH:mm}")
             + (g.CappedAt is { } cap ? L.T($". Limitado a {cap:0} FPS (vsync ou limite do jogo): o PC pode render mais.") : "");
+        UpdateHeroStats();
     }
 
     private async Task DetectQualityAsync(LibGame g, GameProfile p)
@@ -944,17 +1294,17 @@ public sealed class LauncherPage : Grid
 
     /// <summary>Artwork of a library game: Steam's local cache; for a hand-added Windows game with a Steam ID, that ID's local Steam
     /// cache or the image already downloaded for it (Steam CDN, kept in the Compatibility cache).</summary>
-    private Bitmap? ArtFor(LibGame g, bool hero)
+    private Bitmap? ArtFor(LibGame g, bool hero, bool portrait = false)
     {
         if (CoverOf(g) is { } cover && GameArt.FromFile(cover, hero) is { } custom) return custom;
-        if (g.IsSteam) return GameArt.Steam(steamRoot, g.Id, hero);
+        if (g.IsSteam) return GameArt.Steam(steamRoot, g.Id, hero, portrait);
         if (g.Store == "Linux")
         {
             if (nativeArt.Cached(g.Id) is { } shot) return GameArt.FromFile(shot, hero);
             FetchNativeArtLater(g); return null;
         }
         if (g.Store != "Manual" || !settings.GameProfiles.TryGetValue(SettingsKey(g), out var gp) || (gp.ProtonGameId ?? gp.ArtSteamId) is not { Length: > 0 } id) return null;
-        return GameArt.Steam(steamRoot, id, hero) ?? GameArt.FromFile(ArtCache.CachedArt(id), hero);
+        return GameArt.Steam(steamRoot, id, hero, portrait) ?? GameArt.FromFile(ArtCache.CachedArt(id), hero);
     }
 
     private static readonly CompatOnline ArtCache = new(CompatPaths.Folder());
@@ -1363,8 +1713,8 @@ public sealed class LauncherPage : Grid
         stopWatch.IsVisible = k is not null && (opening || watchers.ContainsKey(k));
         closeGame.IsVisible = on && !closing.Contains(k!);
         playProgress.IsVisible = opening && !on && !opened.Contains(k!);
-        if (playFocus && !play.IsEnabled) (stopWatch.IsVisible ? stopWatch : backToLibrary).Focus();
-        else if (stopFocus && !stopWatch.IsVisible) (play.IsEnabled ? play : backToLibrary).Focus();
+        if (playFocus && !play.IsEnabled) (stopWatch.IsVisible ? stopWatch : FocusFallback).Focus();
+        else if (stopFocus && !stopWatch.IsVisible) (play.IsEnabled ? play : FocusFallback).Focus();
         UpdateLive();
     }
 
@@ -1395,7 +1745,7 @@ public sealed class LauncherPage : Grid
         finally
         {
             closing.Remove(key); UpdateButtons();
-            if (hadFocus && current?.Key == key) (closeGame.IsVisible ? closeGame : play.IsEnabled ? play : backToLibrary).Focus(); // the button was hidden during the question
+            if (hadFocus && current?.Key == key) (closeGame.IsVisible ? closeGame : play.IsEnabled ? play : FocusFallback).Focus(); // the button was hidden during the question
         }
     }
 
@@ -1461,7 +1811,7 @@ public sealed class LauncherPage : Grid
         finally
         {
             stopping = false; UpdateButtons();
-            if (hadFocus && !stopWatch.IsVisible && current?.Key == key) (closeGame.IsVisible ? closeGame : play.IsEnabled ? play : backToLibrary).Focus();
+            if (hadFocus && !stopWatch.IsVisible && current?.Key == key) (closeGame.IsVisible ? closeGame : play.IsEnabled ? play : FocusFallback).Focus();
         }
     }
 
@@ -1552,7 +1902,7 @@ public sealed class LauncherPage : Grid
             var session = await launch(g, launchProfile, gpuVendor, t => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                 {
                     if (current?.Key == key) status.Text = t;
-                    if (t.Contains(L.T(" em execução"), StringComparison.Ordinal)) { opened.Add(key); SetRunning(key, true); }
+                    if (t.Contains(L.T(" em execução"), StringComparison.Ordinal)) { opened.Add(key); playSince.TryAdd(key, DateTimeOffset.UtcNow); SetRunning(key, true); }
                     else if (t.StartsWith(L.T("Não detectei"), StringComparison.Ordinal)) opened.Add(key);
                     UpdateButtons();
                 }),
@@ -1570,9 +1920,19 @@ public sealed class LauncherPage : Grid
         finally
         {
             following.Remove(key); follow.Dispose(); launchProfiles.Remove(key);
+            RecordPlay(key);
             try { ApplyRunning(g, await RunningNowAsync(g, lifetime)); } catch (OperationCanceledException) { } // a running game keeps its watch and the Jogar stays off
             UpdateButtons(); EnsureTimer();
         }
+    }
+
+    /// <summary>Last played and play time: only for a game Ilmenyx opened and followed (its process seen) until it stopped following; games opened elsewhere are not counted.</summary>
+    private void RecordPlay(string key)
+    {
+        if (!playSince.Remove(key, out var since)) return;
+        double seconds = (DateTimeOffset.UtcNow - since).TotalSeconds;
+        UpdateProfile(key, gp => gp.RecordPlay(since, seconds));
+        if (showcase) { Filter(); if (current?.Key == key) { heroLabel.Text = L.T("Continuar jogando"); UpdateHeroStats(); } }
     }
 
     /// <summary>
@@ -1637,11 +1997,13 @@ internal static class GameArt
     public static readonly IBrush OnImageMuted = new SolidColorBrush(Color.FromArgb(0xD9, 0xFF, 0xFF, 0xFF));
 
     /// <summary>Steam artwork for <paramref name="appId"/>: the wide hero/header images (hero) or the header/capsule (tiles).</summary>
-    public static Bitmap? Steam(string? steamRoot, string appId, bool hero)
+    public static Bitmap? Steam(string? steamRoot, string appId, bool hero, bool portrait = false)
     {
         if (steamRoot is null || appId.Length is 0 or > 12 || !appId.All(char.IsAsciiDigit)) return null;
         string dir = Path.Combine(steamRoot, "appcache", "librarycache");
-        string[] names = hero
+        string[] names = portrait
+            ? [appId + "_library_600x900.jpg", Path.Combine(appId, "library_600x900.jpg"), appId + "_header.jpg", Path.Combine(appId, "header.jpg")]
+            : hero
             ? [appId + "_library_hero.jpg", Path.Combine(appId, "library_hero.jpg"), appId + "_header.jpg", Path.Combine(appId, "header.jpg"), appId + "_library_600x900.jpg", Path.Combine(appId, "library_600x900.jpg")]
             : [appId + "_header.jpg", Path.Combine(appId, "header.jpg"), appId + "_library_600x900.jpg", Path.Combine(appId, "library_600x900.jpg")];
         foreach (var n in names) if (Load(Path.Combine(dir, n), hero ? 1280 : 460) is { } b) return b;
@@ -1721,4 +2083,48 @@ internal static class GameArt
         StartPoint = new RelativePoint(0.5, 0, RelativeUnit.Relative), EndPoint = new RelativePoint(0.5, 1, RelativeUnit.Relative),
         GradientStops = { new GradientStop(Color.FromArgb(0x10, 0, 0, 0), 0), new GradientStop(Color.FromArgb(0x30, 0, 0, 0), 0.45), new GradientStop(Color.FromArgb(0xC0, 0, 0, 0), 1) },
     };
+}
+
+/// <summary>Responsive metrics of the games-only window's vitrine: the grid of landscape covers fills the page width, the hero takes ~45% of the height and the settings drawer goes full width on narrow windows.</summary>
+public static class ShowcaseLayout
+{
+    public const double Gap = 16, MinCover = 190, MaxCover = 250, MinHero = 240, HeroShare = 0.45, DrawerWidth = 400, DrawerBreakpoint = 1000, Sides = 48 /* page margins */ + 8 /* cover padding */ + 14 /* scroll bar */;
+
+    /// <summary>Cover columns and cover width for a page <paramref name="pageWidth"/> wide (never fewer than 2 columns), plus the drawer: its width and whether it covers the whole page.</summary>
+    public static (int Columns, double Cover, double Drawer, bool DrawerFull) Compute(double pageWidth)
+    {
+        double avail = Math.Max(0, pageWidth - Sides);
+        int cols = Math.Max(2, (int)((avail + Gap) / (MinCover + Gap)));
+        double cover = Math.Clamp(Math.Floor((avail - Gap * (cols - 1)) / cols), MinCover * 0.7, MaxCover);
+        return (cols, cover, DrawerWidth, pageWidth < DrawerBreakpoint);
+    }
+
+    /// <summary>Height of the hero: ~45% of the page, never under <see cref="MinHero"/> (it grows by itself when the text wraps).</summary>
+    public static double HeroHeight(double pageHeight) => Math.Max(MinHero, Math.Round(pageHeight * HeroShare));
+}
+
+/// <summary>Scrims over the hero picture, tinted with the theme background so the text on it keeps its contrast whatever the picture is (checked against the worst picture, not a real one).</summary>
+internal static class HeroScrim
+{
+    /// <summary>Opacity of the tint where the text sits (left of the banner, up to <see cref="TextEdge"/> of its width), of the glass pills and buttons.</summary>
+    public const byte TextAlpha = 0xD6, LeftAlpha = 0xF2, RightAlpha = 0x14, BottomAlpha = 0xB0;
+    public const double TextEdge = 0.6;
+
+    private static Color Bg => ((SolidColorBrush)Palette.Bg).Color;
+    private static Color With(byte alpha) => Color.FromArgb(alpha, Bg.R, Bg.G, Bg.B);
+
+    public static IBrush Horizontal() => new LinearGradientBrush
+    {
+        StartPoint = new RelativePoint(0, 0.5, RelativeUnit.Relative), EndPoint = new RelativePoint(1, 0.5, RelativeUnit.Relative),
+        GradientStops = { new GradientStop(With(LeftAlpha), 0), new GradientStop(With(TextAlpha), TextEdge), new GradientStop(With(RightAlpha), 1) },
+    };
+
+    public static IBrush Vertical() => new LinearGradientBrush
+    {
+        StartPoint = new RelativePoint(0.5, 0, RelativeUnit.Relative), EndPoint = new RelativePoint(0.5, 1, RelativeUnit.Relative),
+        GradientStops = { new GradientStop(With(0), 0), new GradientStop(With(0), 0.5), new GradientStop(With(BottomAlpha), 1) },
+    };
+
+    /// <summary>Translucent surface of pills and buttons drawn over the picture.</summary>
+    public static IBrush Glass(byte alpha = TextAlpha) => new SolidColorBrush(With(alpha));
 }

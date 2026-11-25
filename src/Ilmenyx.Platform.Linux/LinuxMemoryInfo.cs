@@ -21,4 +21,18 @@ public static class LinuxMemoryInfo
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
         return 0;
     }
+
+    /// <summary>MemTotal from /proc/meminfo in bytes; 0 when unreadable or invalid (never invented).</summary>
+    public static long TotalBytes(string path = "/proc/meminfo")
+    {
+        try { return LinuxParsers.Memory(File.ReadAllText(path)).Total.Value ?? 0; }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return 0; }
+    }
+
+    /// <summary>"model name" from /proc/cpuinfo; "" when unreadable or absent (never invented).</summary>
+    public static string CpuModel(string path = "/proc/cpuinfo")
+    {
+        try { return LinuxParsers.Cpu(File.ReadAllText(path)).Name.Value ?? ""; }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return ""; }
+    }
 }

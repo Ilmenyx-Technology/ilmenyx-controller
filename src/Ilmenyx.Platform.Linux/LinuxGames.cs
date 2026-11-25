@@ -98,6 +98,7 @@ public sealed class LinuxGameLibrary(string? home = null, Func<IReadOnlyList<str
             {
                 string id = Path.GetFileNameWithoutExtension(f);
                 if (!seen.Add(id)) continue; // XDG: the first folder with this ID wins, even if that entry is hidden
+                if (id.StartsWith("ilmenyx-jogo", StringComparison.Ordinal)) continue; // Ilmenyx's own shortcuts (AppShortcuts): not games; they would match the running Ilmenyx
                 NativeGame? n;
                 try { n = new FileInfo(f).Length <= NativeGames.MaxBytes ? NativeGames.FromEntry(id, File.ReadAllText(f), flatpak) : null; }
                 catch (Exception e) when (e is IOException or UnauthorizedAccessException) { continue; }
